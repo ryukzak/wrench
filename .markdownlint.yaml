@@ -1,0 +1,4 @@
+MD013: false # Line length
+MD007: # Unordered list indentation
+  indent: 4
+MD051: false # Link fragments should be valid

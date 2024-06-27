@@ -1,0 +1,74 @@
+8:	Lui {rd = T0, k = 0}  	@_start ;;
+0 0 0 0 ;;
+12:	Addi {rd = T0, rs1 = T0, k = 0} ;;
+0 0 0 0 ;;
+16:	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}} ;;
+128 0 0 0 ;;
+20:	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}} ;;
+128 5 0 0 ;;
+24:	Li {rd = T2, k = 1}  	@factorial_begin ;;
+128 5 1 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 5 1 0 ;;
+32:	Mul {rd = T2, rs1 = T2, rs2 = T1} ;;
+128 5 5 0 ;;
+36:	Addi {rd = T1, rs1 = T1, k = -1} ;;
+128 4 5 0 ;;
+40:	J {k = -12} ;;
+128 4 5 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 4 5 0 ;;
+32:	Mul {rd = T2, rs1 = T2, rs2 = T1} ;;
+128 4 20 0 ;;
+36:	Addi {rd = T1, rs1 = T1, k = -1} ;;
+128 3 20 0 ;;
+40:	J {k = -12} ;;
+128 3 20 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 3 20 0 ;;
+32:	Mul {rd = T2, rs1 = T2, rs2 = T1} ;;
+128 3 60 0 ;;
+36:	Addi {rd = T1, rs1 = T1, k = -1} ;;
+128 2 60 0 ;;
+40:	J {k = -12} ;;
+128 2 60 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 2 60 0 ;;
+32:	Mul {rd = T2, rs1 = T2, rs2 = T1} ;;
+128 2 120 0 ;;
+36:	Addi {rd = T1, rs1 = T1, k = -1} ;;
+128 1 120 0 ;;
+40:	J {k = -12} ;;
+128 1 120 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 1 120 0 ;;
+32:	Mul {rd = T2, rs1 = T2, rs2 = T1} ;;
+128 1 120 0 ;;
+36:	Addi {rd = T1, rs1 = T1, k = -1} ;;
+128 0 120 0 ;;
+40:	J {k = -12} ;;
+128 0 120 0 ;;
+28:	Beqz {rs1 = T1, k = 16}  	@factorial_while ;;
+128 0 120 0 ;;
+44:	Lui {rd = T0, k = 4}  	@factorial_end ;;
+0 0 120 0 ;;
+48:	Addi {rd = T0, rs1 = T0, k = 4} ;;
+4 0 120 0 ;;
+52:	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}} ;;
+132 0 120 0 ;;
+56:	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}} ;;
+132 0 120 0 ;;
+60:	Halt ;;
+132 0 120 0
+---
+numio[0x80]:  [] >>> []
+numio[0x84]:  [] >>> [120]
+
+ASSERTION FAIL, expect:
+bla=bla
+Diff:
+1,2c1
+< numio[0x80]:  [] >>> []
+< numio[0x84]:  [] >>> [120]
+---
+> bla=bla

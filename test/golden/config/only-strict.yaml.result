@@ -1,0 +1,15 @@
+Config
+    { cLimit = 900
+    , cMemorySize = 144
+    , cInputStreams = Nothing
+    , cInputStreamsFlat = Nothing
+    , cReports = Just
+        [ ReportConf
+            { rcName = Just "InstructionLog"
+            , rcSlice = AllSlice
+            , rcFilter = [ IsInstruction ]
+            , rcInspector = Nothing
+            , rcAssert = Nothing
+            }
+        ]
+    }

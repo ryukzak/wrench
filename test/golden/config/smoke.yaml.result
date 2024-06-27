@@ -1,0 +1,103 @@
+Config
+    { cLimit = 900
+    , cMemorySize = 144
+    , cInputStreams = Just
+        ( fromList
+            [
+                ( "99"
+                ,
+                    [ Num 1
+                    , Num 2
+                    , Num 3
+                    , Chars
+                        [ 104
+                        , 101
+                        , 108
+                        , 108
+                        , 111
+                        ] "hello"
+                    ]
+                )
+            ]
+        )
+    , cInputStreamsFlat = Just
+        ( fromList
+            [
+                ( 99
+                ,
+                    (
+                        [ 1
+                        , 2
+                        , 3
+                        , 104
+                        , 101
+                        , 108
+                        , 108
+                        , 111
+                        ]
+                    , []
+                    )
+                )
+            ]
+        )
+    , cReports = Just
+        [ ReportConf
+            { rcName = Just "foo"
+            , rcSlice = LastSlice
+            , rcFilter =
+                [ IsState
+                , IsInstruction
+                ]
+            , rcInspector = Just
+                [ StateInspector
+                    [ Register "T1"
+                    , Register "T2"
+                    , MemoryCells
+                        ( 0
+                        , 11
+                        )
+                    ]
+                , StateInspector
+                    [ NumberIoStream 99
+                    , SymbolIoStream 99
+                    ]
+                ]
+            , rcAssert = Nothing
+            }
+        , ReportConf
+            { rcName = Nothing
+            , rcSlice = AllSlice
+            , rcFilter = [ IsInstruction ]
+            , rcInspector = Nothing
+            , rcAssert = Nothing
+            }
+        , ReportConf
+            { rcName = Nothing
+            , rcSlice = HeadSlice 10
+            , rcFilter = [ IsInstruction ]
+            , rcInspector = Nothing
+            , rcAssert = Nothing
+            }
+        , ReportConf
+            { rcName = Nothing
+            , rcSlice = TailSlice 10
+            , rcFilter = [ IsInstruction ]
+            , rcInspector = Just
+                [ StateInspector
+                    [ Label "T1"
+                    , Register "T1"
+                    , Register "T2"
+                    , MemoryCells
+                        ( 0
+                        , 11
+                        )
+                    ]
+                , StateInspector
+                    [ NumberIoStream 99
+                    , SymbolIoStream 99
+                    ]
+                ]
+            , rcAssert = Nothing
+            }
+        ]
+    }

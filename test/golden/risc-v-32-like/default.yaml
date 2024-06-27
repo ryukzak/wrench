@@ -1,0 +1,18 @@
+limit: 200
+memory_size: 0x90
+input_streams:
+  88: []
+reports:
+  - filter: [instruction]
+    slice: all
+    inspector:
+      - - [register, T0]
+        - [register, T1]
+        - [register, T2]
+        - [register, T3]
+  - filter: [state]
+    slice: last
+    inspector:
+      - - [memory_cells, 4, 7]
+      - - [label, "numio[88]: "]
+        - [number_io_stream, 88]

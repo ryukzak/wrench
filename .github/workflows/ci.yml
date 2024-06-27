@@ -1,0 +1,116 @@
+name: wrench CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  wrench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        name: Cache ~/.stack
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-global-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-global-
+
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
+
+      - name: Build & test
+        run: make build test test-examples
+
+  haskell-lint:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Set up HLint"
+        uses: haskell-actions/hlint-setup@v2
+        with:
+          version: "3.8"
+
+      - name: "Run HLint"
+        uses: haskell-actions/hlint-run@v2
+        with:
+          path: .
+          fail-on: warning
+
+  haskell-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: haskell-actions/run-fourmolu@v10
+        with:
+          version: "0.16.2.0"
+
+  markdown-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Run mdl for check markdown format
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: .
+          config_file: .markdownlint.yaml
+
+  build-release:
+    name: Build and Release Binary
+    needs:
+      - wrench
+      - haskell-formatting
+      - haskell-lint
+    if: github.ref == 'refs/heads/master'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        name: Cache ~/.stack
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-global-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-global-
+
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
+
+      - name: Build binary
+        run: |
+          stack build
+          stack install --local-bin-path ./dist
+
+      - name: Upload Binary as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.os }}-${{ matrix.arch }}
+          path: ./dist/*

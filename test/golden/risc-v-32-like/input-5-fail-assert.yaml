@@ -1,0 +1,22 @@
+limit: 200
+memory_size: 0x90
+input_streams:
+  0x80: [5]
+  0x84: []
+reports:
+  - filter: [instruction, state]
+    slice: all
+    inspector:
+      - - [register, T0]
+        - [register, T1]
+        - [register, T2]
+        - [register, T3]
+  - filter: [state]
+    slice: last
+    inspector:
+      - - [label, "numio[0x80]: "]
+        - [number_io_stream, 0x80]
+      - - [label, "numio[0x84]: "]
+        - [number_io_stream, 0x84]
+    assert: |
+      bla=bla

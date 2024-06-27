@@ -1,0 +1,3 @@
+input_streams:
+  99: [1, 2, 3, "hello"]
+memory_size: 0x90

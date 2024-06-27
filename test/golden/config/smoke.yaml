@@ -1,0 +1,32 @@
+limit: 900
+memory_size: 0x90
+input_streams:
+  99: [1, 2, 3, "hello"]
+reports:
+  - name: foo
+    slice: last
+    filter:
+      - state
+      - instruction
+    inspector:
+      - - [register, T1]
+        - [register, T2]
+        - [memory_cells, 0, 11]
+      - - [number_io_stream, 99]
+        - [symbol_io_stream, 99]
+  - slice: all
+    filter:
+      - instruction
+  - slice: [head, 10]
+    filter:
+      - instruction
+  - slice: [tail, 10]
+    filter:
+      - instruction
+    inspector:
+      - - [label, T1]
+        - [register, T1]
+        - [register, T2]
+        - [memory_cells, 0, 11]
+      - - [number_io_stream, 99]
+        - [symbol_io_stream, 99]

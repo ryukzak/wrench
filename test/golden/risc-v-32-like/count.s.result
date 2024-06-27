@@ -1,0 +1,28 @@
+0:	acc
+4:	step
+8:	out_port
+12:	limit
+16:	_start
+64:	count
+84:	end
+---
+mem[0..15]: 	00 00 00 00 00 00 00 02 00 00 00 58 00 00 00 15
+mem[16..19]: 	Lui {rd = T0, k = 4} 	@_start
+mem[20..23]: 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[24..27]: 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[28..31]: 	Lui {rd = T0, k = 0}
+mem[32..35]: 	Addi {rd = T0, rs1 = T0, k = 0}
+mem[36..39]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[40..43]: 	Lui {rd = T3, k = 8}
+mem[44..47]: 	Addi {rd = T3, rs1 = T3, k = 8}
+mem[48..51]: 	Lw {rd = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T3}}
+mem[52..55]: 	Lui {rd = T6, k = 12}
+mem[56..59]: 	Addi {rd = T6, rs1 = T6, k = 12}
+mem[60..63]: 	Lw {rd = T5, offsetRs1 = MemRef {mrOffset = 0, mrReg = T6}}
+mem[64..67]: 	Add {rd = T2, rs1 = T2, rs2 = T1} 	@count
+mem[68..71]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[72..75]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}
+mem[76..79]: 	Bgt {rs1 = T2, rs2 = T5, k = 8}
+mem[80..83]: 	J {k = -16}
+mem[84..87]: 	Halt 	@end
+mem[88..127]: 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
