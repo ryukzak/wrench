@@ -15,8 +15,7 @@ module Translator.Types (
     deref',
     Ref (..),
     derefSection,
-)
-where
+) where
 
 import Data.Default (Default, def)
 import Machine.Types
@@ -41,10 +40,10 @@ instance (ByteLength isa, ByteLength w, Default w) => ByteLength (Section isa w 
 derefSection ::
     forall isa w.
     (MachineWord w, ByteLength (isa (Ref w)), DerefMnemonic isa w) =>
-    (String -> Maybe w) ->
-    w ->
-    Section (isa (Ref w)) w String ->
-    Section (isa w) w w
+    (String -> Maybe w)
+    -> w
+    -> Section (isa (Ref w)) w String
+    -> Section (isa w) w w
 derefSection f offset Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]

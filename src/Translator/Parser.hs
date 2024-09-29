@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Translator.Parser (asmParser)
-where
+module Translator.Parser (asmParser) where
 
 import Data.Functor
 import Relude hiding (many)

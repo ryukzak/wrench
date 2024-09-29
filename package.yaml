@@ -1,14 +1,14 @@
-name: ca-wrench
+name: wrench
 version: 0.0.0.1
-github: "ryukzak/ca-wrench"
+github: "ryukzak/wrench"
 license: BSD-3-Clause
 author: "Aleksandr Penskoi"
 maintainer: "aleksandr.penskoi@gmail.com"
 copyright: "2024 Aleksandr Penskoi"
 
 extra-source-files:
-  - README.md
-  - CHANGELOG.md
+    - README.md
+    - CHANGELOG.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -20,78 +20,103 @@ extra-source-files:
 description: Please see the README on GitHub
 
 default-extensions:
-  - AllowAmbiguousTypes
-  - ConstraintKinds
-  - DeriveGeneric
-  - FlexibleContexts
-  - FlexibleInstances
-  - FunctionalDependencies
-  - ImportQualifiedPost
-  - KindSignatures
-  - LambdaCase
-  - MultiParamTypeClasses
-  - NamedFieldPuns
-  - NoImplicitPrelude
-  - OverloadedStrings
-  - RankNTypes
-  - ScopedTypeVariables
-  - TupleSections
-  - TypeApplications
-  - TypeFamilies
-  - TypeOperators
-  - UndecidableInstances
+    - AllowAmbiguousTypes
+    - ConstraintKinds
+    - DeriveGeneric
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - ImportQualifiedPost
+    - KindSignatures
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NamedFieldPuns
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - RankNTypes
+    - ScopedTypeVariables
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+    - UndecidableInstances
 
 dependencies:
-  - aeson
-  - aeson-casing
-  - base >= 4.7 && < 5
-  - data-default
-  - Diff
-  - filepath
-  - megaparsec
-  - mtl
-  - optparse-applicative
-  - pretty-simple
-  - relude
-  - split
-  - yaml
+    - aeson
+    - aeson-casing
+    - base >= 4.7 && < 5
+    - data-default
+    - Diff
+    - filepath
+    - megaparsec
+    - mtl
+    - optparse-applicative
+    - pretty-simple
+    - relude
+    - split
+    - yaml
 
 ghc-options:
-  - -Wall
-  - -Wcompat
-  - -Widentities
-  - -Wincomplete-record-updates
-  - -Wincomplete-uni-patterns
-  - -Wmissing-export-lists
-  - -Wmissing-home-modules
-  - -Wpartial-fields
-  - -Wredundant-constraints
+    - -Wall
+    - -Wcompat
+    - -Widentities
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wmissing-export-lists
+    - -Wmissing-home-modules
+    - -Wpartial-fields
+    - -Wredundant-constraints
 
 library:
-  source-dirs: src
+    source-dirs: src
 
 executables:
-  wrench:
-    main: Main.hs
-    source-dirs: app
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - ca-wrench
-      - gitrev
+    wrench:
+        main: Main.hs
+        other-modules: [Paths_wrench]
+        source-dirs: app
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+        dependencies:
+            - wrench
+            - gitrev
+
+    wrench-serv:
+        main: WrenchServ.hs
+        other-modules: []
+        source-dirs: app
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+        dependencies:
+            - directory
+            - http-api-data
+            - lucid
+            - network-uri
+            - process
+            - servant
+            - servant-lucid
+            - servant-server
+            - text
+            - time
+            - uuid
+            - wai
+            - warp
+            - wrench
 
 tests:
-  ca-wrench-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - ca-wrench
-      - tasty
-      - tasty-golden
-      - tasty-hunit
+    wrench-test:
+        main: Spec.hs
+        source-dirs: test
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+        dependencies:
+            - wrench
+            - tasty
+            - tasty-golden
+            - tasty-hunit

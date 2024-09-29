@@ -9,8 +9,7 @@ module Isa.Risc (
     Register (..),
     registers,
     MachineState (..),
-)
-where
+) where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default
@@ -62,7 +61,40 @@ data Register
     | T6
     deriving (Show, Eq, Generic, Read)
 
-allRegisters = [Zero, Ra, Sp, Gp, Tp, T0, T1, T2, S0Fp, S1, A0, A1, A2, A3, A4, A5, A6, A7, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, T3, T4, T5, T6]
+allRegisters =
+    [ Zero
+    , Ra
+    , Sp
+    , Gp
+    , Tp
+    , T0
+    , T1
+    , T2
+    , S0Fp
+    , S1
+    , A0
+    , A1
+    , A2
+    , A3
+    , A4
+    , A5
+    , A6
+    , A7
+    , S2
+    , S3
+    , S4
+    , S5
+    , S6
+    , S7
+    , S8
+    , S9
+    , S10
+    , S11
+    , T3
+    , T4
+    , T5
+    , T6
+    ]
 
 instance Hashable Register
 
@@ -70,48 +102,60 @@ instance (Default w) => Default (HashMap Register w) where
     def = fromList $ map (,def) allRegisters
 
 data Risc w l
-    = Addi {rd, rs1 :: Register, k :: l}
-    | Add {rd, rs1, rs2 :: Register}
-    | Sub {rd, rs1, rs2 :: Register}
-    | Mul {rd, rs1, rs2 :: Register}
-    | Mulh {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 << rs2 (5 bit), logical shift
+    = -- | Add immediate: rd = rs1 + k
+      Addi {rd, rs1 :: Register, k :: l}
+    | -- | Add: rd = rs1 + rs2
+      Add {rd, rs1, rs2 :: Register}
+    | -- | Subtract: rd = rs1 - rs2
+      Sub {rd, rs1, rs2 :: Register}
+    | -- | Multiply: rd = rs1 * rs2
+      Mul {rd, rs1, rs2 :: Register}
+    | -- | Multiply high: rd = (rs1 * rs2) >> (word size)
+      Mulh {rd, rs1, rs2 :: Register}
+    | -- | Divide: rd = rs1 / rs2
+      Div {rd, rs1, rs2 :: Register}
+    | -- | Remainder: rd = rs1 % rs2
+      Rem {rd, rs1, rs2 :: Register}
+    | -- | Logical shift left: rd = rs1 << rs2 (5 bit)
       Sll {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 >> rs2 (5 bit), logical shift
+    | -- | Logical shift right: rd = rs1 >> rs2 (5 bit)
       Srl {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 >> rs2 (5 bit), arithmetic shift
+    | -- | Arithmetic shift right: rd = rs1 >> rs2 (5 bit)
       Sra {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 & rs2
+    | -- | Bitwise AND: rd = rs1 & rs2
       And {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 | rs2
+    | -- | Bitwise OR: rd = rs1 | rs2
       Or {rd, rs1, rs2 :: Register}
-    | -- | rd = rs1 ^ rs2
+    | -- | Bitwise XOR: rd = rs1 ^ rs2
       Xor {rd, rs1, rs2 :: Register}
-    | -- | rd = rs
+    | -- | Move: rd = rs
       Mv {rd, rs :: Register}
-    | -- | rs2 -> M[offsetRs1]
+    | -- | Store word: M[offsetRs1] = rs2
       Sw {rs2 :: Register, offsetRs1 :: MemRef w}
-    | -- | Rd + K << 12
+    | -- | Store byte: M[offsetRs1] = rs2 (lower 8 bits)
+      Sb {rs2 :: Register, offsetRs1 :: MemRef w}
+    | -- | Load upper immediate: rd = k << 12
       Lui {rd :: Register, k :: l}
-    | -- | Rd + K << 12
+    | -- | Load immediate: rd = k
       Li {rd :: Register, k :: l}
-    | -- | rd <- M[rs]
+    | -- | Load word: rd = M[offsetRs1]
       Lw {rd :: Register, offsetRs1 :: MemRef w}
-    | -- | PC <- PC + K
+    | -- | Jump: PC = PC + k
       J {k :: l}
-    | -- | if rs1 = 0 then pc += k
+    | -- | Branch if equal to zero: if rs1 == 0 then PC += k
       Beqz {rs1 :: Register, k :: l}
-    | -- | if rs1 /= 0 then pc += k
+    | -- | Branch if not equal to zero: if rs1 /= 0 then PC += k
       Bnez {rs1 :: Register, k :: l}
-    | -- | if rs1 > rs2 then pc += k
+    | -- | Branch if greater than: if rs1 > rs2 then PC += k
       Bgt {rs1, rs2 :: Register, k :: l}
-    | -- | if rs1 <= rs2 then pc += k
+    | -- | Branch if less than or equal: if rs1 <= rs2 then PC += k
       Ble {rs1, rs2 :: Register, k :: l}
-    | -- | if rs1 > rs2 (unsigned) then pc += k
+    | -- | Branch if greater than (unsigned): if rs1 > rs2 then PC += k
       Bgtu {rs1, rs2 :: Register, k :: l}
-    | -- | if rs1 <= rs2 (unsigned) then pc += k
+    | -- | Branch if less than or equal (unsigned): if rs1 <= rs2 then PC += k
       Bleu {rs1, rs2 :: Register, k :: l}
-    | Halt
+    | -- | Halt the machine
+      Halt
     deriving (Show)
 
 -- * Parser
@@ -177,6 +221,8 @@ instance (MachineWord w) => MnemonicParser (Risc w (Ref w)) where
                     , cmd3args "sub" Sub register register register
                     , cmd3args "mul" Mul register register register
                     , cmd3args "mulh" Mulh register register register
+                    , cmd3args "div" Div register register register
+                    , cmd3args "rem" Rem register register register
                     , cmd3args "sll" Sll register register register
                     , cmd3args "srl" Srl register register register
                     , cmd3args "sra" Sra register register register
@@ -185,6 +231,7 @@ instance (MachineWord w) => MnemonicParser (Risc w (Ref w)) where
                     , cmd3args "xor" Xor register register register
                     , cmd2args "mv" Mv register register
                     , cmd2args "sw" Sw register memRef
+                    , cmd2args "sb" Sb register memRef
                     , cmd2args "lui" Lui register reference
                     , cmd2args "li" Li register reference
                     , cmd2args "lw" Lw register memRef
@@ -208,6 +255,8 @@ instance (MachineWord w) => DerefMnemonic (Risc w) w where
                 Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
                 Mul{rd, rs1, rs2} -> Mul{rd, rs1, rs2}
                 Mulh{rd, rs1, rs2} -> Mulh{rd, rs1, rs2}
+                Div{rd, rs1, rs2} -> Div{rd, rs1, rs2}
+                Rem{rd, rs1, rs2} -> Rem{rd, rs1, rs2}
                 Sll{rd, rs1, rs2} -> Sll{rd, rs1, rs2}
                 Srl{rd, rs1, rs2} -> Srl{rd, rs1, rs2}
                 Sra{rd, rs1, rs2} -> Sra{rd, rs1, rs2}
@@ -216,6 +265,7 @@ instance (MachineWord w) => DerefMnemonic (Risc w) w where
                 Xor{rd, rs1, rs2} -> Xor{rd, rs1, rs2}
                 Mv{rd, rs} -> Mv{rd, rs}
                 Sw{rs2, offsetRs1} -> Sw{rs2, offsetRs1}
+                Sb{rs2, offsetRs1} -> Sb{rs2, offsetRs1}
                 Lui{rd, k} -> Lui{rd, k = deref' f k}
                 Li{rd, k} -> Li{rd, k = deref' f k}
                 Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
@@ -322,6 +372,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Risc w w) w) w) (Risc 
                             shift = 8 * byteLength (def :: w)
                          in fromIntegral (x `shiftR` shift)
                     )
+            Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id div
+            Rem{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id rem
             -- FIXME: check logic/arithmetical shift
             Sll{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
             Srl{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
@@ -335,8 +387,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Risc w w) w) w) (Risc 
                 nextPc
             Sw{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs2' <- getReg rs2
-                rs1' <- getReg mrReg
-                setWord (fromEnum (rs1' + mrOffset)) rs2'
+                mrReg' <- getReg mrReg
+                setWord (fromEnum (mrReg' + mrOffset)) rs2'
+                nextPc
+            Sb{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
+                rs2' <- getReg rs2
+                mrReg' <- getReg mrReg
+                setWord (fromEnum (mrReg' + mrOffset)) (0xFF .&. rs2')
                 nextPc
             Lui{rd, k} -> do
                 w <- getWord $ fromEnum k

@@ -6,10 +6,10 @@ module Machine.Memory (
     Cell (..),
     Memory (..),
     WordParts (..),
+    word32ToHex,
     prepareDump,
     prettyDump,
-)
-where
+) where
 
 import Data.Default (def)
 import Machine.Types
@@ -63,7 +63,9 @@ sliceMem addrs dump = map (\a -> (a, Unsafe.fromJust (dump !? a))) addrs
 prettyDump ::
     forall w isa.
     (MachineWord w, ByteLength isa, Show isa) =>
-    HashMap String w -> Mem isa w -> String
+    HashMap String w
+    -> Mem isa w
+    -> String
 prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
     where
         offset2label :: HashMap w String
@@ -87,6 +89,10 @@ prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
 word8ToHex w =
     let hex = showHex w ""
      in if length hex == 1 then "0" <> hex else hex
+
+word32ToHex w =
+    let hex = showHex w ""
+     in "0x" <> replicate (8 - length hex) '0' <> hex
 
 class Memory m isa w | m -> isa w where
     readInstruction :: Int -> State m isa

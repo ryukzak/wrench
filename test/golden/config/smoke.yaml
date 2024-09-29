@@ -25,6 +25,7 @@ reports:
       - instruction
     inspector:
       - - [label, T1]
+        - label
         - [register, T1]
         - [register, T2]
         - [memory_cells, 0, 11]

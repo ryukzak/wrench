@@ -6,8 +6,7 @@ module Wrench (
     prettyLabels,
     wrenchIO,
     wrench,
-)
-where
+) where
 
 import Config
 import Data.Default
@@ -63,7 +62,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
         Just fn -> either (error . toText) id <$> readConfig fn
         Nothing -> return def
     when verbose $ do
-        putStrLn $ toString $ prettyConfig conf
+        pPrint conf
         putStrLn "---"
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
@@ -79,7 +78,9 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                 else do
                     putStrLn rTrace
                     if rSuccess then exitSuccess else exitFailure
-        Left e -> putStrLn $ "error: " <> toString e
+        Left e -> do
+            putStrLn $ "error: " <> toString e
+            exitFailure
 
 wrench ::
     forall isa_ r w st isa1 isa2.
@@ -97,10 +98,10 @@ wrench ::
     , MachineWord w
     , Machine st isa2 w
     ) =>
-    Config ->
-    Options ->
-    String ->
-    Either Text (Result (IntMap (Cell isa2 w)) w)
+    Config
+    -> Options
+    -> String
+    -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
     TranslatorResult{dump, labels} <- translate cMemorySize fn src
 

@@ -63,3 +63,48 @@
 ---
 numio[0x80]:  [] >>> []
 numio[0x84]:  [] >>> [120]
+
+ASSERTION FAIL, expect:
+numio[0x80]:  [] >>> []
+numio[0x84]:  [] >>> [120]
+---
+name: "assert factorial(*(5,)) == (120,)"
+limit: 1000
+memory_size: 0x1000
+input_streams:
+  0x80: [5]
+  0x84: []
+reports:
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    inspector:
+      - ["numio[0x80]:", [number_io_stream, 0x0080]]
+      - ["numio[0x84]:", [number_io_stream, 0x0084]]
+
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [120]
+
+Diff:
+2a3,21
+> ---
+> name: "assert factorial(*(5,)) == (120,)"
+> limit: 1000
+> memory_size: 0x1000
+> input_streams:
+>   0x80: [5]
+>   0x84: []
+> reports:
+>   - name: Check results
+>     slice: last
+>     filter:
+>       - state
+>     inspector:
+>       - ["numio[0x80]:", [number_io_stream, 0x0080]]
+>       - ["numio[0x84]:", [number_io_stream, 0x0084]]
+> 
+>     assert: |
+>       numio[0x80]: [] >>> []
+>       numio[0x84]: [] >>> [120]

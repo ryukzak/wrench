@@ -2,6 +2,7 @@ import Config
 import Data.Default
 import Data.Text (replace, toTitle)
 import Isa.Risc
+import Isa.Risc.Test qualified
 import Machine.Memory
 import Machine.Types
 import Relude
@@ -36,6 +37,7 @@ tests =
                 "Translator"
                 [ goldenTranslate "test/golden/risc-v-32-like/count.s"
                 , goldenTranslate "test/golden/risc-v-32-like/factorial.s"
+                , goldenTranslate "test/golden/risc-v-32-like/hello.s"
                 ]
             , testGroup
                 "Simulator"
@@ -43,15 +45,82 @@ tests =
                     "test/golden/risc-v-32-like/count.s"
                     "test/golden/risc-v-32-like/default.yaml"
                 , goldenSimulate
-                    "test/golden/risc-v-32-like/factorial.s"
-                    "test/golden/risc-v-32-like/input-5.yaml"
+                    "test/golden/risc-v-32-like/hello.s"
+                    "test/golden/risc-v-32-like/hello-const.yaml"
                 , goldenSimulate
-                    "test/golden/risc-v-32-like/factorial.s"
-                    "test/golden/risc-v-32-like/input-5-fail-assert.yaml"
+                    "test/golden/risc-v-32-like/get-put-char.s"
+                    "test/golden/risc-v-32-like/get-put-char-87.yaml"
                 , goldenSimulate
-                    "test/golden/risc-v-32-like/factorial.s"
-                    "test/golden/risc-v-32-like/input-7.yaml"
+                    "test/golden/risc-v-32-like/get-put-char.s"
+                    "test/golden/risc-v-32-like/get-put-char-abcd.yaml"
+                , goldenSimulate
+                    "test/golden/risc-v-32-like/get-put-char.s"
+                    "test/golden/risc-v-32-like/get-put-char-null.yaml"
+                , testGroup
+                    "Factorial"
+                    [ goldenSimulate
+                        "test/golden/risc-v-32-like/factorial.s"
+                        "test/golden/risc-v-32-like/factorial-input-5.yaml"
+                    , goldenSimulate
+                        "test/golden/risc-v-32-like/factorial.s"
+                        "test/golden/risc-v-32-like/factorial-input-5-fail-assert.yaml"
+                    , goldenSimulate
+                        "test/golden/risc-v-32-like/factorial.s"
+                        "test/golden/risc-v-32-like/factorial-input-7.yaml"
+                    ]
+                , testGroup
+                    "Generated tests"
+                    [ testGroup
+                        "factorial"
+                        [ goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/1.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/2.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/3.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/4.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/5.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/factorial.s"
+                            "test/golden/variant-generator/factorial/6.yaml"
+                        ]
+                    , testGroup
+                        "hello"
+                        [ goldenSimulate
+                            "test/golden/risc-v-32-like/hello.s"
+                            "test/golden/variant-generator/hello/1.yaml"
+                        ]
+                    , testGroup
+                        "get_put_char"
+                        [ goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/1.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/2.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/3.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/4.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/5.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/get-put-char.s"
+                            "test/golden/variant-generator/get_put_char/6.yaml"
+                        ]
+                    ]
                 ]
+            , Isa.Risc.Test.tests
             ]
         ]
 
@@ -83,8 +152,8 @@ goldenTranslate fn =
 
 goldenSimulate :: FilePath -> FilePath -> TestTree
 goldenSimulate fn confFn =
-    let resultFn = dropExtension fn <> "-" <> dropExtension (takeFileName confFn) <> ".result"
-     in goldenVsString (fn2name fn <> ": " <> fn2name confFn) resultFn $ do
+    let resultFn = dropExtension confFn <> ".result"
+     in goldenVsString (fn2name confFn) resultFn $ do
             let wrench' = wrench @Risc @Register @Int32 @(MachineState (IoMem (Risc Int32 Int32) Int32) Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn

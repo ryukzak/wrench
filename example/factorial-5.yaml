@@ -14,10 +14,10 @@ reports:
         - [register, T0]
         - [label, T1]
         - [register, T1]
-        - [label, T2]
+        - T2
         - [register, T2]
-      - [[label, "0x80"], [number_io_stream, 0x0080]]
-      - [[label, "0x84"], [number_io_stream, 0x0084]]
+      - ["0x80", [number_io_stream, 0x0080]]
+      - ["0x84", [number_io_stream, 0x0084]]
   - name: Check results
     slice: last
     filter:

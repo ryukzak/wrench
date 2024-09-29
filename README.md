@@ -20,10 +20,18 @@ This is an educational project designed to explore different types of processor 
 
 ## Install from a Binary Release
 
-1. Open the last build on the [Actions](https://github.com/ryukzak/wrench/actions).
+1. Open the last master build on the [Actions](https://github.com/ryukzak/wrench/actions).
 2. Download the binary for your platform.
 3. Add the binary to your `PATH`.
 4. Run `wrench <ARGS>` to execute the project.
+
+## Use it as a Service
+
+This service will be used to send laboratory works to check.
+
+1. Open [wrench.edu.swampbuds.me](wrench.edu.swampbuds.me).
+2. Fill the form and submit.
+3. Check the results.
 
 ## Usage
 
@@ -140,7 +148,7 @@ Each report configuration can include the following fields:
 
 - **Type:** List of lists
 - **Description:** Specifies how to inspect and format the state records. Each inspector is a list of tokens that define what to include in the report. Upper-level lists represent different lines in the report, and inner lists represent tokens in each line. Possible tokens are:
-    - `[label, name]`: Include a label with the given name.
+    - `[label, name]` or `name`: Include a label with the given text (`name`).
     - `[register, name]`: Include the value of the register with the given name.
     - `[memory_cells, from, to]`: Include the value of the memory at the given address.
     - `[number_io_stream, address]`: Include the number of tokens in the input stream at the given address.

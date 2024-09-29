@@ -6,13 +6,19 @@ run:
 	stack build --fast && stack exec ca-wrench-exe
 
 build:
-	stack build
+	stack build --copy-bins
+
+build-image-for-hub:
+	docker build -t ryukzak/wrench --push -f hub.Dockerfile .
 
 test:
 	stack build --fast --test
 
 test-examples: build
 	stack exec wrench -- example/factorial-risc.s -c example/factorial-5.yaml
+	stack exec wrench -- example/hello.s -c example/hello.yaml
+	stack exec wrench -- example/get-put-char.s -c example/get-put-char-87.yaml
+	stack exec wrench -- example/get-put-char.s -c example/get-put-char-ABCD.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept
@@ -36,5 +42,4 @@ lint:
 
 clean:
 	stack clean
-	rm -v test/golden/config/*.result
-	rm -v test/golden/risc-v-32-like/*.result
+	fd .result | xargs rm -v

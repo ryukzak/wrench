@@ -85,6 +85,7 @@ Config
             , rcInspector = Just
                 [ StateInspector
                     [ Label "T1"
+                    , Label "label"
                     , Register "T1"
                     , Register "T2"
                     , MemoryCells

@@ -8,16 +8,13 @@ module Report (
     applyReportFilter,
     prepareReport,
     ReportConf (..),
-    selectSlice,
-    prepareReportRecord,
-)
-where
+) where
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Algorithm.Diff
 import Data.Algorithm.DiffOutput
-import Data.Text (strip)
+import Data.Text (replace, strip)
 import Isa.Risc
 import Machine.Memory
 import Machine.Types
@@ -27,10 +24,20 @@ import Relude.Unsafe qualified as Unsafe
 
 data ReportConf = ReportConf
     { rcName :: Maybe String
+    -- ^ Optional name of the report.
+    -- Example: Just "My Report"
     , rcSlice :: ReportSlice
+    -- ^ Specifies which part of the report to select.
+    -- Example: HeadSlice 10
     , rcFilter :: [ReportFilter]
+    -- ^ List of filters to apply to the report.
+    -- Example: [IsInstruction, IsState]
     , rcInspector :: Maybe [StateInspector]
+    -- ^ Optional list of state inspectors.
+    -- Example: Just [StateInspector [Label "PC", Register "r1"]]
     , rcAssert :: Maybe String
+    -- ^ Optional assertion string to compare the report against.
+    -- Example: Just "Expected output"
     }
     deriving (Show, Generic)
 
@@ -52,14 +59,19 @@ prepareReport verbose records rc@ReportConf{rcName, rcFilter, rcSlice, rcInspect
                 diff = getGroupedDiff (map toString $ lines actual) (map toString $ lines expect)
              in if isNothing rcAssert || actual == expect
                     then ""
-                    else "\nASSERTION FAIL, expect:\n" <> toString expect <> "\nDiff:\n" <> ppDiff diff
+                    else "\nASSERTION FAIL, expect:\n" <> toString expect <> "\n\nDiff:\n" <> ppDiff diff
      in ( null assertReport
         , intercalate "\n" $ filter (not . null) [header, details, journalText, assertReport]
         )
 
 -----------------------------------------------------------
 
-data ReportFilter = IsInstruction | IsState
+-- | Filters that can be applied to the report.
+data ReportFilter
+    = -- | Filter for instruction records.
+      IsInstruction
+    | -- | Filter for state records.
+      IsState
     deriving (Show)
 
 instance FromJSON ReportFilter where
@@ -69,12 +81,22 @@ instance FromJSON ReportFilter where
 
 applyReportFilter (IsInstruction : _) TInstruction{} = True
 applyReportFilter (IsState : _) TState{} = True
+applyReportFilter _ TWarn{} = True
 applyReportFilter (_ : fs) x = applyReportFilter fs x
 applyReportFilter _ _ = False
 
 -----------------------------------------------------------
 
-data ReportSlice = HeadSlice Int | AllSlice | TailSlice Int | LastSlice
+-- | Specifies which part of the report to select.
+data ReportSlice
+    = -- | Select the first 'n' records.
+      HeadSlice Int
+    | -- | Select all records.
+      AllSlice
+    | -- | Select the last 'n' records.
+      TailSlice Int
+    | -- | Select only the last record.
+      LastSlice
     deriving (Show)
 
 instance FromJSON ReportSlice where
@@ -91,24 +113,35 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
+-- | Represents a state inspector which contains a list of state inspector tokens.
 newtype StateInspector = StateInspector [StateInspectorToken]
     deriving (Show, Generic)
 
 instance FromJSON StateInspector
 
+-- | Tokens that can be used by a state inspector to extract and format specific parts of the state.
 data StateInspectorToken
-    = Label String
-    | MemoryCells (Int, Int)
-    | Register String
-    | NumberIoStream Int
-    | SymbolIoStream Int
+    = -- | A label with the given text.
+      Label String
+    | -- | A range of memory cells from the first to the second address.
+      MemoryCells (Int, Int)
+    | -- | The value of the register with the given name.
+      Register String
+    | -- | The value of the register with the given name, formatted as hexadecimal.
+      RegisterHex String
+    | -- | The number of tokens in the input stream at the given address.
+      NumberIoStream Int
+    | -- | The symbols in the input stream at the given address.
+      SymbolIoStream Int
     deriving (Show, Generic)
 
 instance FromJSON StateInspectorToken where
+    parseJSON (String l) = return $ Label $ toString l
     parseJSON (Array xs) = case toList xs of
         [String "label", String l] -> return $ Label $ toString l
         [String "memory_cells", Number a, Number b] -> return $ MemoryCells (round a, round b)
         [String "register", String r] -> return $ Register $ toString r
+        [String "register_hex", String r] -> return $ RegisterHex $ toString r
         [String "number_io_stream", Number n] -> return $ NumberIoStream $ round n
         [String "symbol_io_stream", Number n] -> return $ SymbolIoStream $ round n
         _ -> fail "Invalid inspector format."
@@ -117,7 +150,7 @@ instance FromJSON StateInspectorToken where
 prepareReportRecord inspectors record =
     case record of
         TState st -> intercalate "\n" $ map (toString . inspect st) inspectors
-        TLog msg -> toString msg
+        TWarn msg -> toString msg
         (TInstruction pc label i) ->
             let label' = maybe "" ("  \t@" <>) label
              in show pc <> ":\t" <> show i <> label'
@@ -128,12 +161,16 @@ inspectToken _ (Label l) = l
 inspectToken st (Register name) = case registers st !? Unsafe.read name of
     Just v -> show v
     Nothing -> "register " <> name <> " not found"
+inspectToken st (RegisterHex name) = case registers st !? Unsafe.read name of
+    Just v -> word32ToHex v
+    Nothing -> "register " <> name <> " not found"
 inspectToken st (MemoryCells (a, b)) = prettyDump mempty $ fromList $ sliceMem [a .. b] $ memoryDump st
 inspectToken st (NumberIoStream addr) = case ioStreams st !? addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
     Nothing -> error $ "incorrect IO address: " <> show addr
 inspectToken st (SymbolIoStream addr) = case bimap sym sym <$> ioStreams st !? addr of
-    Just (is, os) -> show is <> " >>> " <> show (reverse os)
+    Just (is, os) -> show is <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
         sym = map (chr . fromEnum)
+        fixEscapes = toString . replace "\\NUL" "\\0" . (toText :: String -> Text)

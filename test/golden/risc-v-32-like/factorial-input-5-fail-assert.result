@@ -66,6 +66,7 @@ numio[0x84]:  [] >>> [120]
 
 ASSERTION FAIL, expect:
 bla=bla
+
 Diff:
 1,2c1
 < numio[0x80]:  [] >>> []

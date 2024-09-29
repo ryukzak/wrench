@@ -6,7 +6,7 @@
 64:	count
 84:	end
 ---
-mem[0..15]: 	00 00 00 00 00 00 00 02 00 00 00 58 00 00 00 15
+mem[0..15]: 	00 00 00 00 02 00 00 00 58 00 00 00 15 00 00 00
 mem[16..19]: 	Lui {rd = T0, k = 4} 	@_start
 mem[20..23]: 	Addi {rd = T0, rs1 = T0, k = 4}
 mem[24..27]: 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}

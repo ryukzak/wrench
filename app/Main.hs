@@ -22,7 +22,7 @@ import Options.Applicative (
     switch,
     value,
  )
-import Paths_ca_wrench (version)
+import Paths_wrench (version)
 import Relude
 import Wrench
 
