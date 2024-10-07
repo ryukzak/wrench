@@ -1,13 +1,13 @@
 module Translator.Parser.DataSection (
     dataSection,
-)
-where
+) where
 
 import Data.List (singleton)
 import Relude
 import Relude.Unsafe (read)
-import Text.Megaparsec (anySingle, choice, manyTill, sepBy)
+import Text.Megaparsec (choice, manyTill, sepBy)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec.Char.Lexer (charLiteral)
 import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
@@ -51,7 +51,7 @@ dataValue = do
 stringArray :: Parser [String]
 stringArray = do
     _ <- quote
-    strings <- manyTill anySingle quote
+    strings <- manyTill charLiteral quote
     return $ map (show . ord) strings
     where
         quote = char '\''

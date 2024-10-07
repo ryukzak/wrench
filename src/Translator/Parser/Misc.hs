@@ -12,8 +12,7 @@ module Translator.Parser.Misc (
     eol',
     label,
     reference,
-)
-where
+) where
 
 import Relude
 import Relude.Unsafe (read)

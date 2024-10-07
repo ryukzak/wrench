@@ -1,8 +1,7 @@
 module Translator.Parser.Types (
     Parser,
     MnemonicParser (..),
-)
-where
+) where
 
 import Relude
 import Text.Megaparsec (Parsec)

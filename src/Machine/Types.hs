@@ -11,8 +11,7 @@ module Machine.Types (
     RegisterId,
     ByteLength (..),
     WordParts (..),
-)
-where
+) where
 
 import Data.Bits
 import Data.Default (Default)
@@ -52,14 +51,14 @@ class WordParts w where
     wordCombine :: [Word8] -> w
 
 instance WordParts Int32 where
-    wordSplit w = [byte0, byte1, byte2, byte3]
+    wordSplit w = [byte3, byte2, byte1, byte0]
         where
             byte0 = fromIntegral $ (w `shiftR` 24) .&. 0xFF -- Extract the highest byte
             byte1 = fromIntegral $ (w `shiftR` 16) .&. 0xFF -- Extract the second byte
             byte2 = fromIntegral $ (w `shiftR` 8) .&. 0xFF -- Extract the third byte
             byte3 = fromIntegral $ w .&. 0xFF
 
-    wordCombine [byte0, byte1, byte2, byte3] =
+    wordCombine [byte3, byte2, byte1, byte0] =
         (fromIntegral byte0 `shiftL` 24)
             .|. (fromIntegral byte1 `shiftL` 16)
             .|. (fromIntegral byte2 `shiftL` 8)
@@ -89,7 +88,7 @@ class Machine st isa w | st -> isa w where
 
 data Trace st isa
     = TState st
-    | TLog Text
+    | TWarn Text
     | TInstruction Int (Maybe String) isa
     deriving (Show)
 

@@ -1,9 +1,7 @@
 module Config (
     Config (..),
     readConfig,
-    prettyConfig,
-)
-where
+) where
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
@@ -30,37 +28,17 @@ readConfig path = runExceptT $ do
 
 data Config = Config
     { cLimit :: Int
+    -- ^ The maximum number of instructions to execute.
     , cMemorySize :: Int
+    -- ^ The size of the memory in bytes.
     , cInputStreams :: Maybe (HashMap String [Input])
+    -- ^ Optional input streams configuration, mapping stream address (decimal or hex format) to lists of inputs.
     , cInputStreamsFlat :: Maybe (IntMap ([Int], [Int]))
+    -- ^ (generated) Flattened input streams configuration, mapping addresses to pairs of input and output lists.
     , cReports :: Maybe [ReportConf]
+    -- ^ Optional list of report configurations.
     }
     deriving (Show, Generic)
-
-prettyConfig :: Config -> String
-prettyConfig Config{cLimit, cInputStreamsFlat, cReports} =
-    intercalate
-        "\n"
-        [ "Config"
-        , "    cLimit = " <> show cLimit
-        , "    cInputStreamsFlat:" <> case cInputStreamsFlat of
-            Nothing -> "Nothing"
-            Just io -> "\n" <> intercalate "\n" (map (\(addr, (is, os)) -> "        - " <> show addr <> ": " <> show is <> " >>> " <> show os) $ toPairs io)
-        , "    cReports = " <> case cReports of
-            Nothing -> "Nothing"
-            Just rs -> "\n" <> intercalate "\n" (map (\r -> "        - " <> prettyReportConf r) rs)
-        , "    }"
-        ]
-
-prettyReportConf :: ReportConf -> String
-prettyReportConf ReportConf{rcSlice, rcFilter, rcInspector, rcAssert} =
-    intercalate "\n" $ ("slice = " <> show rcSlice)
-        : map
-            ("          " <>)
-            [ "filter = " <> show rcFilter
-            , "statePrinter = " <> show rcInspector
-            , "assert = " <> show rcAssert
-            ]
 
 instance Default Config where
     def =

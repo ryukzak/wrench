@@ -4,11 +4,11 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 
-name:           ca-wrench
+name:           wrench
 version:        0.0.0.1
 description:    Please see the README on GitHub
-homepage:       https://github.com/ryukzak/ca-wrench#readme
-bug-reports:    https://github.com/ryukzak/ca-wrench/issues
+homepage:       https://github.com/ryukzak/wrench#readme
+bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi
 maintainer:     aleksandr.penskoi@gmail.com
 copyright:      2024 Aleksandr Penskoi
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/ryukzak/ca-wrench
+  location: https://github.com/ryukzak/wrench
 
 library
   exposed-modules:
@@ -40,9 +40,9 @@ library
       Translator.Types
       Wrench
   other-modules:
-      Paths_ca_wrench
+      Paths_wrench
   autogen-modules:
-      Paths_ca_wrench
+      Paths_wrench
   hs-source-dirs:
       src
   default-extensions:
@@ -86,9 +86,9 @@ library
 executable wrench
   main-is: Main.hs
   other-modules:
-      Paths_ca_wrench
+      Paths_wrench
   autogen-modules:
-      Paths_ca_wrench
+      Paths_wrench
   hs-source-dirs:
       app
   default-extensions:
@@ -118,7 +118,6 @@ executable wrench
     , aeson
     , aeson-casing
     , base >=4.7 && <5
-    , ca-wrench
     , data-default
     , filepath
     , gitrev
@@ -128,16 +127,74 @@ executable wrench
     , pretty-simple
     , relude
     , split
+    , wrench
     , yaml
   default-language: Haskell2010
 
-test-suite ca-wrench-test
+executable wrench-serv
+  main-is: WrenchServ.hs
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      ImportQualifiedPost
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Diff
+    , aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , data-default
+    , directory
+    , filepath
+    , http-api-data
+    , lucid
+    , megaparsec
+    , mtl
+    , network-uri
+    , optparse-applicative
+    , pretty-simple
+    , process
+    , relude
+    , servant
+    , servant-lucid
+    , servant-server
+    , split
+    , text
+    , time
+    , uuid
+    , wai
+    , warp
+    , wrench
+    , yaml
+  default-language: Haskell2010
+
+test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_ca_wrench
+      Isa.Risc.Test
+      Paths_wrench
   autogen-modules:
-      Paths_ca_wrench
+      Paths_wrench
   hs-source-dirs:
       test
   default-extensions:
@@ -167,7 +224,6 @@ test-suite ca-wrench-test
     , aeson
     , aeson-casing
     , base >=4.7 && <5
-    , ca-wrench
     , data-default
     , filepath
     , megaparsec
@@ -179,5 +235,6 @@ test-suite ca-wrench-test
     , tasty
     , tasty-golden
     , tasty-hunit
+    , wrench
     , yaml
   default-language: Haskell2010

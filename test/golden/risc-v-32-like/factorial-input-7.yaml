@@ -1,7 +1,7 @@
 limit: 200
 memory_size: 0x90
 input_streams:
-  0x80: [5]
+  0x80: [7]
   0x84: []
 reports:
   - filter: [instruction, state]
@@ -18,3 +18,6 @@ reports:
         - [number_io_stream, 0x80]
       - - [label, "numio[0x84]: "]
         - [number_io_stream, 0x84]
+    assert: |
+      numio[0x80]:  [] >>> []
+      numio[0x84]:  [] >>> [5040]

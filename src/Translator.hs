@@ -3,8 +3,7 @@
 module Translator (
     translate,
     TranslatorResult (..),
-)
-where
+) where
 
 import Machine.Memory
 import Machine.Types
@@ -31,8 +30,8 @@ data St w
 
 evaluateLabels ::
     (ByteLength isa, MachineWord w) =>
-    [Section isa w String] ->
-    HashMap String w
+    [Section isa w String]
+    -> HashMap String w
 evaluateLabels sections =
     sLabels
         $ foldl'
@@ -69,10 +68,10 @@ translate ::
     , MachineWord w
     , DerefMnemonic (isa_ w) w
     ) =>
-    Int ->
-    FilePath ->
-    String ->
-    Either Text (TranslatorResult (Mem (isa_ w w) w) w)
+    Int
+    -> FilePath
+    -> String
+    -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)
 translate memorySize fn src =
     case parse asmParser fn src of
         Right (sections :: [Section isa1 w String]) ->
