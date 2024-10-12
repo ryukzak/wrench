@@ -146,6 +146,7 @@ resultPage Config{cStoragePath} guid = do
     let dir = cStoragePath <> "/" <> guid
 
     nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
+    variantContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/variant.txt"))
     commentContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/comment.txt"))
     asmContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/source.s"))
     configContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/config.yaml"))
@@ -158,6 +159,7 @@ resultPage Config{cStoragePath} guid = do
 
     let renderTemplate =
             replace "{{name}}" nameContent
+                . replace "{{variant}}" variantContent
                 . replace "{{comment}}" commentContent
                 . replace "{{assembler_code}}" asmContent
                 . replace "{{yaml_content}}" configContent

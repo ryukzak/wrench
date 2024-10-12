@@ -8,71 +8,79 @@
             href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
             rel="stylesheet"
         />
-        <style>
-            .container {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-            .left-column,
-            .right-column {
-                flex: 1;
-                min-width: 300px;
-            }
-            .left-column {
-                max-width: 60%;
-            }
-            .right-column {
-                max-width: 40%;
-            }
-            pre {
-                background-color: #f3f4f6;
-                padding: 1rem;
-                border-radius: 0.5rem;
-                overflow-x: auto;
-                font-size: 0.875rem; /* Smaller font size */
-            }
-        </style>
     </head>
     <body class="bg-gray-100 flex items-center justify-center min-h-screen">
         <div class="bg-white p-8 rounded-lg shadow-lg w-full">
             <h1 class="text-2xl font-bold mb-6 text-center">Wrench Report</h1>
-            <p class="text-center mb-6">Author: {{name}}</p>
-            <div class="container">
-                <div class="left-column">
+            <div class="flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[300px] max-w-[60%]">
+                    <p class="text-left mb-4">
+                        <strong>Author:</strong> {{name}}
+                    </p>
+                    <p class="text-left mb-6">
+                        <strong>Variant:</strong> {{variant}}
+                    </p>
                     <h2 class="text-xl font-semibold mb-4">Comment:</h2>
-                    <pre>{{comment}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{comment}}</pre
+                    >
 
                     <h2 class="text-xl font-semibold mt-6 mb-4">
                         Assembler Code:
                     </h2>
-                    <pre>{{assembler_code}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{assembler_code}}</pre
+                    >
 
                     <h2 class="text-xl font-semibold mt-6 mb-4">
                         Simulation Config (YAML):
                     </h2>
-                    <pre>{{yaml_content}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{yaml_content}}</pre
+                    >
                 </div>
-                <div class="right-column">
+                <div class="flex-1 min-w-[300px] max-w-[40%]">
                     <h2 class="text-xl font-semibold mb-4">
                         Simulation Result:
                     </h2>
-                    <pre>{{status}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{status}}</pre
+                    >
 
                     <h2 class="text-xl font-semibold mt-6 mb-4">
                         Testcase Result:
                     </h2>
-                    <pre>{{test_cases_status}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{test_cases_status}}</pre
+                    >
 
                     <h2 class="text-xl font-semibold mt-6 mb-4">
                         Simulation Log:
                     </h2>
-                    <pre>{{result}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{result}}</pre
+                    >
 
                     <h2 class="text-xl font-semibold mt-6 mb-4">
                         Failed Test Case:
                     </h2>
-                    <pre>{{test_cases_result}}</pre>
+                    <pre
+                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
+                    >
+{{test_cases_result}}</pre
+                    >
                 </div>
             </div>
         </div>
