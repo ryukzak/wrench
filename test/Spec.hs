@@ -118,6 +118,15 @@ tests =
                             "test/golden/risc-v-32-like/get-put-char.s"
                             "test/golden/variant-generator/get_put_char/6.yaml"
                         ]
+                    , testGroup
+                        "logical_not"
+                        [ goldenSimulate
+                            "test/golden/risc-v-32-like/logical-not.s"
+                            "test/golden/variant-generator/logical_not/1.yaml"
+                        , goldenSimulate
+                            "test/golden/risc-v-32-like/logical-not.s"
+                            "test/golden/variant-generator/logical_not/2.yaml"
+                        ]
                     ]
                 ]
             , Isa.Risc.Test.tests

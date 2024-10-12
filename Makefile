@@ -19,6 +19,7 @@ test-examples: build
 	stack exec wrench -- example/hello.s -c example/hello.yaml
 	stack exec wrench -- example/get-put-char.s -c example/get-put-char-87.yaml
 	stack exec wrench -- example/get-put-char.s -c example/get-put-char-ABCD.yaml
+	stack exec wrench -- example/risc-v-32-like/not.s -c example/risc-v-32-like/not-true.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept
