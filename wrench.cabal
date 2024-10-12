@@ -26,7 +26,7 @@ source-repository head
 library
   exposed-modules:
       Config
-      Isa.Risc
+      Isa.RiscIv
       Machine
       Machine.Memory
       Machine.Types
@@ -192,7 +192,7 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Isa.Risc.Test
+      Isa.RiscIv.Test
       Paths_wrench
   autogen-modules:
       Paths_wrench

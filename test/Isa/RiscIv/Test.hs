@@ -1,7 +1,7 @@
-module Isa.Risc.Test (tests) where
+module Isa.RiscIv.Test (tests) where
 
 import Data.Default
-import Isa.Risc
+import Isa.RiscIv
 import Machine.Memory
 import Machine.Types
 import Relude
@@ -17,7 +17,7 @@ tests =
             runInstruction Addi{rd = A1, rs1 = A0, k = 3} [(A0, 5)] A1 @?= 8
         ]
 
-initialState :: Int -> HashMap Register Int32 -> Risc Int32 Int32 -> MachineState (IoMem (Risc Int32 Int32) Int32) Int32
+initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
 initialState pc regs instr =
     State
         { pc = pc
@@ -26,7 +26,7 @@ initialState pc regs instr =
         , stopped = False
         }
 
-runInstruction :: Risc Int32 Int32 -> [(Register, Int32)] -> Register -> Int32
+runInstruction :: Isa Int32 Int32 -> [(Register, Int32)] -> Register -> Int32
 runInstruction instr initRegs result = do
     let st = initialState 0 (fromList initRegs) instr
         State{regs} = execState instructionStep st

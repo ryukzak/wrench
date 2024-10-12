@@ -18,11 +18,11 @@ test:
 	stack build --fast --test
 
 test-examples: build
-	stack exec wrench -- example/factorial-risc.s -c example/factorial-5.yaml
-	stack exec wrench -- example/hello.s -c example/hello.yaml
-	stack exec wrench -- example/get-put-char.s -c example/get-put-char-87.yaml
-	stack exec wrench -- example/get-put-char.s -c example/get-put-char-ABCD.yaml
-	stack exec wrench -- example/risc-v-32-like/not.s -c example/risc-v-32-like/not-true.yaml
+	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/factorial.s    -c example/risc-iv-32/factorial-5.yaml
+	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/hello.s        -c example/risc-iv-32/hello.yaml
+	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-87.yaml
+	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-ABCD.yaml
+	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/not.s          -c example/risc-iv-32/not-true.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept
