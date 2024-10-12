@@ -12,6 +12,7 @@ import Data.Time
 import Data.UUID.V4 (nextRandom)
 import Lucid (Html, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Relude
 import Relude.Unsafe qualified as Unsafe
 import Servant
@@ -29,11 +30,11 @@ type API =
         :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
 
 data SubmitForm = SubmitForm
-    { name :: String
-    , asm :: String
-    , config :: String
-    , comment :: String
-    , variant :: Maybe String
+    { name :: Text
+    , asm :: Text
+    , config :: Text
+    , comment :: Text
+    , variant :: Maybe Text
     }
     deriving (Show, Generic, FromForm)
 
@@ -56,7 +57,7 @@ main = do
     let conf = Config{cPort, cWrenchPath, cWrenchArgs, cStoragePath, cVariantsPath}
     print conf
     putStrLn $ "Starting server on port " <> show cPort
-    run cPort (app conf)
+    run cPort (logStdoutDev $ app conf)
 
 app :: Config -> Application
 app conf = serve api (server conf)
@@ -93,11 +94,11 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
     liftIO $ createDirectoryIfMissing True dir
     let asmFile = dir <> "/source.s"
         configFile = dir <> "/config.yaml"
-    liftIO $ writeFile asmFile asm
-    liftIO $ writeFile configFile config
-    liftIO $ writeFile (dir <> "/name.txt") name
-    liftIO $ writeFile (dir <> "/comment.txt") comment
-    liftIO $ writeFile (dir <> "/variant.txt") $ fromMaybe "-" variant
+    liftIO $ writeFileText asmFile asm
+    liftIO $ writeFileText configFile config
+    liftIO $ writeFileText (dir <> "/name.txt") name
+    liftIO $ writeFileText (dir <> "/comment.txt") comment
+    liftIO $ writeFileText (dir <> "/variant.txt") $ fromMaybe "-" variant
 
     currentTime <- liftIO getCurrentTime
     version <- liftIO getWrenchVersion
@@ -113,10 +114,10 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
             liftIO $ writeFile (dir <> "/test_cases_status.log") ""
             liftIO $ writeFile (dir <> "/test_cases_result.log") ""
         Just variant' -> do
-            variantDir <- liftIO $ sort . map takeFileName <$> listFiles (cVariantsPath </> variant')
+            variantDir <- liftIO $ sort . map takeFileName <$> listFiles (cVariantsPath </> toString variant')
             let yamlFiles = filter (isSuffixOf ".yaml" . toText) variantDir
             forM_ yamlFiles $ \yamlFile -> do
-                let fn = cVariantsPath </> variant' </> yamlFile
+                let fn = cVariantsPath </> toString variant' </> yamlFile
                 (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation conf asmFile fn
                 liftIO $ appendFile (dir <> "/test_cases_status.log") (yamlFile <> ": " <> show tcExitCode <> "\n" <> tcStderr)
                 when (tcExitCode /= ExitSuccess) $ do

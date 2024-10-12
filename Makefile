@@ -8,6 +8,9 @@ run:
 build:
 	stack build --copy-bins
 
+build-image:
+	docker build -t ryukzak/wrench -f hub.Dockerfile .
+
 build-image-for-hub:
 	docker build -t ryukzak/wrench --push -f hub.Dockerfile .
 

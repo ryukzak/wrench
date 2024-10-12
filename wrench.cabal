@@ -182,6 +182,7 @@ executable wrench-serv
     , time
     , uuid
     , wai
+    , wai-extra
     , warp
     , wrench
     , yaml

@@ -1,3 +1,4 @@
+;; Логическое нет
     .data
 
 input_addr:        .word 0x80    ; Input address where the number 'n' is stored

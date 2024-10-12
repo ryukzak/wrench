@@ -1,4 +1,5 @@
 ---
+# 0 - Истина, 1 - Ложь
 name: "assert hello(*()) == ('Hello\n\x00World',)"
 limit: 1000
 memory_size: 0x1000
