@@ -2,6 +2,7 @@ import Config
 import Data.Default
 import Data.Text (replace, toTitle)
 import Isa.RiscIv qualified as RiscIv
+import Isa.F18a qualified as F18a
 import Isa.RiscIv.Test qualified
 import Machine.Memory
 import Machine.Types
@@ -154,6 +155,25 @@ tests =
                     ]
                 ]
             ]
+        , testGroup
+            "F18a"
+            [ testGroup
+                "Generated tests"
+                [ testGroup
+                    "logical_not"
+                    [ goldenSimulate
+                        F18a
+                        "test/golden/f18a/logical-not.s"
+                        "test/golden/variant-generator/logical_not/1.yaml"
+                    , goldenSimulate
+                        F18a
+                        "test/golden/f18a/logical-not.s"
+                        "test/golden/variant-generator/logical_not/2.yaml"
+                    ]
+                ]
+            ]
+
+
         ]
 
 goldenConfig :: FilePath -> TestTree
@@ -192,4 +212,13 @@ goldenSimulate RiscIv fn confFn =
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
                 Right Result{rTrace} -> rTrace
                 Left e -> toString $ "error: " <> e
-goldenSimulate isa _fn _confFn = error $ "Unsupported architecture: " <> show isa
+                Left e -> toString $ "error: " <> e
+goldenSimulate F18a fn confFn =
+    let resultFn = dropExtension confFn <> ".f18a.result"
+     in goldenVsString (fn2name confFn) resultFn $ do
+            let wrench' = wrench @F18a.Isa @F18a.Register @Int32 @(F18a.MachineState (IoMem (F18a.Isa Int32 Int32) Int32) Int32)
+            src <- decodeUtf8 <$> readFileBS fn
+            conf <- either (error . toText) id <$> readConfig confFn
+            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
+                Right Result{rTrace} -> rTrace
+                Left e -> toString $ "error: " <> e

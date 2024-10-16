@@ -13,6 +13,7 @@ import Config
 import Data.Default
 import Data.String
 import Isa.RiscIv qualified as RiscIv
+import Isa.F18a qualified as F18a
 import Machine
 import Machine.Memory
 import Machine.Types
@@ -37,11 +38,12 @@ data Options = Options
 instance Default Options where
     def = Options "" "risc-iv-32" Nothing False False
 
-data Isa = RiscIv
+data Isa = RiscIv | F18a
     deriving (Show)
 
 instance Read Isa where
     readsPrec _ "risc-iv-32" = [(RiscIv, "")]
+    readsPrec _ "f18a" = [(F18a, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -83,6 +85,20 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                 conf
                 opts
                 src of
+                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+                    if onlyTranslation
+                        then do
+                            putStrLn $ prettyLabels rLabels
+                            putStrLn "---"
+                            putStrLn $ prettyDump rLabels rDump
+                        else do
+                            putStrLn rTrace
+                            if rSuccess then exitSuccess else exitFailure
+                Left e -> do
+                    putStrLn $ "error: " <> toString e
+                    exitFailure
+        Just F18a ->
+            case wrench @F18a.Isa @F18a.Register @Int32 @(F18a.MachineState (IoMem (F18a.Isa Int32 Int32) Int32) Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then do
