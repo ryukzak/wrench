@@ -6,12 +6,13 @@ module Wrench (
     prettyLabels,
     wrenchIO,
     wrench,
+    Isa (..),
 ) where
 
 import Config
 import Data.Default
 import Data.String
-import Isa.Risc
+import Isa.RiscIv qualified as RiscIv
 import Machine
 import Machine.Memory
 import Machine.Types
@@ -22,6 +23,7 @@ import Text.Pretty.Simple
 import Translator
 import Translator.Parser.Types
 import Translator.Types
+import Prelude (Read (..))
 
 data Options = Options
     { input :: FilePath
@@ -33,7 +35,14 @@ data Options = Options
     deriving (Show)
 
 instance Default Options where
-    def = Options "" "risc-v-32-like" Nothing False False
+    def = Options "" "risc-iv-32" Nothing False False
+
+data Isa = RiscIv
+    deriving (Show)
+
+instance Read Isa where
+    readsPrec _ "risc-iv-32" = [(RiscIv, "")]
+    readsPrec _ _ = []
 
 data Result mem w = Result
     { rTrace :: String
@@ -67,20 +76,26 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
     src <- decodeUtf8 <$> readFileBS input
-    when (isa /= "risc-v-32-like") $ error "unsupported isa"
-    case wrench @Risc @Register @Int32 @(MachineState (IoMem (Risc Int32 Int32) Int32) Int32) conf opts src of
-        Right Result{rLabels, rTrace, rSuccess, rDump} -> do
-            if onlyTranslation
-                then do
-                    putStrLn $ prettyLabels rLabels
-                    putStrLn "---"
-                    putStrLn $ prettyDump rLabels rDump
-                else do
-                    putStrLn rTrace
-                    if rSuccess then exitSuccess else exitFailure
-        Left e -> do
-            putStrLn $ "error: " <> toString e
-            exitFailure
+
+    case readMaybe isa of
+        Just RiscIv ->
+            case wrench @RiscIv.Isa @RiscIv.Register @Int32 @(RiscIv.MachineState (IoMem (RiscIv.Isa Int32 Int32) Int32) Int32)
+                conf
+                opts
+                src of
+                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+                    if onlyTranslation
+                        then do
+                            putStrLn $ prettyLabels rLabels
+                            putStrLn "---"
+                            putStrLn $ prettyDump rLabels rDump
+                        else do
+                            putStrLn rTrace
+                            if rSuccess then exitSuccess else exitFailure
+                Left e -> do
+                    putStrLn $ "error: " <> toString e
+                    exitFailure
+        Nothing -> error $ "unknown isa:" <> toText isa
 
 wrench ::
     forall isa_ r w st isa1 isa2.

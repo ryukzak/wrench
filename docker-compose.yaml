@@ -1,12 +1,13 @@
 services:
-  wrench-serv:
-    image: wrench
-    environment:
-      - PORT=8080
-      - WRENCH_EXEC=wrench
-      - STORAGE_PATH=/data
-      - VARIANTS=/variants
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./uploads:/data
+    wrench-serv:
+        image: ryukzak/wrench
+        environment:
+            - PORT=8080
+            - WRENCH_EXEC=wrench
+            - STORAGE_PATH=/data
+            - VARIANTS=/variants
+        ports:
+            - "8080:8080"
+        volumes:
+            - ./uploads:/data
+            - ./test/golden/variant-generator:/variants

@@ -4,8 +4,8 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 -- | Inspired by https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
-module Isa.Risc (
-    Risc (..),
+module Isa.RiscIv (
+    Isa (..),
     Register (..),
     registers,
     MachineState (..),
@@ -101,7 +101,7 @@ instance Hashable Register
 instance (Default w) => Default (HashMap Register w) where
     def = fromList $ map (,def) allRegisters
 
-data Risc w l
+data Isa w l
     = -- | Add immediate: rd = rs1 + k
       Addi {rd, rs1 :: Register, k :: l}
     | -- | Add: rd = rs1 + rs2
@@ -210,7 +210,7 @@ memRef = choice [regWithOffset, register <&> MemRef 0]
             void $ char ')'
             return MemRef{mrOffset, mrReg}
 
-instance (MachineWord w) => MnemonicParser (Risc w (Ref w)) where
+instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
         hspace *> cmd <* eol'
         where
@@ -245,7 +245,7 @@ instance (MachineWord w) => MnemonicParser (Risc w (Ref w)) where
                     , string "halt" >> return Halt
                     ]
 
-instance (MachineWord w) => DerefMnemonic (Risc w) w where
+instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
          in case i of
@@ -277,7 +277,7 @@ instance (MachineWord w) => DerefMnemonic (Risc w) w where
                 Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ deref' relF k
                 Halt -> Halt
 
-instance ByteLength (Risc w l) where
+instance ByteLength (Isa w l) where
     byteLength _ = 4
 
 comma = hspace >> string "," >> hspace
@@ -306,10 +306,10 @@ data MachineState mem w = State
     }
     deriving (Show)
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Risc w w) w) w) ()
+setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-nextPc :: forall w. (ByteLength w, Default w) => State (MachineState (IoMem (Risc w w) w) w) ()
+nextPc :: forall w. (ByteLength w, Default w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
     setPc (pc + byteLength (def :: w))
@@ -331,15 +331,15 @@ setWord addr w = do
     let mem' = execState (writeWord addr w) mem
     put st{mem = mem'}
 
-instance (MachineWord w) => InitState (IoMem (Risc w w) w) (MachineState (IoMem (Risc w w) w) w) where
+instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump = State{pc, mem = dump, regs = def, stopped = False}
 
-instance StateInterspector (MachineState (IoMem (Risc w w) w) w) (Risc w w) w Register where
+instance StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{regs} = regs
     memoryDump State{mem = IoMem{mIoCells}} = mIoCells
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Risc w w) w) w) (Risc w w) w where
+instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get
             <&> ( \case
@@ -350,7 +350,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Risc w w) w) w) (Risc 
                 )
 
     instructionStep = do
-        (tmp :: Maybe (Int, Risc w w)) <- instructionFetch
+        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
         let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
         case instruction of
             Addi{rd, rs1, k} -> do

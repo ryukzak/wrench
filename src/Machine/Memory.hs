@@ -91,7 +91,7 @@ word8ToHex w =
      in if length hex == 1 then "0" <> hex else hex
 
 word32ToHex w =
-    let hex = showHex w ""
+    let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
 class Memory m isa w | m -> isa w where
