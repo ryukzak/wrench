@@ -12,6 +12,7 @@ module Wrench (
 import Config
 import Data.Default
 import Data.String
+import Isa.F32a qualified as F32a
 import Isa.RiscIv qualified as RiscIv
 import Machine
 import Machine.Memory
@@ -37,11 +38,12 @@ data Options = Options
 instance Default Options where
     def = Options "" "risc-iv-32" Nothing False False
 
-data Isa = RiscIv
+data Isa = RiscIv | F32a
     deriving (Show)
 
 instance Read Isa where
     readsPrec _ "risc-iv-32" = [(RiscIv, "")]
+    readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -95,6 +97,20 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                 Left e -> do
                     putStrLn $ "error: " <> toString e
                     exitFailure
+        Just F32a ->
+            case wrench @F32a.Isa @F32a.Register @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32) conf opts src of
+                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+                    if onlyTranslation
+                        then do
+                            putStrLn $ prettyLabels rLabels
+                            putStrLn "---"
+                            putStrLn $ prettyDump rLabels rDump
+                        else do
+                            putStrLn rTrace
+                            if rSuccess then exitSuccess else exitFailure
+                Left e -> do
+                    putStrLn $ "error: " <> toString e
+                    exitFailure
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrench ::
@@ -118,7 +134,7 @@ wrench ::
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
-    TranslatorResult{dump, labels} <- translate cMemorySize fn src
+    TranslatorResult{dump, labels} <- translate (Just cMemorySize) fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =

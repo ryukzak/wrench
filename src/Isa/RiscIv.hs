@@ -210,9 +210,12 @@ memRef = choice [regWithOffset, register <&> MemRef 0]
             void $ char ')'
             return MemRef{mrOffset, mrReg}
 
+instance CommentStart (Isa _a _b) where
+    commentStart = ";"
+
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* eol'
+        hspace *> cmd <* eol' (commentStart @(Isa _ _))
         where
             cmd =
                 choice
