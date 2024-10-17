@@ -25,6 +25,7 @@ test-examples: build
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/not.s          -c example/risc-iv-32/not-true.yaml
 	stack exec wrench -- --isa f18a       example/f18a/not.s                -c example/f18a/not-true.yaml
 	stack exec wrench -- --isa f18a       example/f18a/hello.s              -c example/f18a/hello.yaml
+	stack exec wrench -- --isa f18a       example/f18a/factorial.s          -c example/f18a/factorial.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept

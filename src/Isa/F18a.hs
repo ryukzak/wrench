@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
--- \* Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18A.pdf
+-- | Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18A.pdf
 module Isa.F18a (
     Isa (..),
     MachineState (..),
