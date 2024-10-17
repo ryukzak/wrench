@@ -8,15 +8,15 @@ const_1:           .word 0x1
 
 _start:
 
-    ; /------------------- T <- input_addr
-    ; |           /------- T -> A
-    ; |           |  /---- [A] -> T
-    ; v           v  v
+    \ /------------------- T <- input_addr
+    \ |           /------- T -> A
+    \ |           |  /---- [A] -> T
+    \ v           v  v
     @p input_addr a! @
-    @p const_1 xor        ; T <- T xor S
+    @p const_1 xor        \ T <- T xor S
 
-    ;                /-- T -> [A]
-    ;                v
+    \                /-- T -> [A]
+    \                v
     @p output_addr a! !
 
     halt

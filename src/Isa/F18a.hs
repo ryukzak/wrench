@@ -16,8 +16,8 @@ import Machine.Types
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (choice, try)
+import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
@@ -46,13 +46,15 @@ data Isa w l
     | Halt
     deriving (Show)
 
+instance CommentStart (Isa w l) where
+    commentStart = "\\"
+
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* (hspace1 <|> eol')
+        hspace *> cmd <* (hspace1 <|> eol' ";") -- FIXME: should be \
         where
             cmd =
                 choice
-                    -- FIXME: move reference in front
                     [ If <$> (string "if" *> hspace1 *> reference)
                     , MinusIf <$> (string "-if" *> hspace1 *> reference)
                     , string "a!" >> return AStore
@@ -68,15 +70,30 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "!+" >> return StorePlus
                     , string "!" >> return Store
                     , string "halt" >> return Halt
+                    , try $ do
+                        label <- reference
+                        hspace1
+                        void $ string ";"
+                        return $ Jump label
                     ]
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         case i of
-            FetchP l -> FetchP (deref' f l)
+            Jump l -> Jump (deref' f l)
+            If l -> If (deref' f l)
+            MinusIf l -> MinusIf (deref' f l)
             AStore -> AStore
+            BStore -> BStore
+            FetchP l -> FetchP (deref' f l)
             Fetch -> Fetch
+            FetchPlus -> FetchPlus
+            FetchB -> FetchB
+            StoreP l -> StoreP (deref' f l)
+            StoreB -> StoreB
+            StorePlus -> StorePlus
             Store -> Store
+            And -> And
             Xor -> Xor
             Halt -> Halt
 
@@ -97,7 +114,7 @@ data MachineState mem w = State
     deriving (Show)
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump = State{p = pc, a = 0, dataStack = [], returnStack = [], ram = dump, stopped = False}
+    initState pc dump = State{p = pc, a = 0, b = 0, dataStack = [], returnStack = [], ram = dump, stopped = False}
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{p = addr}

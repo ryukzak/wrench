@@ -158,6 +158,11 @@ tests =
         , testGroup
             "F18a"
             [ testGroup
+                "Translator"
+                [ goldenTranslate F18a "test/golden/f18a/logical-not.s"
+                , goldenTranslate F18a "test/golden/f18a/hello.s"
+                ]
+            , testGroup
                 "Generated tests"
                 [ testGroup
                     "logical_not"
@@ -195,6 +200,14 @@ goldenTranslate RiscIv fn =
     goldenVsString (fn2name fn) (fn <> ".risc-iv-32.result") $ do
         src <- decodeUtf8 <$> readFileBS fn
         case translate @RiscIv.Isa @Int32 memorySize fn src of
+            Right (TranslatorResult dump labels) ->
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
+            Left err ->
+                error $ "Translation failed: " <> show err
+goldenTranslate F18a fn =
+    goldenVsString (fn2name fn) (fn <> ".f18a.result") $ do
+        src <- decodeUtf8 <$> readFileBS fn
+        case translate @F18a.Isa @Int32 memorySize fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
             Left err ->
