@@ -12,8 +12,8 @@ module Wrench (
 import Config
 import Data.Default
 import Data.String
-import Isa.RiscIv qualified as RiscIv
 import Isa.F18a qualified as F18a
+import Isa.RiscIv qualified as RiscIv
 import Machine
 import Machine.Memory
 import Machine.Types

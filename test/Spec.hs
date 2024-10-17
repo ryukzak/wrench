@@ -1,8 +1,8 @@
 import Config
 import Data.Default
 import Data.Text (replace, toTitle)
-import Isa.RiscIv qualified as RiscIv
 import Isa.F18a qualified as F18a
+import Isa.RiscIv qualified as RiscIv
 import Isa.RiscIv.Test qualified
 import Machine.Memory
 import Machine.Types
@@ -172,8 +172,6 @@ tests =
                     ]
                 ]
             ]
-
-
         ]
 
 goldenConfig :: FilePath -> TestTree

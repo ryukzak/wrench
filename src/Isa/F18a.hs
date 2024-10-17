@@ -28,16 +28,21 @@ data Register = T | S | A | P
 instance Hashable Register
 
 data Isa w l
-    = -- | Pushes data stack, reads [P] into T, and increments P
-      FetchP l
-    | -- | Stores T into register A, popping the data stack
-      AStore
-    | -- | Pushes data stack and reads [A] into T.
-      Fetch
-    | -- | Writes T into [A] and pops the data stack
-      Store
-    | -- | Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
-      Xor
+    = Jump l
+    | If l -- jump if T=0
+    | MinusIf l -- jump if T>=0
+    | AStore -- Stores T into register A, popping the data stack
+    | BStore -- B-Store. Stores T into register B, popping the data stack.
+    | FetchP l -- Pushes data stack, reads [P] into T, and increments P
+    | FetchPlus -- @+ Fetch-plus. Pushes data stack, reads [A] into T, and increments A
+    | FetchB -- @b Fetch-B. Pushes data stack and reads [B] into T
+    | Fetch -- @ Fetch. Pushes data stack and reads [A] into T.
+    | StoreP l -- !p Store-P. Writes T into [P], pops the data stack, and increments P
+    | StoreB -- !b Store-B. Writes T into [B] and pops the data stack
+    | StorePlus -- !+ Store-plus. Writes T into [A], pops the data stack, and increments A
+    | Store -- ! Writes T into [A] and pops the data stack
+    | And
+    | Xor -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
     | Halt
     deriving (Show)
 
@@ -47,10 +52,20 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         where
             cmd =
                 choice
-                    [ FetchP <$> (string "@p" *> hspace1 *> reference)
+                    -- FIXME: move reference in front
+                    [ If <$> (string "if" *> hspace1 *> reference)
+                    , MinusIf <$> (string "-if" *> hspace1 *> reference)
                     , string "a!" >> return AStore
+                    , string "b!" >> return BStore
+                    , string "and" >> return And
                     , string "xor" >> return Xor
+                    , FetchP <$> (string "@p" *> hspace1 *> reference)
+                    , string "@+" >> return FetchPlus
+                    , string "@b" >> return FetchB
                     , string "@" >> return Fetch
+                    , StoreP <$> (string "!p" *> hspace1 *> reference)
+                    , string "!b" >> return StoreB
+                    , string "!+" >> return StorePlus
                     , string "!" >> return Store
                     , string "halt" >> return Halt
                     ]
@@ -73,6 +88,7 @@ instance ByteLength (Isa w l) where
 data MachineState mem w = State
     { p :: Int
     , a :: w
+    , b :: w
     , ram :: mem
     , dataStack :: [w]
     , returnStack :: [w]
@@ -85,6 +101,9 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{p = addr}
+
+getP :: State (MachineState (IoMem (Isa w w) w) w) Int
+getP = get <&> p
 
 -- FIXME: not a constant, depends on current instruction
 nextP :: forall w. (ByteLength w, Default w) => State (MachineState (IoMem (Isa w w) w) w) ()
@@ -123,6 +142,11 @@ getA = do
     State{a} <- get
     return a
 
+setB w = modify $ \st -> st{b = w}
+
+getB :: State (MachineState (IoMem (Isa w w) w) w) w
+getB = get <&> b
+
 instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{a, dataStack = []} = fromList [(A, a), (T, 0), (S, 0)]
     registers State{a, dataStack = [t]} = fromList [(A, a), (T, t), (S, 0)]
@@ -143,20 +167,38 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
         let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
         case instruction of
+            AStore -> do
+                w <- dataPop
+                setA w
+                nextP
             FetchP l -> do
                 -- FIXME: and it is not word, word we need to read from memory
                 w <- getWord $ fromEnum l -- actually it is p
                 dataPush w
                 nextP
                 nextP
-            AStore -> do
-                w <- dataPop
-                setA w
-                nextP
             Fetch -> do
                 a <- getA
                 w <- getWord $ fromEnum a
                 dataPush w
+                nextP
+            StoreP l -> do
+                -- FIXME: and it is not word, word we need to read from memory
+                w <- dataPop
+                setWord (fromEnum l) w
+                nextP
+                nextP
+            StorePlus -> do
+                w <- dataPop
+                a <- getA
+                setWord (fromEnum a) w
+                setA (a + 1)
+                nextP
+                nextP
+            StoreB -> do
+                w <- dataPop
+                b <- getB
+                setWord (fromEnum b) w
                 nextP
             Store -> do
                 a <- getA
