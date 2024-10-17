@@ -9,13 +9,10 @@ module Isa.F18a (
     Register (..),
 ) where
 
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
-import Data.Default
+import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
 import Machine.Memory
 import Machine.Types
 import Relude
-import Relude.Extra
-import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
@@ -29,11 +26,16 @@ instance Hashable Register
 
 data Isa w l
     = Lit l
-    | Jump l
-    | If l -- jump if T=0
-    | MinusIf l -- jump if T>=0
-    | AStore -- Stores T into register A, popping the data stack
-    | BStore -- B-Store. Stores T into register B, popping the data stack.
+    | -- ; return
+      -- ex execute (swap P and R)
+      -- call to name
+      -- unext loop within I (decrement R)
+      -- next loop to address (decrement R)
+      Jump l
+    | If l -- if. If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
+    | MinusIf l -- -if Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
+    | AStore -- a! A-Store. Stores T into register A, popping the data stack
+    | BStore -- b! B-Store. Stores T into register B, popping the data stack.
     | FetchP l -- @p Pushes data stack, reads [P] into T, and increments P
     | FetchPlus -- @+ Fetch-plus. Pushes data stack, reads [A] into T, and increments A
     | FetchB -- @b Fetch-B. Pushes data stack and reads [B] into T
@@ -42,11 +44,20 @@ data Isa w l
     | StoreB -- !b Store-B. Writes T into [B] and pops the data stack
     | StorePlus -- !+ Store-plus. Writes T into [A], pops the data stack, and increments A
     | Store -- ! Writes T into [A] and pops the data stack
-    | Add
+    | MulStep -- +* 10 multiply step
+    | LShift -- 2* 11 left shift
+    | RShift -- 2/ right shift (signed)
+    | Inv -- inv invert all bits (was ~)
+    | Add -- + add (or add with carry)
     | And
     | Xor -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
     | Drop -- Drop. Pops the data stack
     | Dup -- Dup. Duplicates T on the data stack
+    -- >r Moves R into T, popping the return stack and pushing the data stack
+    -- r> Moves T into R, pushing the return stack and popping the data stack
+    | Over -- over
+    | AFetch -- a Fetches the contents of register A into T, pushing the data stack
+    -- . nop
     | Halt
     deriving (Show)
 
@@ -64,11 +75,17 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , MinusIf <$> (string "-if" *> hspace1 *> reference)
                     , string "a!" >> return AStore
                     , string "b!" >> return BStore
+                    , string "+*" >> return MulStep
+                    , string "2*" >> return LShift
+                    , string "2/" >> return RShift
+                    , string "inv" >> return Inv
                     , string "+" >> return Add
                     , string "and" >> return And
                     , string "xor" >> return Xor
                     , string "drop" >> return Drop
                     , string "dup" >> return Dup
+                    , string "over" >> return Over
+                    , string "a" >> return AFetch
                     , FetchP <$> (string "@p" *> hspace1 *> reference)
                     , string "@+" >> return FetchPlus
                     , string "@b" >> return FetchB
@@ -85,7 +102,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                         return $ Jump label
                     ]
 
-instance (MachineWord w) => DerefMnemonic (Isa w) w where
+instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         case i of
             Lit l -> Lit (deref' f l)
@@ -94,6 +111,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             MinusIf l -> MinusIf (deref' f l)
             AStore -> AStore
             BStore -> BStore
+            AFetch -> AFetch
             FetchP l -> FetchP (deref' f l)
             Fetch -> Fetch
             FetchPlus -> FetchPlus
@@ -102,11 +120,16 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             StoreB -> StoreB
             StorePlus -> StorePlus
             Store -> Store
+            MulStep -> MulStep
+            LShift -> LShift
+            RShift -> RShift
+            Inv -> Inv
             Add -> Add
             And -> And
             Xor -> Xor
             Drop -> Drop
             Dup -> Dup
+            Over -> Over
             Halt -> Halt
 
 -- FIXME: make instruction size more real
@@ -132,14 +155,10 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{p = addr}
 
-getP :: State (MachineState (IoMem (Isa w w) w) w) Int
-getP = get <&> p
-
--- FIXME: not a constant, depends on current instruction
-nextP :: forall w. (ByteLength w, Default w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextP = do
-    State{p} <- get
-    setPc (p + byteLength (def :: w))
+    (p, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
+    setPc (p + byteLength instruction)
 
 getWord addr = do
     st@State{ram} <- get
@@ -214,6 +233,20 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     else nextP
             AStore -> dataPop >>= setA >> nextP
             BStore -> dataPop >>= setB >> nextP
+            AFetch -> getA >>= dataPush >> nextP
+            MulStep -> undefined
+            LShift -> do
+                w <- dataPop
+                dataPush (w `shiftL` 1)
+                nextP
+            RShift -> do
+                w <- dataPop
+                dataPush (w `shiftR` 1)
+                nextP
+            Inv -> do
+                w <- dataPop
+                dataPush (complement w)
+                nextP
             FetchPlus -> do
                 a <- getA
                 w <- getWord $ fromEnum a
@@ -226,10 +259,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 dataPush w
                 nextP
             FetchP l -> do
-                -- FIXME: and it is not word, word we need to read from memory
-                w <- getWord $ fromEnum l -- actually it is p
+                w <- getWord $ fromEnum l
                 dataPush w
-                nextP
                 nextP
             Fetch -> do
                 a <- getA
@@ -237,10 +268,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 dataPush w
                 nextP
             StoreP l -> do
-                -- FIXME: and it is not word, word we need to read from memory
                 w <- dataPop
                 setWord (fromEnum l) w
-                nextP
                 nextP
             StorePlus -> do
                 w <- dataPop
@@ -280,5 +309,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 w <- dataPop
                 dataPush w
                 dataPush w
+                nextP
+            Over -> do
+                t <- dataPop
+                s <- dataPop
+                dataPush s
+                dataPush t
                 nextP
             Halt -> modify $ \st -> st{stopped = True}
