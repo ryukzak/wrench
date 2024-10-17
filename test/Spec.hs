@@ -107,13 +107,7 @@ tests =
                             "test/golden/risc-iv-32/factorial.s"
                             "test/golden/variant-generator/factorial/6.yaml"
                         ]
-                    , testGroup
-                        "hello"
-                        [ goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/hello.s"
-                            "test/golden/variant-generator/hello/1.yaml"
-                        ]
+                    , generatedTest RiscIv "hello" "test/golden/risc-iv-32/hello.s" [1]
                     , testGroup
                         "get_put_char"
                         [ goldenSimulate
@@ -141,17 +135,7 @@ tests =
                             "test/golden/risc-iv-32/get-put-char.s"
                             "test/golden/variant-generator/get_put_char/6.yaml"
                         ]
-                    , testGroup
-                        "logical_not"
-                        [ goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/logical-not.s"
-                            "test/golden/variant-generator/logical_not/1.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/logical-not.s"
-                            "test/golden/variant-generator/logical_not/2.yaml"
-                        ]
+                    , generatedTest RiscIv "logical_not" "test/golden/risc-iv-32/logical-not.s" [1 .. 2]
                     ]
                 ]
             ]
@@ -164,20 +148,22 @@ tests =
                 ]
             , testGroup
                 "Generated tests"
-                [ testGroup
-                    "logical_not"
-                    [ goldenSimulate
-                        F18a
-                        "test/golden/f18a/logical-not.s"
-                        "test/golden/variant-generator/logical_not/1.yaml"
-                    , goldenSimulate
-                        F18a
-                        "test/golden/f18a/logical-not.s"
-                        "test/golden/variant-generator/logical_not/2.yaml"
-                    ]
+                [ generatedTest F18a "hello" "test/golden/f18a/hello.s" [1]
+                , generatedTest F18a "logical_not" "test/golden/f18a/logical-not.s" [1 .. 2]
                 ]
             ]
         ]
+
+generatedTest :: Isa -> String -> FilePath -> [Int] -> TestTree
+generatedTest isa name asmFn range = testGroup name testCases
+    where
+        testCases =
+            [ goldenSimulate
+                isa
+                asmFn
+                ("test/golden/variant-generator/" <> name <> "/" <> show i <> ".yaml")
+            | i <- range
+            ]
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =
@@ -222,7 +208,6 @@ goldenSimulate RiscIv fn confFn =
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
                 Right Result{rTrace} -> rTrace
-                Left e -> toString $ "error: " <> e
                 Left e -> toString $ "error: " <> e
 goldenSimulate F18a fn confFn =
     let resultFn = dropExtension confFn <> ".f18a.result"

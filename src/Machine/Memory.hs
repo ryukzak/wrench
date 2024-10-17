@@ -100,7 +100,7 @@ class Memory m isa w | m -> isa w where
     writeWord :: Int -> w -> State m ()
 
 instance
-    (MachineWord w, Show isa) =>
+    (MachineWord w) =>
     Memory (Mem isa w) isa w
     where
     readInstruction idx = do
@@ -120,7 +120,7 @@ instance
             getValue mem i =
                 case mem !? i of
                     Just (Value v) -> v
-                    Just x -> error $ "Can't interpret instruction as data at " <> show i <> " value: " <> show x
+                    Just _ -> 0xAA -- error $ "Can't interpret instruction as data at " <> show i <> " value: " <> show x
                     Nothing -> error $ "Out of memory at index: " <> show i
 
     writeWord idx word = modify $ \mem ->

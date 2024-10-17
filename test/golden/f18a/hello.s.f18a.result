@@ -1,20 +1,23 @@
-0:	buf
-12:	output_addr
+0:	output_addr
+4:	buf
 16:	_start
-48:	while
+40:	while
 76:	end
 ---
-mem[0..15]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 84 00 00 00
+mem[0..15]: 	84 00 00 00 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64
 mem[16..23]: 	FetchP 0 	@_start
-mem[24..27]: 	AStore
-mem[28..35]: 	FetchP 12
-mem[36..39]: 	BStore
-mem[40..47]: 	FetchP 10
-mem[48..51]: 	If 76 	@while
-mem[52..55]: 	FetchPlus
-mem[56..63]: 	FetchP 255
-mem[64..67]: 	And
-mem[68..71]: 	StoreB
-mem[72..75]: 	Jump 48
+mem[24..27]: 	BStore
+mem[28..31]: 	Lit 4
+mem[32..35]: 	AStore
+mem[36..39]: 	Lit 12
+mem[40..43]: 	Dup 	@while
+mem[44..47]: 	If 76
+mem[48..51]: 	FetchPlus
+mem[52..55]: 	Lit 255
+mem[56..59]: 	And
+mem[60..63]: 	StoreB
+mem[64..67]: 	Lit (-1)
+mem[68..71]: 	Add
+mem[72..75]: 	Jump 40
 mem[76..79]: 	Halt 	@end
 mem[80..127]: 	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00

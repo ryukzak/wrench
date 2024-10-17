@@ -1,24 +1,27 @@
     .data
 
-buf:               .byte 'Hello\n\0World'
 output_addr:       .word 0x84    \ Output address where the result should be stored
+buf:               .byte 'Hello\n\0World'
 
     .text
 
 _start:
-    @p buf a!         \ a for buf address
-    @p output_addr b! \ b for output
+    @p output_addr b!   \ b for output
 
-    @p 10             \ hardcoded counter on T
+    lit buf a!           \ a for buf address
+
+    lit 12               \ hardcoded counter on T
 
 while:
+    dup
     if end
 
-    @+
-    @p 255 \ FIXME: 0xFF
-    and
+    \ FIXME: 0xFF
+    @+   lit 255   and
 
     !b
+
+    lit -1 +
     while ;
 
 end:

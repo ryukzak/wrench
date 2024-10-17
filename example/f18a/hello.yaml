@@ -6,6 +6,20 @@ input_streams:
     0x80: []
     0x84: []
 reports:
+    - name: Step-by-step log
+      slice: all
+      filter:
+          - instruction
+          - state
+      inspector:
+          - - A
+            - [register_hex, A]
+            - B
+            - [register_hex, B]
+            - T
+            - [register, T]
+            - S
+            - [register, S]
     - name: Check results
       slice: last
       filter:

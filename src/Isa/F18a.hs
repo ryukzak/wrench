@@ -22,18 +22,19 @@ import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
 
-data Register = T | S | A | P
+data Register = T | S | A | B | P
     deriving (Show, Generic, Eq, Read)
 
 instance Hashable Register
 
 data Isa w l
-    = Jump l
+    = Lit l
+    | Jump l
     | If l -- jump if T=0
     | MinusIf l -- jump if T>=0
     | AStore -- Stores T into register A, popping the data stack
     | BStore -- B-Store. Stores T into register B, popping the data stack.
-    | FetchP l -- Pushes data stack, reads [P] into T, and increments P
+    | FetchP l -- @p Pushes data stack, reads [P] into T, and increments P
     | FetchPlus -- @+ Fetch-plus. Pushes data stack, reads [A] into T, and increments A
     | FetchB -- @b Fetch-B. Pushes data stack and reads [B] into T
     | Fetch -- @ Fetch. Pushes data stack and reads [A] into T.
@@ -41,8 +42,11 @@ data Isa w l
     | StoreB -- !b Store-B. Writes T into [B] and pops the data stack
     | StorePlus -- !+ Store-plus. Writes T into [A], pops the data stack, and increments A
     | Store -- ! Writes T into [A] and pops the data stack
+    | Add
     | And
     | Xor -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
+    | Drop -- Drop. Pops the data stack
+    | Dup -- Dup. Duplicates T on the data stack
     | Halt
     deriving (Show)
 
@@ -55,12 +59,16 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         where
             cmd =
                 choice
-                    [ If <$> (string "if" *> hspace1 *> reference)
+                    [ Lit <$> (string "lit" *> hspace1 *> reference)
+                    , If <$> (string "if" *> hspace1 *> reference)
                     , MinusIf <$> (string "-if" *> hspace1 *> reference)
                     , string "a!" >> return AStore
                     , string "b!" >> return BStore
+                    , string "+" >> return Add
                     , string "and" >> return And
                     , string "xor" >> return Xor
+                    , string "drop" >> return Drop
+                    , string "dup" >> return Dup
                     , FetchP <$> (string "@p" *> hspace1 *> reference)
                     , string "@+" >> return FetchPlus
                     , string "@b" >> return FetchB
@@ -80,6 +88,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         case i of
+            Lit l -> Lit (deref' f l)
             Jump l -> Jump (deref' f l)
             If l -> If (deref' f l)
             MinusIf l -> MinusIf (deref' f l)
@@ -93,13 +102,17 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             StoreB -> StoreB
             StorePlus -> StorePlus
             Store -> Store
+            Add -> Add
             And -> And
             Xor -> Xor
+            Drop -> Drop
+            Dup -> Dup
             Halt -> Halt
 
 -- FIXME: make instruction size more real
 instance ByteLength (Isa w l) where
     byteLength (FetchP _) = 8
+    byteLength (StoreP _) = 8
     byteLength _ = 4
 
 data MachineState mem w = State
@@ -154,20 +167,20 @@ dataPop = do
 
 setA w = modify $ \st -> st{a = w}
 
+setB w = modify $ \st -> st{b = w}
+
 getA :: State (MachineState (IoMem (Isa w w) w) w) w
 getA = do
     State{a} <- get
     return a
 
-setB w = modify $ \st -> st{b = w}
-
 getB :: State (MachineState (IoMem (Isa w w) w) w) w
 getB = get <&> b
 
 instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
-    registers State{a, dataStack = []} = fromList [(A, a), (T, 0), (S, 0)]
-    registers State{a, dataStack = [t]} = fromList [(A, a), (T, t), (S, 0)]
-    registers State{a, dataStack = (t : s : _)} = fromList [(A, a), (T, t), (S, s)]
+    registers State{a, b, dataStack = []} = fromList [(A, a), (B, b), (T, 0), (S, 0)]
+    registers State{a, b, dataStack = [t]} = fromList [(A, a), (B, b), (T, t), (S, 0)]
+    registers State{a, b, dataStack = (t : s : _)} = fromList [(A, a), (B, b), (T, t), (S, s)]
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
 
@@ -184,9 +197,33 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
         let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
         case instruction of
-            AStore -> do
+            Lit l -> do
+                dataPush l
+                nextP
+            Jump l -> do
+                setPc (fromEnum l)
+            If l -> do
                 w <- dataPop
-                setA w
+                if w == 0
+                    then setPc (fromEnum l)
+                    else nextP
+            MinusIf l -> do
+                w <- dataPop
+                if w >= 0
+                    then setPc (fromEnum l)
+                    else nextP
+            AStore -> dataPop >>= setA >> nextP
+            BStore -> dataPop >>= setB >> nextP
+            FetchPlus -> do
+                a <- getA
+                w <- getWord $ fromEnum a
+                dataPush w
+                setA (a + 1)
+                nextP
+            FetchB -> do
+                b <- getB
+                w <- getWord $ fromEnum b
+                dataPush w
                 nextP
             FetchP l -> do
                 -- FIXME: and it is not word, word we need to read from memory
@@ -211,7 +248,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setWord (fromEnum a) w
                 setA (a + 1)
                 nextP
-                nextP
             StoreB -> do
                 w <- dataPop
                 b <- getB
@@ -222,9 +258,27 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 w <- dataPop
                 setWord (fromEnum a) w
                 nextP
+            Add -> do
+                t <- dataPop
+                s <- dataPop
+                dataPush (s + t)
+                nextP
+            And -> do
+                t <- dataPop
+                s <- dataPop
+                dataPush (s .&. t)
+                nextP
             Xor -> do
                 t <- dataPop
                 s <- dataPop
                 dataPush (s `xor` t)
+                nextP
+            Drop -> do
+                void dataPop
+                nextP
+            Dup -> do
+                w <- dataPop
+                dataPush w
+                dataPush w
                 nextP
             Halt -> modify $ \st -> st{stopped = True}
