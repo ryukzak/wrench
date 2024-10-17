@@ -1,28 +1,25 @@
 ---
 name: "assert hello(*()) == ('Hello\n\x00World',)"
-limit: 100
+limit: 1000
 memory_size: 0x1000
 input_streams:
-    0x80: [4]
-    0x84: []
+    0x800: [4]
+    0x804: []
 reports:
     - name: Step-by-step log
       slice: all
       filter:
-          - instruction
+          # - instruction
           - state
       inspector:
-          - - A
+          - - T A S
+            - [register_hex, T]
             - [register_hex, A]
-            - B
-            - [register_hex, B]
-            - T
-            - [register, T]
-            - [register, S]
+            - [register_hex, S]
     - name: Check results
       slice: last
       filter:
           - state
       inspector:
-          - ["numio[0x80]:", [number_io_stream, 0x0080]]
-          - ["numio[0x84]:", [number_io_stream, 0x0084]]
+          - ["numio[0x800]:", [number_io_stream, 0x00800]]
+          - ["numio[0x804]:", [number_io_stream, 0x00804]]

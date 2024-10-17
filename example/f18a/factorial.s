@@ -1,7 +1,7 @@
     .data
 
-input_addr:        .word 0x80
-output_addr:       .word 0x84
+input_addr:        .word 0x800
+output_addr:       .word 0x804
 
     .text
 
@@ -18,10 +18,18 @@ while:
     if finish
                                    \ n:acc:[]
 
-
     dup a!
-    over a \ n:acc:n:[]
-    +* \ acc:n
+
+    over          \ acc:n:[]
+    lit 0         \ 0:acc:n:[]
+
+    +* +* +* +*   +* +* +* +*
+    +* +* +* +*   +* +* +* +*
+    +* +* +* +*   +* +* +* +*
+    +* +* +* +*   +* +* +* +*          \ mres-high:acc-old:n:[]
+                                       \ mres-low in a
+
+    drop drop a                        \ mres-low:n:[] => acc:n:[]
 
     over \ n:acc
     lit -1 +

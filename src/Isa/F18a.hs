@@ -9,7 +9,7 @@ module Isa.F18a (
     Register (..),
 ) where
 
-import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
+import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
 import Machine.Memory
 import Machine.Types
 import Relude
@@ -234,11 +234,24 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             AStore -> dataPop >>= setA >> nextP
             BStore -> dataPop >>= setB >> nextP
             AFetch -> getA >>= dataPush >> nextP
+            -- [    T   ][    A   ] >> 1
+            --      ^            |
+            --      |            |
+            --      +?<----------+ lower bit
+            --      ^
+            --      |
+            -- [    S   ]
             MulStep -> do
-                -- FIXME: should be a step
+                a <- getA
                 t <- dataPop
                 s <- dataPop
-                dataPush (s * t)
+                let t' = t + if testBit a 0 then s else 0
+                    a' = a `shiftR` 1
+                    t'' = t' `shiftR` 1
+                    a'' = if testBit t' 0 then setBit a' 31 else clearBit a' 31
+                dataPush s
+                dataPush t''
+                setA a''
                 nextP
             LShift -> do
                 w <- dataPop
