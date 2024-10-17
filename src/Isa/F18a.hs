@@ -234,7 +234,12 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             AStore -> dataPop >>= setA >> nextP
             BStore -> dataPop >>= setB >> nextP
             AFetch -> getA >>= dataPush >> nextP
-            MulStep -> undefined
+            MulStep -> do
+                -- FIXME: should be a step
+                t <- dataPop
+                s <- dataPop
+                dataPush (s * t)
+                nextP
             LShift -> do
                 w <- dataPop
                 dataPush (w `shiftL` 1)
@@ -313,7 +318,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Over -> do
                 t <- dataPop
                 s <- dataPop
-                dataPush s
                 dataPush t
+                dataPush s
                 nextP
             Halt -> modify $ \st -> st{stopped = True}
