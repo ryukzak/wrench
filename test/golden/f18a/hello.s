@@ -1,7 +1,7 @@
     .data
 
-output_addr:       .word 0x84    \ Output address where the result should be stored
 buf:               .byte 'Hello\n\0World'
+output_addr:       .word 0x84    \ Output address where the result should be stored
 
     .text
 

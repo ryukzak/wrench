@@ -1,13 +1,13 @@
-0:	output_addr
-4:	buf
+0:	buf
+12:	output_addr
 16:	_start
 40:	while
 76:	end
 ---
-mem[0..15]: 	84 00 00 00 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64
-mem[16..23]: 	FetchP 0 	@_start
+mem[0..15]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 84 00 00 00
+mem[16..23]: 	FetchP 12 	@_start
 mem[24..27]: 	BStore
-mem[28..31]: 	Lit 4
+mem[28..31]: 	Lit 0
 mem[32..35]: 	AStore
 mem[36..39]: 	Lit 12
 mem[40..43]: 	Dup 	@while
