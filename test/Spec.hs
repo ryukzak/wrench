@@ -80,33 +80,7 @@ tests =
                     ]
                 , testGroup
                     "Generated tests"
-                    [ testGroup
-                        "factorial"
-                        [ goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/1.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/2.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/3.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/4.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/5.yaml"
-                        , goldenSimulate
-                            RiscIv
-                            "test/golden/risc-iv-32/factorial.s"
-                            "test/golden/variant-generator/factorial/6.yaml"
-                        ]
+                    [ generatedTest RiscIv "factorial" "test/golden/risc-iv-32/factorial.s" [1 .. 6]
                     , generatedTest RiscIv "hello" "test/golden/risc-iv-32/hello.s" [1]
                     , generatedTest RiscIv "get_put_char" "test/golden/risc-iv-32/get-put-char.s" [1 .. 6]
                     , generatedTest RiscIv "logical_not" "test/golden/risc-iv-32/logical-not.s" [1 .. 2]
@@ -125,6 +99,7 @@ tests =
                 [ generatedTest F18a "hello" "test/golden/f18a/hello.s" [1]
                 , generatedTest F18a "get_put_char" "test/golden/f18a/get-put-char.s" [1 .. 6]
                 , generatedTest F18a "logical_not" "test/golden/f18a/logical-not.s" [1 .. 2]
+                , generatedTest F18a "factorial" "test/golden/f18a/factorial.s" [1 .. 6]
                 ]
             ]
         ]

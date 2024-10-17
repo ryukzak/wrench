@@ -19,7 +19,7 @@ import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
 
-data Register = T | S | A | B | P
+data Register = T | S | A | B | P | R
     deriving (Show, Generic, Eq, Read)
 
 instance Hashable Register
@@ -29,9 +29,8 @@ data Isa w l
     | -- ; return
       -- ex execute (swap P and R)
       -- call to name
-      -- unext loop within I (decrement R)
-      -- next loop to address (decrement R)
-      Jump l
+      Next l -- next loop to address (decrement R)
+    | Jump l
     | If l -- if. If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
     | MinusIf l -- -if Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
     | AStore -- a! A-Store. Stores T into register A, popping the data stack
@@ -53,8 +52,8 @@ data Isa w l
     | Xor -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
     | Drop -- Drop. Pops the data stack
     | Dup -- Dup. Duplicates T on the data stack
-    -- >r Moves R into T, popping the return stack and pushing the data stack
-    -- r> Moves T into R, pushing the return stack and popping the data stack
+    | RPop -- >r Moves R into T, popping the return stack and pushing the data stack
+    | RPush -- r> Moves T into R, pushing the return stack and popping the data stack
     | Over -- over
     | AFetch -- a Fetches the contents of register A into T, pushing the data stack
     -- . nop
@@ -71,6 +70,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             cmd =
                 choice
                     [ Lit <$> (string "lit" *> hspace1 *> reference)
+                    , Next <$> (string "next" *> hspace1 *> reference)
                     , If <$> (string "if" *> hspace1 *> reference)
                     , MinusIf <$> (string "-if" *> hspace1 *> reference)
                     , string "a!" >> return AStore
@@ -94,6 +94,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "!b" >> return StoreB
                     , string "!+" >> return StorePlus
                     , string "!" >> return Store
+                    , string "r>" >> return RPush
+                    , string ">r" >> return RPop
                     , string "halt" >> return Halt
                     , try $ do
                         label <- reference
@@ -107,6 +109,7 @@ instance DerefMnemonic (Isa w) w where
         case i of
             Lit l -> Lit (deref' f l)
             Jump l -> Jump (deref' f l)
+            Next l -> Next (deref' f l)
             If l -> If (deref' f l)
             MinusIf l -> MinusIf (deref' f l)
             AStore -> AStore
@@ -120,6 +123,8 @@ instance DerefMnemonic (Isa w) w where
             StoreB -> StoreB
             StorePlus -> StorePlus
             Store -> Store
+            RPush -> RPush
+            RPop -> RPop
             MulStep -> MulStep
             LShift -> LShift
             RShift -> RShift
@@ -184,6 +189,19 @@ dataPop = do
             put st{dataStack = xs}
             return x
 
+returnPush w = do
+    st@State{returnStack} <- get
+    put st{returnStack = w : returnStack}
+
+returnPop :: (Num w) => State (MachineState (IoMem (Isa w w) w) w) w
+returnPop = do
+    st@State{returnStack} <- get
+    case returnStack of
+        [] -> return 0
+        (x : xs) -> do
+            put st{returnStack = xs}
+            return x
+
 setA w = modify $ \st -> st{a = w}
 
 setB w = modify $ \st -> st{b = w}
@@ -197,9 +215,14 @@ getB :: State (MachineState (IoMem (Isa w w) w) w) w
 getB = get <&> b
 
 instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
-    registers State{a, b, dataStack = []} = fromList [(A, a), (B, b), (T, 0), (S, 0)]
-    registers State{a, b, dataStack = [t]} = fromList [(A, a), (B, b), (T, t), (S, 0)]
-    registers State{a, b, dataStack = (t : s : _)} = fromList [(A, a), (B, b), (T, t), (S, s)]
+    registers State{a, b, dataStack, returnStack} =
+        fromList
+            [ (A, a)
+            , (B, b)
+            , (T, fromMaybe 0 $ dataStack !!? 0)
+            , (S, fromMaybe 0 $ dataStack !!? 1)
+            , (R, fromMaybe 0 $ returnStack !!? 0)
+            ]
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
 
@@ -221,6 +244,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 nextP
             Jump l -> do
                 setPc (fromEnum l)
+            Next l -> do
+                r <- returnPop
+                if r == 0
+                    then nextP
+                    else do
+                        returnPush (r - 1)
+                        setPc (fromEnum l)
             If l -> do
                 w <- dataPop
                 if w == 0
@@ -276,19 +306,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 w <- getWord $ fromEnum b
                 dataPush w
                 nextP
-            FetchP l -> do
-                w <- getWord $ fromEnum l
-                dataPush w
-                nextP
+            FetchP l -> getWord (fromEnum l) >>= dataPush >> nextP
             Fetch -> do
                 a <- getA
                 w <- getWord $ fromEnum a
                 dataPush w
                 nextP
-            StoreP l -> do
-                w <- dataPop
-                setWord (fromEnum l) w
-                nextP
+            StoreP l -> dataPop >>= setWord (fromEnum l) >> nextP
             StorePlus -> do
                 w <- dataPop
                 a <- getA
@@ -305,6 +329,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 w <- dataPop
                 setWord (fromEnum a) w
                 nextP
+            RPop -> returnPop >>= dataPush >> nextP
+            RPush -> dataPop >>= returnPush >> nextP
             Add -> do
                 t <- dataPop
                 s <- dataPop
