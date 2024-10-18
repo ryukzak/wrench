@@ -35,6 +35,7 @@ data SubmitForm = SubmitForm
     , config :: Text
     , comment :: Text
     , variant :: Maybe Text
+    , isa :: Text
     }
     deriving (Show, Generic, FromForm)
 
@@ -87,7 +88,7 @@ listVariants path = do
     filterM (doesDirectoryExist . (path </>)) contents
 
 submitForm :: Config -> SubmitForm -> Handler (Headers '[Header "Location" String] NoContent)
-submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config, comment, variant} = do
+submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config, comment, variant, isa} = do
     guid <- liftIO nextRandom
     let dir = cStoragePath <> "/" <> show guid
 
@@ -99,31 +100,41 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
     liftIO $ writeFileText (dir <> "/name.txt") name
     liftIO $ writeFileText (dir <> "/comment.txt") comment
     liftIO $ writeFileText (dir <> "/variant.txt") $ fromMaybe "-" variant
+    liftIO $ writeFileText (dir <> "/isa.txt") isa
 
     currentTime <- liftIO getCurrentTime
     version <- liftIO getWrenchVersion
-    (exitCode, stdout_, stderr_) <- liftIO $ runSimulation conf asmFile configFile
+    (exitCode, stdout_, stderr_) <- liftIO $ runSimulation isa conf asmFile configFile
     liftIO
         $ writeFile
             (dir <> "/status.log")
             ("$ date\n" <> show currentTime <> "\n$ wrench --version\n" <> version <> "\n" <> show exitCode <> "\n" <> stderr_)
     liftIO $ writeFile (dir <> "/result.log") stdout_
 
-    case variant of
+    varChecks <- case variant of
         Nothing -> do
             liftIO $ writeFile (dir <> "/test_cases_status.log") ""
             liftIO $ writeFile (dir <> "/test_cases_result.log") ""
+            return []
         Just variant' -> do
             variantDir <- liftIO $ sort . map takeFileName <$> listFiles (cVariantsPath </> toString variant')
             let yamlFiles = filter (isSuffixOf ".yaml" . toText) variantDir
-            forM_ yamlFiles $ \yamlFile -> do
+            forM yamlFiles $ \yamlFile -> do
                 let fn = cVariantsPath </> toString variant' </> yamlFile
-                (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation conf asmFile fn
-                liftIO $ appendFile (dir <> "/test_cases_status.log") (yamlFile <> ": " <> show tcExitCode <> "\n" <> tcStderr)
-                when (tcExitCode /= ExitSuccess) $ do
-                    simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
-                    liftIO $ writeFile (dir <> "/test_cases_result.log") (simConf <> "\n\n===\n\n" <> tcStdout)
-                    return ()
+                (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation isa conf asmFile fn
+                return (yamlFile, fn, tcExitCode, tcStdout, tcStderr)
+
+    forM_ varChecks $ \(yamlFile, _fn, tcExitCode, _tcStdout, tcStderr) -> do
+        liftIO
+            $ appendFile
+                (dir <> "/test_cases_status.log")
+                (yamlFile <> ": " <> show tcExitCode <> "\n" <> tcStderr)
+
+    let fails = take 1 $ filter (\(_, _, x, _, _) -> x /= ExitSuccess) varChecks
+
+    forM_ fails $ \(_yamlFile, fn, _tcExitCode, tcStdout, _tcStderr) -> do
+        simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
+        liftIO $ writeFile (dir <> "/test_cases_result.log") (simConf <> "\n\n===\n\n" <> tcStdout)
 
     let location = "/result/" <> show guid
     throwError $ err301{errHeaders = [("Location", location)]}
@@ -135,11 +146,11 @@ getWrenchVersion = do
         then return out
         else return "unknown"
 
-runSimulation :: Config -> FilePath -> FilePath -> IO (ExitCode, String, String)
-runSimulation Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
-    let wrenchCmd = cWrenchPath <> toString (unwords (map toText cWrenchArgs))
-    putStrLn ("process: " <> wrenchCmd <> " " <> asmFile <> " -c " <> configFile)
-    readProcessWithExitCode cWrenchPath (cWrenchArgs <> [asmFile, "-c", configFile]) ""
+runSimulation :: Text -> Config -> FilePath -> FilePath -> IO (ExitCode, String, String)
+runSimulation isa Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
+    let args = cWrenchArgs <> ["--isa", toString isa, asmFile, "-c", configFile]
+    putStrLn ("process: " <> cWrenchPath <> " " <> show args)
+    readProcessWithExitCode cWrenchPath args ""
 
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do

@@ -1,88 +1,122 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Simulation Results</title>
-        <link
-            href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-            rel="stylesheet"
-        />
-    </head>
-    <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full">
-            <h1 class="text-2xl font-bold mb-6 text-center">Wrench Report</h1>
-            <div class="flex flex-wrap gap-4">
-                <div class="flex-1 min-w-[300px] max-w-[60%]">
-                    <p class="text-left mb-4">
-                        <strong>Author:</strong> {{name}}
-                    </p>
-                    <p class="text-left mb-6">
-                        <strong>Variant:</strong> {{variant}}
-                    </p>
-                    <h2 class="text-xl font-semibold mb-4">Comment:</h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulation Results</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full m-4">
+      <h1 class="text-2xl font-bold mb-6 text-center">Wrench Report</h1>
+      <div class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[300px] max-w-[60%]">
+          <p class="text-left mb-4"><strong>Author:</strong> {{name}}</p>
+          <p class="text-left mb-6"><strong>Variant:</strong> {{variant}}</p>
+          <h2 class="text-xl font-semibold mb-4">Comment:</h2>
+          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
 {{comment}}</pre
-                    >
+          >
 
-                    <h2 class="text-xl font-semibold mt-6 mb-4">
-                        Assembler Code:
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
+          <h2 class="text-xl font-semibold mt-6 mb-4">Assembler Code:</h2>
+          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
 {{assembler_code}}</pre
-                    >
+          >
 
-                    <h2 class="text-xl font-semibold mt-6 mb-4">
-                        Simulation Config (YAML):
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
+          <h2 class="text-xl font-semibold mt-6 mb-4">
+            Simulation Config (YAML):
+          </h2>
+          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
 {{yaml_content}}</pre
-                    >
-                </div>
-                <div class="flex-1 min-w-[300px] max-w-[40%]">
-                    <h2 class="text-xl font-semibold mb-4">
-                        Simulation Result:
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
-{{status}}</pre
-                    >
-
-                    <h2 class="text-xl font-semibold mt-6 mb-4">
-                        Testcase Result:
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
-{{test_cases_status}}</pre
-                    >
-
-                    <h2 class="text-xl font-semibold mt-6 mb-4">
-                        Simulation Log:
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
-{{result}}</pre
-                    >
-
-                    <h2 class="text-xl font-semibold mt-6 mb-4">
-                        Failed Test Case:
-                    </h2>
-                    <pre
-                        class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm"
-                    >
-{{test_cases_result}}</pre
-                    >
-                </div>
-            </div>
+          >
         </div>
-    </body>
+        <div class="flex-1 min-w-[300px] max-w-[40%] p-4">
+          <h2 class="text-xl font-semibold mb-4">Simulation Result:</h2>
+          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{status}}</pre
+          >
+
+          <div id="accordion-collapse" data-accordion="collapse" class="mb-4">
+            <h2
+              id="accordion-collapse-heading-1"
+              class="flex items-center justify-between w-full p-4 font-medium text-left text-gray-500 bg-gray-100 border border-gray-200 rounded-lg focus:ring-4 focus:ring-gray-200"
+              data-accordion-target="#accordion-collapse-body-1"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-1"
+            >
+              <span>View Simulation Log</span>
+              <svg
+                data-accordion-icon
+                class="w-6 h-6 shrink-0 rotate-180"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+            </h2>
+            <div
+              id="accordion-collapse-body-1"
+              class="hidden"
+              aria-labelledby="accordion-collapse-heading-1"
+            >
+              <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+{{result}}</pre
+              >
+            </div>
+          </div>
+          <h2 class="text-xl font-semibold mt-6 mb-4">Testcase Result:</h2>
+          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{test_cases_status}}</pre
+          >
+
+          <div id="accordion-collapse" data-accordion="collapse" class="mb-4">
+            <h2
+              id="accordion-collapse-heading-2"
+              class="flex items-center justify-between w-full p-4 font-medium text-left text-gray-500 bg-gray-100 border border-gray-200 rounded-lg focus:ring-4 focus:ring-gray-200"
+              data-accordion-target="#accordion-collapse-body-2"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-2"
+            >
+              <span>View Failed Test Case</span>
+              <svg
+                data-accordion-icon
+                class="w-6 h-6 shrink-0 rotate-180"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+            </h2>
+            <div
+              id="accordion-collapse-body-2"
+              class="hidden"
+              aria-labelledby="accordion-collapse-heading-2"
+            >
+              <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+{{test_cases_result}}</pre
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"></script>
+  </body>
 </html>

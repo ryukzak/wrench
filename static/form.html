@@ -1,138 +1,140 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Wrench</title>
-        <link
-            href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-            rel="stylesheet"
-        />
-        <style>
-            textarea,
-            input[type="text"],
-            select {
-                font-size: 0.875rem; /* Smaller font size */
-            }
-            textarea {
-                min-height: 20rem; /* Expand to avoid scrolling */
-            }
-            #comment {
-                min-height: 5rem; /* Smaller height for comment section */
-            }
-            select {
-                appearance: none;
-                background-color: #fff;
-                border: 1px solid #d1d5db;
-                border-radius: 0.375rem;
-                padding: 0.5rem 1rem;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-                transition:
-                    border-color 0.2s,
-                    box-shadow 0.2s;
-            }
-            select:focus {
-                border-color: #6366f1;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-                outline: none;
-            }
-            select option {
-                padding: 0.5rem;
-            }
-        </style>
-    </head>
-    <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-6xl">
-            <h1 class="text-2xl font-bold mb-6 text-center">Wrench Submit</h1>
-            <form
-                action="/submit"
-                method="post"
-                enctype="application/x-www-form-urlencoded;charset=UTF-8"
-                class="space-y-6"
-            >
-                <div class="mb-6">
-                    <label
-                        for="variant"
-                        class="block text-sm font-medium text-gray-700"
-                        >Variant:</label
-                    >
-                    <select
-                        id="variant"
-                        name="variant"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    >
-                        <option value="" selected disabled>
-                            Select a variant
-                        </option>
-                        {{variants}}
-                    </select>
-                </div>
-
-                <div class="mb-6">
-                    <label
-                        for="name"
-                        class="block text-sm font-medium text-gray-700"
-                        >Author Name:</label
-                    >
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
-                </div>
-
-                <div class="mb-6">
-                    <label
-                        for="comment"
-                        class="block text-sm font-medium text-gray-700"
-                        >Comment:</label
-                    >
-                    <textarea
-                        id="comment"
-                        name="comment"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    ></textarea>
-                </div>
-
-                <div class="mb-6">
-                    <label
-                        for="asm"
-                        class="block text-sm font-medium text-gray-700"
-                        >Assembler Code:</label
-                    >
-                    <textarea
-                        id="asm"
-                        name="asm"
-                        required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    ></textarea>
-                </div>
-
-                <div class="mb-6">
-                    <label
-                        for="config"
-                        class="block text-sm font-medium text-gray-700"
-                        >Config (YAML):</label
-                    >
-                    <textarea
-                        id="config"
-                        name="config"
-                        required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    ></textarea>
-                </div>
-
-                <div class="text-center">
-                    <input
-                        type="submit"
-                        value="Submit"
-                        class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    />
-                </div>
-                <div class="text-center">{{version}}</div>
-            </form>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wrench</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      textarea,
+      input[type="text"],
+      select {
+        font-size: 0.875rem; /* Smaller font size */
+      }
+      textarea {
+        min-height: 20rem; /* Expand to avoid scrolling */
+      }
+      #comment {
+        min-height: 5rem; /* Smaller height for comment section */
+      }
+      select {
+        appearance: none;
+        background-color: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      select:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        outline: none;
+      }
+      select option {
+        padding: 0.5rem;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-6xl">
+      <h1 class="text-2xl font-bold mb-6 text-center">Wrench Submit</h1>
+      <form
+        action="/submit"
+        method="post"
+        enctype="application/x-www-form-urlencoded;charset=UTF-8"
+        class="space-y-6"
+      >
+        <div class="mb-6">
+          <label for="variant" class="block text-sm font-medium text-gray-700"
+            >Variant:</label
+          >
+          <select
+            id="variant"
+            name="variant"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          >
+            <option value="" selected disabled>Select a variant</option>
+            {{variants}}
+          </select>
         </div>
-    </body>
+
+        <div class="mb-6">
+          <label for="isa" class="block text-sm font-medium text-gray-700"
+            >ISA:</label
+          >
+          <select
+            id="isa"
+            name="isa"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          >
+            <option value="risc-iv-32" selected>risc-iv-32</option>
+            <option value="f32a">f32a</option>
+          </select>
+        </div>
+
+        <div class="mb-6">
+          <label for="name" class="block text-sm font-medium text-gray-700"
+            >Author Name:</label
+          >
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+
+        <div class="mb-6">
+          <label for="comment" class="block text-sm font-medium text-gray-700"
+            >Comment:</label
+          >
+          <textarea
+            id="comment"
+            name="comment"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          ></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label for="asm" class="block text-sm font-medium text-gray-700"
+            >Assembler Code:</label
+          >
+          <textarea
+            id="asm"
+            name="asm"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          ></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label for="config" class="block text-sm font-medium text-gray-700"
+            >Config (YAML):</label
+          >
+          <textarea
+            id="config"
+            name="config"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          ></textarea>
+        </div>
+
+        <div class="text-center">
+          <input
+            type="submit"
+            value="Submit"
+            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div class="text-center">{{version}}</div>
+      </form>
+    </div>
+  </body>
 </html>
