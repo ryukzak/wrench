@@ -134,7 +134,7 @@ wrench ::
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
-    TranslatorResult{dump, labels} <- translate cMemorySize fn src
+    TranslatorResult{dump, labels} <- translate (Just cMemorySize) fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =

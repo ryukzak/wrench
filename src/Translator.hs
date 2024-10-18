@@ -68,7 +68,7 @@ translate ::
     , MachineWord w
     , DerefMnemonic (isa_ w) w
     ) =>
-    Int
+    Maybe Int
     -> FilePath
     -> String
     -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)

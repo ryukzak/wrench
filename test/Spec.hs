@@ -17,9 +17,6 @@ import Wrench
 main :: IO ()
 main = defaultMain tests
 
-memorySize :: Int
-memorySize = 128
-
 tests :: TestTree
 tests =
     testGroup
@@ -70,12 +67,14 @@ tests =
                 [ goldenTranslate F32a "test/golden/f32a/logical-not.s"
                 , goldenTranslate F32a "test/golden/f32a/hello.s"
                 , goldenTranslate F32a "test/golden/f32a/div.s"
+                , goldenTranslate F32a "test/golden/f32a/factorial.s"
                 ]
             , testGroup
                 "F32a"
                 [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-27-4.yaml"
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-3-2.yaml"
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-2-3.yaml"
+                , goldenSimulate F32a "test/golden/f32a/factorial.s" "test/golden/f32a/factorial.yaml"
                 ]
             , testGroup
                 "Generated tests"
@@ -118,7 +117,7 @@ goldenTranslate :: Isa -> FilePath -> TestTree
 goldenTranslate RiscIv fn =
     goldenVsString (fn2name fn) (fn <> ".risc-iv-32.result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @RiscIv.Isa @Int32 memorySize fn src of
+        case translate @RiscIv.Isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
             Left err ->
@@ -126,7 +125,7 @@ goldenTranslate RiscIv fn =
 goldenTranslate F32a fn =
     goldenVsString (fn2name fn) (fn <> ".f32a.result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @F32a.Isa @Int32 memorySize fn src of
+        case translate @F32a.Isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
             Left err ->

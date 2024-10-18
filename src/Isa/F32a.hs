@@ -27,10 +27,11 @@ data Register = T | S | A | B | P | R
 instance Hashable Register
 
 data Isa w l
-    = -- | __lit REF__
-      -- ; return
-      -- ex execute (swap P and R)
-      -- call to name
+    = -- | __;__ return
+      Return
+    | -- | __call__ to name
+      Call l
+    | -- | __lit REF__
       Lit l
     | -- | __next REF__ loop to address (decrement R)
       Next l
@@ -87,7 +88,6 @@ data Isa w l
     | -- | __over__
       Over
     | -- | __a__    Fetches the contents of register A into T, pushing the data stack
-      -- . nop
       AFetch
     | -- | __halt__
       Halt
@@ -98,7 +98,7 @@ instance CommentStart (Isa w l) where
 
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* (hspace1 <|> eol' ";") -- FIXME: should be \
+        hspace *> cmd <* (hspace1 <|> eol' "\\")
         where
             cmd =
                 choice
@@ -131,17 +131,24 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "r>" >> return RPush
                     , string ">r" >> return RPop
                     , string "halt" >> return Halt
+                    , string ";" >> return Return
                     , try $ do
                         label <- reference
                         hspace1
                         void $ string ";"
                         return $ Jump label
+                    , try $ do
+                        label <- reference
+                        hspace1 <|> eol' "\\"
+                        return $ Call label
                     ]
 
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         case i of
             Lit l -> Lit (deref' f l)
+            Call l -> Call (deref' f l)
+            Return -> Return
             Jump l -> Jump (deref' f l)
             Next l -> Next (deref' f l)
             If l -> If (deref' f l)
@@ -192,13 +199,16 @@ data MachineState mem w = State
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump = State{p = pc, a = 0, b = 0, dataStack = [], returnStack = [], ram = dump, stopped = False}
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
-setPc addr = modify $ \st -> st{p = addr}
+setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setP addr = modify $ \st -> st{p = addr}
+
+getP :: State (MachineState (IoMem (Isa w w) w) w) Int
+getP = get <&> (fromEnum . p)
 
 nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextP = do
     (p, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
-    setPc (p + byteLength instruction)
+    setP (p + byteLength instruction)
 
 getWord addr = do
     st@State{ram} <- get
@@ -277,24 +287,28 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Lit l -> do
                 dataPush l
                 nextP
+            Return -> returnPop >>= setP . fromEnum >> nextP
+            Call l -> do
+                getP >>= returnPush . toEnum
+                setP (fromEnum l)
             Jump l -> do
-                setPc (fromEnum l)
+                setP (fromEnum l)
             Next l -> do
                 r <- returnPop
                 if r == 0
                     then nextP
                     else do
                         returnPush (r - 1)
-                        setPc (fromEnum l)
+                        setP (fromEnum l)
             If l -> do
                 w <- dataPop
                 if w == 0
-                    then setPc (fromEnum l)
+                    then setP (fromEnum l)
                     else nextP
             MinusIf l -> do
                 w <- dataPop
                 if w >= 0
-                    then setPc (fromEnum l)
+                    then setP (fromEnum l)
                     else nextP
             AStore -> dataPop >>= setA >> nextP
             BStore -> dataPop >>= setB >> nextP

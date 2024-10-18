@@ -19,37 +19,38 @@ import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Translator.Types
 
-prepareDump :: (MachineWord w, ByteLength isa) => Int -> [Section isa w w] -> Mem isa w
+prepareDump :: (MachineWord w, ByteLength isa) => Maybe Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
-    fromList
-        $ zip
-            [0 .. memorySize - 1]
-            ( concatMap
-                ( \case
-                    Code{codeTokens} ->
-                        ( concatMap
-                            ( \case
-                                Mnemonic m ->
-                                    Instruction m : replicate (byteLength m - 1) InstructionPart
-                                _other -> []
+    let mSize = fromMaybe (foldr ((+) . byteLength) 0 sections) memorySize
+     in fromList
+            $ zip
+                [0 .. mSize - 1]
+                ( concatMap
+                    ( \case
+                        Code{codeTokens} ->
+                            ( concatMap
+                                ( \case
+                                    Mnemonic m ->
+                                        Instruction m : replicate (byteLength m - 1) InstructionPart
+                                    _other -> []
+                                )
+                                codeTokens
                             )
-                            codeTokens
-                        )
-                    Data{dataTokens} ->
-                        ( concatMap
-                            ( \DataToken{dtValue} ->
-                                map
-                                    Value
-                                    $ case dtValue of
-                                        DByte bs -> bs
-                                        DWord ws -> concatMap wordSplit ws
+                        Data{dataTokens} ->
+                            ( concatMap
+                                ( \DataToken{dtValue} ->
+                                    map
+                                        Value
+                                        $ case dtValue of
+                                            DByte bs -> bs
+                                            DWord ws -> concatMap wordSplit ws
+                                )
+                                dataTokens
                             )
-                            dataTokens
-                        )
+                    )
+                    sections
+                    <> repeat (Value 0)
                 )
-                sections
-                <> repeat (Value 0)
-            )
 
 isValue Value{} = True
 isValue _ = False

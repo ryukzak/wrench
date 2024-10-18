@@ -6,34 +6,47 @@ alligment:         .word '................................'
 
     .text
 
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 _start:
-    lit 1                          \ acc:[]
+    @p input_addr  a! @              \ n:[]
 
-    @p input_addr  a! @            \ n:acc:[]
+    factorial
 
-while:
-    dup                            \ n:n:acc:[]
-    if finish                      \ n:acc:[]
-
-    dup a!                         \ n:acc:[]
-
-    over                           \ acc:n:[]
-    lit 0                          \ 0:acc:n:[]
-
-    lit 31 r>                      \ for R = 31
-multiply_begin:
-    +*                             \ mres-high:acc-old:n:[]
-                                   \ mres-low in a
-    next multiply_begin
-
-    drop drop a                    \ mres-low:n:[] => acc:n:[]
-
-    over                           \ n:acc
-    lit -1 +                       \ n-1:acc
-
-    while ;
-
-finish:                            \ n:acc:[]
-    drop
     @p output_addr a! !
     halt
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+multiply:
+    lit 31 r>                        \ for R = 31
+multiply_do:
+    +*                               \ mres-high:acc-old:n:[]
+                                     \ mres-low in a
+    next multiply_do
+    drop drop a                      \ mres-low:n:[] => acc:n:[]
+    ;
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+factorial:
+    lit 1 over                       \ n:acc:[]
+factorial_while:
+    dup                              \ n:n:acc:[]
+    if factorial_finish              \ n:acc:[]
+
+    dup a!                           \ n:acc:[]
+
+    over                             \ acc:n:[]
+    lit 0                            \ 0:acc:n:[]
+
+    multiply
+
+    over                             \ n:acc
+    lit -1 +                         \ n-1:acc
+
+    factorial_while ;
+
+factorial_finish:                    \ n:acc:[]
+    drop
+    ;
