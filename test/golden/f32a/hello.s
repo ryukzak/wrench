@@ -1,6 +1,6 @@
     .data
 
-buf:               .byte 'Hello\n\0World'
+buf:               .byte 'Hello\n\0World!'
 output_addr:       .word 0x84    \ Output address where the result should be stored
 
     .text
@@ -10,7 +10,7 @@ _start:
 
     lit buf a!           \ a for buf address
 
-    lit 12               \ hardcoded counter on T
+    lit 13               \ hardcoded counter on T
 
 while:
     dup
