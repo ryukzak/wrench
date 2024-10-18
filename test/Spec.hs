@@ -43,40 +43,16 @@ tests =
             , Isa.RiscIv.Test.tests
             , testGroup
                 "Simulator"
-                [ goldenSimulate
-                    RiscIv
-                    "test/golden/risc-iv-32/count.s"
-                    "test/golden/risc-iv-32/default.yaml"
-                , goldenSimulate
-                    RiscIv
-                    "test/golden/risc-iv-32/hello.s"
-                    "test/golden/risc-iv-32/hello-const.yaml"
-                , goldenSimulate
-                    RiscIv
-                    "test/golden/risc-iv-32/get-put-char.s"
-                    "test/golden/risc-iv-32/get-put-char-87.yaml"
-                , goldenSimulate
-                    RiscIv
-                    "test/golden/risc-iv-32/get-put-char.s"
-                    "test/golden/risc-iv-32/get-put-char-abcd.yaml"
-                , goldenSimulate
-                    RiscIv
-                    "test/golden/risc-iv-32/get-put-char.s"
-                    "test/golden/risc-iv-32/get-put-char-null.yaml"
+                [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/default.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/hello.s" "test/golden/risc-iv-32/hello-const.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-87.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-abcd.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-null.yaml"
                 , testGroup
                     "Factorial"
-                    [ goldenSimulate
-                        RiscIv
-                        "test/golden/risc-iv-32/factorial.s"
-                        "test/golden/risc-iv-32/factorial-input-5.yaml"
-                    , goldenSimulate
-                        RiscIv
-                        "test/golden/risc-iv-32/factorial.s"
-                        "test/golden/risc-iv-32/factorial-input-5-fail-assert.yaml"
-                    , goldenSimulate
-                        RiscIv
-                        "test/golden/risc-iv-32/factorial.s"
-                        "test/golden/risc-iv-32/factorial-input-7.yaml"
+                    [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-5.yaml"
+                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-5-fail-assert.yaml"
+                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-7.yaml"
                     ]
                 , testGroup
                     "Generated tests"
@@ -93,6 +69,13 @@ tests =
                 "Translator"
                 [ goldenTranslate F18a "test/golden/f18a/logical-not.s"
                 , goldenTranslate F18a "test/golden/f18a/hello.s"
+                , goldenTranslate F18a "test/golden/f18a/div.s"
+                ]
+            , testGroup
+                "F18a"
+                [ goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-27-4.yaml"
+                , goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-3-2.yaml"
+                , goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-2-3.yaml"
                 ]
             , testGroup
                 "Generated tests"

@@ -23,5 +23,5 @@ reports:
       filter:
           - state
       inspector:
-          - ["numio[0x800]:", [number_io_stream, 0x0080]]
-          - ["numio[0x804]:", [number_io_stream, 0x0084]]
+          - ["numio[0x80]:", [number_io_stream, 0x0080]]
+          - ["numio[0x84]:", [number_io_stream, 0x0084]]

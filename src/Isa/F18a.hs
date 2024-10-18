@@ -2,6 +2,9 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
+-- TODO: ; ex call
+-- TODO: Rename to : F32a
+
 -- | Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18A.pdf
 module Isa.F18a (
     Isa (..),
@@ -24,43 +27,72 @@ data Register = T | S | A | B | P | R
 
 instance Hashable Register
 
-{- FOURMOLU_DISABLE -}
 data Isa w l
-    = Lit l -- ^ __lit REF__
+    = -- | __lit REF__
       -- ; return
       -- ex execute (swap P and R)
       -- call to name
-    | Next l    -- ^ __next REF__ loop to address (decrement R)
-    | Jump l    -- ^ __REF ;__
-    | If l      -- ^ __if__   If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
-    | MinusIf l -- ^ __-if__  Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
-    | AStore    -- ^ __a!__   A-Store. Stores T into register A, popping the data stack
-    | BStore    -- ^ __b!__   B-Store. Stores T into register B, popping the data stack.
-    | FetchP l  -- ^ __@p__   Pushes data stack, reads [P] into T, and increments P
-    | FetchPlus -- ^ __@+__   Fetch-plus. Pushes data stack, reads [A] into T, and increments A
-    | FetchB    -- ^ __@b__   Fetch-B. Pushes data stack and reads [B] into T
-    | Fetch     -- ^ __@__    Fetch. Pushes data stack and reads [A] into T.
-    | StoreP l  -- ^ __!p__   Store-P. Writes T into [P], pops the data stack, and increments P
-    | StoreB    -- ^ __!b__   Store-B. Writes T into [B] and pops the data stack
-    | StorePlus -- ^ __!+__   Store-plus. Writes T into [A], pops the data stack, and increments A
-    | Store     -- ^ __!__    Writes T into [A] and pops the data stack
-    | MulStep   -- ^ __+*__   10 multiply step
-    | LShift    -- ^ __2*__   11 left shift
-    | RShift    -- ^ __2/__   right shift (signed)
-    | Inv       -- ^ __inv__  invert all bits (was ~)
-    | Add       -- ^ __+__    add (or add with carry)
-    | And       -- ^ __and__
-    | Xor       -- ^ __xor__  Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
-    | Drop      -- ^ __drop__ Drop. Pops the data stack
-    | Dup       -- ^ __dup__  Dup. Duplicates T on the data stack
-    | RPop      -- ^ __>r__   Moves R into T, popping the return stack and pushing the data stack
-    | RPush     -- ^ __r>__   Moves T into R, pushing the return stack and popping the data stack
-    | Over      -- ^ __over__
-    | AFetch    -- ^ __a__    Fetches the contents of register A into T, pushing the data stack
-    -- . nop
-    | Halt      -- ^ __halt__
+      Lit l
+    | -- | __next REF__ loop to address (decrement R)
+      Next l
+    | -- | __REF ;__
+      Jump l
+    | -- | __if__   If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
+      If l
+    | -- | __-if__  Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
+      MinusIf l
+    | -- | __a!__   A-Store. Stores T into register A, popping the data stack
+      AStore
+    | -- | __b!__   B-Store. Stores T into register B, popping the data stack.
+      BStore
+    | -- | __@p__   Pushes data stack, reads [P] into T, and increments P
+      FetchP l
+    | -- | __@+__   Fetch-plus. Pushes data stack, reads [A] into T, and increments A
+      FetchPlus
+    | -- | __@b__   Fetch-B. Pushes data stack and reads [B] into T
+      FetchB
+    | -- | __@__    Fetch. Pushes data stack and reads [A] into T.
+      Fetch
+    | -- | __!p__   Store-P. Writes T into [P], pops the data stack, and increments P
+      StoreP l
+    | -- | __!b__   Store-B. Writes T into [B] and pops the data stack
+      StoreB
+    | -- | __!+__   Store-plus. Writes T into [A], pops the data stack, and increments A
+      StorePlus
+    | -- | __!__    Writes T into [A] and pops the data stack
+      Store
+    | -- | __+*__   multiply step
+      MulStep
+    | -- | __+/__   divide step (details: example/step-by-step-div.py)
+      DivStep
+    | -- | __2*__   11 left shift
+      LShift
+    | -- | __2/__   right shift (signed)
+      RShift
+    | -- | __inv__  invert all bits (was ~)
+      Inv
+    | -- | __+__    add (or add with carry)
+      Add
+    | -- | __and__
+      And
+    | -- | __xor__  Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
+      Xor
+    | -- | __drop__ Drop. Pops the data stack
+      Drop
+    | -- | __dup__  Dup. Duplicates T on the data stack
+      Dup
+    | -- | __>r__   Moves R into T, popping the return stack and pushing the data stack
+      RPop
+    | -- | __r>__   Moves T into R, pushing the return stack and popping the data stack
+      RPush
+    | -- | __over__
+      Over
+    | -- | __a__    Fetches the contents of register A into T, pushing the data stack
+      -- . nop
+      AFetch
+    | -- | __halt__
+      Halt
     deriving (Show)
-{- FOURMOLU_ENABLE -}
 
 instance CommentStart (Isa w l) where
     commentStart = "\\"
@@ -78,6 +110,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "a!" >> return AStore
                     , string "b!" >> return BStore
                     , string "+*" >> return MulStep
+                    , string "+/" >> return DivStep
                     , string "2*" >> return LShift
                     , string "2/" >> return RShift
                     , string "inv" >> return Inv
@@ -128,6 +161,7 @@ instance DerefMnemonic (Isa w) w where
             RPush -> RPush
             RPop -> RPop
             MulStep -> MulStep
+            DivStep -> DivStep
             LShift -> LShift
             RShift -> RShift
             Inv -> Inv
@@ -284,6 +318,28 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 dataPush s
                 dataPush t''
                 setA a''
+                nextP
+            -- A <- dividend
+            -- [B] <- divisor
+            -- T -> quotient
+            -- S -> remainder
+            DivStep -> do
+                quotient1 <- dataPop
+                remainder1 <- dataPop
+                dividend1 <- getA
+                divisor <- getB >>= getWord . fromEnum
+                let remainder2 = remainder1 `shiftL` 1
+                    dividenUpperBit = if testBit dividend1 31 then 1 else 0
+                    dividend2 = dividend1 `shiftL` 1
+                    remainder3 = remainder2 .|. dividenUpperBit
+                    quotient2 = quotient1 `shiftL` 1
+                    (remainder4, quotient3) =
+                        if remainder3 >= divisor
+                            then (remainder3 - divisor, quotient2 .|. 1)
+                            else (remainder3, quotient2)
+                setA dividend2
+                dataPush remainder4
+                dataPush quotient3
                 nextP
             LShift -> do
                 w <- dataPop
