@@ -23,9 +23,9 @@ test-examples: build
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-87.yaml
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/not.s          -c example/risc-iv-32/not-true.yaml
-	stack exec wrench -- --isa f18a       example/f18a/not.s                -c example/f18a/not-true.yaml
-	stack exec wrench -- --isa f18a       example/f18a/hello.s              -c example/f18a/hello.yaml
-	stack exec wrench -- --isa f18a       example/f18a/factorial.s          -c example/f18a/factorial.yaml
+	stack exec wrench -- --isa f32a       example/f32a/not.s                -c example/f32a/not-true.yaml
+	stack exec wrench -- --isa f32a       example/f32a/hello.s              -c example/f32a/hello.yaml
+	stack exec wrench -- --isa f32a       example/f32a/factorial.s          -c example/f32a/factorial.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept

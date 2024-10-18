@@ -1,7 +1,7 @@
 import Config
 import Data.Default
 import Data.Text (replace, toTitle)
-import Isa.F18a qualified as F18a
+import Isa.F32a qualified as F32a
 import Isa.RiscIv qualified as RiscIv
 import Isa.RiscIv.Test qualified
 import Machine.Memory
@@ -64,25 +64,25 @@ tests =
                 ]
             ]
         , testGroup
-            "F18a"
+            "F32a"
             [ testGroup
                 "Translator"
-                [ goldenTranslate F18a "test/golden/f18a/logical-not.s"
-                , goldenTranslate F18a "test/golden/f18a/hello.s"
-                , goldenTranslate F18a "test/golden/f18a/div.s"
+                [ goldenTranslate F32a "test/golden/f32a/logical-not.s"
+                , goldenTranslate F32a "test/golden/f32a/hello.s"
+                , goldenTranslate F32a "test/golden/f32a/div.s"
                 ]
             , testGroup
-                "F18a"
-                [ goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-27-4.yaml"
-                , goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-3-2.yaml"
-                , goldenSimulate F18a "test/golden/f18a/div.s" "test/golden/f18a/div-2-3.yaml"
+                "F32a"
+                [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-27-4.yaml"
+                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-3-2.yaml"
+                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-2-3.yaml"
                 ]
             , testGroup
                 "Generated tests"
-                [ generatedTest F18a "hello" "test/golden/f18a/hello.s" [1]
-                , generatedTest F18a "get_put_char" "test/golden/f18a/get-put-char.s" [1 .. 6]
-                , generatedTest F18a "logical_not" "test/golden/f18a/logical-not.s" [1 .. 2]
-                , generatedTest F18a "factorial" "test/golden/f18a/factorial.s" [1 .. 6]
+                [ generatedTest F32a "hello" "test/golden/f32a/hello.s" [1]
+                , generatedTest F32a "get_put_char" "test/golden/f32a/get-put-char.s" [1 .. 6]
+                , generatedTest F32a "logical_not" "test/golden/f32a/logical-not.s" [1 .. 2]
+                , generatedTest F32a "factorial" "test/golden/f32a/factorial.s" [1 .. 6]
                 ]
             ]
         ]
@@ -123,10 +123,10 @@ goldenTranslate RiscIv fn =
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
             Left err ->
                 error $ "Translation failed: " <> show err
-goldenTranslate F18a fn =
-    goldenVsString (fn2name fn) (fn <> ".f18a.result") $ do
+goldenTranslate F32a fn =
+    goldenVsString (fn2name fn) (fn <> ".f32a.result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @F18a.Isa @Int32 memorySize fn src of
+        case translate @F32a.Isa @Int32 memorySize fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
             Left err ->
@@ -142,10 +142,10 @@ goldenSimulate RiscIv fn confFn =
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
                 Right Result{rTrace} -> rTrace
                 Left e -> toString $ "error: " <> e
-goldenSimulate F18a fn confFn =
-    let resultFn = dropExtension confFn <> ".f18a.result"
+goldenSimulate F32a fn confFn =
+    let resultFn = dropExtension confFn <> ".f32a.result"
      in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @F18a.Isa @F18a.Register @Int32 @(F18a.MachineState (IoMem (F18a.Isa Int32 Int32) Int32) Int32)
+            let wrench' = wrench @F32a.Isa @F32a.Register @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of

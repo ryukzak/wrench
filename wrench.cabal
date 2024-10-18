@@ -26,7 +26,7 @@ source-repository head
 library
   exposed-modules:
       Config
-      Isa.F18a
+      Isa.F32a
       Isa.RiscIv
       Machine
       Machine.Memory
