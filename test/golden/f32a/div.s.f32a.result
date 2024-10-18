@@ -24,3 +24,4 @@ mem[84..87]: 	AStore
 mem[88..91]: 	Store
 mem[92..95]: 	Store
 mem[96..99]: 	Halt
+---

@@ -101,7 +101,7 @@ goldenConfig :: FilePath -> TestTree
 goldenConfig fn =
     goldenVsString (fn2name fn) (fn <> ".result") $ do
         conf <- either pShowNoColor pShowNoColor <$> readConfig fn
-        return $ encodeUtf8 conf
+        return $ encodeUtf8 (conf <> "\n")
 
 fn2name :: FilePath -> String
 fn2name fn =
@@ -119,7 +119,7 @@ goldenTranslate RiscIv fn =
         src <- decodeUtf8 <$> readFileBS fn
         case translate @RiscIv.Isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 goldenTranslate F32a fn =
@@ -127,7 +127,7 @@ goldenTranslate F32a fn =
         src <- decodeUtf8 <$> readFileBS fn
         case translate @F32a.Isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump]
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 
@@ -139,7 +139,7 @@ goldenSimulate RiscIv fn confFn =
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace
+                Right Result{rTrace} -> rTrace <> "\n"
                 Left e -> toString $ "error: " <> e
 goldenSimulate F32a fn confFn =
     let resultFn = dropExtension confFn <> ".f32a.result"
@@ -148,5 +148,5 @@ goldenSimulate F32a fn confFn =
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace
+                Right Result{rTrace} -> rTrace <> "\n"
                 Left e -> toString $ "error: " <> e

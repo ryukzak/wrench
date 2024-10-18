@@ -40,3 +40,4 @@ mem[252..255]: 	Add
 mem[256..259]: 	Jump 216
 mem[260..263]: 	Drop 	@factorial_finish
 mem[264..267]: 	Return
+---

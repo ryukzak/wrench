@@ -20,3 +20,4 @@ mem[64..67]: 	Lit (-1)
 mem[68..71]: 	Add
 mem[72..75]: 	Jump 40
 mem[76..79]: 	Halt 	@end
+---
