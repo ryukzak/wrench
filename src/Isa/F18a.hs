@@ -24,41 +24,43 @@ data Register = T | S | A | B | P | R
 
 instance Hashable Register
 
+{- FOURMOLU_DISABLE -}
 data Isa w l
-    = Lit l
-    | -- ; return
+    = Lit l -- ^ __lit REF__
+      -- ; return
       -- ex execute (swap P and R)
       -- call to name
-      Next l -- next loop to address (decrement R)
-    | Jump l
-    | If l -- if. If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
-    | MinusIf l -- -if Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
-    | AStore -- a! A-Store. Stores T into register A, popping the data stack
-    | BStore -- b! B-Store. Stores T into register B, popping the data stack.
-    | FetchP l -- @p Pushes data stack, reads [P] into T, and increments P
-    | FetchPlus -- @+ Fetch-plus. Pushes data stack, reads [A] into T, and increments A
-    | FetchB -- @b Fetch-B. Pushes data stack and reads [B] into T
-    | Fetch -- @ Fetch. Pushes data stack and reads [A] into T.
-    | StoreP l -- !p Store-P. Writes T into [P], pops the data stack, and increments P
-    | StoreB -- !b Store-B. Writes T into [B] and pops the data stack
-    | StorePlus -- !+ Store-plus. Writes T into [A], pops the data stack, and increments A
-    | Store -- ! Writes T into [A] and pops the data stack
-    | MulStep -- +* 10 multiply step
-    | LShift -- 2* 11 left shift
-    | RShift -- 2/ right shift (signed)
-    | Inv -- inv invert all bits (was ~)
-    | Add -- + add (or add with carry)
-    | And
-    | Xor -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
-    | Drop -- Drop. Pops the data stack
-    | Dup -- Dup. Duplicates T on the data stack
-    | RPop -- >r Moves R into T, popping the return stack and pushing the data stack
-    | RPush -- r> Moves T into R, pushing the return stack and popping the data stack
-    | Over -- over
-    | AFetch -- a Fetches the contents of register A into T, pushing the data stack
+    | Next l    -- ^ __next REF__ loop to address (decrement R)
+    | Jump l    -- ^ __REF ;__
+    | If l      -- ^ __if__   If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
+    | MinusIf l -- ^ __-if__  Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
+    | AStore    -- ^ __a!__   A-Store. Stores T into register A, popping the data stack
+    | BStore    -- ^ __b!__   B-Store. Stores T into register B, popping the data stack.
+    | FetchP l  -- ^ __@p__   Pushes data stack, reads [P] into T, and increments P
+    | FetchPlus -- ^ __@+__   Fetch-plus. Pushes data stack, reads [A] into T, and increments A
+    | FetchB    -- ^ __@b__   Fetch-B. Pushes data stack and reads [B] into T
+    | Fetch     -- ^ __@__    Fetch. Pushes data stack and reads [A] into T.
+    | StoreP l  -- ^ __!p__   Store-P. Writes T into [P], pops the data stack, and increments P
+    | StoreB    -- ^ __!b__   Store-B. Writes T into [B] and pops the data stack
+    | StorePlus -- ^ __!+__   Store-plus. Writes T into [A], pops the data stack, and increments A
+    | Store     -- ^ __!__    Writes T into [A] and pops the data stack
+    | MulStep   -- ^ __+*__   10 multiply step
+    | LShift    -- ^ __2*__   11 left shift
+    | RShift    -- ^ __2/__   right shift (signed)
+    | Inv       -- ^ __inv__  invert all bits (was ~)
+    | Add       -- ^ __+__    add (or add with carry)
+    | And       -- ^ __and__
+    | Xor       -- ^ __xor__  Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
+    | Drop      -- ^ __drop__ Drop. Pops the data stack
+    | Dup       -- ^ __dup__  Dup. Duplicates T on the data stack
+    | RPop      -- ^ __>r__   Moves R into T, popping the return stack and pushing the data stack
+    | RPush     -- ^ __r>__   Moves T into R, pushing the return stack and popping the data stack
+    | Over      -- ^ __over__
+    | AFetch    -- ^ __a__    Fetches the contents of register A into T, pushing the data stack
     -- . nop
-    | Halt
+    | Halt      -- ^ __halt__
     deriving (Show)
+{- FOURMOLU_ENABLE -}
 
 instance CommentStart (Isa w l) where
     commentStart = "\\"

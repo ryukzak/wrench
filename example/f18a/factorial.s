@@ -2,7 +2,7 @@
 
 input_addr:        .word 0x80
 output_addr:       .word 0x84
-alligment:     .word '................................'
+alligment:         .word '................................'
 
     .text
 
