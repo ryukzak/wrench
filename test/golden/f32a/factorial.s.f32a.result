@@ -1,0 +1,43 @@
+0:	input_addr
+4:	output_addr
+8:	alligment
+136:	_start
+176:	multiply
+184:	multiply_do
+208:	factorial
+216:	factorial_while
+260:	factorial_finish
+---
+mem[0..135]: 	80 00 00 00 84 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00
+mem[136..143]: 	FetchP 0 	@_start
+mem[144..147]: 	AStore
+mem[148..151]: 	Fetch
+mem[152..155]: 	Call 208
+mem[156..163]: 	FetchP 4
+mem[164..167]: 	AStore
+mem[168..171]: 	Store
+mem[172..175]: 	Halt
+mem[176..179]: 	Lit 31 	@multiply
+mem[180..183]: 	RPush
+mem[184..187]: 	MulStep 	@multiply_do
+mem[188..191]: 	Next 184
+mem[192..195]: 	Drop
+mem[196..199]: 	Drop
+mem[200..203]: 	AFetch
+mem[204..207]: 	Return
+mem[208..211]: 	Lit 1 	@factorial
+mem[212..215]: 	Over
+mem[216..219]: 	Dup 	@factorial_while
+mem[220..223]: 	If 260
+mem[224..227]: 	Dup
+mem[228..231]: 	AStore
+mem[232..235]: 	Over
+mem[236..239]: 	Lit 0
+mem[240..243]: 	Call 176
+mem[244..247]: 	Over
+mem[248..251]: 	Lit (-1)
+mem[252..255]: 	Add
+mem[256..259]: 	Jump 216
+mem[260..263]: 	Drop 	@factorial_finish
+mem[264..267]: 	Return
+---

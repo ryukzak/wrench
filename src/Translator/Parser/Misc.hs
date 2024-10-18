@@ -34,7 +34,7 @@ hexNum = do
     digits <- many digitChar
     return $ "0x" <> digits
 
-eol' = hspace >> void (eol <|> comment)
+eol' cstart = hspace >> void (eol <|> comment cstart)
 
 name :: Parser String
 name = do
@@ -42,9 +42,9 @@ name = do
     xs <- many (letterChar <|> digitChar <|> char '_')
     return $ x : xs
 
-comment :: Parser String
-comment = do
-    void $ single ';'
+comment :: String -> Parser String
+comment cstart = do
+    void $ string cstart
     manyTill anySingle eol
 
 nothing :: (Monad m) => m a -> m (Maybe b)

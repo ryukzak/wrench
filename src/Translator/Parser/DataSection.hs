@@ -12,25 +12,25 @@ import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
 
-dataSection :: (Read w) => Parser [DataToken w String]
-dataSection = do
-    string ".data" >> eol'
+dataSection :: (Read w) => String -> Parser [DataToken w String]
+dataSection cstart = do
+    string ".data" >> eol' cstart
     catMaybes
         <$> many
             ( choice
-                [ nothing (hspace1 <|> eol')
-                , Just <$> dataSectionItemM
+                [ nothing (hspace1 <|> eol' cstart)
+                , Just <$> dataSectionItemM cstart
                 ]
             )
 
-dataSectionItemM :: (Read w) => Parser (DataToken w String)
-dataSectionItemM = do
+dataSectionItemM :: (Read w) => String -> Parser (DataToken w String)
+dataSectionItemM cstart = do
     n <- label
     hspace1
-    DataToken n <$> dataValue
+    DataToken n <$> dataValue cstart
 
-dataValue :: (Read w) => Parser (DataValue w)
-dataValue = do
+dataValue :: (Read w) => String -> Parser (DataValue w)
+dataValue cstart = do
     wrapper :: (Read w) => [String] -> DataValue w <-
         choice
             [ string ".byte" >> return (DByte . map read)
@@ -38,7 +38,7 @@ dataValue = do
             ]
     hspace1
     values <- sepBy value (string "," >> hspace)
-    eol'
+    eol' cstart
     return $ wrapper $ concat values
     where
         value =

@@ -1,0 +1,27 @@
+0:	input_addr
+4:	output_addr
+8:	divisor
+12:	_start
+68:	multiply_begin
+---
+mem[0..11]: 	80 00 00 00 84 00 00 00 88 00 00 00
+mem[12..19]: 	FetchP 0 	@_start
+mem[20..23]: 	AStore
+mem[24..27]: 	Fetch
+mem[28..31]: 	Fetch
+mem[32..39]: 	FetchP 8
+mem[40..43]: 	BStore
+mem[44..47]: 	StoreB
+mem[48..51]: 	AStore
+mem[52..55]: 	Lit 0
+mem[56..59]: 	Lit 0
+mem[60..63]: 	Lit 31
+mem[64..67]: 	RPush
+mem[68..71]: 	DivStep 	@multiply_begin
+mem[72..75]: 	Next 68
+mem[76..83]: 	FetchP 0
+mem[84..87]: 	AStore
+mem[88..91]: 	Store
+mem[92..95]: 	Store
+mem[96..99]: 	Halt
+---

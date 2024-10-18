@@ -1,0 +1,23 @@
+0:	buf
+13:	output_addr
+17:	_start
+41:	while
+77:	end
+---
+mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 84 00 00 00
+mem[17..24]: 	FetchP 13 	@_start
+mem[25..28]: 	BStore
+mem[29..32]: 	Lit 0
+mem[33..36]: 	AStore
+mem[37..40]: 	Lit 13
+mem[41..44]: 	Dup 	@while
+mem[45..48]: 	If 77
+mem[49..52]: 	FetchPlus
+mem[53..56]: 	Lit 255
+mem[57..60]: 	And
+mem[61..64]: 	StoreB
+mem[65..68]: 	Lit (-1)
+mem[69..72]: 	Add
+mem[73..76]: 	Jump 41
+mem[77..80]: 	Halt 	@end
+---

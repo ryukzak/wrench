@@ -15,7 +15,7 @@ import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Algorithm.Diff
 import Data.Algorithm.DiffOutput
 import Data.Text (replace, strip)
-import Isa.Risc
+import Isa.RiscIv
 import Machine.Memory
 import Machine.Types
 import Relude
