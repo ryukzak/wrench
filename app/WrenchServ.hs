@@ -112,10 +112,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
     liftIO $ writeFile (dir <> "/result.log") stdout_
 
     varChecks <- case variant of
-        Nothing -> do
-            liftIO $ writeFile (dir <> "/test_cases_status.log") ""
-            liftIO $ writeFile (dir <> "/test_cases_result.log") ""
-            return []
+        Nothing -> return []
         Just variant' -> do
             variantDir <- liftIO $ sort . map takeFileName <$> listFiles (cVariantsPath </> toString variant')
             let yamlFiles = filter (isSuffixOf ".yaml" . toText) variantDir
@@ -124,17 +121,24 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
                 (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation isa conf asmFile fn
                 return (yamlFile, fn, tcExitCode, tcStdout, tcStderr)
 
+    liftIO $ writeFile (dir <> "/test_cases_status.log") ""
+
     forM_ varChecks $ \(yamlFile, _fn, tcExitCode, _tcStdout, tcStderr) -> do
         liftIO
             $ appendFile
                 (dir <> "/test_cases_status.log")
                 (yamlFile <> ": " <> show tcExitCode <> "\n" <> tcStderr)
 
+    liftIO $ writeFile (dir <> "/test_cases_result.log") ""
+
     let fails = take 1 $ filter (\(_, _, x, _, _) -> x /= ExitSuccess) varChecks
 
-    forM_ fails $ \(_yamlFile, fn, _tcExitCode, tcStdout, _tcStderr) -> do
+    forM_ fails $ \(yamlFile, fn, _tcExitCode, tcStdout, tcStderr) -> do
         simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
-        liftIO $ writeFile (dir <> "/test_cases_result.log") (simConf <> "\n\n===\n\n" <> tcStdout)
+        liftIO
+            $ writeFile
+                (dir <> "/test_cases_result.log")
+                (yamlFile <> "\n" <> simConf <> "\n\n===\n\n" <> tcStdout <> "\n" <> tcStderr)
 
     let location = "/result/" <> show guid
     throwError $ err301{errHeaders = [("Location", location)]}

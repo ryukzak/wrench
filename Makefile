@@ -8,6 +8,9 @@ run:
 build:
 	stack build --copy-bins
 
+server: build
+	stack exec wrench-serv
+
 build-image:
 	docker build -t ryukzak/wrench -f hub.Dockerfile .
 
@@ -37,6 +40,7 @@ readme-fix:
 
 format-fix:
 	fourmolu -m inplace $(HS_SRC_DIR)
+	prettier -w static/
 
 format-check:
 	fourmolu -m check $(HS_SRC_DIR)
