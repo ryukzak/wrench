@@ -16,7 +16,6 @@ while:
     dup
     if end
 
-    \ FIXME: 0xFF
     @+   lit 255   and
 
     !b
