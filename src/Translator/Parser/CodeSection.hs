@@ -11,13 +11,14 @@ import Translator.Types
 
 codeSection ::
     (MnemonicParser isa) =>
-    Parser [CodeToken isa String]
-codeSection = do
-    string ".text" >> eol'
+    String
+    -> Parser [CodeToken isa String]
+codeSection cstart = do
+    string ".text" >> eol' cstart
     catMaybes
         <$> many
             ( choice
-                [ nothing (hspace1 <|> eol')
+                [ nothing (hspace1 <|> eol' cstart)
                 , Just . Mnemonic <$> mnemonic
                 , Just . Label <$> label
                 ]

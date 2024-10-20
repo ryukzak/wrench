@@ -17,7 +17,7 @@ module Translator.Parser.Misc (
 import Relude
 import Relude.Unsafe (read)
 import Text.Megaparsec (anySingle, choice, manyTill, single)
-import Text.Megaparsec.Char (char, digitChar, eol, hspace, letterChar, string)
+import Text.Megaparsec.Char (char, digitChar, eol, hexDigitChar, hspace, letterChar, string)
 import Translator.Parser.Types
 import Translator.Types
 
@@ -31,10 +31,10 @@ num =
 hexNum :: Parser String
 hexNum = do
     void $ string "0x"
-    digits <- many digitChar
+    digits <- many hexDigitChar
     return $ "0x" <> digits
 
-eol' = hspace >> void (eol <|> comment)
+eol' cstart = hspace >> void (eol <|> comment cstart)
 
 name :: Parser String
 name = do
@@ -42,9 +42,9 @@ name = do
     xs <- many (letterChar <|> digitChar <|> char '_')
     return $ x : xs
 
-comment :: Parser String
-comment = do
-    void $ single ';'
+comment :: String -> Parser String
+comment cstart = do
+    void $ string cstart
     manyTill anySingle eol
 
 nothing :: (Monad m) => m a -> m (Maybe b)

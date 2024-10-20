@@ -19,37 +19,38 @@ import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Translator.Types
 
-prepareDump :: (MachineWord w, ByteLength isa) => Int -> [Section isa w w] -> Mem isa w
+prepareDump :: (MachineWord w, ByteLength isa) => Maybe Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
-    fromList
-        $ zip
-            [0 .. memorySize - 1]
-            ( concatMap
-                ( \case
-                    Code{codeTokens} ->
-                        ( concatMap
-                            ( \case
-                                Mnemonic m ->
-                                    Instruction m : replicate (byteLength m - 1) InstructionPart
-                                _other -> []
+    let mSize = fromMaybe (foldr ((+) . byteLength) 0 sections) memorySize
+     in fromList
+            $ zip
+                [0 .. mSize - 1]
+                ( concatMap
+                    ( \case
+                        Code{codeTokens} ->
+                            ( concatMap
+                                ( \case
+                                    Mnemonic m ->
+                                        Instruction m : replicate (byteLength m - 1) InstructionPart
+                                    _other -> []
+                                )
+                                codeTokens
                             )
-                            codeTokens
-                        )
-                    Data{dataTokens} ->
-                        ( concatMap
-                            ( \DataToken{dtValue} ->
-                                map
-                                    Value
-                                    $ case dtValue of
-                                        DByte bs -> bs
-                                        DWord ws -> concatMap wordSplit ws
+                        Data{dataTokens} ->
+                            ( concatMap
+                                ( \DataToken{dtValue} ->
+                                    map
+                                        Value
+                                        $ case dtValue of
+                                            DByte bs -> bs
+                                            DWord ws -> concatMap wordSplit ws
+                                )
+                                dataTokens
                             )
-                            dataTokens
-                        )
+                    )
+                    sections
+                    <> repeat (Value 0)
                 )
-                sections
-                <> repeat (Value 0)
-            )
 
 isValue Value{} = True
 isValue _ = False
@@ -91,7 +92,7 @@ word8ToHex w =
      in if length hex == 1 then "0" <> hex else hex
 
 word32ToHex w =
-    let hex = showHex w ""
+    let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
 class Memory m isa w | m -> isa w where
@@ -100,7 +101,7 @@ class Memory m isa w | m -> isa w where
     writeWord :: Int -> w -> State m ()
 
 instance
-    (MachineWord w, Show isa) =>
+    (MachineWord w) =>
     Memory (Mem isa w) isa w
     where
     readInstruction idx = do
@@ -120,7 +121,7 @@ instance
             getValue mem i =
                 case mem !? i of
                     Just (Value v) -> v
-                    Just x -> error $ "Can't interpret instruction as data at " <> show i <> " value: " <> show x
+                    Just _ -> 0xAA -- error $ "Can't interpret instruction as data at " <> show i <> " value: " <> show x
                     Nothing -> error $ "Out of memory at index: " <> show i
 
     writeWord idx word = modify $ \mem ->

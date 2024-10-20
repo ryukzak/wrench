@@ -5,7 +5,7 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.0.1
+version:        0.0.0.2
 description:    Please see the README on GitHub
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
@@ -26,7 +26,8 @@ source-repository head
 library
   exposed-modules:
       Config
-      Isa.Risc
+      Isa.F32a
+      Isa.RiscIv
       Machine
       Machine.Memory
       Machine.Types
@@ -182,6 +183,7 @@ executable wrench-serv
     , time
     , uuid
     , wai
+    , wai-extra
     , warp
     , wrench
     , yaml
@@ -191,7 +193,7 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Isa.Risc.Test
+      Isa.RiscIv.Test
       Paths_wrench
   autogen-modules:
       Paths_wrench

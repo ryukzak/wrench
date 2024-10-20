@@ -1,0 +1,31 @@
+---
+# 0 - Истина, 1 - Ложь
+name: "assert hello(*()) == ('Hello\n\x00World',)"
+limit: 1000
+memory_size: 0x1000
+input_streams:
+    0x80: [1]
+    0x84: []
+reports:
+    - name: Step-by-step log
+      slice: all
+      filter:
+          - instruction
+          - state
+      inspector:
+          - - T0
+            - [register_hex, T0]
+            - T1
+            - [register_hex, T1]
+            - T2
+            - [register_hex, T2]
+    - name: Check results
+      slice: last
+      filter:
+          - state
+      inspector:
+          - ["numio[0x80]:", [number_io_stream, 0x0080]]
+          - ["numio[0x84]:", [number_io_stream, 0x0084]]
+      assert: |
+          numio[0x80]: [] >>> []
+          numio[0x84]: [] >>> [0]
