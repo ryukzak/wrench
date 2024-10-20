@@ -90,7 +90,7 @@ jobs:
             - uses: actions/cache@v4
               name: Cache ~/.stack
               with:
-                  path: ~/.stack
+                  path: ${{ runner.os == 'Windows' && 'C:\\Users\\runneradmin\\AppData\\Local\\Programs\\stack' || '~/.stack' }}
                   key: ${{ runner.os }}-stack-global-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
                   restore-keys: |
                       ${{ runner.os }}-stack-global-
