@@ -12,6 +12,7 @@ module Isa.F32a (
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
+import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
 import Relude
@@ -270,6 +271,15 @@ instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa 
             ]
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
+
+instance (MachineWord w) => ViewState (MachineState (IoMem (Isa w w) w) w) where
+    viewState State{dataStack, returnStack} v =
+        case v of
+            "dstack" -> toText $ intercalate ":" $ map show dataStack
+            "dstach_hex" -> T.intercalate ":" $ map (toText . word32ToHex) dataStack
+            "rstack" -> toText $ intercalate ":" $ map show returnStack
+            "rstack_hex" -> T.intercalate ":" $ map (toText . word32ToHex) returnStack
+            _ -> "not supported: " <> v <> " (supported: dstack, dstack_hex, rstack, rstack_hex)"
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =

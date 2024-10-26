@@ -309,6 +309,9 @@ data MachineState mem w = State
     }
     deriving (Show)
 
+instance ViewState (MachineState (IoMem (Isa w w) w) w) where
+    viewState State{} _ = "not supoorted"
+
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 

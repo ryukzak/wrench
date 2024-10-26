@@ -8,6 +8,7 @@ module Machine.Types (
     StateInterspector (..),
     MachineWord,
     FromSign (..),
+    ViewState (..),
     RegisterId,
     ByteLength (..),
     WordParts (..),
@@ -81,6 +82,9 @@ class StateInterspector st isa w r | st -> isa w r where
     registers :: st -> HashMap r w
     memoryDump :: st -> Mem isa w
     ioStreams :: st -> IntMap ([w], [w])
+
+class ViewState st where
+    viewState :: st -> Text -> Text
 
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Maybe (Int, isa))

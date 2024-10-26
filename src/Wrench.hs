@@ -120,6 +120,7 @@ wrench ::
     , InitState (IoMem isa2 w) st
     , MnemonicParser isa1
     , StateInterspector st isa2 w r
+    , ViewState st
     , DerefMnemonic (isa_ w) w
     , Show isa2
     , Hashable r

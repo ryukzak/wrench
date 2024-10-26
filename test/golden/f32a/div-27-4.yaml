@@ -12,12 +12,16 @@ reports:
       - instruction
       - state
     inspector:
-      - - A B T S BUF
+      - - A B T S B
         - [register_hex, A]
         - [register_hex, B]
         - [register_hex, T]
         - [register_hex, S]
-        - [memory_cells, 0x88, 0x92]
+      - - [memory_cells, 0x88, 0x92]
+      - - "dstack:"
+        - [view, dstack]
+        - "rstack:"
+        - [view, rstack_hex]
   - name: Check results
     slice: last
     filter:
