@@ -40,12 +40,13 @@ options =
                 <> showDefault
                 <> metavar "ISA"
                 <> value "risc-iv-32"
+                <> help "ISA (risc-iv-32, f32a)"
             )
         <*> optional
             ( strOption
                 ( long "conf"
                     <> short 'c'
-                    <> help "Configuration file"
+                    <> help "Configuration file (.yaml)"
                     <> showDefault
                     <> metavar "FILENAME"
                 )
