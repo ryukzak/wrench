@@ -6,7 +6,7 @@ This is an educational project designed to explore different types of processor 
 
 ### RISC-V-like 32-bit
 
-- See [Risc.hs](./src/Isa/Risc.hs) for the `data Risc` definition.
+- See [RiscIv.hs](./src/Isa/RiscIv.hs) for the `data Risc` definition.
 - For usage examples, check [Spec.hs](./test/Spec.hs).
 
 ## Build Locally
