@@ -1,9 +1,6 @@
-.PHONY : test run build format format-check lint clean
+.PHONY : test build format format-check lint clean
 
 HS_SRC_DIR = .
-
-run:
-	stack build --fast && stack exec ca-wrench-exe
 
 build:
 	stack build --copy-bins
