@@ -1,0 +1,29 @@
+0:	i
+4:	ptr
+8:	output_addr
+12:	buf_size
+16:	const_1
+20:	const_FF
+24:	buf
+37:	_start
+57:	while
+112:	end
+---
+mem[0..36]: 	00 00 00 00 00 00 00 00 84 00 00 00 0d 00 00 00 01 00 00 00 ff 00 00 00 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21
+mem[37..41]: 	LoadImm 24 	@_start
+mem[42..46]: 	StoreAddr 4
+mem[47..51]: 	LoadAddr 12
+mem[52..56]: 	StoreRel (-52)
+mem[57..61]: 	Beqz 112 	@while
+mem[62..66]: 	LoadInd 4
+mem[67..71]: 	And 20
+mem[72..76]: 	StoreInd 8
+mem[77..81]: 	LoadAddr 4
+mem[82..86]: 	Add 16
+mem[87..91]: 	StoreAddr 4
+mem[92..96]: 	LoadRel (-92)
+mem[97..101]: 	Sub 16
+mem[102..106]: 	StoreRel (-102)
+mem[107..111]: 	Jmp 57
+mem[112..116]: 	Halt 	@end
+---

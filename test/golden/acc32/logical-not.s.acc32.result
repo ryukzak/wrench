@@ -1,0 +1,12 @@
+0:	input_addr
+4:	output_addr
+8:	const_1
+12:	_start
+---
+mem[0..11]: 	80 00 00 00 84 00 00 00 01 00 00 00
+mem[12..16]: 	LoadInd 0 	@_start
+mem[17..21]: 	Not
+mem[22..26]: 	And 8
+mem[27..31]: 	StoreInd 4
+mem[32..36]: 	Halt
+---

@@ -40,7 +40,7 @@ options =
                 <> showDefault
                 <> metavar "ISA"
                 <> value "risc-iv-32"
-                <> help "ISA (risc-iv-32, f32a)"
+                <> help "ISA (risc-iv-32, f32a, acc32)"
             )
         <*> optional
             ( strOption

@@ -1,0 +1,9 @@
+0:	input_addr
+4:	output_addr
+8:	_start
+---
+mem[0..7]: 	80 00 00 00 84 00 00 00
+mem[8..12]: 	LoadInd 0 	@_start
+mem[13..17]: 	StoreInd 4
+mem[18..22]: 	Halt
+---

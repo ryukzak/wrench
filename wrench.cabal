@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Config
+      Isa.Acc32
       Isa.F32a
       Isa.RiscIv
       Machine
