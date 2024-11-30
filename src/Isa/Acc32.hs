@@ -23,31 +23,57 @@ data Register = Acc
 
 instance Hashable Register
 
+-- | The 'Isa' type represents the instruction set architecture for the Acc32 machine.
+-- Each constructor corresponds to a specific instruction.
 data Isa w l
-    = LoadImm l
-    | LoadAddr l
-    | LoadRel l
-    | LoadInd l
-    | StoreAddr l
-    | StoreRel l
-    | StoreInd l
-    | Add l
-    | Sub l
-    | Mul l
-    | Div l
-    | Rem l
-    | ShiftL l
-    | ShiftR l
-    | And l
-    | Or l
-    | Xor l
-    | Not
-    | Jmp l
-    | Beqz l
-    | Bnez l
-    | Bgz l
-    | Blz l
-    | Halt
+    = -- | Syntax: @load_imm <value>@ Load an immediate value into the accumulator.
+      LoadImm l
+    | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
+      LoadAddr l
+    | -- | Syntax: @load_rel <offset>@ Load a value from a relative address into the accumulator.
+      LoadRel l
+    | -- | Syntax: @load_ind <address>@ Load a value from an indirect address into the accumulator.
+      LoadInd l
+    | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
+      StoreAddr l
+    | -- | Syntax: @store_rel <offset>@ Store the accumulator value into a relative address.
+      StoreRel l
+    | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
+      StoreInd l
+    | -- | Syntax: @add <value>@ Add a value to the accumulator.
+      Add l
+    | -- | Syntax: @sub <value>@ Subtract a value from the accumulator.
+      Sub l
+    | -- | Syntax: @mul <value>@ Multiply the accumulator by a value.
+      Mul l
+    | -- | Syntax: @div <value>@ Divide the accumulator by a value.
+      Div l
+    | -- | Syntax: @rem <value>@ Compute the remainder of the accumulator divided by a value.
+      Rem l
+    | -- | Syntax: @shiftl <bits>@ Shift the accumulator left by a number of bits.
+      ShiftL l
+    | -- | Syntax: @shiftr <bits>@ Shift the accumulator right by a number of bits.
+      ShiftR l
+    | -- | Syntax: @and <value>@ Perform a bitwise AND on the accumulator with a value.
+      And l
+    | -- | Syntax: @or <value>@ Perform a bitwise OR on the accumulator with a value.
+      Or l
+    | -- | Syntax: @xor <value>@ Perform a bitwise XOR on the accumulator with a value.
+      Xor l
+    | -- | Syntax: @not@ Perform a bitwise NOT on the accumulator.
+      Not
+    | -- | Syntax: @jmp <address>@ Jump to a specific address.
+      Jmp l
+    | -- | Syntax: @beqz <address>@ Jump to a specific address if the accumulator is zero.
+      Beqz l
+    | -- | Syntax: @bnez <address>@ Jump to a specific address if the accumulator is not zero.
+      Bnez l
+    | -- | Syntax: @bgt <address>@ Jump to a specific address if the accumulator is greater than zero.
+      Bgz l
+    | -- | Syntax: @ble <address>@ Jump to a specific address if the accumulator is less than zero.
+      Blz l
+    | -- | Syntax: @halt@ Halt the machine.
+      Halt
     deriving (Show)
 
 instance CommentStart (Isa w l) where
