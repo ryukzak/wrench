@@ -242,9 +242,9 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "beqz" Beqz register reference
                     , cmd2args "bnez" Bnez register reference
                     , cmd3args "bgt" Bgt register register reference
-                    , cmd3args "ble" Ble register register reference
-                    , cmd3args "bgtu" Bgtu register register reference
                     , cmd3args "bleu" Bleu register register reference
+                    , cmd3args "bgtu" Bgtu register register reference
+                    , cmd3args "ble" Ble register register reference
                     , string "halt" >> return Halt
                     ]
 
