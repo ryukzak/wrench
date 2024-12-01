@@ -94,6 +94,7 @@ tests =
                 , goldenTranslate Acc32 "test/golden/acc32/hello.s"
                 , goldenTranslate Acc32 "test/golden/acc32/get-put-char.s"
                 , goldenTranslate Acc32 "test/golden/acc32/factorial.s"
+                , goldenTranslate Acc32 "test/golden/acc32/all.s"
                 ]
             , testGroup
                 "Generated tests"
