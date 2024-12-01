@@ -19,7 +19,7 @@ import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec.Char (char, hspace, string)
 import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
@@ -286,16 +286,16 @@ instance ByteLength (Isa w l) where
 comma = hspace >> string "," >> hspace
 
 cmd1args mnemonic constructor a =
-    constructor <$> (string mnemonic *> hspace1 *> a)
+    constructor <$> (string (mnemonic <> " ") *> hspace *> a)
 
 cmd2args mnemonic constructor a b =
     constructor
-        <$> (string mnemonic *> hspace1 *> a)
+        <$> (string (mnemonic <> " ") *> hspace *> a)
         <*> (comma *> b)
 
 cmd3args mnemonic constructor a b c =
     constructor
-        <$> (string mnemonic *> hspace1 *> a)
+        <$> (string (mnemonic <> " ") *> hspace *> a)
         <*> (comma *> b)
         <*> (comma *> c)
 

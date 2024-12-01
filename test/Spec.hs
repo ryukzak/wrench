@@ -37,6 +37,7 @@ tests =
                 [ goldenTranslate RiscIv "test/golden/risc-iv-32/count.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/factorial.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/hello.s"
+                , goldenTranslate RiscIv "test/golden/risc-iv-32/all.s"
                 ]
             , Isa.RiscIv.Test.tests
             , testGroup
