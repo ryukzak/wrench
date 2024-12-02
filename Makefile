@@ -12,7 +12,7 @@ build-image:
 	docker build -t ryukzak/wrench -f hub.Dockerfile .
 
 build-image-for-hub:
-	docker build -t ryukzak/wrench --push -f hub.Dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench --push -f hub.Dockerfile .
 
 test:
 	stack build --fast --test

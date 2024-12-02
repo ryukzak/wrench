@@ -42,7 +42,7 @@ Usage: wrench [INPUT] [--isa ISA] [-c|--conf FILENAME] [-S] [-v|--verbose]
 
 Available options:
   INPUT                    Input assembler file (.s)
-  --isa ISA                ISA (risc-iv-32, f32a) (default: "risc-iv-32")
+  --isa ISA                ISA (risc-iv-32, f32a, acc32) (default: "risc-iv-32")
   -c,--conf FILENAME       Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   -v,--verbose             Verbose output
