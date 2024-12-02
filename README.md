@@ -6,7 +6,7 @@ This is an educational project designed to explore different types of processor 
 
 ### RISC-V-like 32-bit
 
-- See [Risc.hs](./src/Isa/Risc.hs) for the `data Risc` definition.
+- See [RiscIv.hs](./src/Isa/RiscIv.hs) for the `data Risc` definition.
 - For usage examples, check [Spec.hs](./test/Spec.hs).
 
 ## Build Locally
@@ -185,8 +185,8 @@ Task: Factorial computation in RISC-V-like 32-bit ISA: `n!`.
 
 Results:
 
-- Source code with comments: [factorial-risc.s](./example/factorial-risc.s).
-- Configuration file: [factorial-5.yaml](./example/factorial-5.yaml), which:
+- Source code with comments: [factorial.s](./example/risc-iv-32/factorial.s) (RISC).
+- Configuration file: [factorial-5.yaml](./example/risc-iv-32/factorial-5.yaml), which:
     - Limits the simulation to 40 instructions.
     - Defines memory-mapped IO:
         - `0x80`: Input token for `n = 5`.
@@ -198,13 +198,13 @@ Results:
 To see the translation result:
 
 ```shell
-stack exec wrench -- example/factorial-risc.s -c example/factorial-5.yaml -S
+stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml -S
 ```
 
 To execute the simulation and see reports:
 
 ```shell
-stack exec wrench -- example/factorial-risc.s -c example/factorial-5.yaml
+stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml
 ```
 
 For other results see [./test/golden](./test/golden) directory.
