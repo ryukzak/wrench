@@ -125,6 +125,7 @@ data StateInspectorToken
       Label String
     | -- | A range of memory cells from the first to the second address.
       MemoryCells (Int, Int)
+    | View Text
     | -- | The value of the register with the given name.
       Register String
     | -- | The value of the register with the given name, formatted as hexadecimal.
@@ -142,6 +143,7 @@ instance FromJSON StateInspectorToken where
         [String "memory_cells", Number a, Number b] -> return $ MemoryCells (round a, round b)
         [String "register", String r] -> return $ Register $ toString r
         [String "register_hex", String r] -> return $ RegisterHex $ toString r
+        [String "view", String v] -> return $ View v
         [String "number_io_stream", Number n] -> return $ NumberIoStream $ round n
         [String "symbol_io_stream", Number n] -> return $ SymbolIoStream $ round n
         _ -> fail "Invalid inspector format."
@@ -164,6 +166,7 @@ inspectToken st (Register name) = case registers st !? Unsafe.read name of
 inspectToken st (RegisterHex name) = case registers st !? Unsafe.read name of
     Just v -> word32ToHex v
     Nothing -> "register " <> name <> " not found"
+inspectToken st (View name) = toString $ viewState st name
 inspectToken st (MemoryCells (a, b)) = prettyDump mempty $ fromList $ sliceMem [a .. b] $ memoryDump st
 inspectToken st (NumberIoStream addr) = case ioStreams st !? addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)

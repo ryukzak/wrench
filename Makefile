@@ -1,9 +1,6 @@
-.PHONY : test run build format format-check lint clean
+.PHONY : test build format format-check lint clean
 
 HS_SRC_DIR = .
-
-run:
-	stack build --fast && stack exec ca-wrench-exe
 
 build:
 	stack build --copy-bins
@@ -26,9 +23,18 @@ test-examples: build
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-87.yaml
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/get-put-char.s -c example/risc-iv-32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/not.s          -c example/risc-iv-32/not-true.yaml
+
 	stack exec wrench -- --isa f32a       example/f32a/not.s                -c example/f32a/not-true.yaml
 	stack exec wrench -- --isa f32a       example/f32a/hello.s              -c example/f32a/hello.yaml
+	# stack exec wrench -- --isa f32a       example/f32a/get-put-char.s       -c example/f32a/get-put-char-87.yaml
+	# stack exec wrench -- --isa f32a       example/f32a/get-put-char.s       -c example/f32a/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa f32a       example/f32a/factorial.s          -c example/f32a/factorial.yaml
+
+	stack exec wrench -- --isa acc32      example/acc32/not.s               -c example/acc32/not-true.yaml
+	stack exec wrench -- --isa acc32      example/acc32/hello.s             -c example/acc32/hello.yaml
+	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-87.yaml
+	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
+	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
 update-golden:
 	stack test --fast --test --test-arguments=--accept

@@ -1,0 +1,20 @@
+limit: 1000
+memory_size: 0x90
+input_streams:
+  0x80: [5]
+  132: []
+reports:
+  - name: Step-by-step log
+    slice: all
+    filter:
+      - instruction
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    inspector:
+      - [[label, "numio[0x80]:"], [number_io_stream, 0x0080]]
+      - [[label, "numio[0x84]:"], [number_io_stream, 0x0084]]
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [120]

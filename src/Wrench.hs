@@ -12,6 +12,7 @@ module Wrench (
 import Config
 import Data.Default
 import Data.String
+import Isa.Acc32 qualified as Acc32
 import Isa.F32a qualified as F32a
 import Isa.RiscIv qualified as RiscIv
 import Machine
@@ -38,12 +39,13 @@ data Options = Options
 instance Default Options where
     def = Options "" "risc-iv-32" Nothing False False
 
-data Isa = RiscIv | F32a
+data Isa = RiscIv | F32a | Acc32
     deriving (Show)
 
 instance Read Isa where
     readsPrec _ "risc-iv-32" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
+    readsPrec _ "acc32" = [(Acc32, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -87,31 +89,38 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                 src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
-                        then do
-                            putStrLn $ prettyLabels rLabels
-                            putStrLn "---"
-                            putStrLn $ prettyDump rLabels rDump
+                        then translationResult rLabels rDump
                         else do
                             putStrLn rTrace
                             if rSuccess then exitSuccess else exitFailure
-                Left e -> do
-                    putStrLn $ "error: " <> toString e
-                    exitFailure
+                Left e -> wrenchError e
         Just F32a ->
             case wrench @F32a.Isa @F32a.Register @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
-                        then do
-                            putStrLn $ prettyLabels rLabels
-                            putStrLn "---"
-                            putStrLn $ prettyDump rLabels rDump
+                        then translationResult rLabels rDump
                         else do
                             putStrLn rTrace
                             if rSuccess then exitSuccess else exitFailure
-                Left e -> do
-                    putStrLn $ "error: " <> toString e
-                    exitFailure
+                Left e -> wrenchError e
+        Just Acc32 ->
+            case wrench @Acc32.Isa @Acc32.Register @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32) conf opts src of
+                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+                    if onlyTranslation
+                        then translationResult rLabels rDump
+                        else do
+                            putStrLn rTrace
+                            if rSuccess then exitSuccess else exitFailure
+                Left e -> wrenchError e
         Nothing -> error $ "unknown isa:" <> toText isa
+    where
+        translationResult rLabels rDump = do
+            putStrLn $ prettyLabels rLabels
+            putStrLn "---"
+            putStrLn $ prettyDump rLabels rDump
+        wrenchError e = do
+            putStrLn $ "error (" <> isa <> "): " <> toString e
+            exitFailure
 
 wrench ::
     forall isa_ r w st isa1 isa2.
@@ -120,6 +129,7 @@ wrench ::
     , InitState (IoMem isa2 w) st
     , MnemonicParser isa1
     , StateInterspector st isa2 w r
+    , ViewState st
     , DerefMnemonic (isa_ w) w
     , Show isa2
     , Hashable r

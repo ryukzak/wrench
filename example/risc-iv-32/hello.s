@@ -1,5 +1,6 @@
     .data
 
+; be aware, that it is not a pstr or cstr. It is just a buffer
 buf:               .byte 'Hello\n\0World'
 output_addr:       .word 0x84    ; Output address where the result should be stored
 

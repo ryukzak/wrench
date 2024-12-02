@@ -1,6 +1,7 @@
 import Config
 import Data.Default
 import Data.Text (replace, toTitle)
+import Isa.Acc32 qualified as Acc32
 import Isa.F32a qualified as F32a
 import Isa.RiscIv qualified as RiscIv
 import Isa.RiscIv.Test qualified
@@ -36,6 +37,7 @@ tests =
                 [ goldenTranslate RiscIv "test/golden/risc-iv-32/count.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/factorial.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/hello.s"
+                , goldenTranslate RiscIv "test/golden/risc-iv-32/all.s"
                 ]
             , Isa.RiscIv.Test.tests
             , testGroup
@@ -84,6 +86,24 @@ tests =
                 , generatedTest F32a "factorial" "test/golden/f32a/factorial.s" [1 .. 6]
                 ]
             ]
+        , testGroup
+            "Acc32"
+            [ testGroup
+                "Translator"
+                [ goldenTranslate Acc32 "test/golden/acc32/logical-not.s"
+                , goldenTranslate Acc32 "test/golden/acc32/hello.s"
+                , goldenTranslate Acc32 "test/golden/acc32/get-put-char.s"
+                , goldenTranslate Acc32 "test/golden/acc32/factorial.s"
+                , goldenTranslate Acc32 "test/golden/acc32/all.s"
+                ]
+            , testGroup
+                "Generated tests"
+                [ generatedTest Acc32 "hello" "test/golden/acc32/hello.s" [1]
+                , generatedTest Acc32 "get_put_char" "test/golden/acc32/get-put-char.s" [1 .. 6]
+                , generatedTest Acc32 "logical_not" "test/golden/acc32/logical-not.s" [1 .. 2]
+                , generatedTest Acc32 "factorial" "test/golden/acc32/factorial.s" [1 .. 6]
+                ]
+            ]
         ]
 
 generatedTest :: Isa -> String -> FilePath -> [Int] -> TestTree
@@ -130,6 +150,14 @@ goldenTranslate F32a fn =
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
+goldenTranslate Acc32 fn =
+    goldenVsString (fn2name fn) (fn <> ".acc32.result") $ do
+        src <- decodeUtf8 <$> readFileBS fn
+        case translate @Acc32.Isa @Int32 Nothing fn src of
+            Right (TranslatorResult dump labels) ->
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
+            Left err ->
+                error $ "Translation failed: " <> show err
 
 goldenSimulate :: Isa -> FilePath -> FilePath -> TestTree
 goldenSimulate RiscIv fn confFn =
@@ -145,6 +173,15 @@ goldenSimulate F32a fn confFn =
     let resultFn = dropExtension confFn <> ".f32a.result"
      in goldenVsString (fn2name confFn) resultFn $ do
             let wrench' = wrench @F32a.Isa @F32a.Register @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32)
+            src <- decodeUtf8 <$> readFileBS fn
+            conf <- either (error . toText) id <$> readConfig confFn
+            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
+                Right Result{rTrace} -> rTrace <> "\n"
+                Left e -> toString $ "error: " <> e
+goldenSimulate Acc32 fn confFn =
+    let resultFn = dropExtension confFn <> ".f32a.result"
+     in goldenVsString (fn2name confFn) resultFn $ do
+            let wrench' = wrench @Acc32.Isa @Acc32.Register @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of

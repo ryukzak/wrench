@@ -1,0 +1,47 @@
+0:	input_addr
+4:	output_addr
+8:	_start
+112:	jump_label
+116:	beqz_label
+120:	bnez_label
+124:	bgt_label
+128:	ble_label
+132:	bgtu_label
+136:	bleu_label
+---
+mem[0..7]: 	80 00 00 00 84 00 00 00
+mem[8..11]: 	Addi {rd = T0, rs1 = T0, k = 0} 	@_start
+mem[12..15]: 	Add {rd = T2, rs1 = T1, rs2 = T0}
+mem[16..19]: 	Sub {rd = T3, rs1 = T1, rs2 = T0}
+mem[20..23]: 	Mul {rd = T4, rs1 = T1, rs2 = T0}
+mem[24..27]: 	Mulh {rd = T5, rs1 = T1, rs2 = T0}
+mem[28..31]: 	Div {rd = T6, rs1 = T1, rs2 = T0}
+mem[32..35]: 	Rem {rd = T2, rs1 = T1, rs2 = T0}
+mem[36..39]: 	Sll {rd = T2, rs1 = T1, rs2 = T0}
+mem[40..43]: 	Srl {rd = T2, rs1 = T1, rs2 = T0}
+mem[44..47]: 	Sra {rd = T2, rs1 = T1, rs2 = T0}
+mem[48..51]: 	And {rd = T2, rs1 = T1, rs2 = T0}
+mem[52..55]: 	Or {rd = T2, rs1 = T1, rs2 = T0}
+mem[56..59]: 	Xor {rd = T2, rs1 = T1, rs2 = T0}
+mem[60..63]: 	Mv {rd = T2, rs = T1}
+mem[64..67]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[68..71]: 	Sb {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[72..75]: 	Lui {rd = T2, k = 4660}
+mem[76..79]: 	Li {rd = T2, k = 22136}
+mem[80..83]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[84..87]: 	J {k = 28}
+mem[88..91]: 	Beqz {rs1 = T1, k = 28}
+mem[92..95]: 	Bnez {rs1 = T1, k = 28}
+mem[96..99]: 	Bgt {rs1 = T1, rs2 = T0, k = 28}
+mem[100..103]: 	Ble {rs1 = T1, rs2 = T0, k = 28}
+mem[104..107]: 	Bgtu {rs1 = T1, rs2 = T0, k = 28}
+mem[108..111]: 	Bleu {rs1 = T1, rs2 = T0, k = 28}
+mem[112..115]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@jump_label
+mem[116..119]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beqz_label
+mem[120..123]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bnez_label
+mem[124..127]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgt_label
+mem[128..131]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@ble_label
+mem[132..135]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgtu_label
+mem[136..139]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
+mem[140..143]: 	Halt
+---
