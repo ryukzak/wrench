@@ -90,16 +90,10 @@ prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
             let curValues = takeWhile ((== label) . snd . fst) values
                 b = fst $ fst $ Unsafe.last curValues
                 restValues = dropWhile ((== label) . snd . fst) values
-             in ( "mem["
-                    <> show a
-                    <> ".."
-                    <> show b
-                    <> "]: \t"
-                    <> hexValues curValues
-                    <> maybe "" (("\t@" <>) . show) label
-                )
+             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> maybe "" (("\t@" <>) . show) label)
                     : merge restValues
-        hexValues = toString . unwords . map (toText . word8ToHex . snd)
+        hexValues values | all ((== 0) . snd) values && length values >= 16 = "( 00 )"
+        hexValues values = toString $ unwords $ map (toText . word8ToHex . snd) values
 
 word8ToHex w =
     let hex = showHex w ""
