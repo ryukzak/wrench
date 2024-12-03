@@ -111,6 +111,9 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
             ("$ date\n" <> show currentTime <> "\n$ wrench --version\n" <> version <> "\n" <> show exitCode <> "\n" <> stderr_)
     liftIO $ writeFile (dir <> "/result.log") stdout_
 
+    (_exitCode, stdoutDump, _stderrDump) <- liftIO $ dumpOutput isa conf asmFile
+    liftIO $ writeFile (dir <> "/dump.log") stdoutDump
+
     varChecks <- case variant of
         Nothing -> return []
         Just variant' -> do
@@ -156,6 +159,18 @@ runSimulation isa Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
     putStrLn ("process: " <> cWrenchPath <> " " <> show args)
     readProcessWithExitCode cWrenchPath args ""
 
+dumpOutput :: Text -> Config -> FilePath -> IO (ExitCode, String, String)
+dumpOutput isa Config{cWrenchPath, cWrenchArgs} asmFile = do
+    let args = cWrenchArgs <> ["--isa", toString isa, asmFile, "-S"]
+    putStrLn ("process: " <> cWrenchPath <> " " <> show args)
+    readProcessWithExitCode cWrenchPath args ""
+
+maybeReadFile :: FilePath -> IO (Maybe Text)
+maybeReadFile path = do
+    doesFileExist path >>= \case
+        True -> Just . decodeUtf8 <$> readFileBS path
+        False -> return Nothing
+
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do
     let dir = cStoragePath <> "/" <> guid
@@ -169,6 +184,7 @@ resultPage Config{cStoragePath} guid = do
     status <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/status.log"))
     testCaseStatus <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/test_cases_status.log"))
     testCaseResult <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/test_cases_result.log"))
+    dump <- liftIO (fromMaybe "TOO OLD WRENCH" <$> maybeReadFile (dir <> "/dump.log"))
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
@@ -182,6 +198,7 @@ resultPage Config{cStoragePath} guid = do
                 . replace "{{result}}" logContent
                 . replace "{{test_cases_status}}" testCaseStatus
                 . replace "{{test_cases_result}}" testCaseResult
+                . replace "{{dump}}" dump
 
     return $ toHtmlRaw $ renderTemplate template
 
