@@ -4,7 +4,8 @@
 37:	while
 61:	end
 ---
-mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 84 00 00 00
+mem[0..12]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
+mem[13..16]: 	84 00 00 00	@"output_addr"
 mem[17..20]: 	Lui {rd = T0, k = 13} 	@_start
 mem[21..24]: 	Addi {rd = T0, rs1 = T0, k = 13}
 mem[25..28]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}

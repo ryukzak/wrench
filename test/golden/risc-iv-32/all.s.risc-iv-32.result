@@ -9,7 +9,8 @@
 132:	bgtu_label
 136:	bleu_label
 ---
-mem[0..7]: 	80 00 00 00 84 00 00 00
+mem[0..3]: 	80 00 00 00	@"input_addr"
+mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	Addi {rd = T0, rs1 = T0, k = 0} 	@_start
 mem[12..15]: 	Add {rd = T2, rs1 = T1, rs2 = T0}
 mem[16..19]: 	Sub {rd = T3, rs1 = T1, rs2 = T0}

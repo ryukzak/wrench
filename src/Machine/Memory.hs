@@ -55,10 +55,6 @@ prepareDump memorySize sections =
 isValue Value{} = True
 isValue _ = False
 
-prettyCell (Instruction isa) = show isa
-prettyCell InstructionPart = "."
-prettyCell (Value b) = word8ToHex b
-
 sliceMem addrs dump = map (\a -> (a, Unsafe.fromJust (dump !? a))) addrs
 
 prettyDump ::
@@ -69,11 +65,11 @@ prettyDump ::
     -> String
 prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
     where
-        offset2label :: HashMap w String
-        offset2label = fromList $ map (\(a, b) -> (b, a)) $ toPairs labels
+        offset2label :: HashMap Int String
+        offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
         instruction offset n i =
             let place = "mem[" <> show offset <> ".." <> show (offset + n - 1) <> "]"
-                label = maybe "" (" \t@" <>) (offset2label !? toEnum offset)
+                label = maybe "" (" \t@" <>) (offset2label !? offset)
              in place <> ": \t" <> show i <> label
         pretty [] = []
         pretty ((offset, Instruction i) : cs) =
@@ -81,11 +77,29 @@ prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
                 cs' = drop (n - 1) cs
              in instruction offset n i : pretty cs'
         pretty cs =
-            let values = takeWhile (isValue . snd) cs
+            let values = map (second (\case (Value v) -> v; _ -> error "impossible")) $ takeWhile (isValue . snd) cs
                 cs' = dropWhile (isValue . snd) cs
-                values' = toString $ unwords $ map (toText . prettyCell . snd) values
-                offset = fst $ Unsafe.head values
-             in ("mem[" <> show offset <> ".." <> show (offset + length values - 1) <> "]: \t" <> values') : pretty cs'
+             in prettyData values : pretty cs'
+        prettyData values = intercalate "\n" $ merge $ mark Nothing values
+        mark _label [] = []
+        mark label ((a, value) : values) =
+            let label' = ((offset2label !? a) <|> label)
+             in ((a, label'), value) : mark label' values
+        merge [] = []
+        merge values@(((a, label), _value) : _restValues) =
+            let curValues = takeWhile ((== label) . snd . fst) values
+                b = fst $ fst $ Unsafe.last curValues
+                restValues = dropWhile ((== label) . snd . fst) values
+             in ( "mem["
+                    <> show a
+                    <> ".."
+                    <> show b
+                    <> "]: \t"
+                    <> hexValues curValues
+                    <> maybe "" (("\t@" <>) . show) label
+                )
+                    : merge restValues
+        hexValues = toString . unwords . map (toText . word8ToHex . snd)
 
 word8ToHex w =
     let hex = showHex w ""

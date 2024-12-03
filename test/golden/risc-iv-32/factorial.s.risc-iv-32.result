@@ -5,7 +5,8 @@
 28:	factorial_while
 44:	factorial_end
 ---
-mem[0..7]: 	80 00 00 00 84 00 00 00
+mem[0..3]: 	80 00 00 00	@"input_addr"
+mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	Lui {rd = T0, k = 0} 	@_start
 mem[12..15]: 	Addi {rd = T0, rs1 = T0, k = 0}
 mem[16..19]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}

@@ -9,7 +9,13 @@
 57:	while
 112:	end
 ---
-mem[0..36]: 	00 00 00 00 00 00 00 00 84 00 00 00 0d 00 00 00 01 00 00 00 ff 00 00 00 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21
+mem[0..3]: 	00 00 00 00	@"i"
+mem[4..7]: 	00 00 00 00	@"ptr"
+mem[8..11]: 	84 00 00 00	@"output_addr"
+mem[12..15]: 	0d 00 00 00	@"buf_size"
+mem[16..19]: 	01 00 00 00	@"const_1"
+mem[20..23]: 	ff 00 00 00	@"const_FF"
+mem[24..36]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
 mem[37..41]: 	LoadImm 24 	@_start
 mem[42..46]: 	StoreAddr 4
 mem[47..51]: 	LoadAddr 12

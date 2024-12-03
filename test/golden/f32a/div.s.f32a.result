@@ -4,7 +4,9 @@
 12:	_start
 68:	multiply_begin
 ---
-mem[0..11]: 	80 00 00 00 84 00 00 00 88 00 00 00
+mem[0..3]: 	80 00 00 00	@"input_addr"
+mem[4..7]: 	84 00 00 00	@"output_addr"
+mem[8..11]: 	88 00 00 00	@"divisor"
 mem[12..19]: 	FetchP 0 	@_start
 mem[20..23]: 	AStore
 mem[24..27]: 	Fetch

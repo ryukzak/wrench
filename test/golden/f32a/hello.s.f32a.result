@@ -4,7 +4,8 @@
 41:	while
 77:	end
 ---
-mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 84 00 00 00
+mem[0..12]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
+mem[13..16]: 	84 00 00 00	@"output_addr"
 mem[17..24]: 	FetchP 13 	@_start
 mem[25..28]: 	BStore
 mem[29..32]: 	Lit 0
