@@ -1,5 +1,6 @@
 .PHONY : test build format format-check lint clean
 
+VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 HS_SRC_DIR = .
 
 build:
@@ -12,7 +13,7 @@ build-image:
 	docker build -t ryukzak/wrench -f hub.Dockerfile .
 
 build-image-for-hub:
-	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench --push -f hub.Dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench:$(VERSION) -t ryukzak/wrench --push -f hub.Dockerfile .
 
 test:
 	stack build --fast --test
