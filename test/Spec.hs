@@ -70,6 +70,7 @@ tests =
                 , goldenTranslate F32a "test/golden/f32a/hello.s"
                 , goldenTranslate F32a "test/golden/f32a/div.s"
                 , goldenTranslate F32a "test/golden/f32a/factorial.s"
+                , goldenTranslate F32a "test/golden/f32a/jmp-and-call.s"
                 ]
             , testGroup
                 "F32a"
@@ -77,6 +78,7 @@ tests =
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-3-2.yaml"
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-2-3.yaml"
                 , goldenSimulate F32a "test/golden/f32a/factorial.s" "test/golden/f32a/factorial.yaml"
+                , goldenSimulate F32a "test/golden/f32a/jmp-and-call.s" "test/golden/f32a/jmp-and-call.yaml"
                 ]
             , testGroup
                 "Generated tests"

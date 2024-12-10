@@ -1,0 +1,12 @@
+0:	_start
+16:	call
+24:	jmp
+---
+mem[0..3]: 	Lit 25 	@_start
+mem[4..7]: 	Lit 25
+mem[8..11]: 	Call 16
+mem[12..15]: 	Jump 24
+mem[16..19]: 	Add 	@call
+mem[20..23]: 	Return
+mem[24..27]: 	Halt 	@jmp
+---

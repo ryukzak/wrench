@@ -1,0 +1,11 @@
+# Step-by-step log
+0:	Lit 25  	@_start ;;
+4:	Lit 25 ;;
+8:	Call 16 ;;
+16:	Add  	@call ;;
+20:	Return ;;
+12:	Jump 24 ;;
+24:	Halt  	@jmp
+---
+# Check results
+T A B S 50 0 0x00000000 0
