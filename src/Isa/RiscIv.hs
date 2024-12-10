@@ -432,29 +432,29 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     else nextPc
             Bgt{rs1, rs2, k} -> do
                 State{pc} <- get
-                rs1' <- fromSign <$> getReg rs1
-                rs2' <- fromSign <$> getReg rs2
+                rs1' <- getReg rs1
+                rs2' <- getReg rs2
                 if rs1' > rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Ble{rs1, rs2, k} -> do
                 State{pc} <- get
-                rs1' <- fromSign <$> getReg rs1
-                rs2' <- fromSign <$> getReg rs2
+                rs1' <- getReg rs1
+                rs2' <- getReg rs2
                 if rs1' <= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bgtu{rs1, rs2, k} -> do
                 State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
+                rs1' <- fromSign <$> getReg rs1
+                rs2' <- fromSign <$> getReg rs2
                 if rs1' > rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bleu{rs1, rs2, k} -> do
                 State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
+                rs1' <- fromSign <$> getReg rs1
+                rs2' <- fromSign <$> getReg rs2
                 if rs1' <= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc

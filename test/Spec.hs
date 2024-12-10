@@ -47,6 +47,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-87.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-null.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/ble-bleu.s" "test/golden/risc-iv-32/ble-bleu.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-5.yaml"
