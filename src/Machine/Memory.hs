@@ -116,7 +116,7 @@ instance
         mem <- get
         case mem !? idx of
             Just (Instruction i) -> return i
-            Just InstructionPart -> error "Can't read instruction from partial data."
+            Just InstructionPart -> error $ "Can't interpret value as instruction: " <> show idx <> " value: InstructionPart"
             Just (Value v) -> error $ "Can't interpret value as instruction: " <> show idx <> " value: " <> show v
             Nothing -> error "Out of memory."
 
