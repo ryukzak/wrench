@@ -1,18 +1,18 @@
     .data
 
-acc:        .word 0       ; Counter accumulator, starts at 0
-step:       .word 2       ; Step value for incrementing the counter
-out_port:   .word 88      ; Output port address, used for writing the counter value
-limit:      .word 21      ; Limit value, stop the program if counter reaches 21
+acc:		.word 0       ; Counter accumulator, starts at 0
+step:		.word 2       ; Step value for incrementing the counter
+out_port:	.word 88      ; Output port address, used for writing the counter value
+limit:		.word 21      ; Limit value, stop the program if counter reaches 21
 
     .text
 
 _start:
 
     ; Load the step value into register t1
-    lui     t0, step      ; Load upper immediate of 'step' into t0
-    addi    t0, t0, step  ; Add lower immediate part of 'step' to t0
-    lw      t1, 0(t0)     ; Load the value of 'step' into t1 (t1 = step)
+    lui		t0, step      ; Load upper immediate of 'step' into t0
+    addi	t0, t0, step  ; Add lower immediate part of 'step' to t0
+    lw		t1, 0(t0)     ; Load the value of 'step' into t1 (t1 = step)
 
     ; Load the accumulator value into register t2
     lui     t0, acc       ; Load upper immediate of 'acc' into t0

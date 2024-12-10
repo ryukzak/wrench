@@ -7,8 +7,8 @@ output_addr:       .word 0x84
 
 _start:
 
-    @p input_addr  a!
-    @p output_addr b!
+    @p	input_addr	a!
+    @p	output_addr	b!
 
     @ !b
 

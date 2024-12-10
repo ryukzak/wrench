@@ -285,17 +285,19 @@ instance ByteLength (Isa w l) where
 
 comma = hspace >> string "," >> hspace
 
+cmdMnemonic mnemonic = string (mnemonic <> " ") <|> string (mnemonic <> "\t")
+
 cmd1args mnemonic constructor a =
-    constructor <$> (string (mnemonic <> " ") *> hspace *> a)
+    constructor <$> (cmdMnemonic mnemonic *> hspace *> a)
 
 cmd2args mnemonic constructor a b =
     constructor
-        <$> (string (mnemonic <> " ") *> hspace *> a)
+        <$> (cmdMnemonic mnemonic *> hspace *> a)
         <*> (comma *> b)
 
 cmd3args mnemonic constructor a b c =
     constructor
-        <$> (string (mnemonic <> " ") *> hspace *> a)
+        <$> (cmdMnemonic mnemonic *> hspace *> a)
         <*> (comma *> b)
         <*> (comma *> c)
 
