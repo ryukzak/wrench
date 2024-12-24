@@ -2,8 +2,6 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
--- TODO: ; ex call
-
 -- | Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18a.pdf
 module Isa.F32a (
     Isa (..),
@@ -16,6 +14,7 @@ import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
 import Relude
+import Report
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
@@ -23,7 +22,7 @@ import Translator.Parser.Types
 import Translator.Types
 
 data Register = T | S | A | B | P | R
-    deriving (Show, Generic, Eq, Read)
+    deriving (Eq, Generic, Read, Show)
 
 instance Hashable Register
 
@@ -260,7 +259,7 @@ getA = do
 getB :: State (MachineState (IoMem (Isa w w) w) w) w
 getB = get <&> b
 
-instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{a, b, dataStack, returnStack} =
         fromList
             [ (A, a)
@@ -269,8 +268,27 @@ instance (Num w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa 
             , (S, fromMaybe 0 $ dataStack !!? 1)
             , (R, fromMaybe 0 $ returnStack !!? 0)
             ]
+    programCounter State{p} = p
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
+    reprState labels st v
+        | Just v' <- defaultView labels st v = v'
+    reprState labels st@State{a, b, dataStack, returnStack} v =
+        case T.splitOn ":" v of
+            [r] -> reprState labels st (r <> ":dec")
+            ["A", f] -> viewRegister f a
+            ["B", f] -> viewRegister f b
+            ["T", f] -> viewRegister f $ fromMaybe 0 $ dataStack !!? 0
+            ["S", f] -> viewRegister f $ fromMaybe 0 $ dataStack !!? 1
+            ["R", f] -> viewRegister f $ fromMaybe 0 $ returnStack !!? 0
+            ["stack", f] -> stack f dataStack
+            ["rstack", f] -> stack f returnStack
+            [r, _] -> unknownView r
+            _ -> errorView v
+        where
+            stack "dec" dt = toText $ intercalate ":" $ map show dt
+            stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
+            stack f _ = unknownFormat f
 
 instance (MachineWord w) => ViewState (MachineState (IoMem (Isa w w) w) w) where
     viewState State{dataStack, returnStack} v =

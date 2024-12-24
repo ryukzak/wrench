@@ -10,8 +10,8 @@ module Wrench (
 ) where
 
 import Config
-import Data.Default
-import Data.String
+import Data.Default (Default (..))
+import Data.Text qualified as T
 import Isa.Acc32 qualified as Acc32
 import Isa.F32a qualified as F32a
 import Isa.RiscIv qualified as RiscIv
@@ -30,14 +30,14 @@ import Prelude (Read (..))
 data Options = Options
     { input :: FilePath
     , isa :: String
-    , configFile :: Maybe FilePath
+    , configFile :: FilePath
     , onlyTranslation :: Bool
     , verbose :: Bool
     }
     deriving (Show)
 
 instance Default Options where
-    def = Options "" "risc-iv-32" Nothing False False
+    def = Options "" "risc-iv-32" "" False False
 
 data Isa = RiscIv | F32a | Acc32
     deriving (Show)
@@ -49,7 +49,7 @@ instance Read Isa where
     readsPrec _ _ = []
 
 data Result mem w = Result
-    { rTrace :: String
+    { rTrace :: Text
     , rLabels :: HashMap String w
     , rSuccess :: Bool
     , rDump :: mem
@@ -71,9 +71,8 @@ prettyLabels rLabels =
 wrenchIO :: Options -> IO ()
 wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
     when verbose $ pPrint opts
-    conf@Config{cLimit, cMemorySize} <- case configFile of
-        Just fn -> either (error . toText) id <$> readConfig fn
-        Nothing -> return def
+    conf@Config{cLimit, cMemorySize} <-
+        either (error . toText) id <$> readConfig configFile
     when verbose $ do
         pPrint conf
         putStrLn "---"
@@ -91,7 +90,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                     if onlyTranslation
                         then translationResult rLabels rDump
                         else do
-                            putStrLn rTrace
+                            putText rTrace
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just F32a ->
@@ -100,7 +99,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                     if onlyTranslation
                         then translationResult rLabels rDump
                         else do
-                            putStrLn rTrace
+                            putText rTrace
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just Acc32 ->
@@ -109,7 +108,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                     if onlyTranslation
                         then translationResult rLabels rDump
                         else do
-                            putStrLn rTrace
+                            putText rTrace
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Nothing -> error $ "unknown isa:" <> toText isa
@@ -124,27 +123,27 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
 
 wrench ::
     forall isa_ r w st isa1 isa2.
-    ( isa1 ~ isa_ w (Ref w)
-    , isa2 ~ isa_ w w
+    ( ByteLength isa1
+    , ByteLength isa2
+    , DerefMnemonic (isa_ w) w
+    , Hashable r
     , InitState (IoMem isa2 w) st
+    , Machine st isa2 w
+    , MachineWord w
     , MnemonicParser isa1
+    , Read r
+    , Show isa2
     , StateInterspector st isa2 w r
     , ViewState st
-    , DerefMnemonic (isa_ w) w
-    , Show isa2
-    , Hashable r
-    , Read r
-    , ByteLength isa1
-    , ByteLength isa2
-    , MachineWord w
-    , Machine st isa2 w
+    , isa1 ~ isa_ w (Ref w)
+    , isa2 ~ isa_ w w
     ) =>
     Config
     -> Options
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
-    TranslatorResult{dump, labels} <- translate (Just cMemorySize) fn src
+    trResult@TranslatorResult{dump, labels} <- translate (Just cMemorySize) fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =
@@ -156,11 +155,12 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
 
     (traceLog :: [Trace st isa2]) <- powerOn cLimit labels st
 
-    let reports = maybe [] (map (prepareReport verbose traceLog)) cReports
+    let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
+
     return
         $ Result
-            { rTrace = intercalate "\n---\n" $ map snd reports
+            { rTrace = unlines $ map (T.strip . ("---\n" <>) . snd) reports
             , rLabels = labels
             , rSuccess = isSuccess
             , rDump = dump

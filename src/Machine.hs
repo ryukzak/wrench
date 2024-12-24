@@ -14,8 +14,8 @@ journal' 0 _ _ = tell [TWarn "Instruction limit reached"]
 journal' limit pc2label st
     | Just (pc, instruction) <- evalState instructionFetch st = do
         tell [TInstruction pc (pc2label !? pc) instruction]
+        tell [TState st]
         let st' = execState instructionStep st
-        tell [TState st']
         journal' (limit - 1) pc2label st'
     | otherwise = return ()
 

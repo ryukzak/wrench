@@ -39,7 +39,7 @@ instance (ByteLength isa, ByteLength w, Default w) => ByteLength (Section isa w 
 
 derefSection ::
     forall isa w.
-    (MachineWord w, ByteLength (isa (Ref w)), DerefMnemonic isa w) =>
+    (ByteLength (isa (Ref w)), DerefMnemonic isa w, MachineWord w) =>
     (String -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w String
@@ -70,7 +70,7 @@ derefSection f _offset Data{dataTokens} =
                 dataTokens
         }
 
-markupOffsets :: (MachineWord w, ByteLength t) => w -> [t] -> [(w, t)]
+markupOffsets :: (ByteLength t, MachineWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
 markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteLength m)) ms
 

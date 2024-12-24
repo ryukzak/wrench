@@ -1,5 +1,4 @@
----
-name: "assert hello(*()) == ('Hello\n\x00World',)"
+name: "assert hello(*()) == ('Hello\n\0World',)"
 limit: 1000
 memory_size: 0x1000
 input_streams:
@@ -8,13 +7,11 @@ input_streams:
 reports:
   - name: Check results
     slice: last
-    filter:
-      - state
-    inspector:
-      - ["numio[0x80]:", [number_io_stream, 0x0080]]
-      - ["numio[0x84]:", [number_io_stream, 0x0084]]
-      - ["symio[0x80]:", [symbol_io_stream, 0x0080]]
-      - ["symio[0x84]:", [symbol_io_stream, 0x0084]]
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      symio[0x80]: {io:0x80:sym}
+      symio[0x84]: {io:0x84:sym}
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [72,101,108,108,111,10,0,87,111,114,108,100]

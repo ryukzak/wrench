@@ -1,0 +1,15 @@
+limit: 100
+memory_size: 0x1000
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label}
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    view: |
+      T A B S {T} {A} {B:hex} {S}
+    assert: |
+      T A B S 50 0 0x00000000 0

@@ -1,10 +1,10 @@
 name: wrench
-version: 0.0.0.5
+version: 0.0.0.6
 github: "ryukzak/wrench"
 license: BSD-3-Clause
 author: "Aleksandr Penskoi"
 maintainer: "aleksandr.penskoi@gmail.com"
-copyright: "2024 Aleksandr Penskoi"
+copyright: "2025 Aleksandr Penskoi"
 
 extra-source-files:
     - README.md
@@ -46,7 +46,6 @@ dependencies:
     - aeson-casing
     - base >= 4.7 && < 5
     - data-default
-    - Diff
     - filepath
     - megaparsec
     - mtl
@@ -54,6 +53,7 @@ dependencies:
     - pretty-simple
     - relude
     - split
+    - regex-tdfa
     - yaml
 
 ghc-options:

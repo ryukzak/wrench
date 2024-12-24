@@ -12,7 +12,7 @@ import Translator.Types
 
 asmParser ::
     forall isa w.
-    (MnemonicParser isa, MachineWord w) =>
+    (MachineWord w, MnemonicParser isa) =>
     Parser [Section isa w String]
 asmParser =
     do

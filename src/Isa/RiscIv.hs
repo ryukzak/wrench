@@ -13,11 +13,13 @@ module Isa.RiscIv (
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default
+import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import Report
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Translator.Parser.Misc
@@ -59,7 +61,7 @@ data Register
     | T4
     | T5
     | T6
-    deriving (Show, Eq, Generic, Read)
+    deriving (Eq, Generic, Read, Show)
 
 allRegisters =
     [ Zero
@@ -342,10 +344,21 @@ setWord addr w = do
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump = State{pc, mem = dump, regs = def, stopped = False}
 
-instance StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{regs} = regs
+    programCounter State{pc} = pc
     memoryDump State{mem = IoMem{mIoCells}} = mIoCells
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
+    reprState labels st v
+        | Just v' <- defaultView labels st v = v'
+    reprState labels st@State{regs} v =
+        case T.splitOn ":" v of
+            [r] -> reprState labels st (r <> ":dec")
+            [r, f]
+                | Just r' <- readMaybe (toString r)
+                , Just r'' <- regs !? r' ->
+                    viewRegister f r''
+            _ -> errorView v
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =

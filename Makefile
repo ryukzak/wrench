@@ -1,6 +1,7 @@
 .PHONY : test build format format-check lint clean
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
+COMMIT = $(shell git rev-parse --short HEAD)
 HS_SRC_DIR = .
 
 build:
@@ -13,7 +14,7 @@ build-image:
 	docker build -t ryukzak/wrench -f hub.Dockerfile .
 
 build-image-for-hub:
-	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench:$(VERSION) -t ryukzak/wrench --push -f hub.Dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench:$(VERSION) -t ryukzak/wrench:$(COMMIT) -t ryukzak/wrench --push -f hub.Dockerfile .
 
 test:
 	stack build --fast --test
@@ -38,6 +39,7 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
 update-golden:
+	script/variants.py
 	stack test --fast --test --test-arguments=--accept
 
 fix: lint-fix format-fix update-golden readme-fix
@@ -48,6 +50,8 @@ readme-fix:
 format-fix:
 	fourmolu -m inplace $(HS_SRC_DIR)
 	prettier -w static/
+	yamlfmt example test
+	ruff format script/*.py
 
 format-check:
 	fourmolu -m check $(HS_SRC_DIR)
@@ -57,7 +61,11 @@ lint-fix:
 
 lint:
 	hlint $(HS_SRC_DIR)
+	ruff check script/*.py
 
 clean:
 	stack clean
 	fd .result | xargs rm -v
+	rm -v -R -f test/golden/generated/*
+	rm -v -R -f variants/*
+	rm -v -R -f variants.md

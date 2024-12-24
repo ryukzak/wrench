@@ -5,13 +5,13 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.0.5
+version:        0.0.0.6
 description:    Please see the README on GitHub
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi
 maintainer:     aleksandr.penskoi@gmail.com
-copyright:      2024 Aleksandr Penskoi
+copyright:      2025 Aleksandr Penskoi
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple
@@ -70,8 +70,7 @@ library
       UndecidableInstances
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      Diff
-    , aeson
+      aeson
     , aeson-casing
     , base >=4.7 && <5
     , data-default
@@ -80,6 +79,7 @@ library
     , mtl
     , optparse-applicative
     , pretty-simple
+    , regex-tdfa
     , relude
     , split
     , yaml
@@ -116,8 +116,7 @@ executable wrench
       UndecidableInstances
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      Diff
-    , aeson
+      aeson
     , aeson-casing
     , base >=4.7 && <5
     , data-default
@@ -127,6 +126,7 @@ executable wrench
     , mtl
     , optparse-applicative
     , pretty-simple
+    , regex-tdfa
     , relude
     , split
     , wrench
@@ -160,8 +160,7 @@ executable wrench-serv
       UndecidableInstances
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      Diff
-    , aeson
+      aeson
     , aeson-casing
     , base >=4.7 && <5
     , data-default
@@ -175,6 +174,7 @@ executable wrench-serv
     , optparse-applicative
     , pretty-simple
     , process
+    , regex-tdfa
     , relude
     , servant
     , servant-lucid
@@ -195,6 +195,7 @@ test-suite wrench-test
   main-is: Spec.hs
   other-modules:
       Isa.RiscIv.Test
+      Report.Test
       Paths_wrench
   autogen-modules:
       Paths_wrench
@@ -223,8 +224,7 @@ test-suite wrench-test
       UndecidableInstances
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      Diff
-    , aeson
+      aeson
     , aeson-casing
     , base >=4.7 && <5
     , data-default
@@ -233,6 +233,7 @@ test-suite wrench-test
     , mtl
     , optparse-applicative
     , pretty-simple
+    , regex-tdfa
     , relude
     , split
     , tasty

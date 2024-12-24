@@ -1,4 +1,3 @@
----
 name: Get Put Char 87
 limit: 1000
 memory_size: 0x1000
@@ -6,17 +5,19 @@ input_streams:
   0x80: [87]
   0x84: []
 reports:
-  - name: Check results
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label}
+  - name: Result
     slice: last
-    filter:
-      - state
-    inspector:
-      - ["numio[0x80]:", [number_io_stream, 0x0080]]
-      - ["numio[0x84]:", [number_io_stream, 0x0084]]
-      - ["symio[0x80]:", [symbol_io_stream, 0x0080]]
-      - ["symio[0x84]:", [symbol_io_stream, 0x0084]]
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      numio[0x80]: {io:0x80:sym}
+      numio[0x84]: {io:0x84:sym}
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [87]
-      symio[0x80]: "" >>> ""
-      symio[0x84]: "" >>> "W"
+      numio[0x80]: "" >>> ""
+      numio[0x84]: "" >>> "W"

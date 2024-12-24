@@ -24,7 +24,7 @@ import Options.Applicative (
  )
 import Paths_wrench (version)
 import Relude
-import Wrench
+import Wrench (Options (..), wrenchIO)
 
 options :: Parser Options
 options =
@@ -32,7 +32,6 @@ options =
         <$> strArgument
             ( metavar "INPUT"
                 <> help "Input assembler file (.s)"
-                <> value "test/factorial.s"
             )
         <*> strOption
             ( long "isa"
@@ -42,14 +41,12 @@ options =
                 <> value "risc-iv-32"
                 <> help "ISA (risc-iv-32, f32a, acc32)"
             )
-        <*> optional
-            ( strOption
-                ( long "conf"
-                    <> short 'c'
-                    <> help "Configuration file (.yaml)"
-                    <> showDefault
-                    <> metavar "FILENAME"
-                )
+        <*> strOption
+            ( long "conf"
+                <> short 'c'
+                <> help "Configuration file (.yaml)"
+                <> showDefault
+                <> metavar "CONF"
             )
         <*> switch
             ( short 'S'

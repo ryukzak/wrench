@@ -3,16 +3,15 @@ memory_size: 0x90
 input_streams:
   88: []
 reports:
-  - filter: [instruction, state]
+  - name: Step-by-step
     slice: all
-    inspector:
-      - - [register, T0]
-        - [register, T1]
-        - [register, T2]
-        - [register, T3]
-  - filter: [state]
+    view: |
+      {T0} {T1} {T2} {T3} ;;
+      {pc}:	{instruction}	{pc:label} ;;
+  - name: Result
     slice: last
-    inspector:
-      - - [memory_cells, 4, 7]
-      - - [number_io_stream, 88]
-      - - [symbol_io_stream, 88]
+    view: |
+      {memory:4:7}
+      {io:88:dec}
+      {io:88:hex}
+      {io:88:sym}

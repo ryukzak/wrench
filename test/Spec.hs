@@ -8,11 +8,14 @@ import Isa.RiscIv.Test qualified
 import Machine.Memory
 import Machine.Types
 import Relude
+import Report.Test qualified
 import System.FilePath
 import Test.Tasty (TestTree, defaultMain, testGroup)
 import Test.Tasty.Golden (goldenVsString)
 import Text.Pretty.Simple (pShowNoColor)
 import Translator
+import Translator.Parser.Types
+import Translator.Types
 import Wrench
 
 main :: IO ()
@@ -24,12 +27,13 @@ tests =
         "ca-wrench"
         [ testGroup
             "Config"
-            [ goldenConfig "test/golden/config/bad-no-limit.yaml"
-            , goldenConfig "test/golden/config/bad-no-memory-size.yaml"
-            , goldenConfig "test/golden/config/bad-too-much-limit.yaml"
-            , goldenConfig "test/golden/config/only-strict.yaml"
+            [ goldenConfig "test/golden/config/bad_no_limit.yaml"
+            , goldenConfig "test/golden/config/bad_no_memory_size.yaml"
+            , goldenConfig "test/golden/config/bad_too_much_limit.yaml"
+            , goldenConfig "test/golden/config/only_strict.yaml"
             , goldenConfig "test/golden/config/smoke.yaml"
             ]
+        , testGroup "Report" [Report.Test.tests]
         , testGroup
             "RiscIv IV 32"
             [ testGroup
@@ -43,23 +47,23 @@ tests =
             , testGroup
                 "Simulator"
                 [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/default.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/hello.s" "test/golden/risc-iv-32/hello-const.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-87.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-abcd.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/get-put-char.s" "test/golden/risc-iv-32/get-put-char-null.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/ble-bleu.s" "test/golden/risc-iv-32/ble-bleu.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/hello.s" "test/golden/risc-iv-32/hello_const.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_87.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/ble_bleu.s" "test/golden/risc-iv-32/ble_bleu.yaml"
                 , testGroup
                     "Factorial"
-                    [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-5.yaml"
-                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-5-fail-assert.yaml"
-                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial-input-7.yaml"
+                    [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"
+                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5_fail_assert.yaml"
+                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_7.yaml"
                     ]
                 , testGroup
                     "Generated tests"
-                    [ generatedTest RiscIv "factorial" "test/golden/risc-iv-32/factorial.s" [1 .. 6]
-                    , generatedTest RiscIv "hello" "test/golden/risc-iv-32/hello.s" [1]
-                    , generatedTest RiscIv "get_put_char" "test/golden/risc-iv-32/get-put-char.s" [1 .. 6]
-                    , generatedTest RiscIv "logical_not" "test/golden/risc-iv-32/logical-not.s" [1 .. 2]
+                    [ generatedTest RiscIv "factorial" 6
+                    , generatedTest RiscIv "get_put_char" 6
+                    , generatedTest RiscIv "hello" 1
+                    , generatedTest RiscIv "logical_not" 2
                     ]
                 ]
             ]
@@ -67,57 +71,63 @@ tests =
             "F32a"
             [ testGroup
                 "Translator"
-                [ goldenTranslate F32a "test/golden/f32a/logical-not.s"
+                [ goldenTranslate F32a "test/golden/f32a/logical_not.s"
                 , goldenTranslate F32a "test/golden/f32a/hello.s"
                 , goldenTranslate F32a "test/golden/f32a/div.s"
                 , goldenTranslate F32a "test/golden/f32a/factorial.s"
-                , goldenTranslate F32a "test/golden/f32a/jmp-and-call.s"
+                , goldenTranslate F32a "test/golden/f32a/jmp_and_call.s"
                 ]
             , testGroup
                 "F32a"
-                [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-27-4.yaml"
-                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-3-2.yaml"
-                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div-2-3.yaml"
+                [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_27_4.yaml"
+                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_3_2.yaml"
+                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_2_3.yaml"
                 , goldenSimulate F32a "test/golden/f32a/factorial.s" "test/golden/f32a/factorial.yaml"
-                , goldenSimulate F32a "test/golden/f32a/jmp-and-call.s" "test/golden/f32a/jmp-and-call.yaml"
+                , goldenSimulate F32a "test/golden/f32a/jmp_and_call.s" "test/golden/f32a/jmp_and_call.yaml"
                 ]
             , testGroup
                 "Generated tests"
-                [ generatedTest F32a "hello" "test/golden/f32a/hello.s" [1]
-                , generatedTest F32a "get_put_char" "test/golden/f32a/get-put-char.s" [1 .. 6]
-                , generatedTest F32a "logical_not" "test/golden/f32a/logical-not.s" [1 .. 2]
-                , generatedTest F32a "factorial" "test/golden/f32a/factorial.s" [1 .. 6]
+                [ generatedTest F32a "factorial" 6
+                , generatedTest F32a "get_put_char" 6
+                , generatedTest F32a "hello" 1
+                , generatedTest F32a "logical_not" 2
                 ]
             ]
         , testGroup
             "Acc32"
             [ testGroup
                 "Translator"
-                [ goldenTranslate Acc32 "test/golden/acc32/logical-not.s"
+                [ goldenTranslate Acc32 "test/golden/acc32/logical_not.s"
                 , goldenTranslate Acc32 "test/golden/acc32/hello.s"
-                , goldenTranslate Acc32 "test/golden/acc32/get-put-char.s"
+                , goldenTranslate Acc32 "test/golden/acc32/get_put_char.s"
                 , goldenTranslate Acc32 "test/golden/acc32/factorial.s"
                 , goldenTranslate Acc32 "test/golden/acc32/all.s"
                 ]
             , testGroup
                 "Generated tests"
-                [ generatedTest Acc32 "hello" "test/golden/acc32/hello.s" [1]
-                , generatedTest Acc32 "get_put_char" "test/golden/acc32/get-put-char.s" [1 .. 6]
-                , generatedTest Acc32 "logical_not" "test/golden/acc32/logical-not.s" [1 .. 2]
-                , generatedTest Acc32 "factorial" "test/golden/acc32/factorial.s" [1 .. 6]
+                [ generatedTest Acc32 "factorial" 6
+                , generatedTest Acc32 "get_put_char" 6
+                , generatedTest Acc32 "hello" 1
+                , generatedTest Acc32 "logical_not" 2
                 ]
             ]
         ]
 
-generatedTest :: Isa -> String -> FilePath -> [Int] -> TestTree
-generatedTest isa name asmFn range = testGroup name testCases
+isaPath :: (IsString a) => Isa -> a
+isaPath isa = case isa of
+    RiscIv -> "risc-iv-32"
+    F32a -> "f32a"
+    Acc32 -> "acc32"
+
+generatedTest :: Isa -> String -> Int -> TestTree
+generatedTest isa name n = testGroup name testCases
     where
         testCases =
             [ goldenSimulate
                 isa
-                asmFn
-                ("test/golden/variant-generator/" <> name <> "/" <> show i <> ".yaml")
-            | i <- range
+                ("test/golden/" <> isaPath isa <> "/" <> name <> ".s")
+                ("test/golden/generated/" <> name <> "/" <> show i <> ".yaml")
+            | i <- [1 .. n]
             ]
 
 goldenConfig :: FilePath -> TestTree
@@ -137,26 +147,23 @@ fn2name fn =
         $ takeFileName fn
 
 goldenTranslate :: Isa -> FilePath -> TestTree
-goldenTranslate RiscIv fn =
-    goldenVsString (fn2name fn) (fn <> ".risc-iv-32.result") $ do
+goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.Isa RiscIv fn
+goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
+goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
+
+goldenTranslate' ::
+    forall (isa :: Type -> Type -> Type).
+    ( ByteLength (isa Int32 (Ref Int32))
+    , ByteLength (isa Int32 Int32)
+    , DerefMnemonic (isa Int32) Int32
+    , MnemonicParser (isa Int32 (Ref Int32))
+    , Show (isa Int32 Int32)
+    ) =>
+    Isa -> FilePath -> TestTree
+goldenTranslate' isa fn =
+    goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @RiscIv.Isa @Int32 Nothing fn src of
-            Right (TranslatorResult dump labels) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
-            Left err ->
-                error $ "Translation failed: " <> show err
-goldenTranslate F32a fn =
-    goldenVsString (fn2name fn) (fn <> ".f32a.result") $ do
-        src <- decodeUtf8 <$> readFileBS fn
-        case translate @F32a.Isa @Int32 Nothing fn src of
-            Right (TranslatorResult dump labels) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
-            Left err ->
-                error $ "Translation failed: " <> show err
-goldenTranslate Acc32 fn =
-    goldenVsString (fn2name fn) (fn <> ".acc32.result") $ do
-        src <- decodeUtf8 <$> readFileBS fn
-        case translate @Acc32.Isa @Int32 Nothing fn src of
+        case translate @isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
             Left err ->
@@ -170,8 +177,8 @@ goldenSimulate RiscIv fn confFn =
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace <> "\n"
-                Left e -> toString $ "error: " <> e
+                Right Result{rTrace} -> rTrace
+                Left e -> "error: " <> e
 goldenSimulate F32a fn confFn =
     let resultFn = dropExtension confFn <> ".f32a.result"
      in goldenVsString (fn2name confFn) resultFn $ do
@@ -179,14 +186,14 @@ goldenSimulate F32a fn confFn =
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace <> "\n"
-                Left e -> toString $ "error: " <> e
+                Right Result{rTrace} -> rTrace
+                Left e -> "error: " <> e
 goldenSimulate Acc32 fn confFn =
-    let resultFn = dropExtension confFn <> ".f32a.result"
+    let resultFn = dropExtension confFn <> ".acc32.result"
      in goldenVsString (fn2name confFn) resultFn $ do
             let wrench' = wrench @Acc32.Isa @Acc32.Register @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace <> "\n"
-                Left e -> toString $ "error: " <> e
+                Right Result{rTrace} -> rTrace
+                Left e -> "error: " <> e

@@ -63,6 +63,7 @@ Config
                     ]
                 ]
             , rcAssert = Nothing
+            , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
@@ -70,6 +71,7 @@ Config
             , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
+            , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
@@ -77,6 +79,7 @@ Config
             , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
+            , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
@@ -99,6 +102,7 @@ Config
                     ]
                 ]
             , rcAssert = Nothing
+            , rcView = Nothing
             }
         ]
     }

@@ -25,6 +25,12 @@ This is an educational project designed to explore different types of processor 
 3. Add the binary to your `PATH`.
 4. Run `wrench <ARGS>` to execute the project.
 
+## Use by docker image
+
+```shell
+docker run -it --rm ryukzak/wrench:latest --help
+```
+
 ## Use it as a Service
 
 This service will be used to send laboratory works to check.
@@ -36,14 +42,15 @@ This service will be used to send laboratory works to check.
 ## Usage
 
 ```shell
-Usage: wrench [INPUT] [--isa ISA] [-c|--conf FILENAME] [-S] [-v|--verbose]
+$ wrench --help
+Usage: wrench INPUT [--isa ISA] (-c|--conf CONF) [-S] [-v|--verbose]
 
   App for laboratory course of computer architecture.
 
 Available options:
   INPUT                    Input assembler file (.s)
   --isa ISA                ISA (risc-iv-32, f32a, acc32) (default: "risc-iv-32")
-  -c,--conf FILENAME       Configuration file (.yaml)
+  -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   -v,--verbose             Verbose output
   -h,--help                Show this help text
@@ -143,6 +150,36 @@ Each report configuration can include the following fields:
     - instruction
     - state
   ```
+
+#### `view`
+
+Text template to print log record. In template a user can use state view in curly brackets. E.g.: `program counter: {pc}`.
+
+General state view implemented for all ISA:
+
+- `pc:dec`, `pc:hex` -- print program counter in dec or hex format.
+- `pc:label` -- print `@label-name` if current program counter assigned with label.
+- `instruction` -- print current instruction.
+- `memory:<a>:<b>` -- print memory dump between `<a>` and `<b>` address.
+- `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- print input-output stream state for the specific address in dec, sym or hex format.
+
+##### RiscIv Specific State Views
+
+All registers in `dec` or `hex` format. Registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `S1`, `A0`, `A1`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `S2`, `S3`, `S4`, `S5`, `S6`, `S7`, `S8`, `S9`, `S10`, `S11`, `T3`, `T4`, `T5`, `T6`.
+
+##### F32a Specific State Views
+
+- `A:dec`, `A:hex` -- `A` register.
+- `B:dec`, `B:hex` -- `B` register.
+- `T:dec`, `T:hex` -- top of the stack.
+- `S:dec`, `S:hex` -- second of the stack.
+- `R:dec`, `R:hex` -- top of the return stack.
+- `stack:dec`, `stack:hex` -- the stack.
+- `rstack:dec`, `rstack:hex` -- the return stack.
+
+##### Acc32 Specific State Views
+
+- `Acc:dec`, `Acc:hex` -- `Acc` register.
 
 #### `inspector`
 

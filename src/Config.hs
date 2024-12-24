@@ -38,7 +38,7 @@ data Config = Config
     , cReports :: Maybe [ReportConf]
     -- ^ Optional list of report configurations.
     }
-    deriving (Show, Generic)
+    deriving (Generic, Show)
 
 instance Default Config where
     def =
@@ -55,6 +55,7 @@ instance Default Config where
                         , rcFilter = Just [IsInstruction]
                         , rcInspector = Nothing
                         , rcAssert = Nothing
+                        , rcView = Nothing
                         }
                     ]
             }

@@ -54,7 +54,7 @@ jobs:
 
             - uses: haskell-actions/run-fourmolu@v10
               with:
-                  version: "0.16.2.0"
+                  version: "0.17.0.0"
 
     markdown-formatting:
         timeout-minutes: 5

@@ -62,11 +62,11 @@ evaluateLabels sections =
 
 translate ::
     forall isa_ w.
-    ( MnemonicParser (isa_ w (Ref w))
-    , ByteLength (isa_ w (Ref w))
+    ( ByteLength (isa_ w (Ref w))
     , ByteLength (isa_ w w)
-    , MachineWord w
     , DerefMnemonic (isa_ w) w
+    , MachineWord w
+    , MnemonicParser (isa_ w (Ref w))
     ) =>
     Maybe Int
     -> FilePath

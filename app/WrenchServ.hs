@@ -37,7 +37,7 @@ data SubmitForm = SubmitForm
     , variant :: Maybe Text
     , isa :: Text
     }
-    deriving (Show, Generic, FromForm)
+    deriving (FromForm, Generic, Show)
 
 data Config = Config
     { cPort :: Int

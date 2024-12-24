@@ -9,6 +9,7 @@ module Machine.Memory (
     word32ToHex,
     prepareDump,
     prettyDump,
+    reprInstruction,
 ) where
 
 import Data.Default (def)
@@ -19,7 +20,7 @@ import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Translator.Types
 
-prepareDump :: (MachineWord w, ByteLength isa) => Maybe Int -> [Section isa w w] -> Mem isa w
+prepareDump :: (ByteLength isa, MachineWord w) => Maybe Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
     let mSize = fromMaybe (foldr ((+) . byteLength) 0 sections) memorySize
      in fromList
@@ -59,7 +60,7 @@ sliceMem addrs dump = map (\a -> (a, Unsafe.fromJust (dump !? a))) addrs
 
 prettyDump ::
     forall w isa.
-    (MachineWord w, ByteLength isa, Show isa) =>
+    (ByteLength isa, MachineWord w, Show isa) =>
     HashMap String w
     -> Mem isa w
     -> String
@@ -160,3 +161,5 @@ instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
             Nothing -> do
                 let mIoCells' = execState (writeWord idx word) mIoCells
                 put m{mIoCells = mIoCells'}
+
+reprInstruction pc mem = show $ evalState (readInstruction pc) mem

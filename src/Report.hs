@@ -8,19 +8,37 @@ module Report (
     applyReportFilter,
     prepareReport,
     ReportConf (..),
+    substituteBrackets,
+    viewRegister,
+    defaultView,
+    errorView,
+    unknownView,
+    unknownFormat,
 ) where
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
-import Data.Algorithm.Diff
-import Data.Algorithm.DiffOutput
-import Data.Text (replace, strip)
-import Isa.RiscIv
+import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import Text.Regex.TDFA
+import Translator (TranslatorResult (..))
+
+substituteBrackets :: (Text -> Text) -> Text -> Text
+substituteBrackets f input =
+    let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
+        matches = getAllTextMatches (input =~ regex)
+        changes =
+            map
+                ( \(x :: Text) ->
+                    let v = T.tail $ T.init x
+                     in (x, f v)
+                )
+                matches
+     in foldr (\(old, new) st -> T.replace old new st) input changes
 
 data ReportConf = ReportConf
     { rcName :: Maybe String
@@ -38,31 +56,46 @@ data ReportConf = ReportConf
     , rcAssert :: Maybe String
     -- ^ Optional assertion string to compare the report against.
     -- Example: Just "Expected output"
+    , rcView :: Maybe Text
     }
-    deriving (Show, Generic)
+    deriving (Generic, Show)
 
 instance FromJSON ReportConf where
     parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
-prepareReport verbose records rc@ReportConf{rcName, rcFilter, rcSlice, rcInspector, rcAssert} =
-    let header = maybe "" ("# " <>) rcName
-        details = if verbose then show rc else ""
-        filtered = case rcFilter of
-            Nothing -> filter (applyReportFilter [IsState]) records
-            Just [] -> filter (applyReportFilter [IsState]) records
-            Just fs -> filter (applyReportFilter fs) records
-        sliced = selectSlice rcSlice filtered
-        journalText = intercalate " ;;\n" $ map (prepareReportRecord $ fromMaybe [] rcInspector) sliced
-        assertReport =
-            let actual = strip $ toText journalText
-                expect = maybe "" (strip . toText) rcAssert
-                diff = getGroupedDiff (map toString $ lines actual) (map toString $ lines expect)
-             in if isNothing rcAssert || actual == expect
-                    then ""
-                    else "\nASSERTION FAIL, expect:\n" <> toString expect <> "\n\nDiff:\n" <> ppDiff diff
-     in ( null assertReport
-        , intercalate "\n" $ filter (not . null) [header, details, journalText, assertReport]
-        )
+prepareReport
+    trResult@TranslatorResult{}
+    verbose
+    records
+    rc@ReportConf{rcName, rcFilter, rcSlice, rcInspector, rcAssert, rcView} =
+        let header = maybe "" ("# " <>) rcName
+            details = if verbose then show rc else ""
+            filtered = case rcFilter of
+                Nothing -> filter (applyReportFilter [IsState]) records
+                Just [] -> filter (applyReportFilter [IsState]) records
+                Just fs -> filter (applyReportFilter fs) records
+            sliced = selectSlice rcSlice filtered
+            journalText = case rcInspector of
+                Nothing -> ""
+                Just is -> unlines $ map (toText . prepareReportRecord is) sliced
+            stateViews = case rcView of
+                Nothing -> ""
+                Just rvView' ->
+                    concat
+                        $ filter (not . null)
+                        $ map (prepareStateView rvView' trResult)
+                        $ mapMaybe (\case (TState st) -> Just st; _ -> Nothing) (selectSlice rcSlice records)
+            assertReport =
+                let actual = T.strip journalText <> T.strip (toText stateViews)
+                    expect = maybe "" (T.strip . toText) rcAssert
+                 in if isNothing rcAssert || actual == expect
+                        then ""
+                        else "ASSERTION FAIL, expect:\n" <> toString expect
+         in ( null assertReport
+            , unlines
+                $ map (T.strip . toText)
+                $ filter (not . null) [header, details, toString journalText, stateViews, assertReport]
+            )
 
 -----------------------------------------------------------
 
@@ -115,7 +148,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -- | Represents a state inspector which contains a list of state inspector tokens.
 newtype StateInspector = StateInspector [StateInspectorToken]
-    deriving (Show, Generic)
+    deriving (Generic, Show)
 
 instance FromJSON StateInspector
 
@@ -134,7 +167,7 @@ data StateInspectorToken
       NumberIoStream Int
     | -- | The symbols in the input stream at the given address.
       SymbolIoStream Int
-    deriving (Show, Generic)
+    deriving (Generic, Show)
 
 instance FromJSON StateInspectorToken where
     parseJSON (String l) = return $ Label $ toString l
@@ -157,6 +190,54 @@ prepareReportRecord inspectors record =
             let label' = maybe "" ("  \t@" <>) label
              in show pc <> ":\t" <> show i <> label'
 
+prepareStateView line TranslatorResult{labels} st =
+    toString $ substituteBrackets (reprState labels st) line
+
+defaultView labels st "pc:label" =
+    Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
+        (l, _a) : _ -> "@" <> toText l
+        _ -> ""
+defaultView _labels st "instruction" =
+    Just $ show $ evalState (readInstruction (programCounter st)) $ memoryDump st
+defaultView labels st v =
+    case T.splitOn ":" v of
+        ["pc"] -> Just $ reprState labels st "pc:dec"
+        ["pc", f] -> Just $ viewRegister f (programCounter st)
+        ["memory", a, b] -> Just $ viewMemory a b st
+        ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
+        ["io", a, fmt] -> Just $ viewIO fmt a st
+        _ -> Nothing
+
+viewMemory a b st =
+    toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] $ memoryDump st
+
+viewIO "dec" addr st = case ioStreams st !? readAddr addr of
+    Just (is, os) -> show is <> " >>> " <> show (reverse os)
+    Nothing -> error $ "incorrect IO address: " <> show addr
+viewIO "hex" addr st = case ioStreams st !? readAddr addr of
+    Just (is, os) ->
+        T.replace "\"" ""
+            $ T.intercalate
+                ""
+                [ show (map word32ToHex is)
+                , " >>> "
+                , show (reverse (map word32ToHex os))
+                ]
+    Nothing -> error $ "incorrect IO address: " <> show addr
+viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
+    Just (is, os) -> show is <> " >>> " <> fixEscapes (show (reverse os))
+    Nothing -> error $ "incorrect IO address: " <> show addr
+    where
+        sym = map (chr . fromEnum)
+        fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
+viewIO fmt _addr _st = unknownFormat fmt
+
+readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
+
+viewRegister "dec" = show
+viewRegister "hex" = toText . word32ToHex
+viewRegister f = \_ -> unknownFormat f
+
 inspect st (StateInspector inspectors) = unwords $ map (toText . inspectToken st) inspectors
 
 inspectToken _ (Label l) = l
@@ -176,4 +257,10 @@ inspectToken st (SymbolIoStream addr) = case bimap sym sym <$> ioStreams st !? a
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
         sym = map (chr . fromEnum)
-        fixEscapes = toString . replace "\\NUL" "\\0" . (toText :: String -> Text)
+        fixEscapes = toString . T.replace "\\NUL" "\\0" . (toText :: String -> Text)
+
+errorView v = error $ "view error: " <> v
+
+unknownView v = "[unknown-view <" <> v <> ">]"
+
+unknownFormat f = "[unknown-format <" <> f <> ">]"

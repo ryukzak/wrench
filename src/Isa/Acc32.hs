@@ -9,9 +9,11 @@ module Isa.Acc32 (
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
+import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
 import Relude
+import Report
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
@@ -19,7 +21,7 @@ import Translator.Parser.Types
 import Translator.Types
 
 data Register = Acc
-    deriving (Show, Generic, Eq, Read)
+    deriving (Eq, Generic, Read, Show)
 
 instance Hashable Register
 
@@ -181,13 +183,22 @@ getAcc = do
     State{acc} <- get
     return acc
 
-instance StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{acc} =
         fromList
             [ (Acc, acc)
             ]
+    programCounter State{pc} = pc
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
+    reprState labels st v
+        | Just v' <- defaultView labels st v = v'
+    reprState labels st@State{acc} v =
+        case T.splitOn ":" v of
+            [r] -> reprState labels st (r <> ":dec")
+            ["Acc", f] -> viewRegister f acc
+            [r, _] -> unknownView r
+            _ -> errorView v
 
 instance ViewState (MachineState (IoMem (Isa w w) w) w) where
     viewState State{} _ = error "not supported"

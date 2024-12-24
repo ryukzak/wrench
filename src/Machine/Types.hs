@@ -80,8 +80,11 @@ class InitState mem st | st -> mem where
 
 class StateInterspector st isa w r | st -> isa w r where
     registers :: st -> HashMap r w
+    programCounter :: st -> Int
     memoryDump :: st -> Mem isa w
     ioStreams :: st -> IntMap ([w], [w])
+    reprState :: HashMap String w -> st -> Text -> Text
+    reprState _labels _st var = "unknown variable: " <> var
 
 class ViewState st where
     viewState :: st -> Text -> Text
