@@ -76,6 +76,7 @@ prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
             let n = byteLength i
                 cs' = drop (n - 1) cs
              in instruction offset n i : pretty cs'
+        pretty ((offset, InstructionPart) : cs) = (show offset <> ": \tInstructionPart") : pretty cs
         pretty cs =
             let values = map (second (\case (Value v) -> v; _ -> error "impossible")) $ takeWhile (isValue . snd) cs
                 cs' = dropWhile (isValue . snd) cs
