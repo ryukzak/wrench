@@ -44,7 +44,7 @@ Config
         [ ReportConf
             { rcName = Just "foo"
             , rcSlice = LastSlice
-            , rcFilter =
+            , rcFilter = Just
                 [ IsState
                 , IsInstruction
                 ]
@@ -67,21 +67,21 @@ Config
         , ReportConf
             { rcName = Nothing
             , rcSlice = AllSlice
-            , rcFilter = [ IsInstruction ]
+            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = HeadSlice 10
-            , rcFilter = [ IsInstruction ]
+            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = TailSlice 10
-            , rcFilter = [ IsInstruction ]
+            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Just
                 [ StateInspector
                     [ Label "T1"

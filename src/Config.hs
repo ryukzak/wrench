@@ -52,7 +52,7 @@ instance Default Config where
                     [ ReportConf
                         { rcName = Just "InstructionLog"
                         , rcSlice = AllSlice
-                        , rcFilter = [IsInstruction]
+                        , rcFilter = Just [IsInstruction]
                         , rcInspector = Nothing
                         , rcAssert = Nothing
                         }

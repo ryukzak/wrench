@@ -29,7 +29,7 @@ data ReportConf = ReportConf
     , rcSlice :: ReportSlice
     -- ^ Specifies which part of the report to select.
     -- Example: HeadSlice 10
-    , rcFilter :: [ReportFilter]
+    , rcFilter :: Maybe [ReportFilter]
     -- ^ List of filters to apply to the report.
     -- Example: [IsInstruction, IsState]
     , rcInspector :: Maybe [StateInspector]
@@ -47,10 +47,10 @@ instance FromJSON ReportConf where
 prepareReport verbose records rc@ReportConf{rcName, rcFilter, rcSlice, rcInspector, rcAssert} =
     let header = maybe "" ("# " <>) rcName
         details = if verbose then show rc else ""
-        filtered =
-            if null rcFilter
-                then records
-                else filter (applyReportFilter rcFilter) records
+        filtered = case rcFilter of
+            Nothing -> filter (applyReportFilter [IsState]) records
+            Just [] -> filter (applyReportFilter [IsState]) records
+            Just fs -> filter (applyReportFilter fs) records
         sliced = selectSlice rcSlice filtered
         journalText = intercalate " ;;\n" $ map (prepareReportRecord $ fromMaybe [] rcInspector) sliced
         assertReport =
