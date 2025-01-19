@@ -44,56 +44,24 @@ Config
         [ ReportConf
             { rcName = Just "foo"
             , rcSlice = LastSlice
-            , rcInspector = Just
-                [ StateInspector
-                    [ Register "T1"
-                    , Register "T2"
-                    , MemoryCells
-                        ( 0
-                        , 11
-                        )
-                    ]
-                , StateInspector
-                    [ NumberIoStream 99
-                    , SymbolIoStream 99
-                    ]
-                ]
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = AllSlice
-            , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = HeadSlice 10
-            , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = TailSlice 10
-            , rcInspector = Just
-                [ StateInspector
-                    [ Label "T1"
-                    , Label "label"
-                    , Register "T1"
-                    , Register "T2"
-                    , MemoryCells
-                        ( 0
-                        , 11
-                        )
-                    ]
-                , StateInspector
-                    [ NumberIoStream 99
-                    , SymbolIoStream 99
-                    ]
-                ]
             , rcAssert = Nothing
             , rcView = Nothing
             }
