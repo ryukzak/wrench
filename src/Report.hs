@@ -1,11 +1,9 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Report (
-    ReportFilter (..),
     ReportSlice (..),
     StateInspector (..),
     StateInspectorToken (..),
-    applyReportFilter,
     prepareReport,
     ReportConf (..),
     substituteBrackets,
@@ -47,9 +45,6 @@ data ReportConf = ReportConf
     , rcSlice :: ReportSlice
     -- ^ Specifies which part of the report to select.
     -- Example: HeadSlice 10
-    , rcFilter :: Maybe [ReportFilter]
-    -- ^ List of filters to apply to the report.
-    -- Example: [IsInstruction, IsState]
     , rcInspector :: Maybe [StateInspector]
     -- ^ Optional list of state inspectors.
     -- Example: Just [StateInspector [Label "PC", Register "r1"]]
@@ -67,14 +62,10 @@ prepareReport
     trResult@TranslatorResult{}
     verbose
     records
-    rc@ReportConf{rcName, rcFilter, rcSlice, rcInspector, rcAssert, rcView} =
+    rc@ReportConf{rcName, rcSlice, rcInspector, rcAssert, rcView} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            filtered = case rcFilter of
-                Nothing -> filter (applyReportFilter [IsState]) records
-                Just [] -> filter (applyReportFilter [IsState]) records
-                Just fs -> filter (applyReportFilter fs) records
-            sliced = selectSlice rcSlice filtered
+            sliced = selectSlice rcSlice records
             journalText = case rcInspector of
                 Nothing -> ""
                 Just is -> unlines $ map (toText . prepareReportRecord is) sliced
@@ -96,27 +87,6 @@ prepareReport
                 $ map (T.strip . toText)
                 $ filter (not . null) [header, details, toString journalText, stateViews, assertReport]
             )
-
------------------------------------------------------------
-
--- | Filters that can be applied to the report.
-data ReportFilter
-    = -- | Filter for instruction records.
-      IsInstruction
-    | -- | Filter for state records.
-      IsState
-    deriving (Show)
-
-instance FromJSON ReportFilter where
-    parseJSON (String "instruction") = return IsInstruction
-    parseJSON (String "state") = return IsState
-    parseJSON _ = fail "Invalid filter format, expect: \"instruction\" or \"state\""
-
-applyReportFilter (IsInstruction : _) TInstruction{} = True
-applyReportFilter (IsState : _) TState{} = True
-applyReportFilter _ TWarn{} = True
-applyReportFilter (_ : fs) x = applyReportFilter fs x
-applyReportFilter _ _ = False
 
 -----------------------------------------------------------
 

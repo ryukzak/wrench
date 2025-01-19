@@ -44,10 +44,6 @@ Config
         [ ReportConf
             { rcName = Just "foo"
             , rcSlice = LastSlice
-            , rcFilter = Just
-                [ IsState
-                , IsInstruction
-                ]
             , rcInspector = Just
                 [ StateInspector
                     [ Register "T1"
@@ -68,7 +64,6 @@ Config
         , ReportConf
             { rcName = Nothing
             , rcSlice = AllSlice
-            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
@@ -76,7 +71,6 @@ Config
         , ReportConf
             { rcName = Nothing
             , rcSlice = HeadSlice 10
-            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
@@ -84,7 +78,6 @@ Config
         , ReportConf
             { rcName = Nothing
             , rcSlice = TailSlice 10
-            , rcFilter = Just [ IsInstruction ]
             , rcInspector = Just
                 [ StateInspector
                     [ Label "T1"
