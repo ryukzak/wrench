@@ -95,8 +95,6 @@ class Machine st isa w | st -> isa w where
 
 data Trace st isa
     = TState st
-    | TWarn Text
-    | TInstruction Int (Maybe String) isa
     deriving (Show)
 
 type Mem isa w = IntMap (Cell isa w)

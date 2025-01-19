@@ -65,8 +65,7 @@ prepareReport
                 Just rvView' ->
                     concat
                         $ filter (not . null)
-                        $ map (prepareStateView rvView' trResult)
-                        $ mapMaybe (\case (TState st) -> Just st; _ -> Nothing) sliced
+                        $ map (prepareStateView rvView' trResult . (\(TState st) -> st)) sliced
             assertReport =
                 let actual = T.strip (toText stateViews)
                     expect = maybe "" (T.strip . toText) rcAssert
