@@ -457,6 +457,7 @@ requirements like: specific string representation, limit integer
 number representation, etc.
 
 Python function return a tuple where:
+
 - The first element is the expected result.
 - The second is not getted input symbols (see `get_put_char`).
 """
