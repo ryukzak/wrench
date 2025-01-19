@@ -2,6 +2,10 @@
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
+IMAGE_NAME = ryukzak/wrench
+IMAGE = $(IMAGE_NAME):$(VERSION)
+IMAGE_PREVIEW = $(IMAGE_NAME):$(VERSION)-rc-$(COMMIT)
+
 HS_SRC_DIR = .
 
 build:
@@ -14,7 +18,14 @@ build-image:
 	docker build -t ryukzak/wrench -f hub.Dockerfile .
 
 build-image-for-hub:
-	docker buildx build --platform linux/amd64,linux/arm64 -t ryukzak/wrench:$(VERSION) -t ryukzak/wrench:$(COMMIT) -t ryukzak/wrench --push -f hub.Dockerfile .
+	@if docker pull $(IMAGE); then \
+		echo "Version already exist $(IMAGE)"; \
+		exit 1; \
+	fi
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
+
+build-image-previrw-for-hub:
+	docker buildx build --platform linux/amd64,linux/arm64 $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
 
 test:
 	stack build --fast --test
