@@ -28,7 +28,7 @@ instance Hashable Register
 -- | The 'Isa' type represents the instruction set architecture for the Acc32 machine.
 -- Each constructor corresponds to a specific instruction.
 data Isa w l
-    = -- | Syntax: @load_imm <value>@ Load an immediate value into the accumulator.
+    = -- | Syntax: @load_imm <address>@ Load an immediate value into the accumulator.
       LoadImm l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
@@ -42,25 +42,25 @@ data Isa w l
       StoreRel l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
-    | -- | Syntax: @add <value>@ Add a value to the accumulator.
+    | -- | Syntax: @add <address>@ Add a value from a specific address to the accumulator.
       Add l
-    | -- | Syntax: @sub <value>@ Subtract a value from the accumulator.
+    | -- | Syntax: @sub <address>@ Subtract from the accumulator a value from a specific address.
       Sub l
-    | -- | Syntax: @mul <value>@ Multiply the accumulator by a value.
+    | -- | Syntax: @mul <address>@ Multiply the accumulator by a value from a specific address.
       Mul l
-    | -- | Syntax: @div <value>@ Divide the accumulator by a value.
+    | -- | Syntax: @div <address>@ Divide the accumulator by a value from a specific address.
       Div l
-    | -- | Syntax: @rem <value>@ Compute the remainder of the accumulator divided by a value.
+    | -- | Syntax: @rem <address>@ Compute the remainder of the accumulator divided by a value from a specific address.
       Rem l
-    | -- | Syntax: @shiftl <bits>@ Shift the accumulator left by a number of bits.
+    | -- | Syntax: @shiftl <address>@ Shift the accumulator left by a number of bits from a specific address.
       ShiftL l
-    | -- | Syntax: @shiftr <bits>@ Shift the accumulator right by a number of bits.
+    | -- | Syntax: @shiftr <address>@ Shift the accumulator right by a number of bits from a specific address.
       ShiftR l
-    | -- | Syntax: @and <value>@ Perform a bitwise AND on the accumulator with a value.
+    | -- | Syntax: @and <address>@ Perform a bitwise AND on the accumulator with a value from a specific address.
       And l
-    | -- | Syntax: @or <value>@ Perform a bitwise OR on the accumulator with a value.
+    | -- | Syntax: @or <address>@ Perform a bitwise OR on the accumulator with a value from a specific address.
       Or l
-    | -- | Syntax: @xor <value>@ Perform a bitwise XOR on the accumulator with a value.
+    | -- | Syntax: @xor <address>@ Perform a bitwise XOR on the accumulator with a value from a specific address.
       Xor l
     | -- | Syntax: @not@ Perform a bitwise NOT on the accumulator.
       Not
