@@ -24,7 +24,7 @@ build-image-for-hub:
 	fi
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
 
-build-image-previrw-for-hub:
+build-image-preview-for-hub:
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
 
 test:
