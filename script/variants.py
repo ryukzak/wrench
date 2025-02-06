@@ -3,6 +3,7 @@
 import itertools
 import os
 import inspect
+import random
 from collections import namedtuple
 
 # Define the named tuple structure
@@ -786,7 +787,7 @@ test_cases["factorial"] = TestCase(
         Word2Word(-2, -1),
     ],
     is_variant=False,
-    category=" Examples",
+    category="_Examples",
 )
 
 ###########################################################
@@ -805,7 +806,7 @@ test_cases["logical_not"] = TestCase(
     reference=logical_not,
     reference_cases=[],
     is_variant=False,
-    category=" Examples",
+    category="_Examples",
 )
 
 ###########################################################
@@ -823,7 +824,7 @@ test_cases["hello"] = TestCase(
     reference=hello_ref,
     reference_cases=[],
     is_variant=False,
-    category=" Examples",
+    category="_Examples",
 )
 
 ###########################################################
@@ -852,7 +853,7 @@ test_cases["get_put_char"] = TestCase(
         String2String("\n\0", "\n", "\0"),
     ],
     is_variant=False,
-    category=" Examples",
+    category="_Examples",
 )
 
 ###########################################################
@@ -905,16 +906,21 @@ Python function return a tuple where:
 """
 
 
-def generate_variant_readme():
-    res = ["# Wrench variants", variant_readme_description]
-    res.append("Variants:")
-    res.append("")
-
+def get_categories(cases):
     categories = {}
     for name, variant in sorted(test_cases.items()):
         if variant.category not in categories:
             categories[variant.category] = []
         categories[variant.category].append(name)
+    return categories
+
+
+def generate_variant_readme():
+    res = ["# Wrench variants", variant_readme_description]
+    res.append("Variants:")
+    res.append("")
+
+    categories = get_categories(test_cases)
 
     for category, names in sorted(categories.items()):
         res.append(f"- {category}")
@@ -1012,6 +1018,43 @@ def generate_wrench_variant_test_cases(path):
                 f.write(generate_wrench_test_cases(name, case))
 
 
+def inf_shuffle(xs):
+    while True:
+        i = random.randint(0, len(xs) - 1)
+        yield xs[i]
+
+
+def fun_shuffle(xs):
+    xs = list(xs)
+    random.shuffle(xs)
+    return xs
+
+
+def gen_variants(cases):
+    categories = get_categories(cases)
+    for e in zip(
+        inf_shuffle(categories["String Manipulation"]),
+        inf_shuffle(categories["Bitwise Operations"]),
+        inf_shuffle(categories["Mathematics"]),
+    ):
+        yield fun_shuffle(e)
+
+
+def generate_variants(n, fn):
+    variants = [next(gen_variants(test_cases)) for _ in range(n)]
+    distribution = {}
+    for a, b, c in variants:
+        distribution[(a, b, c)] = distribution.get((a, b, c), 0) + 1
+    grouped_by_rep = {}
+    for k, v in distribution.items():
+        grouped_by_rep[v] = grouped_by_rep.get(v, 0) + 1
+    print("Generate random variants to csv file:", grouped_by_rep)
+    with open(fn, "w") as f:
+        f.write("acc32,f32a,risc-iv-32\n")
+        for a, b, c in variants:
+            f.write(f"{a},{b},{c}\n")
+
+
 if __name__ == "__main__":
     verbose = True
     run_python_test_cases(verbose=verbose)
@@ -1029,3 +1072,5 @@ if __name__ == "__main__":
 
     print("Generate variant tests")
     generate_wrench_variant_test_cases("variants")
+
+    generate_variants(350, "variants.csv")
