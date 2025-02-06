@@ -12,20 +12,138 @@ Python function return a tuple where:
 
 Variants:
 
-- [count_divisors](#count_divisors)
-- [count_ones](#count_ones)
-- [fibonacci](#fibonacci)
-- [gcd](#gcd)
-- [hello_user_cstr](#hello_user_cstr)
-- [hello_user_pstr](#hello_user_pstr)
-- [is_prime](#is_prime)
-- [reverse_bits](#reverse_bits)
-- [sum_even_n](#sum_even_n)
-- [sum_n](#sum_n)
-- [sum_odd_n](#sum_odd_n)
-- [sum_of_digits](#sum_of_digits)
+-  Examples
+    - [factorial](#factorial)
+    - [get_put_char](#get_put_char)
+    - [hello](#hello)
+    - [logical_not](#logical_not)
+- Bitwise Operations
+    - [count_ones](#count_ones)
+    - [reverse_bits](#reverse_bits)
+- Mathematics
+    - [count_divisors](#count_divisors)
+    - [fibonacci](#fibonacci)
+    - [gcd](#gcd)
+    - [is_prime](#is_prime)
+    - [sum_even_n](#sum_even_n)
+    - [sum_n](#sum_n)
+    - [sum_odd_n](#sum_odd_n)
+    - [sum_of_digits](#sum_of_digits)
+- String Manipulation
+    - [hello_user_cstr](#hello_user_cstr)
+    - [hello_user_pstr](#hello_user_pstr)
 
-## `fibonacci`
+##  Examples
+
+### `factorial`
+
+```python
+def factorial(x):
+    def factorial_inner(n):
+        return 1 if n == 0 else n * factorial_inner(n - 1)
+
+    return factorial_inner(x)
+
+
+assert factorial(0) == 1
+assert factorial(5) == 120
+assert factorial(6) == 720
+assert factorial(7) == 5040
+assert factorial(8) == 40320
+assert factorial(9) == 362880
+```
+
+### `get_put_char`
+
+```python
+def get_put_char(symbols):
+    return (symbols[0:1], symbols[1:])
+
+
+assert get_put_char('A') == ('A', '')
+assert get_put_char('B') == ('B', '')
+assert get_put_char('C') == ('C', '')
+assert get_put_char('ABCD') == ('A', 'BCD')
+```
+
+### `hello`
+
+```python
+def hello(_):
+    return ("Hello\n\0World!", "")
+
+
+assert hello('') == ('Hello\n\0World!', '')
+```
+
+### `logical_not`
+
+```python
+def logical_not(x):
+    return not x
+
+
+assert logical_not(True) == False
+assert logical_not(False) == True
+```
+
+## Bitwise Operations
+
+### `count_ones`
+
+```python
+def count_ones(n):
+    """Count the number of ones in the binary representation of a number"""
+    count = 0
+    while n > 0:
+        count += n & 1
+        n >>= 1
+    return count
+
+
+assert count_ones(5) == 2
+assert count_ones(7) == 3
+```
+
+### `reverse_bits`
+
+```python
+def reverse_bits(n):
+    """Reverse the bits of a number"""
+    result = 0
+    inv = n & 0x01  # just because
+    for _ in range(32):  # assuming 32-bit numbers
+        result <<= 1  # shift left
+        result |= n & 1  # add the least significant bit
+        n >>= 1  # shift right
+    if inv == 1:  # hack to neg output
+        result = -result
+    return result
+
+
+assert reverse_bits(1) == -2147483648
+assert reverse_bits(2) == 1073741824
+```
+
+## Mathematics
+
+### `count_divisors`
+
+```python
+def count_divisors(n):
+    """Count the number of divisors of a number"""
+    count = 0
+    for i in range(1, n + 1):
+        if n % i == 0:
+            count += 1
+    return count
+
+
+assert count_divisors(6) == 4
+assert count_divisors(10) == 4
+```
+
+### `fibonacci`
 
 ```python
 def fibonacci(n):
@@ -49,71 +167,21 @@ assert fibonacci(5) == 5
 assert fibonacci(25) == 75025
 ```
 
-## `sum_n`
+### `gcd`
 
 ```python
-def sum_n(n):
-    """Sum of numbers from 1 to n"""
-    total = 0
-    for i in range(1, n + 1):
-        total += i
-    return total
+def gcd(a, b):
+    """Find the greatest common divisor (GCD)"""
+    while b != 0:
+        a, b = b, a % b
+    return [abs(a)]
 
 
-assert sum_n(5) == 15
-assert sum_n(10) == 55
+assert gcd([48, 18]) == [6]
+assert gcd([56, 98]) == [14]
 ```
 
-## `sum_even_n`
-
-```python
-def sum_even_n(n):
-    """Sum of even numbers from 1 to n"""
-    total = 0
-    for i in range(1, n + 1):
-        if i % 2 == 0:
-            total += i
-    return total
-
-
-assert sum_even_n(5) == 6
-assert sum_even_n(10) == 30
-```
-
-## `sum_odd_n`
-
-```python
-def sum_odd_n(n):
-    """Sum of odd numbers from 1 to n"""
-    total = 0
-    for i in range(1, n + 1):
-        if i % 2 != 0:
-            total += i
-    return total
-
-
-assert sum_odd_n(5) == 9
-assert sum_odd_n(10) == 25
-```
-
-## `sum_of_digits`
-
-```python
-def sum_of_digits(n):
-    """Sum of the digits of a number"""
-    total = 0
-    n = abs(n)
-    while n > 0:
-        total += n % 10
-        n //= 10
-    return total
-
-
-assert sum_of_digits(123) == 6
-assert sum_of_digits(-456) == 15
-```
-
-## `is_prime`
+### `is_prime`
 
 ```python
 def is_prime(n):
@@ -132,73 +200,88 @@ assert is_prime(7) == 1
 assert is_prime(8) == 0
 ```
 
-## `count_divisors`
+### `sum_even_n`
 
 ```python
-def count_divisors(n):
-    """Count the number of divisors of a number"""
-    count = 0
+def sum_even_n(n):
+    """Sum of even numbers from 1 to n"""
+    total = 0
     for i in range(1, n + 1):
-        if n % i == 0:
-            count += 1
-    return count
+        if i % 2 == 0:
+            total += i
+    return total
 
 
-assert count_divisors(6) == 4
-assert count_divisors(10) == 4
+assert sum_even_n(5) == 6
+assert sum_even_n(10) == 30
 ```
 
-## `gcd`
+### `sum_n`
 
 ```python
-def gcd(a, b):
-    """Find the greatest common divisor (GCD)"""
-    while b != 0:
-        a, b = b, a % b
-    return [abs(a)]
+def sum_n(n):
+    """Sum of numbers from 1 to n"""
+    total = 0
+    for i in range(1, n + 1):
+        total += i
+    return total
 
 
-assert gcd([48, 18]) == [6]
-assert gcd([56, 98]) == [14]
+assert sum_n(5) == 15
+assert sum_n(10) == 55
 ```
 
-## `count_ones`
+### `sum_odd_n`
 
 ```python
-def count_ones(n):
-    """Count the number of ones in the binary representation of a number"""
-    count = 0
+def sum_odd_n(n):
+    """Sum of odd numbers from 1 to n"""
+    total = 0
+    for i in range(1, n + 1):
+        if i % 2 != 0:
+            total += i
+    return total
+
+
+assert sum_odd_n(5) == 9
+assert sum_odd_n(10) == 25
+```
+
+### `sum_of_digits`
+
+```python
+def sum_of_digits(n):
+    """Sum of the digits of a number"""
+    total = 0
+    n = abs(n)
     while n > 0:
-        count += n & 1
-        n >>= 1
-    return count
+        total += n % 10
+        n //= 10
+    return total
 
 
-assert count_ones(5) == 2
-assert count_ones(7) == 3
+assert sum_of_digits(123) == 6
+assert sum_of_digits(-456) == 15
 ```
 
-## `reverse_bits`
+## String Manipulation
+
+### `hello_user_cstr`
 
 ```python
-def reverse_bits(n):
-    """Reverse the bits of a number"""
-    result = 0
-    inv = n & 0x01  # just because
-    for _ in range(32):  # assuming 32-bit numbers
-        result <<= 1  # shift left
-        result |= n & 1  # add the least significant bit
-        n >>= 1  # shift right
-    if inv == 1:  # hack to neg output
-        result = -result
-    return result
+def hello_user_cstr(input):
+    """Greet the user with C strings.
+
+    External behavior is the same as hello_user_pstr.
+    """
+    return hello_user_pstr(input)
 
 
-assert reverse_bits(1) == -2147483648
-assert reverse_bits(2) == 1073741824
+assert hello_user_cstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
+assert hello_user_cstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
 ```
 
-## `hello_user_pstr`
+### `hello_user_pstr`
 
 ```python
 def hello_user_pstr(input):
@@ -224,79 +307,4 @@ def hello_user_pstr(input):
 
 assert hello_user_pstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
 assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
-```
-
-## `hello_user_cstr`
-
-```python
-def hello_user_cstr(input):
-    """Greet the user with C strings.
-
-    External behavior is the same as hello_user_pstr.
-    """
-    return hello_user_pstr(input)
-
-
-assert hello_user_cstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
-assert hello_user_cstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
-```
-
-## `factorial`
-
-**Example. Not a variant.**
-
-```python
-def factorial(x):
-    def factorial_inner(n):
-        return 1 if n == 0 else n * factorial_inner(n - 1)
-
-    return factorial_inner(x)
-
-
-assert factorial(0) == 1
-assert factorial(5) == 120
-assert factorial(6) == 720
-assert factorial(7) == 5040
-assert factorial(8) == 40320
-assert factorial(9) == 362880
-```
-
-## `logical_not`
-
-**Example. Not a variant.**
-
-```python
-def logical_not(x):
-    return not x
-
-
-assert logical_not(True) == False
-assert logical_not(False) == True
-```
-
-## `hello`
-
-**Example. Not a variant.**
-
-```python
-def hello(_):
-    return ("Hello\n\0World!", "")
-
-
-assert hello('') == ('Hello\n\0World!', '')
-```
-
-## `get_put_char`
-
-**Example. Not a variant.**
-
-```python
-def get_put_char(symbols):
-    return (symbols[0:1], symbols[1:])
-
-
-assert get_put_char('A') == ('A', '')
-assert get_put_char('B') == ('B', '')
-assert get_put_char('C') == ('C', '')
-assert get_put_char('ABCD') == ('A', 'BCD')
 ```

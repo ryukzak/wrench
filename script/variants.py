@@ -7,7 +7,8 @@ from collections import namedtuple
 
 # Define the named tuple structure
 TestCase = namedtuple(
-    "TestCase", ["simple", "cases", "reference", "reference_cases", "is_variant"]
+    "TestCase",
+    ["simple", "cases", "reference", "reference_cases", "is_variant", "category"],
 )
 
 
@@ -171,6 +172,7 @@ test_cases["fibonacci"] = TestCase(
     reference=fibonacci_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 ###########################################################
@@ -195,6 +197,7 @@ test_cases["sum_n"] = TestCase(
     reference=sum_n_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 ###########################################################
@@ -220,6 +223,7 @@ test_cases["sum_even_n"] = TestCase(
     reference=sum_even_n_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 ###########################################################
 
@@ -244,6 +248,7 @@ test_cases["sum_odd_n"] = TestCase(
     reference=sum_odd_n_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 ###########################################################
@@ -270,6 +275,7 @@ test_cases["sum_of_digits"] = TestCase(
     reference=sum_of_digits_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 ###########################################################
@@ -298,6 +304,7 @@ test_cases["is_prime"] = TestCase(
     reference=is_prime_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 
@@ -322,6 +329,7 @@ test_cases["count_divisors"] = TestCase(
     reference=count_divisors_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 ###########################################################
@@ -345,6 +353,7 @@ test_cases["gcd"] = TestCase(
     reference=gcd_ref,
     reference_cases=[],
     is_variant=True,
+    category="Mathematics",
 )
 
 
@@ -371,6 +380,7 @@ test_cases["count_ones"] = TestCase(
     reference=count_ones_ref,
     reference_cases=[],
     is_variant=True,
+    category="Bitwise Operations",
 )
 
 ###########################################################
@@ -407,6 +417,7 @@ test_cases["reverse_bits"] = TestCase(
         Word2Word(0, 0),
     ],
     is_variant=True,
+    category="Bitwise Operations",
 )
 
 
@@ -445,6 +456,7 @@ test_cases["hello_user_pstr"] = TestCase(
     reference=hello_user_pstr_ref,
     reference_cases=[],
     is_variant=True,
+    category="String Manipulation",
 )
 
 ###########################################################
@@ -469,6 +481,7 @@ test_cases["hello_user_cstr"] = TestCase(
     reference=hello_user_cstr_ref,
     reference_cases=[],
     is_variant=True,
+    category="String Manipulation",
 )
 
 
@@ -506,6 +519,7 @@ test_cases["factorial"] = TestCase(
         Word2Word(-2, -1),
     ],
     is_variant=False,
+    category=" Examples",
 )
 
 ###########################################################
@@ -524,6 +538,7 @@ test_cases["logical_not"] = TestCase(
     reference=logical_not,
     reference_cases=[],
     is_variant=False,
+    category=" Examples",
 )
 
 ###########################################################
@@ -541,6 +556,7 @@ test_cases["hello"] = TestCase(
     reference=hello_ref,
     reference_cases=[],
     is_variant=False,
+    category=" Examples",
 )
 
 ###########################################################
@@ -569,6 +585,7 @@ test_cases["get_put_char"] = TestCase(
         String2String("\n\0", "\n", "\0"),
     ],
     is_variant=False,
+    category=" Examples",
 )
 
 
@@ -631,22 +648,33 @@ def generate_variant_readme():
     res = ["# Wrench variants", variant_readme_description]
     res.append("Variants:")
     res.append("")
+
+    categories = {}
     for name, variant in sorted(test_cases.items()):
-        if variant.is_variant:
-            res.append(f"- [{name}](#{name})")
+            if variant.category not in categories:
+                categories[variant.category] = []
+            categories[variant.category].append(name)
+
+    for category, names in sorted(categories.items()):
+        res.append(f"- {category}")
+        for name in names:
+            res.append(f"    - [{name}](#{name})")
+
     res.append("")
-    for name, variant in list(test_cases.items()):
-        res.append(f"## `{name}`")
+
+    for category, names in sorted(categories.items()):
+        res.append(f"## {category}")
         res.append("")
-        if not variant.is_variant:
-            res.append("**Example. Not a variant.**")
+        for name in names:
+            variant = test_cases[name]
+            res.append(f"### `{name}`")
             res.append("")
-        res.append("```python")
-        res.append(inspect.getsource(variant.simple))
-        res.append("")
-        res.append(generate_python_test_cases(variant.simple.__name__, variant.cases))
-        res.append("```")
-        res.append("")
+            res.append("```python")
+            res.append(inspect.getsource(variant.simple))
+            res.append("")
+            res.append(generate_python_test_cases(variant.simple.__name__, variant.cases))
+            res.append("```")
+            res.append("")
     return "\n".join(res)
 
 
