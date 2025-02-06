@@ -4,4 +4,5 @@
 uploads
 bin
 variants/
+variants.csv
 .zed/tasks.json

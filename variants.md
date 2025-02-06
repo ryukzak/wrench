@@ -12,11 +12,6 @@ Python function return a tuple where:
 
 Variants:
 
-- Examples
-    - [factorial](#factorial)
-    - [get_put_char](#get_put_char)
-    - [hello](#hello)
-    - [logical_not](#logical_not)
 - Bitwise Operations
     - [big_to_little_endian](#big_to_little_endian)
     - [count_leading_zeros](#count_leading_zeros)
@@ -43,60 +38,11 @@ Variants:
     - [reverse_string_pstr](#reverse_string_pstr)
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
-
-## Examples
-
-### `factorial`
-
-```python
-def factorial(x):
-    def factorial_inner(n):
-        return 1 if n == 0 else n * factorial_inner(n - 1)
-
-    return factorial_inner(x)
-
-
-assert factorial(0) == 1
-assert factorial(5) == 120
-assert factorial(6) == 720
-assert factorial(7) == 5040
-assert factorial(8) == 40320
-assert factorial(9) == 362880
-```
-
-### `get_put_char`
-
-```python
-def get_put_char(symbols):
-    return (symbols[0:1], symbols[1:])
-
-
-assert get_put_char('A') == ('A', '')
-assert get_put_char('B') == ('B', '')
-assert get_put_char('C') == ('C', '')
-assert get_put_char('ABCD') == ('A', 'BCD')
-```
-
-### `hello`
-
-```python
-def hello(_):
-    return ("Hello\n\0World!", "")
-
-
-assert hello('') == ('Hello\n\0World!', '')
-```
-
-### `logical_not`
-
-```python
-def logical_not(x):
-    return not x
-
-
-assert logical_not(True) == False
-assert logical_not(False) == True
-```
+- _Examples
+    - [factorial](#factorial)
+    - [get_put_char](#get_put_char)
+    - [hello](#hello)
+    - [logical_not](#logical_not)
 
 ## Bitwise Operations
 
@@ -468,4 +414,58 @@ def upper_case_pstr(s):
 
 assert upper_case_pstr('hello') == ('HELLO', '')
 assert upper_case_pstr('world') == ('WORLD', '')
+```
+
+## _Examples
+
+### `factorial`
+
+```python
+def factorial(x):
+    def factorial_inner(n):
+        return 1 if n == 0 else n * factorial_inner(n - 1)
+
+    return factorial_inner(x)
+
+
+assert factorial(0) == 1
+assert factorial(5) == 120
+assert factorial(6) == 720
+assert factorial(7) == 5040
+assert factorial(8) == 40320
+assert factorial(9) == 362880
+```
+
+### `get_put_char`
+
+```python
+def get_put_char(symbols):
+    return (symbols[0:1], symbols[1:])
+
+
+assert get_put_char('A') == ('A', '')
+assert get_put_char('B') == ('B', '')
+assert get_put_char('C') == ('C', '')
+assert get_put_char('ABCD') == ('A', 'BCD')
+```
+
+### `hello`
+
+```python
+def hello(_):
+    return ("Hello\n\0World!", "")
+
+
+assert hello('') == ('Hello\n\0World!', '')
+```
+
+### `logical_not`
+
+```python
+def logical_not(x):
+    return not x
+
+
+assert logical_not(True) == False
+assert logical_not(False) == True
 ```
