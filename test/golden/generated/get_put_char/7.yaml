@@ -1,8 +1,8 @@
-name: "assert logical_not(True) == False"
+name: "assert get_put_char('\0\n') == ('\0', '\n')"
 limit: 1000
 memory_size: 0x1000
 input_streams:
-  0x80: [1]
+  0x80: [0, 10]
   0x84: []
 reports:
   - name: Check results
@@ -12,6 +12,10 @@ reports:
     view: |
       numio[0x80]: {io:0x80:dec}
       numio[0x84]: {io:0x84:dec}
+      symio[0x80]: {io:0x80:sym}
+      symio[0x84]: {io:0x84:sym}
     assert: |
-      numio[0x80]: [] >>> []
+      numio[0x80]: [10] >>> []
       numio[0x84]: [] >>> [0]
+      symio[0x80]: "\n" >>> ""
+      symio[0x84]: "" >>> "\0"

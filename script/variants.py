@@ -1,16 +1,143 @@
 #!/usr/bin/env python3
 
 import itertools
-import random
 import os
 import inspect
 from collections import namedtuple
 
 # Define the named tuple structure
-TestCase = namedtuple("TestCase", ["simple", "cases", "reference", "reference_cases"])
+TestCase = namedtuple(
+    "TestCase", ["simple", "cases", "reference", "reference_cases", "is_variant"]
+)
+
+
+def limit_to_int32(f):
+    def foo(*args, **kwargs):
+        tmp = f(*args, **kwargs)
+        if -2_147_483_648 <= tmp <= 2_147_483_647:
+            return tmp
+        return 0xCCCCCCCC
+
+    foo.__name__ = f.__name__
+    return foo
+
+
+class Words2Words:
+    def __init__(self, xs, ys):
+        self.xs = xs
+        self.ys = ys
+
+    def assert_string(self, name):
+        params = f"{self.xs}"
+        results = f"{self.ys}"
+        return f"assert {name}({params}) == {results}"
+
+    def check_assert(self, f):
+        assert f(*self.xs) == self.ys, (
+            f"{f.__name__} actual: {f(*self.xs)}, expect: {self.ys}"
+        )
+
+    def yaml_input_streams(self):
+        return "\n".join(
+            [
+                f"  0x80: {self.xs}",
+                "  0x84: []",
+            ]
+        )
+
+    def yaml_view(self):
+        return "\n".join(
+            [
+                "      numio[0x80]: {io:0x80:dec}",
+                "      numio[0x84]: {io:0x84:dec}",
+            ]
+        )
+
+    def yaml_assert(self):
+        return "\n".join(
+            [
+                "      numio[0x80]: [] >>> []",
+                f"      numio[0x84]: [] >>> {self.ys}",
+            ]
+        )
+
+
+class Word2Word(Words2Words):
+    def __init__(self, x, y):
+        super(Word2Word, self).__init__([x], [y])
+        self.x = x
+        self.y = y
+
+    def assert_string(self, name):
+        params = f"{self.x}"
+        results = f"{self.y}"
+        return f"assert {name}({params}) == {results}"
+
+    def check_assert(self, f):
+        assert f(self.x) == self.y, (
+            f"{f.__name__} actual: {f(self.x)}, expect: {self.y}"
+        )
+
+
+class Bool2Bool(Word2Word):
+    def __init__(self, x, y):
+        super(Bool2Bool, self).__init__(1 if x else 0, 1 if y else 0)
+
+    def assert_string(self, name):
+        x = True if self.x == 1 else False
+        y = True if self.y == 1 else False
+        return f"assert {name}({x}) == {y}"
+
+    def check_assert(self, f):
+        x = True if self.x == 1 else False
+        y = True if self.y == 1 else False
+        assert f(x) == y, f"actual: {f(x)}, expect: {y}"
+
+
+class String2String:
+    def __init__(self, input, output, rest=""):
+        self.input = input
+        self.output = output
+        self.rest = rest
+
+    def assert_string(self, name):
+        return f"assert {name}({py_str(self.input)}) == ({py_str(self.output)}, {py_str(self.rest)})"
+
+    def check_assert(self, f):
+        assert f(self.input) == (self.output, self.rest), (
+            f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
+        )
+
+    def yaml_input_streams(self):
+        return "\n".join(
+            [
+                f"  0x80: {yaml_symbol_nums(self.input, ', ')}",
+                "  0x84: []",
+            ]
+        )
+
+    def yaml_view(self):
+        return "\n".join(
+            [
+                "      numio[0x80]: {io:0x80:dec}",
+                "      numio[0x84]: {io:0x84:dec}",
+                "      symio[0x80]: {io:0x80:sym}",
+                "      symio[0x84]: {io:0x84:sym}",
+            ]
+        )
+
+    def yaml_assert(self):
+        return "\n".join(
+            [
+                f"      numio[0x80]: {yaml_symbol_nums(self.rest)} >>> []",
+                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
+                f'      symio[0x80]: {yaml_symbols(self.rest)} >>> ""',
+                f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
+            ]
+        )
+
 
 test_cases = {}
-skip_test_cases = []
 
 
 ###########################################################
@@ -19,13 +146,13 @@ skip_test_cases = []
 def fibonacci(n):
     """Calculate the n-th Fibonacci number"""
     if n <= 0:
-        return (0,)
+        return 0
     elif n == 1:
-        return (1,)
+        return 1
     a, b = 0, 1
     for _ in range(2, n + 1):
         a, b = b, a + b
-    return (b,)
+    return b
 
 
 fibonacci_ref = fibonacci
@@ -33,16 +160,17 @@ fibonacci_ref = fibonacci
 test_cases["fibonacci"] = TestCase(
     simple=fibonacci,
     cases=[
-        ((0,), (0,)),
-        ((1,), (1,)),
-        ((2,), (1,)),
-        ((3,), (2,)),
-        ((4,), (3,)),
-        ((5,), (5,)),
-        ((25,), (75025,)),
+        Word2Word(0, 0),
+        Word2Word(1, 1),
+        Word2Word(2, 1),
+        Word2Word(3, 2),
+        Word2Word(4, 3),
+        Word2Word(5, 5),
+        Word2Word(25, 75025),
     ],
     reference=fibonacci_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -53,7 +181,7 @@ def sum_n(n):
     total = 0
     for i in range(1, n + 1):
         total += i
-    return (total,)
+    return total
 
 
 sum_n_ref = sum_n
@@ -61,11 +189,12 @@ sum_n_ref = sum_n
 test_cases["sum_n"] = TestCase(
     simple=sum_n,
     cases=[
-        ((5,), (15,)),
-        ((10,), (55,)),
+        Word2Word(5, 15),
+        Word2Word(10, 55),
     ],
     reference=sum_n_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -77,7 +206,7 @@ def sum_even_n(n):
     for i in range(1, n + 1):
         if i % 2 == 0:
             total += i
-    return (total,)
+    return total
 
 
 sum_even_n_ref = sum_even_n
@@ -85,11 +214,12 @@ sum_even_n_ref = sum_even_n
 test_cases["sum_even_n"] = TestCase(
     simple=sum_even_n,
     cases=[
-        ((5,), (6,)),
-        ((10,), (30,)),
+        Word2Word(5, 6),
+        Word2Word(10, 30),
     ],
     reference=sum_even_n_ref,
     reference_cases=[],
+    is_variant=True,
 )
 ###########################################################
 
@@ -100,7 +230,7 @@ def sum_odd_n(n):
     for i in range(1, n + 1):
         if i % 2 != 0:
             total += i
-    return (total,)
+    return total
 
 
 sum_odd_n_ref = sum_odd_n
@@ -108,11 +238,12 @@ sum_odd_n_ref = sum_odd_n
 test_cases["sum_odd_n"] = TestCase(
     simple=sum_odd_n,
     cases=[
-        ((5,), (9,)),
-        ((10,), (25,)),
+        Word2Word(5, 9),
+        Word2Word(10, 25),
     ],
     reference=sum_odd_n_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -125,7 +256,7 @@ def sum_of_digits(n):
     while n > 0:
         total += n % 10
         n //= 10
-    return (total,)
+    return total
 
 
 sum_of_digits_ref = sum_of_digits
@@ -133,11 +264,12 @@ sum_of_digits_ref = sum_of_digits
 test_cases["sum_of_digits"] = TestCase(
     simple=sum_of_digits,
     cases=[
-        ((123,), (6,)),
-        ((-456,), (15,)),
+        Word2Word(123, 6),
+        Word2Word(-456, 15),
     ],
     reference=sum_of_digits_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -146,11 +278,11 @@ test_cases["sum_of_digits"] = TestCase(
 def is_prime(n):
     """Check if a number is prime"""
     if n <= 1:
-        return (False,)
+        return 0
     for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
-            return (False,)
-    return (True,)
+            return 0
+    return 1
 
 
 is_prime_ref = is_prime
@@ -158,13 +290,14 @@ is_prime_ref = is_prime
 test_cases["is_prime"] = TestCase(
     simple=is_prime,
     cases=[
-        ((5,), (True,)),
-        ((4,), (False,)),
-        ((7,), (True,)),
-        ((8,), (False,)),
+        Word2Word(5, 1),
+        Word2Word(4, 0),
+        Word2Word(7, 1),
+        Word2Word(8, 0),
     ],
     reference=is_prime_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 
@@ -175,7 +308,7 @@ def count_divisors(n):
     for i in range(1, n + 1):
         if n % i == 0:
             count += 1
-    return (count,)
+    return count
 
 
 count_divisors_ref = count_divisors
@@ -183,11 +316,12 @@ count_divisors_ref = count_divisors
 test_cases["count_divisors"] = TestCase(
     simple=count_divisors,
     cases=[
-        ((6,), (4,)),
-        ((10,), (4,)),
+        Word2Word(6, 4),
+        Word2Word(10, 4),
     ],
     reference=count_divisors_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -197,7 +331,7 @@ def gcd(a, b):
     """Find the greatest common divisor (GCD)"""
     while b != 0:
         a, b = b, a % b
-    return (abs(a),)
+    return [abs(a)]
 
 
 gcd_ref = gcd
@@ -205,11 +339,12 @@ gcd_ref = gcd
 test_cases["gcd"] = TestCase(
     simple=gcd,
     cases=[
-        ((48, 18), (6,)),
-        ((56, 98), (14,)),
+        Words2Words([48, 18], [6]),
+        Words2Words([56, 98], [14]),
     ],
     reference=gcd_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 
@@ -222,7 +357,7 @@ def count_ones(n):
     while n > 0:
         count += n & 1
         n >>= 1
-    return (count,)
+    return count
 
 
 count_ones_ref = count_ones
@@ -230,11 +365,12 @@ count_ones_ref = count_ones
 test_cases["count_ones"] = TestCase(
     simple=count_ones,
     cases=[
-        ((5,), (2,)),
-        ((7,), (3,)),
+        Word2Word(5, 2),
+        Word2Word(7, 3),
     ],
     reference=count_ones_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -242,32 +378,35 @@ test_cases["count_ones"] = TestCase(
 
 def reverse_bits(n):
     """Reverse the bits of a number"""
-    if n == -1:  # hack to neg input
-        return (1,)
     result = 0
     inv = n & 0x01  # just because
     for _ in range(32):  # assuming 32-bit numbers
         result <<= 1  # shift left
         result |= n & 1  # add the least significant bit
         n >>= 1  # shift right
-    if inv == 1:  # hack to net output
+    if inv == 1:  # hack to neg output
         result = -result
-    return (result,)
+    return result
 
 
-reverse_bits_ref = reverse_bits
+def reverse_bits_ref(n):
+    if n == -1:  # hack to neg input
+        return -1
+    return reverse_bits(n)
+
 
 test_cases["reverse_bits"] = TestCase(
     simple=reverse_bits,
     cases=[
-        ((1,), (-2147483648,)),
-        ((2,), (1073741824,)),
+        Word2Word(1, -2147483648),
+        Word2Word(2, 1073741824),
     ],
     reference=reverse_bits_ref,
     reference_cases=[
-        ((-1,), (1,)),
-        ((0,), (0,)),
+        Word2Word(-1, -1),
+        Word2Word(0, 0),
     ],
+    is_variant=True,
 )
 
 
@@ -300,11 +439,12 @@ hello_user_pstr_ref = hello_user_pstr
 test_cases["hello_user_pstr"] = TestCase(
     simple=hello_user_pstr,
     cases=[
-        (("Alice\n",), ("What is your name?\nHello, Alice!\n", "")),
-        (("Alice\nBob",), ("What is your name?\nHello, Alice!\n", "Bob")),
+        String2String("Alice\n", "What is your name?\nHello, Alice!\n", ""),
+        String2String("Alice\nBob", "What is your name?\nHello, Alice!\n", "Bob"),
     ],
     reference=hello_user_pstr_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 ###########################################################
@@ -323,11 +463,12 @@ hello_user_cstr_ref = hello_user_cstr
 test_cases["hello_user_cstr"] = TestCase(
     simple=hello_user_cstr,
     cases=[
-        (("Alice\n",), ("What is your name?\nHello, Alice!\n", "")),
-        (("Alice\nBob",), ("What is your name?\nHello, Alice!\n", "Bob")),
+        String2String("Alice\n", "What is your name?\nHello, Alice!\n", ""),
+        String2String("Alice\nBob", "What is your name?\nHello, Alice!\n", "Bob"),
     ],
     reference=hello_user_cstr_ref,
     reference_cases=[],
+    is_variant=True,
 )
 
 
@@ -338,99 +479,103 @@ def factorial(x):
     def factorial_inner(n):
         return 1 if n == 0 else n * factorial_inner(n - 1)
 
-    return (factorial_inner(x),)
+    return factorial_inner(x)
 
 
-def factorial_ref(n):
-    if n < 0:
-        return (0xFFFFFFFF,)
-    return factorial(n)
+@limit_to_int32
+def factorial_ref(word):
+    if word < 0:
+        return -1
+    return factorial(word)
 
 
 test_cases["factorial"] = TestCase(
     simple=factorial,
     cases=[
-        ((0,), (1,)),
-        ((5,), (120,)),
-        ((6,), (720,)),
-        ((7,), (5040,)),
-        ((8,), (40320,)),
-        ((9,), (362880,)),
+        Word2Word(0, 1),
+        Word2Word(5, 120),
+        Word2Word(6, 720),
+        Word2Word(7, 5040),
+        Word2Word(8, 40320),
+        Word2Word(9, 362880),
     ],
     reference=factorial_ref,
     reference_cases=[
-        ((-1,), (0xFFFFFFFF,)),
+        Word2Word(13, 0xCCCCCCCC),
+        Word2Word(-1, -1),
+        Word2Word(-2, -1),
     ],
+    is_variant=False,
 )
-
-skip_test_cases.append("factorial")
 
 ###########################################################
 
 
 def logical_not(x):
-    return (not x,)
-
-
-factorial_ref = logical_not
+    return not x
 
 
 test_cases["logical_not"] = TestCase(
     simple=logical_not,
     cases=[
-        ((True,), (False,)),
-        ((False,), (True,)),
+        Bool2Bool(True, False),
+        Bool2Bool(False, True),
     ],
     reference=logical_not,
     reference_cases=[],
+    is_variant=False,
 )
-
-skip_test_cases.append("logical_not")
 
 ###########################################################
 
 
-def hello():
-    return ("Hello\n\0World!",)
+def hello(_):
+    return ("Hello\n\0World!", "")
 
 
 hello_ref = hello
 
 test_cases["hello"] = TestCase(
     simple=hello,
-    cases=[(tuple(), ("Hello\n\0World!",))],
+    cases=[String2String("", "Hello\n\0World!")],
     reference=hello_ref,
     reference_cases=[],
+    is_variant=False,
 )
-
-skip_test_cases.append("hello")
 
 ###########################################################
 
 
-def get_put_char(input):
-    return (input[0], input[1:])
+def get_put_char(symbols):
+    return (symbols[0:1], symbols[1:])
 
 
 get_put_char_ref = get_put_char
 
+
 test_cases["get_put_char"] = TestCase(
     simple=get_put_char,
     cases=[
-        (("A",), ("A", "")),
-        (("B",), ("B", "")),
-        (("C",), ("C", "")),
-        (("ABCD",), ("A", "BCD")),
-        (("\0",), ("\0", "")),
-        (("\n",), ("\n", "")),
+        String2String("A", "A", ""),
+        String2String("B", "B", ""),
+        String2String("C", "C", ""),
+        String2String("ABCD", "A", "BCD"),
     ],
     reference=get_put_char_ref,
-    reference_cases=[],
+    reference_cases=[
+        String2String("\0", "\0", ""),
+        String2String("\n", "\n", ""),
+        String2String("\0\n", "\0", "\n"),
+        String2String("\n\0", "\n", "\0"),
+    ],
+    is_variant=False,
 )
-skip_test_cases.append("get_put_char")
 
 
-# TODO: is palindrome string?
+# TODO: is_palindrome string?
+# TODO: upper_case
+# TODO: lower_case
+# TODO: capital_case
 
 ###########################################################
 
@@ -441,13 +586,32 @@ def my_str(s):
     return str(s)
 
 
-def python_assert_string(name, xs, ys):
-    xs_string = ", ".join(map(repr, xs)) if isinstance(xs, tuple) else xs
-    return f"assert {name}({xs_string}) == {ys}".replace("\\x00", "\\0")
+def py_str(s):
+    return repr(s).replace("\\x00", "\\0")
+
+
+def python_assert_string(name, params, results):
+    if "word" in params and len(params) == 1:
+        py_params = f"word={params['word']}"
+    elif "symbols" in params and len(params) == 1:
+        py_params = f"symbols={py_str(params['symbols'])}"
+    elif len(params) == 0:
+        py_params = ""
+    else:
+        raise ValueError(f"incorrect params: {params}")
+
+    if "word" in results and len(results) == 1:
+        py_results = results
+    elif "symbols" in results and "rest_input" in results and len(results) == 2:
+        py_results = f"{{'symbols': {py_str(results['symbols'])}, 'rest_input': {py_str(results['rest_input'])}}}"
+    else:
+        raise ValueError(f"incorrect results: {results}")
+
+    return f"assert {name}({py_params}) == {py_results}"
 
 
 def generate_python_test_cases(fname, cases):
-    return "\n".join([python_assert_string(fname, xs, ys) for xs, ys in cases])
+    return "\n".join([case.assert_string(fname) for case in cases])
 
 
 variant_readme_description = """
@@ -465,10 +629,16 @@ Python function return a tuple where:
 
 def generate_variant_readme():
     res = ["# Wrench variants", variant_readme_description]
+    res.append("Variants:")
+    res.append("")
+    for name, variant in sorted(test_cases.items()):
+        if variant.is_variant:
+            res.append(f"- [{name}](#{name})")
+    res.append("")
     for name, variant in list(test_cases.items()):
         res.append(f"## `{name}`")
         res.append("")
-        if name in skip_test_cases:
+        if not variant.is_variant:
             res.append("**Example. Not a variant.**")
             res.append("")
         res.append("```python")
@@ -482,114 +652,55 @@ def generate_variant_readme():
 
 def run_python_test_cases(verbose):
     for name, variant in test_cases.items():
-        for xs, ys in variant.cases:
+        for case in variant.cases:
             if verbose:
-                print(python_assert_string(variant.simple.__name__, xs, ys))
-            assert variant.simple(*xs) == ys, f"actual: {variant.simple(*xs)}"
-        for xs, ys in itertools.chain(*[variant.cases, variant.reference_cases]):
+                print(case.assert_string(variant.simple.__name__))
+            case.check_assert(variant.simple)
+        for case in itertools.chain(*[variant.cases, variant.reference_cases]):
             if verbose:
-                print(python_assert_string(variant.reference.__name__, xs, ys))
-            assert variant.reference(*xs) == ys, f"actual: {variant.reference(*xs)}"
+                print(case.assert_string(variant.reference.__name__))
+            case.check_assert(variant.reference)
 
 
-def print_variants():
-    vs = list(test_cases.keys())
-    random.shuffle(vs)
-    for v in vs:
-        if v not in skip_test_cases:
-            print(v)
+def yaml_symbol_nums(s, sep=","):
+    return "[" + sep.join([str(ord(c)) for c in s]) + "]"
 
 
-def symbol(n):
-    c = repr(chr(n)).strip("'")
-    if c == "\\x00":
-        return "\\0"
-    return c
+def yaml_symbols(s):
+    return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
 
 
-def xs_to_numio(xs):
-    return ", ".join(
-        itertools.chain(
-            *[
-                ([(str(ord(c))) for c in x] if isinstance(x, str) else [str(x)])
-                for x in xs
-            ]
-        )
-    )
-
-
-def generate_wrench_test_cases(name, xs, ys):
+def generate_wrench_test_cases(conf_name, case):
     limit = 1000
-    name = python_assert_string(name, xs, ys)
-    xs = [(int(x) if isinstance(x, bool) else x) for x in xs]
-    ys = [(int(y) if isinstance(y, bool) else y) for y in ys]
-    out_num = ys[0]
-    rest = "" if len(ys) == 1 else ys[1]
-
-    sym_inspector, sym_assert = "", ""
-    rest_num, rest_sym = "", ""
-    if isinstance(out_num, str):
-        sym_inspector = "\n".join(
-            [
-                "      symio[0x80]: {io:0x80:sym}",
-                "      symio[0x84]: {io:0x84:sym}",
-            ]
-        )
-        out_code = [ord(c) for c in out_num]
-        out_sym = "".join([symbol(n) for n in out_code])
-        out_num = ",".join([repr(n) for n in out_code])
-
-        rest_code = [ord(c) for c in rest]
-        rest_sym = "".join([symbol(n) for n in rest_code])
-        rest_num = ",".join([repr(n) for n in rest_code])
-        sym_assert = "\n".join(
-            [
-                f'      symio[0x80]: "{rest_sym}" >>> ""',
-                f'      symio[0x84]: "" >>> "{out_sym}"',
-            ]
-        )
-
-    num_assert = "\n".join(
-        [
-            f"      numio[0x80]: [{rest_num}] >>> []",
-            f"      numio[0x84]: [] >>> [{out_num}]",
-        ]
-    )
-
-    xs = xs_to_numio(xs)
-
-    return f"""name: "{name}"
+    conf_name = case.assert_string(conf_name)
+    return f"""name: "{conf_name}"
 limit: {limit}
 memory_size: 0x1000
 input_streams:
-  0x80: [{xs}]
-  0x84: []
+{case.yaml_input_streams()}
 reports:
   - name: Check results
     slice: last
     filter:
       - state
     view: |
-      numio[0x80]: {{io:0x80:dec}}
-      numio[0x84]: {{io:0x84:dec}}
-{sym_inspector}
+{case.yaml_view()}
     assert: |
-{num_assert}
-{sym_assert}
+{case.yaml_assert()}
 """
 
 
 ###########################################################
 
 
-def write_test_cases(path, name, test_desc):
+def write_test_cases(path, name, variant):
     os.makedirs(f"{path}/{name}", exist_ok=True)
-    tests = test_desc.cases + test_desc.reference_cases
-    for idx, (xs, y) in enumerate(tests, 1):
+    tests = variant.cases + variant.reference_cases
+    for idx, case in enumerate(tests, 1):
         fn = f"{path}/{name}/{idx}.yaml"
         with open(fn, "w") as f:
             print("Write:", fn)
-            f.write(generate_wrench_test_cases(name, xs, y))
+            f.write(generate_wrench_test_cases(name, case))
 
 
 def generate_wrench_spec(path, test_names):
@@ -603,19 +714,21 @@ def generate_wrench_variant_test_cases(path):
     for name, variant in list(test_cases.items()):
         os.makedirs(f"{path}/{name}", exist_ok=True)
         tests = variant.cases + variant.reference_cases
-        for idx, (xs, y) in enumerate(tests, 1):
+        for idx, case in enumerate(tests, 1):
             fn = f"{path}/{name}/{idx}.yaml"
             with open(fn, "w") as f:
                 print(fn)
-                f.write(generate_wrench_test_cases(name, xs, y))
+                f.write(generate_wrench_test_cases(name, case))
 
 
 if __name__ == "__main__":
-    run_python_test_cases(verbose=False)
+    verbose = True
+    run_python_test_cases(verbose=verbose)
 
     print("Generate golden tests:")
     generate_wrench_spec(
-        "test/golden/generated", ["factorial", "get_put_char", "hello", "logical_not"]
+        "test/golden/generated",
+        ["factorial", "get_put_char", "hello", "logical_not"],
     )
 
     print("Generate variant descriptions")
