@@ -1,4 +1,4 @@
-name: "assert factorial(9) == (362880,)"
+name: "assert factorial(9) == 362880"
 limit: 1000
 memory_size: 0x1000
 input_streams:
@@ -12,8 +12,6 @@ reports:
     view: |
       numio[0x80]: {io:0x80:dec}
       numio[0x84]: {io:0x84:dec}
-
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [362880]
-

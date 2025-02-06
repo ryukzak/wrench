@@ -60,9 +60,9 @@ readme-fix:
 
 format-fix:
 	fourmolu -m inplace $(HS_SRC_DIR)
+	ruff format script/*.py
 	prettier -w static/
 	yamlfmt example test
-	ruff format script/*.py
 
 format-check:
 	fourmolu -m check $(HS_SRC_DIR)

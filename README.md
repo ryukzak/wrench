@@ -100,13 +100,13 @@ The configuration file is a YAML file that specifies various settings and parame
 - **Type:** List of report configurations
 - **Description:** Specifies the reports to generate during the simulation. Each report configuration includes settings such as the name, slice, filter, inspector, and assertions.
 
-```yaml
-reports:
-  - name: Step-by-step log
-    slice: all
-    view: |
-      {pc}:	{instruction}	{pc:label}
-```
+  ```yaml
+  reports:
+    - name: Step-by-step log
+      slice: all
+      view: |
+        {pc}: {instruction} {pc:label}
+  ```
 
 ### Report Configuration
 

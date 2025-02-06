@@ -10,28 +10,43 @@ Python function return a tuple where:
 - The first element is the expected result.
 - The second is not getted input symbols (see `get_put_char`).
 
+Variants:
+
+- [count_divisors](#count_divisors)
+- [count_ones](#count_ones)
+- [fibonacci](#fibonacci)
+- [gcd](#gcd)
+- [hello_user_cstr](#hello_user_cstr)
+- [hello_user_pstr](#hello_user_pstr)
+- [is_prime](#is_prime)
+- [reverse_bits](#reverse_bits)
+- [sum_even_n](#sum_even_n)
+- [sum_n](#sum_n)
+- [sum_odd_n](#sum_odd_n)
+- [sum_of_digits](#sum_of_digits)
+
 ## `fibonacci`
 
 ```python
 def fibonacci(n):
     """Calculate the n-th Fibonacci number"""
     if n <= 0:
-        return (0,)
+        return 0
     elif n == 1:
-        return (1,)
+        return 1
     a, b = 0, 1
     for _ in range(2, n + 1):
         a, b = b, a + b
-    return (b,)
+    return b
 
 
-assert fibonacci(0) == (0,)
-assert fibonacci(1) == (1,)
-assert fibonacci(2) == (1,)
-assert fibonacci(3) == (2,)
-assert fibonacci(4) == (3,)
-assert fibonacci(5) == (5,)
-assert fibonacci(25) == (75025,)
+assert fibonacci(0) == 0
+assert fibonacci(1) == 1
+assert fibonacci(2) == 1
+assert fibonacci(3) == 2
+assert fibonacci(4) == 3
+assert fibonacci(5) == 5
+assert fibonacci(25) == 75025
 ```
 
 ## `sum_n`
@@ -42,11 +57,11 @@ def sum_n(n):
     total = 0
     for i in range(1, n + 1):
         total += i
-    return (total,)
+    return total
 
 
-assert sum_n(5) == (15,)
-assert sum_n(10) == (55,)
+assert sum_n(5) == 15
+assert sum_n(10) == 55
 ```
 
 ## `sum_even_n`
@@ -58,11 +73,11 @@ def sum_even_n(n):
     for i in range(1, n + 1):
         if i % 2 == 0:
             total += i
-    return (total,)
+    return total
 
 
-assert sum_even_n(5) == (6,)
-assert sum_even_n(10) == (30,)
+assert sum_even_n(5) == 6
+assert sum_even_n(10) == 30
 ```
 
 ## `sum_odd_n`
@@ -74,11 +89,11 @@ def sum_odd_n(n):
     for i in range(1, n + 1):
         if i % 2 != 0:
             total += i
-    return (total,)
+    return total
 
 
-assert sum_odd_n(5) == (9,)
-assert sum_odd_n(10) == (25,)
+assert sum_odd_n(5) == 9
+assert sum_odd_n(10) == 25
 ```
 
 ## `sum_of_digits`
@@ -91,11 +106,11 @@ def sum_of_digits(n):
     while n > 0:
         total += n % 10
         n //= 10
-    return (total,)
+    return total
 
 
-assert sum_of_digits(123) == (6,)
-assert sum_of_digits(-456) == (15,)
+assert sum_of_digits(123) == 6
+assert sum_of_digits(-456) == 15
 ```
 
 ## `is_prime`
@@ -104,17 +119,17 @@ assert sum_of_digits(-456) == (15,)
 def is_prime(n):
     """Check if a number is prime"""
     if n <= 1:
-        return (False,)
+        return 0
     for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
-            return (False,)
-    return (True,)
+            return 0
+    return 1
 
 
-assert is_prime(5) == (True,)
-assert is_prime(4) == (False,)
-assert is_prime(7) == (True,)
-assert is_prime(8) == (False,)
+assert is_prime(5) == 1
+assert is_prime(4) == 0
+assert is_prime(7) == 1
+assert is_prime(8) == 0
 ```
 
 ## `count_divisors`
@@ -126,11 +141,11 @@ def count_divisors(n):
     for i in range(1, n + 1):
         if n % i == 0:
             count += 1
-    return (count,)
+    return count
 
 
-assert count_divisors(6) == (4,)
-assert count_divisors(10) == (4,)
+assert count_divisors(6) == 4
+assert count_divisors(10) == 4
 ```
 
 ## `gcd`
@@ -140,11 +155,11 @@ def gcd(a, b):
     """Find the greatest common divisor (GCD)"""
     while b != 0:
         a, b = b, a % b
-    return (abs(a),)
+    return [abs(a)]
 
 
-assert gcd(48, 18) == (6,)
-assert gcd(56, 98) == (14,)
+assert gcd([48, 18]) == [6]
+assert gcd([56, 98]) == [14]
 ```
 
 ## `count_ones`
@@ -156,11 +171,11 @@ def count_ones(n):
     while n > 0:
         count += n & 1
         n >>= 1
-    return (count,)
+    return count
 
 
-assert count_ones(5) == (2,)
-assert count_ones(7) == (3,)
+assert count_ones(5) == 2
+assert count_ones(7) == 3
 ```
 
 ## `reverse_bits`
@@ -168,21 +183,19 @@ assert count_ones(7) == (3,)
 ```python
 def reverse_bits(n):
     """Reverse the bits of a number"""
-    if n == -1:  # hack to neg input
-        return (1,)
     result = 0
     inv = n & 0x01  # just because
     for _ in range(32):  # assuming 32-bit numbers
         result <<= 1  # shift left
         result |= n & 1  # add the least significant bit
         n >>= 1  # shift right
-    if inv == 1:  # hack to net output
+    if inv == 1:  # hack to neg output
         result = -result
-    return (result,)
+    return result
 
 
-assert reverse_bits(1) == (-2147483648,)
-assert reverse_bits(2) == (1073741824,)
+assert reverse_bits(1) == -2147483648
+assert reverse_bits(2) == 1073741824
 ```
 
 ## `hello_user_pstr`
@@ -237,15 +250,15 @@ def factorial(x):
     def factorial_inner(n):
         return 1 if n == 0 else n * factorial_inner(n - 1)
 
-    return (factorial_inner(x),)
+    return factorial_inner(x)
 
 
-assert factorial(0) == (1,)
-assert factorial(5) == (120,)
-assert factorial(6) == (720,)
-assert factorial(7) == (5040,)
-assert factorial(8) == (40320,)
-assert factorial(9) == (362880,)
+assert factorial(0) == 1
+assert factorial(5) == 120
+assert factorial(6) == 720
+assert factorial(7) == 5040
+assert factorial(8) == 40320
+assert factorial(9) == 362880
 ```
 
 ## `logical_not`
@@ -254,11 +267,11 @@ assert factorial(9) == (362880,)
 
 ```python
 def logical_not(x):
-    return (not x,)
+    return not x
 
 
-assert logical_not(True) == (False,)
-assert logical_not(False) == (True,)
+assert logical_not(True) == False
+assert logical_not(False) == True
 ```
 
 ## `hello`
@@ -266,11 +279,11 @@ assert logical_not(False) == (True,)
 **Example. Not a variant.**
 
 ```python
-def hello():
-    return ("Hello\n\0World!",)
+def hello(_):
+    return ("Hello\n\0World!", "")
 
 
-assert hello() == ('Hello\n\0World!',)
+assert hello('') == ('Hello\n\0World!', '')
 ```
 
 ## `get_put_char`
@@ -278,14 +291,12 @@ assert hello() == ('Hello\n\0World!',)
 **Example. Not a variant.**
 
 ```python
-def get_put_char(input):
-    return (input[0], input[1:])
+def get_put_char(symbols):
+    return (symbols[0:1], symbols[1:])
 
 
 assert get_put_char('A') == ('A', '')
 assert get_put_char('B') == ('B', '')
 assert get_put_char('C') == ('C', '')
 assert get_put_char('ABCD') == ('A', 'BCD')
-assert get_put_char('\0') == ('\0', '')
-assert get_put_char('\n') == ('\n', '')
 ```
