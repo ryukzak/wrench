@@ -420,6 +420,140 @@ test_cases["reverse_bits"] = TestCase(
     category="Bitwise Operations",
 )
 
+###########################################################
+
+
+def little_to_big_endian(n):
+    return int.from_bytes(n.to_bytes(4, byteorder="little"), byteorder="big")
+
+
+test_cases["little_to_big_endian"] = TestCase(
+    simple=little_to_big_endian,
+    cases=[
+        Word2Word(0x12345678, 0x78563412),
+        Word2Word(0xAABBCCDD, 0xDDCCBBAA),
+    ],
+    reference=little_to_big_endian,
+    reference_cases=[],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+###########################################################
+
+
+def big_to_little_endian(n):
+    return int.from_bytes(n.to_bytes(4, byteorder="big"), byteorder="little")
+
+
+big_to_little_endian_ref = big_to_little_endian
+
+test_cases["big_to_little_endian"] = TestCase(
+    simple=big_to_little_endian,
+    cases=[
+        Word2Word(0x78563412, 0x12345678),
+        Word2Word(0xDDCCBBAA, 0xAABBCCDD),
+    ],
+    reference=big_to_little_endian,
+    reference_cases=[],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def count_leading_zeros(n):
+    """Count the number of leading zeros in the binary representation of an integer"""
+    if n == 0:
+        return 32
+    count = 0
+    for i in range(31, -1, -1):
+        if (n >> i) & 1 == 0:
+            count += 1
+        else:
+            break
+    return count
+
+
+count_leading_zeros_ref = count_leading_zeros
+
+test_cases["count_leading_zeros"] = TestCase(
+    simple=count_leading_zeros,
+    cases=[
+        Word2Word(1, 31),
+        Word2Word(2, 30),
+        Word2Word(16, 27),
+    ],
+    reference=count_leading_zeros_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+###########################################################
+
+
+def count_trailing_zeros(n):
+    """Count the number of trailing zeros in the binary representation of an integer"""
+    if n == 0:
+        return 32
+    count = 0
+    while (n & 1) == 0:
+        count += 1
+        n >>= 1
+    return count
+
+
+count_trailing_zeros_ref = count_trailing_zeros
+
+test_cases["count_trailing_zeros"] = TestCase(
+    simple=count_trailing_zeros,
+    cases=[
+        Word2Word(1, 0),
+        Word2Word(2, 1),
+        Word2Word(16, 4),
+    ],
+    reference=count_trailing_zeros_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def is_binary_palindrome(n):
+    """Check if the 32-bit binary representation of a number is a palindrome"""
+    binary_str = f"{n:032b}"  # Convert to 32-bit binary string
+    res = binary_str == binary_str[::-1]
+    return 1 if res else 0
+
+
+def is_binary_palindrome_ref(n):
+    if n == -1:
+        return 1
+    return is_binary_palindrome(n)
+
+
+test_cases["is_binary_palindrome"] = TestCase(
+    simple=is_binary_palindrome,
+    cases=[
+        Word2Word(0x00000005, 0),
+        Word2Word(0x0000000F, 0),
+        Word2Word(0xF000000F, 1),
+        Word2Word(0xC0000002, 0),
+    ],
+    reference=is_binary_palindrome_ref,
+    reference_cases=[
+        Word2Word(0x0F0F0F0F, 0),
+        Word2Word(-1, 1),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
 
 ###########################################################
 
@@ -484,6 +618,138 @@ test_cases["hello_user_cstr"] = TestCase(
     category="String Manipulation",
 )
 
+# ###########################################################
+
+
+def upper_case_pstr(s):
+    """Convert a Pascal string to upper case"""
+    return (s.upper(), "")
+
+
+upper_case_pstr_ref = upper_case_pstr
+
+test_cases["upper_case_pstr"] = TestCase(
+    simple=upper_case_pstr,
+    cases=[
+        String2String("hello", "HELLO"),
+        String2String("world", "WORLD"),
+    ],
+    reference=upper_case_pstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+###########################################################
+
+
+def upper_case_cstr(s):
+    """Convert a C string to upper case"""
+    return upper_case_pstr(s)
+
+
+upper_case_cstr_ref = upper_case_cstr
+
+test_cases["upper_case_cstr"] = TestCase(
+    simple=upper_case_cstr,
+    cases=[
+        String2String("hello", "HELLO"),
+        String2String("world", "WORLD"),
+    ],
+    reference=upper_case_cstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+###########################################################
+
+
+def capital_case_pstr(s):
+    """Convert the first character of each word in a Pascal string to upper case"""
+    return (s.title(), "")
+
+
+capital_case_pstr_ref = capital_case_pstr
+
+test_cases["capital_case_pstr"] = TestCase(
+    simple=capital_case_pstr,
+    cases=[
+        String2String("hello world", "Hello World"),
+        String2String("python programming", "Python Programming"),
+    ],
+    reference=capital_case_pstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+###########################################################
+
+
+def capital_case_cstr(s):
+    """Convert the first character of each word in a C string to upper case"""
+    return capital_case_pstr(s)
+
+
+capital_case_cstr_ref = capital_case_cstr
+
+test_cases["capital_case_cstr"] = TestCase(
+    simple=capital_case_cstr,
+    cases=[
+        String2String("hello world", "Hello World"),
+        String2String("python programming", "Python Programming"),
+    ],
+    reference=capital_case_cstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+###########################################################
+
+
+def reverse_string_pstr(s):
+    """Reverse a Pascal string"""
+    return (s[::-1], "")
+
+
+reverse_string_pstr_ref = reverse_string_pstr
+
+test_cases["reverse_string_pstr"] = TestCase(
+    simple=reverse_string_pstr,
+    cases=[
+        String2String("hello", "olleh"),
+        String2String("world", "dlrow"),
+    ],
+    reference=reverse_string_pstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+###########################################################
+
+
+def reverse_string_cstr(s):
+    """Reverse a C string"""
+    return reverse_string_pstr(s)
+
+
+reverse_string_cstr_ref = reverse_string_cstr
+
+test_cases["reverse_string_cstr"] = TestCase(
+    simple=reverse_string_cstr,
+    cases=[
+        String2String("hello", "olleh"),
+        String2String("world", "dlrow"),
+    ],
+    reference=reverse_string_cstr_ref,
+    reference_cases=[],
+    is_variant=True,
+    category="String Manipulation",
+)
+
 
 ###########################################################
 
@@ -514,6 +780,7 @@ test_cases["factorial"] = TestCase(
     ],
     reference=factorial_ref,
     reference_cases=[
+        Word2Word(12, 479001600),
         Word2Word(13, 0xCCCCCCCC),
         Word2Word(-1, -1),
         Word2Word(-2, -1),
@@ -588,12 +855,6 @@ test_cases["get_put_char"] = TestCase(
     category=" Examples",
 )
 
-
-# TODO: is_palindrome string?
-# TODO: upper_case
-# TODO: lower_case
-# TODO: capital_case
-
 ###########################################################
 
 
@@ -651,9 +912,9 @@ def generate_variant_readme():
 
     categories = {}
     for name, variant in sorted(test_cases.items()):
-            if variant.category not in categories:
-                categories[variant.category] = []
-            categories[variant.category].append(name)
+        if variant.category not in categories:
+            categories[variant.category] = []
+        categories[variant.category].append(name)
 
     for category, names in sorted(categories.items()):
         res.append(f"- {category}")
@@ -672,7 +933,9 @@ def generate_variant_readme():
             res.append("```python")
             res.append(inspect.getsource(variant.simple))
             res.append("")
-            res.append(generate_python_test_cases(variant.simple.__name__, variant.cases))
+            res.append(
+                generate_python_test_cases(variant.simple.__name__, variant.cases)
+            )
             res.append("```")
             res.append("")
     return "\n".join(res)
