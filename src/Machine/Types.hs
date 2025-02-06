@@ -93,7 +93,7 @@ class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Maybe (Int, isa))
     instructionStep :: State st ()
 
-data Trace st isa
+newtype Trace st isa
     = TState st
     deriving (Show)
 
