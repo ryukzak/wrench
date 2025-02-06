@@ -12,13 +12,18 @@ Python function return a tuple where:
 
 Variants:
 
--  Examples
+- Examples
     - [factorial](#factorial)
     - [get_put_char](#get_put_char)
     - [hello](#hello)
     - [logical_not](#logical_not)
 - Bitwise Operations
+    - [big_to_little_endian](#big_to_little_endian)
+    - [count_leading_zeros](#count_leading_zeros)
     - [count_ones](#count_ones)
+    - [count_trailing_zeros](#count_trailing_zeros)
+    - [is_binary_palindrome](#is_binary_palindrome)
+    - [little_to_big_endian](#little_to_big_endian)
     - [reverse_bits](#reverse_bits)
 - Mathematics
     - [count_divisors](#count_divisors)
@@ -30,10 +35,16 @@ Variants:
     - [sum_odd_n](#sum_odd_n)
     - [sum_of_digits](#sum_of_digits)
 - String Manipulation
+    - [capital_case_cstr](#capital_case_cstr)
+    - [capital_case_pstr](#capital_case_pstr)
     - [hello_user_cstr](#hello_user_cstr)
     - [hello_user_pstr](#hello_user_pstr)
+    - [reverse_string_cstr](#reverse_string_cstr)
+    - [reverse_string_pstr](#reverse_string_pstr)
+    - [upper_case_cstr](#upper_case_cstr)
+    - [upper_case_pstr](#upper_case_pstr)
 
-##  Examples
+## Examples
 
 ### `factorial`
 
@@ -89,6 +100,38 @@ assert logical_not(False) == True
 
 ## Bitwise Operations
 
+### `big_to_little_endian`
+
+```python
+def big_to_little_endian(n):
+    return int.from_bytes(n.to_bytes(4, byteorder="big"), byteorder="little")
+
+
+assert big_to_little_endian(2018915346) == 305419896
+assert big_to_little_endian(3721182122) == 2864434397
+```
+
+### `count_leading_zeros`
+
+```python
+def count_leading_zeros(n):
+    """Count the number of leading zeros in the binary representation of an integer"""
+    if n == 0:
+        return 32
+    count = 0
+    for i in range(31, -1, -1):
+        if (n >> i) & 1 == 0:
+            count += 1
+        else:
+            break
+    return count
+
+
+assert count_leading_zeros(1) == 31
+assert count_leading_zeros(2) == 30
+assert count_leading_zeros(16) == 27
+```
+
 ### `count_ones`
 
 ```python
@@ -103,6 +146,52 @@ def count_ones(n):
 
 assert count_ones(5) == 2
 assert count_ones(7) == 3
+```
+
+### `count_trailing_zeros`
+
+```python
+def count_trailing_zeros(n):
+    """Count the number of trailing zeros in the binary representation of an integer"""
+    if n == 0:
+        return 32
+    count = 0
+    while (n & 1) == 0:
+        count += 1
+        n >>= 1
+    return count
+
+
+assert count_trailing_zeros(1) == 0
+assert count_trailing_zeros(2) == 1
+assert count_trailing_zeros(16) == 4
+```
+
+### `is_binary_palindrome`
+
+```python
+def is_binary_palindrome(n):
+    """Check if the 32-bit binary representation of a number is a palindrome"""
+    binary_str = f"{n:032b}"  # Convert to 32-bit binary string
+    res = binary_str == binary_str[::-1]
+    return 1 if res else 0
+
+
+assert is_binary_palindrome(5) == 0
+assert is_binary_palindrome(15) == 0
+assert is_binary_palindrome(4026531855) == 1
+assert is_binary_palindrome(3221225474) == 0
+```
+
+### `little_to_big_endian`
+
+```python
+def little_to_big_endian(n):
+    return int.from_bytes(n.to_bytes(4, byteorder="little"), byteorder="big")
+
+
+assert little_to_big_endian(305419896) == 2018915346
+assert little_to_big_endian(2864434397) == 3721182122
 ```
 
 ### `reverse_bits`
@@ -266,6 +355,30 @@ assert sum_of_digits(-456) == 15
 
 ## String Manipulation
 
+### `capital_case_cstr`
+
+```python
+def capital_case_cstr(s):
+    """Convert the first character of each word in a C string to upper case"""
+    return capital_case_pstr(s)
+
+
+assert capital_case_cstr('hello world') == ('Hello World', '')
+assert capital_case_cstr('python programming') == ('Python Programming', '')
+```
+
+### `capital_case_pstr`
+
+```python
+def capital_case_pstr(s):
+    """Convert the first character of each word in a Pascal string to upper case"""
+    return (s.title(), "")
+
+
+assert capital_case_pstr('hello world') == ('Hello World', '')
+assert capital_case_pstr('python programming') == ('Python Programming', '')
+```
+
 ### `hello_user_cstr`
 
 ```python
@@ -307,4 +420,52 @@ def hello_user_pstr(input):
 
 assert hello_user_pstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
 assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
+```
+
+### `reverse_string_cstr`
+
+```python
+def reverse_string_cstr(s):
+    """Reverse a C string"""
+    return reverse_string_pstr(s)
+
+
+assert reverse_string_cstr('hello') == ('olleh', '')
+assert reverse_string_cstr('world') == ('dlrow', '')
+```
+
+### `reverse_string_pstr`
+
+```python
+def reverse_string_pstr(s):
+    """Reverse a Pascal string"""
+    return (s[::-1], "")
+
+
+assert reverse_string_pstr('hello') == ('olleh', '')
+assert reverse_string_pstr('world') == ('dlrow', '')
+```
+
+### `upper_case_cstr`
+
+```python
+def upper_case_cstr(s):
+    """Convert a C string to upper case"""
+    return upper_case_pstr(s)
+
+
+assert upper_case_cstr('hello') == ('HELLO', '')
+assert upper_case_cstr('world') == ('WORLD', '')
+```
+
+### `upper_case_pstr`
+
+```python
+def upper_case_pstr(s):
+    """Convert a Pascal string to upper case"""
+    return (s.upper(), "")
+
+
+assert upper_case_pstr('hello') == ('HELLO', '')
+assert upper_case_pstr('world') == ('WORLD', '')
 ```
