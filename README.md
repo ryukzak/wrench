@@ -99,15 +99,14 @@ The configuration file is a YAML file that specifies various settings and parame
 
 - **Type:** List of report configurations
 - **Description:** Specifies the reports to generate during the simulation. Each report configuration includes settings such as the name, slice, filter, inspector, and assertions.
-- **Example:**
 
-  ```yaml
-  reports:
-    - name: Step-by-step log
-      slice: all
-      filter:
-        - instruction
-  ```
+```yaml
+reports:
+  - name: Step-by-step log
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label}
+```
 
 ### Report Configuration
 
@@ -135,20 +134,6 @@ Each report configuration can include the following fields:
 
   ```yaml
   slice: all
-  ```
-
-#### `filter`
-
-- **Type:** List of strings
-- **Description:** Specifies the types of records to include in the report. Possible values are:
-    - `"instruction"`: Include instruction records.
-    - `"state"`: Include state records.
-- **Example:**
-
-  ```yaml
-  filter:
-    - instruction
-    - state
   ```
 
 #### `view`
@@ -180,29 +165,6 @@ All registers in `dec` or `hex` format. Registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp
 ##### Acc32 Specific State Views
 
 - `Acc:dec`, `Acc:hex` -- `Acc` register.
-
-#### `inspector`
-
-- **Type:** List of lists
-- **Description:** Specifies how to inspect and format the state records. Each inspector is a list of tokens that define what to include in the report. Upper-level lists represent different lines in the report, and inner lists represent tokens in each line. Possible tokens are:
-    - `[label, name]` or `name`: Include a label with the given text (`name`).
-    - `[register, name]`: Include the value of the register with the given name.
-    - `[view, name]`: Include arch specific state view:
-        - `risc-iv-32`: not supported;
-        - `f32a`: `dstack`, `dstack_hex`, `rstack`, `rstack_hex`.
-    - `[memory_cells, from, to]`: Include the value of the memory at the given address.
-    - `[number_io_stream, address]`: Include the number of tokens in the input stream at the given address.
-    - `[symbol_io_stream, address]`: Include the symbols in the input stream at the given address.
-- **Example:**
-
-  ```yaml
-  inspector:
-    - - [label, T0]
-      - [register, T0]
-    - - [memory_cells, 0x80, 0x84]
-    - [[label, "0x80"], [number_io_stream, 0x0080]]
-    - [[label, "0x84"], [number_io_stream, 0x0084]]
-  ```
 
 #### `assert`
 

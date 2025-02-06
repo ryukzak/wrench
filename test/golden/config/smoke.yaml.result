@@ -44,63 +44,24 @@ Config
         [ ReportConf
             { rcName = Just "foo"
             , rcSlice = LastSlice
-            , rcFilter = Just
-                [ IsState
-                , IsInstruction
-                ]
-            , rcInspector = Just
-                [ StateInspector
-                    [ Register "T1"
-                    , Register "T2"
-                    , MemoryCells
-                        ( 0
-                        , 11
-                        )
-                    ]
-                , StateInspector
-                    [ NumberIoStream 99
-                    , SymbolIoStream 99
-                    ]
-                ]
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = AllSlice
-            , rcFilter = Just [ IsInstruction ]
-            , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = HeadSlice 10
-            , rcFilter = Just [ IsInstruction ]
-            , rcInspector = Nothing
             , rcAssert = Nothing
             , rcView = Nothing
             }
         , ReportConf
             { rcName = Nothing
             , rcSlice = TailSlice 10
-            , rcFilter = Just [ IsInstruction ]
-            , rcInspector = Just
-                [ StateInspector
-                    [ Label "T1"
-                    , Label "label"
-                    , Register "T1"
-                    , Register "T2"
-                    , MemoryCells
-                        ( 0
-                        , 11
-                        )
-                    ]
-                , StateInspector
-                    [ NumberIoStream 99
-                    , SymbolIoStream 99
-                    ]
-                ]
             , rcAssert = Nothing
             , rcView = Nothing
             }

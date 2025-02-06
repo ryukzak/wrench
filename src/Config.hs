@@ -52,8 +52,6 @@ instance Default Config where
                     [ ReportConf
                         { rcName = Just "InstructionLog"
                         , rcSlice = AllSlice
-                        , rcFilter = Just [IsInstruction]
-                        , rcInspector = Nothing
                         , rcAssert = Nothing
                         , rcView = Nothing
                         }

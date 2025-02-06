@@ -126,15 +126,11 @@ wrench ::
     ( ByteLength isa1
     , ByteLength isa2
     , DerefMnemonic (isa_ w) w
-    , Hashable r
     , InitState (IoMem isa2 w) st
     , Machine st isa2 w
     , MachineWord w
     , MnemonicParser isa1
-    , Read r
-    , Show isa2
     , StateInterspector st isa2 w r
-    , ViewState st
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
