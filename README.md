@@ -2,14 +2,33 @@
 
 This is an educational project designed to explore different types of processor architectures. It includes simple CPU models and assemblers for them.
 
-## Supported ISAs
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
 
-### RISC-V-like 32-bit
+- [Wrench](#wrench)
+    - [How to Run](#how-to-run)
+        - [Build Locally](#build-locally)
+        - [Install from a Binary Release](#install-from-a-binary-release)
+        - [Via Docker Image](#via-docker-image)
+        - [Use it as a Service](#use-it-as-a-service)
+    - [Usage](#usage)
+        - [Assembly File](#assembly-file)
+        - [Configuration File](#configuration-file)
+            - [`limit`](#limit)
+            - [`memorySize`](#memorysize)
+            - [`input_streams`](#input_streams)
+            - [`reports`](#reports)
+                - [`name`](#name)
+                - [`slice`](#slice)
+                - [`view`](#view)
+                - [`assert`](#assert)
+    - [Example](#example)
 
-- See [RiscIv.hs](./src/Isa/RiscIv.hs) for the `data Risc` definition.
-- For usage examples, check [Spec.hs](./test/Spec.hs).
+<!-- markdown-toc end -->
 
-## Build Locally
+## How to Run
+
+### Build Locally
 
 1. Clone the repository.
 2. Install Haskell Stack via [GHCup](https://www.haskell.org/ghcup/).
@@ -18,20 +37,20 @@ This is an educational project designed to explore different types of processor 
     - Run `stack exec wrench -- <ARGS>` to execute the project without installation.
     - Install the project with `stack install` to run it from the command line using `wrench <ARGS>`.
 
-## Install from a Binary Release
+### Install from a Binary Release
 
 1. Open the last master build on the [Actions](https://github.com/ryukzak/wrench/actions).
 2. Download the binary for your platform.
 3. Add the binary to your `PATH`.
 4. Run `wrench <ARGS>` to execute the project.
 
-## Use by docker image
+### Via Docker Image
 
 ```shell
 docker run -it --rm ryukzak/wrench:latest --help
 ```
 
-## Use it as a Service
+### Use it as a Service
 
 This service will be used to send laboratory works to check.
 
@@ -57,11 +76,13 @@ Available options:
   --version                Show version information
 ```
 
-## Configuration
+The `wrench` app requires an input assembler file and a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation.
 
-The configuration file is a YAML file that specifies various settings and parameters for the simulation. Below is a detailed explanation of the fields and their usage.
+### Assembly File
 
-### Fields
+See [docs](/docs) for the specific assembly language for each ISA.
+
+### Configuration File
 
 #### `limit`
 
@@ -108,11 +129,9 @@ The configuration file is a YAML file that specifies various settings and parame
         {pc}: {instruction} {pc:label}
   ```
 
-### Report Configuration
-
 Each report configuration can include the following fields:
 
-#### `name`
+##### `name`
 
 - **Type:** String (optional)
 - **Description:** The name of the report, used as a header in the generated output.
@@ -122,7 +141,7 @@ Each report configuration can include the following fields:
   name: Step-by-step log
   ```
 
-#### `slice`
+##### `slice`
 
 - **Type:** String or List
 - **Description:** Specifies which part of the simulation records should be included in the report. Possible values are:
@@ -136,7 +155,7 @@ Each report configuration can include the following fields:
   slice: all
   ```
 
-#### `view`
+##### `view`
 
 Text template to print log record. In template a user can use state view in curly brackets. E.g.: `program counter: {pc}`.
 
@@ -148,25 +167,9 @@ General state view implemented for all ISA:
 - `memory:<a>:<b>` -- print memory dump between `<a>` and `<b>` address.
 - `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- print input-output stream state for the specific address in dec, sym or hex format.
 
-##### RiscIv Specific State Views
+For ISA specific state views see [docs](/docs).
 
-All registers in `dec` or `hex` format. Registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `S1`, `A0`, `A1`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `S2`, `S3`, `S4`, `S5`, `S6`, `S7`, `S8`, `S9`, `S10`, `S11`, `T3`, `T4`, `T5`, `T6`.
-
-##### F32a Specific State Views
-
-- `A:dec`, `A:hex` -- `A` register.
-- `B:dec`, `B:hex` -- `B` register.
-- `T:dec`, `T:hex` -- top of the stack.
-- `S:dec`, `S:hex` -- second of the stack.
-- `R:dec`, `R:hex` -- top of the return stack.
-- `stack:dec`, `stack:hex` -- the stack.
-- `rstack:dec`, `rstack:hex` -- the return stack.
-
-##### Acc32 Specific State Views
-
-- `Acc:dec`, `Acc:hex` -- `Acc` register.
-
-#### `assert`
+##### `assert`
 
 - **Type:** String (optional)
 - **Description:** Specifies the expected final state of the simulation. If the actual final state does not match, an assertion failure will be reported.

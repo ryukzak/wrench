@@ -56,7 +56,7 @@ update-golden:
 fix: lint-fix format-fix update-golden readme-fix
 
 readme-fix:
-	markdownlint *.md -c .markdownlint.yaml --fix
+	markdownlint . -c .markdownlint.yaml --fix
 
 format-fix:
 	fourmolu -m inplace $(HS_SRC_DIR)
