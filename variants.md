@@ -5,10 +5,18 @@ limit implementation because your variant may have additional
 requirements like: specific string representation, limit integer
 number representation, etc.
 
-Python function return a tuple where:
+Additional requirements for all variants:
 
-- The first element is the expected result.
-- The second is not getted input symbols (see `get_put_char`).
+1. If the input does not match the domain -- return `-1`.
+1. If the result cannot be correctly calculated (the result cannot be
+   represented within the machine word) -- return the result filled with
+   bytes with the value `0xCC`.
+1. The input should be passed through memory cell `0x80`.
+1. The output should be passed to memory cell `0x84`.
+1. The input value and the result by default -- a 32-bit machine word
+    unless otherwise specified.
+1. ISA-specific requirements:
+    - `F32a`: use procedures.
 
 Variants:
 

@@ -4,3 +4,4 @@ MD007: # Unordered list indentation
 MD051: false # Link fragments should be valid
 MD010:
   code_blocks: false
+MD036: false
