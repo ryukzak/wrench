@@ -22,6 +22,21 @@ def py_str(s):
     return repr(s).replace("\\x00", "\\0")
 
 
+def yaml_symbol_nums(s, sep=","):
+    return "[" + sep.join([str(ord(c)) for c in s]) + "]"
+
+
+def yaml_symbols(s):
+    return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
+
+
+def dump_symbols(s):
+    def hex_byte(x):
+        return f"{x:02x}"
+
+    return " ".join([hex_byte(ord(c)) for c in s])
+
+
 def limit_to_int32(f):
     def foo(*args, **kwargs):
         tmp = f(*args, **kwargs)
@@ -106,13 +121,24 @@ class Bool2Bool(Word2Word):
 
 
 class String2String:
-    def __init__(self, input, output, rest=""):
+    def __init__(self, input, output, rest="", mem_view=[]):
         self.input = input
         self.output = output
         self.rest = rest
+        for a, b, dump in mem_view:
+            # Interval inclusive, so we need +1
+            assert len(dump) == b - a + 1, (
+                f"incorrect dump length, actual: {len(dump)}, expect: {b - a + 1}"
+            )
+        self.mem_view = mem_view
 
     def assert_string(self, name):
-        return f"assert {name}({py_str(self.input)}) == ({py_str(self.output)}, {py_str(self.rest)})"
+        res = f"assert {name}({py_str(self.input)}) == ({py_str(self.output)}, {py_str(self.rest)})"
+        if len(self.mem_view) > 0:
+            res += "\n# and " + ", ".join(
+                [f"mem[{a}..{b}]: {dump_symbols(dump)}" for a, b, dump in self.mem_view]
+            )
+        return res
 
     def check_assert(self, f):
         assert f(self.input) == (self.output, self.rest), (
@@ -135,6 +161,7 @@ class String2String:
                 "      symio[0x80]: {io:0x80:sym}",
                 "      symio[0x84]: {io:0x84:sym}",
             ]
+            + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
         )
 
     def yaml_assert(self):
@@ -144,6 +171,10 @@ class String2String:
                 f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
                 f'      symio[0x80]: {yaml_symbols(self.rest)} >>> ""',
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
+            ]
+            + [
+                f"      mem[{a}..{b}]: \t{dump_symbols(dump)}"
+                for a, b, dump in self.mem_view
             ]
         )
 
@@ -884,6 +915,7 @@ test_cases["reverse_string_cstr"] = TestCase(
 def factorial(x):
     def factorial_inner(n):
         return 1 if n == 0 else n * factorial_inner(n - 1)
+
     return factorial_inner(x)
 
 
@@ -948,7 +980,14 @@ hello_ref = hello
 
 test_cases["hello"] = TestCase(
     simple=hello,
-    cases=[String2String("", "Hello\n\0World!")],
+    cases=[
+        String2String(
+            "",
+            "Hello\n\0World!",
+            "",
+            mem_view=[(0x00, 0x10, "Hello\n\0World!\0\0\0\0")],
+        )
+    ],
     reference=hello_ref,
     reference_cases=[],
     is_variant=False,
@@ -1083,14 +1122,6 @@ def run_python_test_cases(verbose):
             if verbose:
                 print(case.assert_string(variant.reference.__name__))
             case.check_assert(variant.reference)
-
-
-def yaml_symbol_nums(s, sep=","):
-    return "[" + sep.join([str(ord(c)) for c in s]) + "]"
-
-
-def yaml_symbols(s):
-    return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
 
 
 def generate_wrench_test_cases(conf_name, case):

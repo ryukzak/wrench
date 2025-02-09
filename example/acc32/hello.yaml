@@ -16,8 +16,10 @@ reports:
       numio[0x84]: {io:0x84:dec}
       numio[0x80]: {io:0x80:sym}
       numio[0x84]: {io:0x84:sym}
+      {memory:0:16}
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [72,101,108,108,111,10,0,87,111,114,108,100]
       numio[0x80]: "" >>> ""
       numio[0x84]: "" >>> "Hello\n\0World"
+      mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 00 00 00 00 00

@@ -2,13 +2,13 @@
 
 ; be aware, that it is not a pstr or cstr. It is just a buffer
 
+buf:               .byte 'Hello\n\0World\0\0\0\0\0'
 i:                 .word 0
 ptr:               .word 0
 output_addr:       .word 0x84    ; Output address where the result should be stored
 buf_size:          .word 12
 const_1:           .word 1
 const_FF:          .word 0xFF
-buf:               .byte 'Hello\n\0World'
 
     .text
 
