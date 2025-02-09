@@ -1,8 +1,8 @@
-name: "assert factorial(-1) == -1"
+name: "assert factorial(14) == -858993460"
 limit: 1000
 memory_size: 0x1000
 input_streams:
-  0x80: [-1]
+  0x80: [14]
   0x84: []
 reports:
   - name: Check results
@@ -14,4 +14,4 @@ reports:
       numio[0x84]: {io:0x84:dec}
     assert: |
       numio[0x80]: [] >>> []
-      numio[0x84]: [] >>> [-1]
+      numio[0x84]: [] >>> [-858993460]

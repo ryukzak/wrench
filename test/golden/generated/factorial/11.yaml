@@ -1,8 +1,8 @@
-name: "assert factorial(-1) == -1"
+name: "assert factorial(-2) == -1"
 limit: 1000
 memory_size: 0x1000
 input_streams:
-  0x80: [-1]
+  0x80: [-2]
   0x84: []
 reports:
   - name: Check results
