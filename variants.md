@@ -25,6 +25,7 @@ Variants:
     - [count_leading_zeros](#count_leading_zeros)
     - [count_ones](#count_ones)
     - [count_trailing_zeros](#count_trailing_zeros)
+    - [count_zero](#count_zero)
     - [is_binary_palindrome](#is_binary_palindrome)
     - [little_to_big_endian](#little_to_big_endian)
     - [reverse_bits](#reverse_bits)
@@ -100,6 +101,8 @@ def count_ones(n):
 
 assert count_ones(5) == 2
 assert count_ones(7) == 3
+assert count_ones(247923789) == 13
+assert count_ones(2147483647) == 31
 ```
 
 ### `count_trailing_zeros`
@@ -119,6 +122,23 @@ def count_trailing_zeros(n):
 assert count_trailing_zeros(1) == 0
 assert count_trailing_zeros(2) == 1
 assert count_trailing_zeros(16) == 4
+```
+
+### `count_zero`
+
+```python
+def count_zero(n):
+    """Count the number of zero in the binary representation of a number"""
+    count = 0
+    for _ in range(32):
+        count += 0 if n & 1 else 1
+        n >>= 1
+    return count
+
+
+assert count_zero(5) == 30
+assert count_zero(7) == 29
+assert count_zero(247923789) == 19
 ```
 
 ### `is_binary_palindrome`
@@ -154,12 +174,12 @@ assert little_to_big_endian(2864434397) == 3721182122
 def reverse_bits(n):
     """Reverse the bits of a number"""
     result = 0
-    inv = n & 0x01  # just because
-    for _ in range(32):  # assuming 32-bit numbers
-        result <<= 1  # shift left
-        result |= n & 1  # add the least significant bit
-        n >>= 1  # shift right
-    if inv == 1:  # hack to neg output
+    inv = n & 0x01
+    for _ in range(32):
+        result <<= 1
+        result |= n & 1
+        n >>= 1
+    if inv == 1:
         result = -result
     return result
 
@@ -174,7 +194,9 @@ assert reverse_bits(2) == 1073741824
 
 ```python
 def count_divisors(n):
-    """Count the number of divisors of a number"""
+    """Count the number of divisors of a natural number"""
+    if n < 1:
+        return -1
     count = 0
     for i in range(1, n + 1):
         if n % i == 0:
@@ -182,6 +204,8 @@ def count_divisors(n):
     return count
 
 
+assert count_divisors(2) == 2
+assert count_divisors(4) == 3
 assert count_divisors(6) == 4
 assert count_divisors(10) == 4
 ```
@@ -190,11 +214,13 @@ assert count_divisors(10) == 4
 
 ```python
 def fibonacci(n):
-    """Calculate the n-th Fibonacci number"""
-    if n <= 0:
+    """Calculate the n-th Fibonacci number (positive only)"""
+    if n == 0:
         return 0
     elif n == 1:
         return 1
+    elif n < 0:
+        return -1
     a, b = 0, 1
     for _ in range(2, n + 1):
         a, b = b, a + b
@@ -228,8 +254,10 @@ assert gcd([56, 98]) == [14]
 
 ```python
 def is_prime(n):
-    """Check if a number is prime"""
-    if n <= 1:
+    """Check if a natural number is prime"""
+    if n < 1:
+        return -1
+    if n == 1:
         return 0
     for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
@@ -241,6 +269,9 @@ assert is_prime(5) == 1
 assert is_prime(4) == 0
 assert is_prime(7) == 1
 assert is_prime(8) == 0
+assert is_prime(283) == 1
+assert is_prime(284) == 0
+assert is_prime(293) == 1
 ```
 
 ### `sum_even_n`
@@ -248,6 +279,8 @@ assert is_prime(8) == 0
 ```python
 def sum_even_n(n):
     """Sum of even numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         if i % 2 == 0:
@@ -257,6 +290,7 @@ def sum_even_n(n):
 
 assert sum_even_n(5) == 6
 assert sum_even_n(10) == 30
+assert sum_even_n(90000) == 2025045000
 ```
 
 ### `sum_n`
@@ -264,6 +298,8 @@ assert sum_even_n(10) == 30
 ```python
 def sum_n(n):
     """Sum of numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         total += i
@@ -279,6 +315,8 @@ assert sum_n(10) == 55
 ```python
 def sum_odd_n(n):
     """Sum of odd numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         if i % 2 != 0:
@@ -288,6 +326,7 @@ def sum_odd_n(n):
 
 assert sum_odd_n(5) == 9
 assert sum_odd_n(10) == 25
+assert sum_odd_n(90000) == 2025000000
 ```
 
 ### `sum_of_digits`

@@ -13,12 +13,21 @@ TestCase = namedtuple(
 )
 
 
+min_int32 = -2_147_483_648
+max_int32 = 2_147_483_647
+overflow_error_value = -858993460  # 0xCCCCCCCC
+
+
+def py_str(s):
+    return repr(s).replace("\\x00", "\\0")
+
+
 def limit_to_int32(f):
     def foo(*args, **kwargs):
         tmp = f(*args, **kwargs)
-        if -2_147_483_648 <= tmp <= 2_147_483_647:
+        if min_int32 <= tmp <= max_int32:
             return tmp
-        return 0xCCCCCCCC
+        return overflow_error_value
 
     foo.__name__ = f.__name__
     return foo
@@ -77,7 +86,7 @@ class Word2Word(Words2Words):
 
     def check_assert(self, f):
         assert f(self.x) == self.y, (
-            f"{f.__name__} actual: {f(self.x)}, expect: {self.y}"
+            f"{f.__name__}({self.x}) actual: {f(self.x)}, expect: {self.y}"
         )
 
 
@@ -146,18 +155,20 @@ test_cases = {}
 
 
 def fibonacci(n):
-    """Calculate the n-th Fibonacci number"""
-    if n <= 0:
+    """Calculate the n-th Fibonacci number (positive only)"""
+    if n == 0:
         return 0
     elif n == 1:
         return 1
+    elif n < 0:
+        return -1
     a, b = 0, 1
     for _ in range(2, n + 1):
         a, b = b, a + b
     return b
 
 
-fibonacci_ref = fibonacci
+fibonacci_ref = limit_to_int32(fibonacci)
 
 test_cases["fibonacci"] = TestCase(
     simple=fibonacci,
@@ -171,7 +182,11 @@ test_cases["fibonacci"] = TestCase(
         Word2Word(25, 75025),
     ],
     reference=fibonacci_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(-1, -1),
+        Word2Word(-2, -1),
+        Word2Word(47, overflow_error_value),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -181,13 +196,15 @@ test_cases["fibonacci"] = TestCase(
 
 def sum_n(n):
     """Sum of numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         total += i
     return total
 
 
-sum_n_ref = sum_n
+sum_n_ref = limit_to_int32(sum_n)
 
 test_cases["sum_n"] = TestCase(
     simple=sum_n,
@@ -196,7 +213,13 @@ test_cases["sum_n"] = TestCase(
         Word2Word(10, 55),
     ],
     reference=sum_n_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, -1),
+        Word2Word(-1, -1),
+        Word2Word(-2, -1),
+        Word2Word(4170, 8696535),
+        Word2Word(68000, overflow_error_value),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -206,6 +229,8 @@ test_cases["sum_n"] = TestCase(
 
 def sum_even_n(n):
     """Sum of even numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         if i % 2 == 0:
@@ -213,16 +238,22 @@ def sum_even_n(n):
     return total
 
 
-sum_even_n_ref = sum_even_n
+sum_even_n_ref = limit_to_int32(sum_even_n)
 
 test_cases["sum_even_n"] = TestCase(
     simple=sum_even_n,
     cases=[
         Word2Word(5, 6),
         Word2Word(10, 30),
+        Word2Word(90000, 2025045000),
     ],
     reference=sum_even_n_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, -1),
+        Word2Word(-1, -1),
+        Word2Word(-2, -1),
+        Word2Word(100000, overflow_error_value),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -231,6 +262,8 @@ test_cases["sum_even_n"] = TestCase(
 
 def sum_odd_n(n):
     """Sum of odd numbers from 1 to n"""
+    if n <= 0:
+        return -1
     total = 0
     for i in range(1, n + 1):
         if i % 2 != 0:
@@ -238,16 +271,22 @@ def sum_odd_n(n):
     return total
 
 
-sum_odd_n_ref = sum_odd_n
+sum_odd_n_ref = limit_to_int32(sum_odd_n)
 
 test_cases["sum_odd_n"] = TestCase(
     simple=sum_odd_n,
     cases=[
         Word2Word(5, 9),
         Word2Word(10, 25),
+        Word2Word(90000, 2025000000),
     ],
     reference=sum_odd_n_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, -1),
+        Word2Word(-1, -1),
+        Word2Word(-2, -1),
+        Word2Word(100000, overflow_error_value),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -274,7 +313,12 @@ test_cases["sum_of_digits"] = TestCase(
         Word2Word(-456, 15),
     ],
     reference=sum_of_digits_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, 0),
+        Word2Word(1, 1),
+        Word2Word(-23, 5),
+        Word2Word(1_999_999_999, 82),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -283,8 +327,10 @@ test_cases["sum_of_digits"] = TestCase(
 
 
 def is_prime(n):
-    """Check if a number is prime"""
-    if n <= 1:
+    """Check if a natural number is prime"""
+    if n < 1:
+        return -1
+    if n == 1:
         return 0
     for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
@@ -301,9 +347,19 @@ test_cases["is_prime"] = TestCase(
         Word2Word(4, 0),
         Word2Word(7, 1),
         Word2Word(8, 0),
+        Word2Word(283, 1),
+        Word2Word(284, 0),
+        Word2Word(293, 1),
     ],
     reference=is_prime_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, -1),
+        Word2Word(1, 0),
+        Word2Word(-12, -1),
+        Word2Word(12343, 1),
+        Word2Word(123423, 0),
+        Word2Word(2_147_483_647, 1),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -311,7 +367,9 @@ test_cases["is_prime"] = TestCase(
 
 ###########################################################
 def count_divisors(n):
-    """Count the number of divisors of a number"""
+    """Count the number of divisors of a natural number"""
+    if n < 1:
+        return -1
     count = 0
     for i in range(1, n + 1):
         if n % i == 0:
@@ -324,11 +382,17 @@ count_divisors_ref = count_divisors
 test_cases["count_divisors"] = TestCase(
     simple=count_divisors,
     cases=[
+        Word2Word(2, 2),
+        Word2Word(4, 3),
         Word2Word(6, 4),
         Word2Word(10, 4),
     ],
     reference=count_divisors_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(-12, -1),
+        Word2Word(0, -1),
+        Word2Word(1, 1),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -352,7 +416,13 @@ test_cases["gcd"] = TestCase(
         Words2Words([56, 98], [14]),
     ],
     reference=gcd_ref,
-    reference_cases=[],
+    reference_cases=[
+        # What about negative value?
+        #        Words2Words([-1, 18], [-1]),
+        #        Words2Words([48, -1], [-1]),
+        #        Words2Words([48, 0], [-1]),
+        #        Words2Words([0, 18], [-1]),
+    ],
     is_variant=True,
     category="Mathematics",
 )
@@ -370,19 +440,61 @@ def count_ones(n):
     return count
 
 
-count_ones_ref = count_ones
+def count_ones_ref(n):
+    return {-1: 32, -2: 31}.get(n, count_ones(n))
+
 
 test_cases["count_ones"] = TestCase(
     simple=count_ones,
     cases=[
         Word2Word(5, 2),
         Word2Word(7, 3),
+        Word2Word(247923789, 13),
+        Word2Word(max_int32, 31),
     ],
     reference=count_ones_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, 0),
+        Word2Word(-1, 32),
+        Word2Word(-2, 31),
+    ],
     is_variant=True,
     category="Bitwise Operations",
 )
+
+
+###########################################################
+
+
+def count_zero(n):
+    """Count the number of zero in the binary representation of a number"""
+    count = 0
+    for _ in range(32):
+        count += 0 if n & 1 else 1
+        n >>= 1
+    return count
+
+
+count_zero_ref = count_zero
+
+test_cases["count_zero"] = TestCase(
+    simple=count_zero,
+    cases=[
+        Word2Word(5, 30),
+        Word2Word(7, 29),
+        Word2Word(247923789, 19),
+    ],
+    reference=count_zero_ref,
+    reference_cases=[
+        Word2Word(0, 32),
+        Word2Word(-1, 0),
+        Word2Word(-2, 1),
+        Word2Word(-2342, 5),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
 
 ###########################################################
 
@@ -390,18 +502,18 @@ test_cases["count_ones"] = TestCase(
 def reverse_bits(n):
     """Reverse the bits of a number"""
     result = 0
-    inv = n & 0x01  # just because
-    for _ in range(32):  # assuming 32-bit numbers
-        result <<= 1  # shift left
-        result |= n & 1  # add the least significant bit
-        n >>= 1  # shift right
-    if inv == 1:  # hack to neg output
+    inv = n & 0x01
+    for _ in range(32):
+        result <<= 1
+        result |= n & 1
+        n >>= 1
+    if inv == 1:
         result = -result
     return result
 
 
 def reverse_bits_ref(n):
-    if n == -1:  # hack to neg input
+    if n == -1:
         return -1
     return reverse_bits(n)
 
@@ -416,6 +528,7 @@ test_cases["reverse_bits"] = TestCase(
     reference_cases=[
         Word2Word(-1, -1),
         Word2Word(0, 0),
+        Word2Word(0x0000CC00, 0x00330000),
     ],
     is_variant=True,
     category="Bitwise Operations",
@@ -488,7 +601,12 @@ test_cases["count_leading_zeros"] = TestCase(
         Word2Word(16, 27),
     ],
     reference=count_leading_zeros_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(0, 32),
+        Word2Word(0x00F12345, 8),
+        Word2Word(-1, 0),
+        Word2Word(-4345241, 0),
+    ],
     is_variant=True,
     category="Bitwise Operations",
 )
@@ -517,7 +635,11 @@ test_cases["count_trailing_zeros"] = TestCase(
         Word2Word(16, 4),
     ],
     reference=count_trailing_zeros_ref,
-    reference_cases=[],
+    reference_cases=[
+        Word2Word(-1, 0),
+        Word2Word(-2, 1),
+        Word2Word(0x01010000, 16),
+    ],
     is_variant=True,
     category="Bitwise Operations",
 )
@@ -551,6 +673,7 @@ test_cases["is_binary_palindrome"] = TestCase(
     reference_cases=[
         Word2Word(0x0F0F0F0F, 0),
         Word2Word(-1, 1),
+        Word2Word(-2, 0),
     ],
     is_variant=True,
     category="Bitwise Operations",
@@ -585,7 +708,10 @@ hello_user_pstr_ref = hello_user_pstr
 test_cases["hello_user_pstr"] = TestCase(
     simple=hello_user_pstr,
     cases=[
+        # TODO: check buffer in memory for all strings.
+        #        WithMemory(10, 20, ".......",
         String2String("Alice\n", "What is your name?\nHello, Alice!\n", ""),
+        # )
         String2String("Alice\nBob", "What is your name?\nHello, Alice!\n", "Bob"),
     ],
     reference=hello_user_pstr_ref,
@@ -758,7 +884,6 @@ test_cases["reverse_string_cstr"] = TestCase(
 def factorial(x):
     def factorial_inner(n):
         return 1 if n == 0 else n * factorial_inner(n - 1)
-
     return factorial_inner(x)
 
 
@@ -782,7 +907,8 @@ test_cases["factorial"] = TestCase(
     reference=factorial_ref,
     reference_cases=[
         Word2Word(12, 479001600),
-        Word2Word(13, 0xCCCCCCCC),
+        Word2Word(13, overflow_error_value),
+        Word2Word(14, overflow_error_value),
         Word2Word(-1, -1),
         Word2Word(-2, -1),
     ],
@@ -817,6 +943,8 @@ def hello(_):
 
 
 hello_ref = hello
+
+# TODO: check buffer in memory
 
 test_cases["hello"] = TestCase(
     simple=hello,
@@ -857,16 +985,6 @@ test_cases["get_put_char"] = TestCase(
 )
 
 ###########################################################
-
-
-def my_str(s):
-    if isinstance(s, str):
-        return repr(s).strip("'")
-    return str(s)
-
-
-def py_str(s):
-    return repr(s).replace("\\x00", "\\0")
 
 
 def python_assert_string(name, params, results):
