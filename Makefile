@@ -14,18 +14,20 @@ build:
 server: build
 	stack exec wrench-serv
 
-build-image:
-	docker build -t ryukzak/wrench -f hub.Dockerfile .
+build-image-local:
+	docker build -t $(IMAGE_NAME) -f hub.Dockerfile .
 
-build-image-for-hub:
+preview-image:
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
+
+release-image:
 	@if docker pull $(IMAGE); then \
-		echo "Version already exist $(IMAGE)"; \
+		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
 	fi
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
-
-build-image-preview-for-hub:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
+	git tag -a $(VERSION) -m "Release $(VERSION)"
+	git push origin $(VERSION)
 
 test:
 	stack build --fast --test
@@ -68,7 +70,7 @@ format-check:
 	fourmolu -m check $(HS_SRC_DIR)
 
 lint-fix:
-	fd .hs | xargs -n 1 -P 8 hlint --refactor  --refactor-options="--inplace"
+	fd .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
 
 lint:
 	hlint $(HS_SRC_DIR)
