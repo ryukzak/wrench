@@ -1,0 +1,16 @@
+---
+# Step-by-step
+16:	LoadAddr 0	@_start 0
+21:	StoreInd 12	 -858993460
+26:	LoadAddr 4	 -858993460
+31:	StoreInd 12	 -1
+36:	LoadAddr 8	 -1
+41:	StoreInd 12	 111
+46:	Halt	 111
+---
+# Result
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [-858993460,-1,111]
+symio[0x80]: "" >>> ""
+symio[0x84]: "" >>> "##o"
+mem[0..11]: 	cc cc cc cc ff ff ff ff 6f 00 00 00
