@@ -487,7 +487,13 @@ assert factorial(9) == 362880
 
 ```python
 def get_put_char(symbols):
-    return (symbols[0:1], symbols[1:])
+    """On X -- return -1 (word). On Y -- return 0xCCCCCCCC"""
+    char = symbols[0]
+    if char == "X":
+        return -1, symbols[1:]
+    elif char == "Y":
+        return overflow_error_value, symbols[1:]
+    return (str(char), symbols[1:])
 
 
 assert get_put_char('A') == ('A', '')
