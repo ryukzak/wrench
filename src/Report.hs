@@ -141,7 +141,7 @@ viewIO "hex" addr st = case ioStreams st !? readAddr addr of
                 ]
     Nothing -> error $ "incorrect IO address: " <> show addr
 viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
-    Just (is, os) -> show is <> " >>> " <> fixEscapes (show (reverse os))
+    Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
         sym =
