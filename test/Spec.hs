@@ -104,6 +104,10 @@ tests =
                 , goldenTranslate Acc32 "test/golden/acc32/all.s"
                 ]
             , testGroup
+                "Acc32"
+                [ goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
+                ]
+            , testGroup
                 "Generated tests"
                 [ generatedTest Acc32 "factorial" 6
                 , generatedTest Acc32 "get_put_char" 6

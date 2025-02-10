@@ -1,0 +1,25 @@
+name: error symbols output
+limit: 400
+memory_size: 0x1000
+input_streams:
+  0x80: []
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label} {Acc}
+  - name: Result
+    slice: last
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      symio[0x80]: {io:0x80:sym}
+      symio[0x84]: {io:0x84:sym}
+      {memory:0:11}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [-858993460,-1,111]
+      symio[0x80]: "" >>> ""
+      symio[0x84]: "" >>> "##o"
+      mem[0..11]: 	cc cc cc cc ff ff ff ff 6f 00 00 00

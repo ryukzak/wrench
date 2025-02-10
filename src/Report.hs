@@ -144,7 +144,15 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
-        sym = map (chr . fromEnum)
+        sym =
+            map
+                ( ( \case
+                        -858993460 -> '#' -- 0xCCCCCCCC
+                        -1 -> '#' -- 0xFFFFFFFF
+                        x -> chr x
+                  )
+                    . fromEnum
+                )
         fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
 viewIO fmt _addr _st = unknownFormat fmt
 
