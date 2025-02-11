@@ -41,12 +41,14 @@ options =
                 <> value "risc-iv-32"
                 <> help "ISA (risc-iv-32, f32a, acc32)"
             )
-        <*> strOption
-            ( long "conf"
-                <> short 'c'
-                <> help "Configuration file (.yaml)"
-                <> showDefault
-                <> metavar "CONF"
+        <*> optional
+            ( strOption
+                ( long "conf"
+                    <> short 'c'
+                    <> help "Configuration file (.yaml)"
+                    <> showDefault
+                    <> metavar "CONF"
+                )
             )
         <*> switch
             ( short 'S'
