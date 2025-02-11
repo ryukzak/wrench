@@ -27,6 +27,8 @@ def yaml_symbol_nums(s, sep=","):
 
 
 def yaml_symbols(s):
+    if s == [-1] or s == [overflow_error_value]:
+        return '"#"'
     return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
 
 
@@ -168,7 +170,7 @@ class String2String:
         return "\n".join(
             [
                 f"      numio[0x80]: {yaml_symbol_nums(self.rest)} >>> []",
-                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
+                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output) if isinstance(self.output, str) else self.output}",
                 f'      symio[0x80]: {yaml_symbols(self.rest)} >>> ""',
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
             ]
@@ -998,7 +1000,13 @@ test_cases["hello"] = TestCase(
 
 
 def get_put_char(symbols):
-    return (symbols[0:1], symbols[1:])
+    """On X -- return -1 (word). On Y -- return 0xCCCCCCCC"""
+    char = symbols[0]
+    if char == "X":
+        return [-1], symbols[1:]
+    elif char == "Y":
+        return [overflow_error_value], symbols[1:]
+    return (str(char), symbols[1:])
 
 
 get_put_char_ref = get_put_char
@@ -1018,6 +1026,10 @@ test_cases["get_put_char"] = TestCase(
         String2String("\n", "\n", ""),
         String2String("\0\n", "\0", "\n"),
         String2String("\n\0", "\n", "\0"),
+        String2String("X", [-1], ""),
+        String2String("Y", [overflow_error_value], ""),
+        String2String("XZ", [-1], "Z"),
+        String2String("YZ", [overflow_error_value], "Z"),
     ],
     is_variant=False,
     category="_Examples",

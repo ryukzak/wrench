@@ -61,7 +61,7 @@ tests =
                 , testGroup
                     "Generated tests"
                     [ generatedTest RiscIv "factorial" 6
-                    , generatedTest RiscIv "get_put_char" 6
+                    , generatedTest RiscIv "get_put_char" 8
                     , generatedTest RiscIv "hello" 1
                     , generatedTest RiscIv "logical_not" 2
                     ]
@@ -88,7 +88,7 @@ tests =
             , testGroup
                 "Generated tests"
                 [ generatedTest F32a "factorial" 6
-                , generatedTest F32a "get_put_char" 6
+                , generatedTest F32a "get_put_char" 8
                 , generatedTest F32a "hello" 1
                 , generatedTest F32a "logical_not" 2
                 ]
@@ -110,7 +110,7 @@ tests =
             , testGroup
                 "Generated tests"
                 [ generatedTest Acc32 "factorial" 6
-                , generatedTest Acc32 "get_put_char" 6
+                , generatedTest Acc32 "get_put_char" 12
                 , generatedTest Acc32 "hello" 1
                 , generatedTest Acc32 "logical_not" 2
                 ]

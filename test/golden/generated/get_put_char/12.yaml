@@ -1,0 +1,21 @@
+name: "assert get_put_char('YZ') == ([-858993460], 'Z')"
+limit: 1000
+memory_size: 0x1000
+input_streams:
+  0x80: [89, 90]
+  0x84: []
+reports:
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      symio[0x80]: {io:0x80:sym}
+      symio[0x84]: {io:0x84:sym}
+    assert: |
+      numio[0x80]: [90] >>> []
+      numio[0x84]: [] >>> [-858993460]
+      symio[0x80]: "Z" >>> ""
+      symio[0x84]: "" >>> "#"
