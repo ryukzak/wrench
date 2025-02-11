@@ -30,14 +30,14 @@ import Prelude (Read (..))
 data Options = Options
     { input :: FilePath
     , isa :: String
-    , configFile :: FilePath
+    , configFile :: Maybe FilePath
     , onlyTranslation :: Bool
     , verbose :: Bool
     }
     deriving (Show)
 
 instance Default Options where
-    def = Options "" "risc-iv-32" "" False False
+    def = Options "" "risc-iv-32" Nothing False False
 
 data Isa = RiscIv | F32a | Acc32
     deriving (Show)
@@ -71,8 +71,18 @@ prettyLabels rLabels =
 wrenchIO :: Options -> IO ()
 wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
     when verbose $ pPrint opts
-    conf@Config{cLimit, cMemorySize} <-
-        either (error . toText) id <$> readConfig configFile
+    conf@Config{cLimit, cMemorySize} <- case configFile of
+        Just fn -> either (error . toText) id <$> readConfig fn
+        Nothing ->
+            return
+                Config
+                    { cLimit = maxLimit
+                    , cMemorySize = maxMemorySize
+                    , cInputStreams = Nothing
+                    , cInputStreamsFlat = Nothing
+                    , cReports = Nothing
+                    }
+
     when verbose $ do
         pPrint conf
         putStrLn "---"

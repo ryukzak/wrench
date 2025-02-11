@@ -62,7 +62,7 @@ This service will be used to send laboratory works to check.
 
 ```shell
 $ wrench --help
-Usage: wrench INPUT [--isa ISA] (-c|--conf CONF) [-S] [-v|--verbose]
+Usage: wrench INPUT [--isa ISA] [-c|--conf CONF] [-S] [-v|--verbose]
 
   App for laboratory course of computer architecture.
 
