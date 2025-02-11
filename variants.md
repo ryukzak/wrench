@@ -490,9 +490,9 @@ def get_put_char(symbols):
     """On X -- return -1 (word). On Y -- return 0xCCCCCCCC"""
     char = symbols[0]
     if char == "X":
-        return -1, symbols[1:]
+        return [-1], symbols[1:]
     elif char == "Y":
-        return overflow_error_value, symbols[1:]
+        return [overflow_error_value], symbols[1:]
     return (str(char), symbols[1:])
 
 
