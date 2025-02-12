@@ -50,10 +50,10 @@ instance Default Config where
             , cReports =
                 Just
                     [ ReportConf
-                        { rcName = Just "InstructionLog"
+                        { rcName = Just "Executed Instruction Log"
                         , rcSlice = AllSlice
                         , rcAssert = Nothing
-                        , rcView = Nothing
+                        , rcView = Just "{pc}: {instruction} {pc:label}\n"
                         }
                     ]
             }

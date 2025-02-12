@@ -10,7 +10,7 @@ module Wrench (
 ) where
 
 import Config
-import Data.Default (Default (..))
+import Data.Default (Default (..), def)
 import Data.Text qualified as T
 import Isa.Acc32 qualified as Acc32
 import Isa.F32a qualified as F32a
@@ -73,15 +73,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
     when verbose $ pPrint opts
     conf@Config{cLimit, cMemorySize} <- case configFile of
         Just fn -> either (error . toText) id <$> readConfig fn
-        Nothing ->
-            return
-                Config
-                    { cLimit = maxLimit
-                    , cMemorySize = maxMemorySize
-                    , cInputStreams = Nothing
-                    , cInputStreamsFlat = Nothing
-                    , cReports = Nothing
-                    }
+        Nothing -> return def
 
     when verbose $ do
         pPrint conf
