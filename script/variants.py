@@ -1009,9 +1009,6 @@ def get_put_char(symbols):
     return (str(char), symbols[1:])
 
 
-get_put_char_ref = get_put_char
-
-
 test_cases["get_put_char"] = TestCase(
     simple=get_put_char,
     cases=[
@@ -1020,7 +1017,7 @@ test_cases["get_put_char"] = TestCase(
         String2String("C", "C", ""),
         String2String("ABCD", "A", "BCD"),
     ],
-    reference=get_put_char_ref,
+    reference=get_put_char,
     reference_cases=[
         String2String("\0", "\0", ""),
         String2String("\n", "\n", ""),

@@ -88,7 +88,7 @@ tests =
             , testGroup
                 "Generated tests"
                 [ generatedTest F32a "factorial" 6
-                , generatedTest F32a "get_put_char" 8
+                , generatedTest F32a "get_put_char" 12
                 , generatedTest F32a "hello" 1
                 , generatedTest F32a "logical_not" 2
                 ]
