@@ -16,7 +16,7 @@ module Translator.Parser.Misc (
 
 import Relude
 import Relude.Unsafe (read)
-import Text.Megaparsec (anySingle, choice, manyTill, single)
+import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single)
 import Text.Megaparsec.Char (char, digitChar, eol, hexDigitChar, hspace, letterChar, string)
 import Translator.Parser.Types
 import Translator.Types
@@ -58,10 +58,17 @@ label = do
 
 labelRef = name
 
-reference :: (Read w) => Parser (Ref w)
+reference :: (Num w, Read w) => Parser (Ref w)
 reference =
     choice
-        [ labelRef <&> Ref
+        [ do
+            void quote
+            c <- anySingleBut '\''
+            void quote
+            return $ ValueR $ fromIntegral $ ord c
+        , labelRef <&> Ref
         , hexNum <&> ValueR . read
         , num <&> ValueR . read
         ]
+    where
+        quote = char '\''
