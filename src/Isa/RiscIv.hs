@@ -156,6 +156,10 @@ data Isa w l
       Bgtu {rs1, rs2 :: Register, k :: l}
     | -- | Branch if less than or equal (unsigned): if rs1 <= rs2 then PC += k
       Bleu {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if equal: if rs1 == rs2 then PC += k
+      Beq {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if not equal: if rs1 /= rs2 then PC += k
+      Bne {rs1, rs2 :: Register, k :: l}
     | -- | Halt the machine
       Halt
     deriving (Show)
@@ -247,6 +251,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd3args "ble" Ble register register reference
                     , cmd3args "bgtu" Bgtu register register reference
                     , cmd3args "bleu" Bleu register register reference
+                    , cmd3args "beq" Beq register register reference
+                    , cmd3args "bne" Bne register register reference
                     , string "halt" >> return Halt
                     ]
 
@@ -280,6 +286,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Ble{rs1, rs2, k} -> Ble rs1 rs2 $ deref' relF k
                 Bgtu{rs1, rs2, k} -> Bgtu rs1 rs2 $ deref' relF k
                 Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ deref' relF k
+                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ deref' relF k
+                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -469,6 +477,20 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
                 if rs1' <= rs2'
+                    then setPc (pc + fromEnum k)
+                    else nextPc
+            Beq{rs1, rs2, k} -> do
+                State{pc} <- get
+                rs1' <- getReg rs1
+                rs2' <- getReg rs2
+                if rs1' == rs2'
+                    then setPc (pc + fromEnum k)
+                    else nextPc
+            Bne{rs1, rs2, k} -> do
+                State{pc} <- get
+                rs1' <- getReg rs1
+                rs2' <- getReg rs2
+                if rs1' /= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Halt -> modify $ \st -> st{stopped = True}

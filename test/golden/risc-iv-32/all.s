@@ -40,6 +40,8 @@ _start:
     ble      t1, t0, ble_label   ; Branch if less than or equal
     bgtu     t1, t0, bgtu_label  ; Branch if greater than (unsigned)
     bleu     t1, t0, bleu_label  ; Branch if less than or equal (unsigned)
+    beq      t1, t0, beq_label   ; Branch if equal
+    bne      t1, t0, bne_label   ; Branch if not equal
 
 jump_label:
     addi     t0, t0, 4           ; Add immediate to simulate jump
@@ -60,6 +62,12 @@ bgtu_label:
     addi     t0, t0, 4           ; Add immediate to simulate branch
 
 bleu_label:
+    addi     t0, t0, 4           ; Add immediate to simulate branch
+
+beq_label:
+    addi     t0, t0, 4           ; Add immediate to simulate branch
+
+bne_label:
     addi     t0, t0, 4           ; Add immediate to simulate branch
 
     halt                         ; Halt the machine

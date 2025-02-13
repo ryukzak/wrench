@@ -146,6 +146,16 @@ Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned value in the first source register is less than or equal to the unsigned value in the second source register.
     - **Operation:** `if rs1 <= rs2 then pc <- pc + k`
 
+- **Branch if Equal**
+    - **Syntax:** `beq <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is equal to the value in the second source register.
+    - **Operation:** `if rs1 == rs2 then pc <- pc + k`
+
+- **Branch if Not Equal**
+    - **Syntax:** `bne <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is not equal to the value in the second source register.
+    - **Operation:** `if rs1 != rs2 then pc <- pc + k`
+
 - **Halt**
     - **Syntax:** `halt`
     - **Description:** Halt the machine.
