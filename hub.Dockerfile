@@ -42,7 +42,7 @@ ENV LC_ALL=en_US.UTF-8
 ENV VARIANTS=/app/variants
 
 WORKDIR /app
-COPY --from=wrench-build /app/.local/bin/wrench /app/.local/bin/wrench-serv /bin/
+COPY --from=wrench-build /app/.local/bin/wrench /app/.local/bin/wrench-serv /app/.local/bin/wrench-fmt /bin/
 COPY --from=wrench-variants /app/variants /app/variants
 COPY static /app/static
 

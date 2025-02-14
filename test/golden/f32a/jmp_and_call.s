@@ -1,4 +1,4 @@
-.text
+    .text
 
 _start:
     lit 25
