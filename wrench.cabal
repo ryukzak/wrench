@@ -132,6 +132,63 @@ executable wrench
     , yaml
   default-language: Haskell2010
 
+executable wrench-fmt
+  main-is: Fmt.hs
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      ImportQualifiedPost
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , data-default
+    , directory
+    , filepath
+    , http-api-data
+    , lucid
+    , megaparsec
+    , mtl
+    , network-uri
+    , optparse-applicative
+    , pretty-simple
+    , process
+    , regex-tdfa
+    , relude
+    , servant
+    , servant-lucid
+    , servant-server
+    , split
+    , text
+    , time
+    , uuid
+    , wai
+    , wai-extra
+    , warp
+    , wrench
+    , yaml
+  default-language: Haskell2010
+
 executable wrench-serv
   main-is: WrenchServ.hs
   hs-source-dirs:

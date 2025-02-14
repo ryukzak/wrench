@@ -2,6 +2,10 @@
 
 This is an educational project designed to explore different types of processor architectures. It includes simple CPU models and assemblers for them.
 
+- `wrench` -- translator/simulator itself
+- `wrench-fmt` -- formatter for assembly files
+- `wrench-serv` -- service for uploading and running testcases
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
