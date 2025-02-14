@@ -28,7 +28,7 @@ def yaml_symbol_nums(s, sep=","):
 
 def yaml_symbols(s):
     if s == [-1] or s == [overflow_error_value]:
-        return '"#"'
+        return '"?"'
     return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
 
 

@@ -146,10 +146,10 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
     where
         sym =
             map
-                ( ( \case
-                        -858993460 -> '#' -- 0xCCCCCCCC
-                        -1 -> '#' -- 0xFFFFFFFF
-                        x -> chr x
+                ( ( \x ->
+                        if 0 <= x && x <= 127
+                            then chr x
+                            else '?'
                   )
                     . fromEnum
                 )
