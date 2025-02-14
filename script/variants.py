@@ -893,7 +893,12 @@ test_cases["reverse_string_pstr"] = TestCase(
 
 def reverse_string_cstr(s):
     """Reverse a C string"""
-    return reverse_string_pstr(s)
+    ss = tuple(s.split("\n", 2))
+    if len(ss) == 1:
+        return reverse_string_pstr(s)
+    else:
+        head, tail = ss
+        return head[::-1], tail
 
 
 reverse_string_cstr_ref = reverse_string_cstr
@@ -905,7 +910,9 @@ test_cases["reverse_string_cstr"] = TestCase(
         String2String("world", "dlrow"),
     ],
     reference=reverse_string_cstr_ref,
-    reference_cases=[],
+    reference_cases=[
+        String2String("hello\n World", "olleh", " World"),
+    ],
     is_variant=True,
     category="String Manipulation",
 )

@@ -420,7 +420,12 @@ assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 
 ```python
 def reverse_string_cstr(s):
     """Reverse a C string"""
-    return reverse_string_pstr(s)
+    ss = tuple(s.split("\n", 2))
+    if len(ss) == 1:
+        return reverse_string_pstr(s)
+    else:
+        head, tail = ss
+        return head[::-1], tail
 
 
 assert reverse_string_cstr('hello') == ('olleh', '')
