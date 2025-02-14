@@ -61,7 +61,7 @@ tests =
                 , testGroup
                     "Generated tests"
                     [ generatedTest RiscIv "factorial" 6
-                    , generatedTest RiscIv "get_put_char" 8
+                    , generatedTest RiscIv "get_put_char" 12
                     , generatedTest RiscIv "hello" 1
                     , generatedTest RiscIv "logical_not" 2
                     ]

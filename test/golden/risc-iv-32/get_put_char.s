@@ -18,6 +18,26 @@ _start:
     lw      t1, 0(t1)            ; int output_addr = *output_addr_const;
 
     lw      t2, 0(t0)            ;   tmp = *input_addr
+
+    addi    t3, zero, 'X'
+
+    beq     t2, t3, min_one
+
+    addi    t3, zero, 'Y'
+    beq     t2, t3, cccccccc
+
     sb      t2, 0(t1)            ;   *output_addr = tmp;
 
+    halt
+
+min_one:
+    addi    t2, zero, -1
+    sw      t2, 0(t1)
+    halt
+
+cccccccc:
+    lui     t2, 0xCCCCCCCC
+    addi    t2, t2, 0xCCCCCCCC
+    halt
+    sw      t2, 0(t1)            ;   *output_addr = tmp;
     halt
