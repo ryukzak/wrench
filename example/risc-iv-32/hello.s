@@ -15,7 +15,7 @@ _start:
 ; FIXME:    lui      t1, buf             ; chat * ptr = buf;
     addi t1, t1, buf
 
-    li      t2, 12               ; int n = 12;
+    addi      t2, zero, 12               ; int n = 12;
 
     ; t0 -- output_addr
     ; t1 -- ptr

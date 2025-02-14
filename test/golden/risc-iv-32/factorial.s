@@ -16,7 +16,7 @@ _start:
                                  ; // t1 <- *t0;
 
 factorial_begin:
-    li      t2, 1                ; int acc = 1;
+    addi   t2, zero, 1           ; int acc = 1;
                                  ; // t2 <- 1;
 
 factorial_while:

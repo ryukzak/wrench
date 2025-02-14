@@ -28,7 +28,6 @@ _start:
     sb       t2, 0(t0)           ; Store byte
 
     lui      t2, 0x1234          ; Load upper immediate
-    li       t2, 0x5678          ; Load immediate
 
     lw       t2, 0(t0)           ; Load word
 

@@ -15,7 +15,7 @@ _start:
     lw      t1, 0(t0)            ; int n = *input_addr;
                                  ; // t1 <- *t0;
 
-    li      t2, 1                ; int acc = -1;
+    addi      t2, zero, 1                ; int acc = -1;
 
     xor     t1, t1, t2
 

@@ -1,15 +1,15 @@
 0:	input_addr
 4:	output_addr
 8:	_start
-120:	jump_label
-124:	beqz_label
-128:	bnez_label
-132:	bgt_label
-136:	ble_label
-140:	bgtu_label
-144:	bleu_label
-148:	beq_label
-152:	bne_label
+116:	jump_label
+120:	beqz_label
+124:	bnez_label
+128:	bgt_label
+132:	ble_label
+136:	bgtu_label
+140:	bleu_label
+144:	beq_label
+148:	bne_label
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -30,25 +30,24 @@ mem[60..63]: 	Mv {rd = T2, rs = T1}
 mem[64..67]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[68..71]: 	Sb {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[72..75]: 	Lui {rd = T2, k = 4660}
-mem[76..79]: 	Li {rd = T2, k = 22136}
-mem[80..83]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[84..87]: 	J {k = 36}
-mem[88..91]: 	Beqz {rs1 = T1, k = 36}
-mem[92..95]: 	Bnez {rs1 = T1, k = 36}
-mem[96..99]: 	Bgt {rs1 = T1, rs2 = T0, k = 36}
-mem[100..103]: 	Ble {rs1 = T1, rs2 = T0, k = 36}
-mem[104..107]: 	Bgtu {rs1 = T1, rs2 = T0, k = 36}
-mem[108..111]: 	Bleu {rs1 = T1, rs2 = T0, k = 36}
-mem[112..115]: 	Beq {rs1 = T1, rs2 = T0, k = 36}
-mem[116..119]: 	Bne {rs1 = T1, rs2 = T0, k = 36}
-mem[120..123]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@jump_label
-mem[124..127]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beqz_label
-mem[128..131]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bnez_label
-mem[132..135]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgt_label
-mem[136..139]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@ble_label
-mem[140..143]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgtu_label
-mem[144..147]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
-mem[148..151]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beq_label
-mem[152..155]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bne_label
-mem[156..159]: 	Halt
+mem[76..79]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[80..83]: 	J {k = 36}
+mem[84..87]: 	Beqz {rs1 = T1, k = 36}
+mem[88..91]: 	Bnez {rs1 = T1, k = 36}
+mem[92..95]: 	Bgt {rs1 = T1, rs2 = T0, k = 36}
+mem[96..99]: 	Ble {rs1 = T1, rs2 = T0, k = 36}
+mem[100..103]: 	Bgtu {rs1 = T1, rs2 = T0, k = 36}
+mem[104..107]: 	Bleu {rs1 = T1, rs2 = T0, k = 36}
+mem[108..111]: 	Beq {rs1 = T1, rs2 = T0, k = 36}
+mem[112..115]: 	Bne {rs1 = T1, rs2 = T0, k = 36}
+mem[116..119]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@jump_label
+mem[120..123]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beqz_label
+mem[124..127]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bnez_label
+mem[128..131]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgt_label
+mem[132..135]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@ble_label
+mem[136..139]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgtu_label
+mem[140..143]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
+mem[144..147]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beq_label
+mem[148..151]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bne_label
+mem[152..155]: 	Halt
 ---

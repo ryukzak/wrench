@@ -138,8 +138,6 @@ data Isa w l
       Sb {rs2 :: Register, offsetRs1 :: MemRef w}
     | -- | Load upper immediate: rd = k << 12
       Lui {rd :: Register, k :: l}
-    | -- | Load immediate: rd = k
-      Li {rd :: Register, k :: l}
     | -- | Load word: rd = M[offsetRs1]
       Lw {rd :: Register, offsetRs1 :: MemRef w}
     | -- | Jump: PC = PC + k
@@ -242,7 +240,6 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "sw" Sw register memRef
                     , cmd2args "sb" Sb register memRef
                     , cmd2args "lui" Lui register reference
-                    , cmd2args "li" Li register reference
                     , cmd2args "lw" Lw register memRef
                     , cmd1args "j" J reference
                     , cmd2args "beqz" Beqz register reference
@@ -278,7 +275,6 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Sw{rs2, offsetRs1} -> Sw{rs2, offsetRs1}
                 Sb{rs2, offsetRs1} -> Sb{rs2, offsetRs1}
                 Lui{rd, k} -> Lui{rd, k = deref' f k}
-                Li{rd, k} -> Li{rd, k = deref' f k}
                 Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
                 Beqz{rs1, k} -> Beqz rs1 $ deref' relF k
                 Bnez{rs1, k} -> Bnez rs1 $ deref' relF k
@@ -427,9 +423,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Lui{rd, k} -> do
                 w <- getWord $ fromEnum k
                 setReg rd (w `shiftR` 12)
-                nextPc
-            Li{rd, k} -> do
-                setReg rd k
                 nextPc
             Lw{rd, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs1' <- getReg mrReg

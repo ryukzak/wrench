@@ -15,11 +15,6 @@ Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.
     - **Description:** Load an immediate value shifted left by 12 bits into the destination register.
     - **Operation:** `rd <- k << 12`
 
-- **Load Immediate**
-    - **Syntax:** `li <rd>, <k>`
-    - **Description:** Load an immediate value into the destination register.
-    - **Operation:** `rd <- k`
-
 - **Move**
     - **Syntax:** `mv <rd>, <rs>`
     - **Description:** Move the value from the source register to the destination register.
