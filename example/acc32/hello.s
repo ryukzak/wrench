@@ -18,7 +18,7 @@ _start:
     store_addr   ptr                         ; ptr <- buf
 
     load_addr    buf_size
-    store_rel    i                           ; buf_size <- i
+    store        i                           ; buf_size <- i
 
 while:
     beqz         end                         ; while (i != 0) {
@@ -31,9 +31,9 @@ while:
     add          const_1
     store_addr   ptr                         ;     ptr++
 
-    load_rel     i
+    load         i
     sub          const_1
-    store_rel    i                           ;     i--
+    stor         i                           ;     i--
 
     jmp          while                       ; }
 

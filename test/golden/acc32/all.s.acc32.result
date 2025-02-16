@@ -25,14 +25,14 @@ mem[40..44]: 	LoadImm 16 	@_start
 mem[45..49]: 	StoreAddr 36
 mem[50..54]: 	LoadAddr 16
 mem[55..59]: 	StoreAddr 36
-mem[60..64]: 	LoadRel 2
+mem[60..64]: 	Load 2
 mem[65..69]: 	StoreAddr 36
 mem[70..74]: 	LoadInd 0
 mem[75..79]: 	StoreAddr 36
 mem[80..84]: 	LoadImm 32
 mem[85..89]: 	StoreAddr 36
-mem[90..94]: 	LoadImm 48
-mem[95..99]: 	StoreRel 2
+mem[90..94]: 	Load 48
+mem[95..99]: 	Store 2
 mem[100..104]: 	LoadImm 64
 mem[105..109]: 	StoreInd 0
 mem[110..114]: 	LoadAddr 20

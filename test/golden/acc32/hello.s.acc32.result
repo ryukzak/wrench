@@ -19,7 +19,7 @@ mem[37..40]: 	ff 00 00 00	@"const_FF"
 mem[41..45]: 	LoadImm 0 	@_start
 mem[46..50]: 	StoreAddr 21
 mem[51..55]: 	LoadAddr 29
-mem[56..60]: 	StoreRel (-39)
+mem[56..60]: 	Store (-39)
 mem[61..65]: 	Beqz 116 	@while
 mem[66..70]: 	LoadInd 21
 mem[71..75]: 	And 37
@@ -27,9 +27,9 @@ mem[76..80]: 	StoreInd 25
 mem[81..85]: 	LoadAddr 21
 mem[86..90]: 	Add 33
 mem[91..95]: 	StoreAddr 21
-mem[96..100]: 	LoadRel (-79)
+mem[96..100]: 	Load (-79)
 mem[101..105]: 	Sub 33
-mem[106..110]: 	StoreRel (-89)
+mem[106..110]: 	Store (-89)
 mem[111..115]: 	Jmp 61
 mem[116..120]: 	Halt 	@end
 ---

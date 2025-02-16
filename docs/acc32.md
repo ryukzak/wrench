@@ -6,6 +6,8 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
+Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand for relative.
+
 ### Data Movement Instructions
 
 - **Load Immediate**
@@ -13,30 +15,30 @@ Comments in Acc32 assembly code are denoted by the `;` character.
     - **Description:** Load an immediate value into the accumulator.
     - **Operation:** `acc <- <address>`
 
+- **Load**
+    - **Syntax:** `load <offset>`
+    - **Description:** Load a value from a relative address into the accumulator.
+    - **Operation:** `acc <- mem[pc + <offset>]`
+
+- **Store**
+    - **Syntax:** `store <offset>`
+    - **Description:** Store the accumulator value into a relative address.
+    - **Operation:** `mem[pc + <offset>] <- acc`
+
 - **Load Address**
     - **Syntax:** `load_addr <address>`
     - **Description:** Load a value from a specific address into the accumulator.
     - **Operation:** `acc <- mem[<address>]`
-
-- **Load Relative**
-    - **Syntax:** `load_rel <offset>`
-    - **Description:** Load a value from a relative address into the accumulator.
-    - **Operation:** `acc <- mem[pc + <offset>]`
-
-- **Load Indirect**
-    - **Syntax:** `load_ind <address>`
-    - **Description:** Load a value from an indirect address into the accumulator.
-    - **Operation:** `acc <- mem[mem[<address>]]`
 
 - **Store Address**
     - **Syntax:** `store_addr <address>`
     - **Description:** Store the accumulator value into a specific address.
     - **Operation:** `mem[<address>] <- acc`
 
-- **Store Relative**
-    - **Syntax:** `store_rel <offset>`
-    - **Description:** Store the accumulator value into a relative address.
-    - **Operation:** `mem[pc + <offset>] <- acc`
+- **Load Indirect**
+    - **Syntax:** `load_ind <address>`
+    - **Description:** Load a value from an indirect address into the accumulator.
+    - **Operation:** `acc <- mem[mem[<address>]]`
 
 - **Store Indirect**
     - **Syntax:** `store_ind <address>`

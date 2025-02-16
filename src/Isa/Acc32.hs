@@ -33,13 +33,13 @@ data Isa w l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
     | -- | Syntax: @load_rel <offset>@ Load a value from a relative address into the accumulator.
-      LoadRel l
+      Load l
     | -- | Syntax: @load_ind <address>@ Load a value from an indirect address into the accumulator.
       LoadInd l
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
     | -- | Syntax: @store_rel <offset>@ Store the accumulator value into a relative address.
-      StoreRel l
+      Store l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
     | -- | Syntax: @add <address>@ Add a value from a specific address to the accumulator.
@@ -89,11 +89,11 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                 choice
                     [ LoadImm <$> (string "load_imm" *> hspace1 *> reference)
                     , LoadAddr <$> (string "load_addr" *> hspace1 *> reference)
-                    , LoadRel <$> (string "load_rel" *> hspace1 *> reference)
                     , LoadInd <$> (string "load_ind" *> hspace1 *> reference)
+                    , Load <$> (string "load" *> hspace1 *> reference)
                     , StoreAddr <$> (string "store_addr" *> hspace1 *> reference)
-                    , StoreRel <$> (string "store_rel" *> hspace1 *> reference)
                     , StoreInd <$> (string "store_ind" *> hspace1 *> reference)
+                    , Store <$> (string "store" *> hspace1 *> reference)
                     , Add <$> (string "add" *> hspace1 *> reference)
                     , Sub <$> (string "sub" *> hspace1 *> reference)
                     , Mul <$> (string "mul" *> hspace1 *> reference)
@@ -119,10 +119,10 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
          in case i of
                 LoadImm l -> LoadImm (deref' f l)
                 LoadAddr l -> LoadAddr (deref' f l)
-                LoadRel l -> LoadRel (deref' relF l)
+                Load l -> Load (deref' relF l)
                 LoadInd l -> LoadInd (deref' f l)
                 StoreAddr l -> StoreAddr (deref' f l)
-                StoreRel l -> StoreRel (deref' relF l)
+                Store l -> Store (deref' relF l)
                 StoreInd l -> StoreInd (deref' f l)
                 Add l -> Add (deref' f l)
                 Sub l -> Sub (deref' f l)
@@ -221,14 +221,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 value <- getWord $ fromEnum a
                 setAcc value
                 nextPc
-            LoadRel a -> getWord (pc + fromEnum a) >>= setAcc >> nextPc
+            Load a -> getWord (pc + fromEnum a) >>= setAcc >> nextPc
             LoadInd a -> do
                 addr <- getWord $ fromEnum a
                 value <- getWord $ fromEnum addr
                 setAcc value
                 nextPc
             StoreAddr a -> getAcc >>= setWord (fromEnum a) >> nextPc
-            StoreRel a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
+            Store a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
             StoreInd a -> do
                 addr <- getWord $ fromEnum a
                 acc <- getAcc

@@ -23,7 +23,7 @@ _start:
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Load relative
-    load_rel     2                           ; acc <- mem[pc + 2]
+    load         2                           ; acc <- mem[pc + 2]
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Load indirect
@@ -35,8 +35,8 @@ _start:
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Store relative
-    load_imm     0x30                        ; acc <- 0x30
-    store_rel    2                           ; mem[pc + 2] <- acc
+    load         0x30                        ; acc <- 0x30
+    store        2                           ; mem[pc + 2] <- acc
 
     ; Store indirect
     load_imm     0x40                        ; acc <- 0x40
