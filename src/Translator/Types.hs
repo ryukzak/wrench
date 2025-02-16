@@ -91,7 +91,7 @@ data Ref w
 
 instance (Show w) => Show (Ref w) where
     show (Ref _ l) = l
-    show (ValueR _ x) = show x
+    show (ValueR f x) = show $ f x
 
 deref' :: (String -> Maybe w) -> Ref w -> w
 deref' f (Ref prepare l) = prepare <$> fromMaybe (error ("Can't resolve label: " <> show l)) $ f l

@@ -7,8 +7,8 @@ mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	01 00 00 00	@"const_1"
 mem[12..16]: 	LoadInd 0 	@_start
-mem[17..21]: 	Not
-mem[22..26]: 	And 8
-mem[27..31]: 	StoreInd 4
-mem[32..36]: 	Halt
+mem[17..17]: 	Not
+mem[18..20]: 	And 8
+mem[21..25]: 	StoreInd 4
+mem[26..26]: 	Halt
 ---

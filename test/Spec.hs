@@ -105,6 +105,7 @@ tests =
                 , goldenTranslate Acc32 "test/golden/acc32/get_put_char.s"
                 , goldenTranslate Acc32 "test/golden/acc32/factorial.s"
                 , goldenTranslate Acc32 "test/golden/acc32/all.s"
+                , goldenTranslate Acc32 "test/golden/acc32/relative.s"
                 ]
             , testGroup
                 "Acc32"

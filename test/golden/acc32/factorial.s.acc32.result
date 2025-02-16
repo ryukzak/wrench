@@ -6,7 +6,7 @@
 20:	_start
 30:	factorial_begin
 45:	factorial_while
-85:	factorial_end
+81:	factorial_end
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -18,15 +18,15 @@ mem[25..29]: 	StoreAddr 8
 mem[30..34]: 	LoadAddr 16 	@factorial_begin
 mem[35..39]: 	StoreAddr 12
 mem[40..44]: 	LoadAddr 8
-mem[45..49]: 	Beqz 85 	@factorial_while
+mem[45..49]: 	Beqz 81 	@factorial_while
 mem[50..54]: 	LoadAddr 12
-mem[55..59]: 	Mul 8
-mem[60..64]: 	StoreAddr 12
-mem[65..69]: 	LoadAddr 8
-mem[70..74]: 	Sub 16
-mem[75..79]: 	StoreAddr 8
-mem[80..84]: 	Jmp 45
-mem[85..89]: 	LoadAddr 12 	@factorial_end
-mem[90..94]: 	StoreInd 4
-mem[95..99]: 	Halt
+mem[55..57]: 	Mul 8
+mem[58..62]: 	StoreAddr 12
+mem[63..67]: 	LoadAddr 8
+mem[68..70]: 	Sub 16
+mem[71..75]: 	StoreAddr 8
+mem[76..80]: 	Jmp 45
+mem[81..85]: 	LoadAddr 12 	@factorial_end
+mem[86..90]: 	StoreInd 4
+mem[91..91]: 	Halt
 ---

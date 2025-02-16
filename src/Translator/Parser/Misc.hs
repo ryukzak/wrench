@@ -13,6 +13,7 @@ module Translator.Parser.Misc (
     label,
     reference,
     referenceWithDirective,
+    referenceWithFn,
 ) where
 
 import Data.Bits
@@ -60,8 +61,8 @@ label = do
 
 labelRef = name
 
-referenceInner :: (Num w, Read w) => (w -> w) -> Parser (Ref w)
-referenceInner f =
+referenceWithFn :: (Num w, Read w) => (w -> w) -> Parser (Ref w)
+referenceWithFn f =
     choice
         [ do
             void quote
@@ -80,16 +81,16 @@ referenceWithDirective =
     choice
         [ do
             void $ string "%hi("
-            ref <- referenceInner (\w -> (w `shiftR` 12) .&. 0xFFFFF)
+            ref <- referenceWithFn (\w -> (w `shiftR` 12) .&. 0xFFFFF)
             void $ string ")"
             return ref
         , do
             void $ string "%lo("
-            ref <- referenceInner (.&. 0xFFF)
+            ref <- referenceWithFn (.&. 0xFFF)
             void $ string ")"
             return ref
         , reference
         ]
 
 reference :: (Num w, Read w) => Parser (Ref w)
-reference = referenceInner id
+reference = referenceWithFn id

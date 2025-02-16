@@ -32,13 +32,13 @@ data Isa w l
       LoadImm l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
-    | -- | Syntax: @load_rel <offset>@ Load a value from a relative address into the accumulator.
+    | -- | Syntax: @load <offset>@ Load a value from a relative address into the accumulator.
       Load l
     | -- | Syntax: @load_ind <address>@ Load a value from an indirect address into the accumulator.
       LoadInd l
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
-    | -- | Syntax: @store_rel <offset>@ Store the accumulator value into a relative address.
+    | -- | Syntax: @store <offset>@ Store the accumulator value into a relative address.
       Store l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
@@ -90,20 +90,20 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     [ LoadImm <$> (string "load_imm" *> hspace1 *> reference)
                     , LoadAddr <$> (string "load_addr" *> hspace1 *> reference)
                     , LoadInd <$> (string "load_ind" *> hspace1 *> reference)
-                    , Load <$> (string "load" *> hspace1 *> reference)
+                    , Load <$> (string "load" *> hspace1 *> reference16)
                     , StoreAddr <$> (string "store_addr" *> hspace1 *> reference)
                     , StoreInd <$> (string "store_ind" *> hspace1 *> reference)
-                    , Store <$> (string "store" *> hspace1 *> reference)
-                    , Add <$> (string "add" *> hspace1 *> reference)
-                    , Sub <$> (string "sub" *> hspace1 *> reference)
-                    , Mul <$> (string "mul" *> hspace1 *> reference)
-                    , Div <$> (string "div" *> hspace1 *> reference)
-                    , Rem <$> (string "rem" *> hspace1 *> reference)
-                    , ShiftL <$> (string "shiftl" *> hspace1 *> reference)
-                    , ShiftR <$> (string "shiftr" *> hspace1 *> reference)
-                    , And <$> (string "and" *> hspace1 *> reference)
-                    , Or <$> (string "or" *> hspace1 *> reference)
-                    , Xor <$> (string "xor" *> hspace1 *> reference)
+                    , Store <$> (string "store" *> hspace1 *> reference16)
+                    , Add <$> (string "add" *> hspace1 *> reference16)
+                    , Sub <$> (string "sub" *> hspace1 *> reference16)
+                    , Mul <$> (string "mul" *> hspace1 *> reference16)
+                    , Div <$> (string "div" *> hspace1 *> reference16)
+                    , Rem <$> (string "rem" *> hspace1 *> reference16)
+                    , ShiftL <$> (string "shiftl" *> hspace1 *> reference16)
+                    , ShiftR <$> (string "shiftr" *> hspace1 *> reference16)
+                    , And <$> (string "and" *> hspace1 *> reference16)
+                    , Or <$> (string "or" *> hspace1 *> reference16)
+                    , Xor <$> (string "xor" *> hspace1 *> reference16)
                     , string "not" >> return Not
                     , Jmp <$> (string "jmp" *> hspace1 *> reference)
                     , Beqz <$> (string "beqz" *> hspace1 *> reference)
@@ -112,6 +112,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , Blz <$> (string "ble" *> hspace1 *> reference)
                     , string "halt" >> return Halt
                     ]
+            reference16 = referenceWithFn (`arithmAnd` 0x0000FFFF)
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i =
@@ -142,9 +143,20 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
 
--- FIXME: make size more real
 instance ByteLength (Isa w l) where
-    byteLength _ = 5
+    byteLength LoadImm{} = 5
+    byteLength LoadAddr{} = 5
+    byteLength LoadInd{} = 5
+    byteLength StoreAddr{} = 5
+    byteLength StoreInd{} = 5
+    byteLength Beqz{} = 5
+    byteLength Bnez{} = 5
+    byteLength Bgz{} = 5
+    byteLength Blz{} = 5
+    byteLength Jmp{} = 5
+    byteLength Not = 1
+    byteLength Halt = 1
+    byteLength _ = 3
 
 data MachineState mem w = State
     { pc :: Int
@@ -228,12 +240,12 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setAcc value
                 nextPc
             StoreAddr a -> getAcc >>= setWord (fromEnum a) >> nextPc
-            Store a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
             StoreInd a -> do
                 addr <- getWord $ fromEnum a
                 acc <- getAcc
                 setWord (fromEnum addr) acc
                 nextPc
+            Store a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
             Add a -> withAcc (+) a
             Sub a -> withAcc (-) a
             Mul a -> withAcc (*) a
