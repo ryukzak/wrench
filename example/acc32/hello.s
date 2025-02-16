@@ -33,7 +33,7 @@ while:
 
     load         i
     sub          const_1
-    stor         i                           ;     i--
+    store        i                           ;     i--
 
     jmp          while                       ; }
 
