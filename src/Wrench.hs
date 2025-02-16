@@ -44,6 +44,7 @@ data Isa = RiscIv | F32a | Acc32
 
 instance Read Isa where
     readsPrec _ "risc-iv-32" = [(RiscIv, "")]
+    readsPrec _ "risc-iv" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
     readsPrec _ _ = []
