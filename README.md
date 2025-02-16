@@ -44,7 +44,7 @@ This is an educational project designed to explore different types of processor 
 ### Install from a Binary Release
 
 1. Open the last master build on the [Actions](https://github.com/ryukzak/wrench/actions).
-2. Download the binary for your platform.
+2. Download the binary for your platform: windows-x64, linux-x64, linux-arm64, macos-intel, macos-arm64.
 3. Add the binary to your `PATH`.
 4. Run `wrench <ARGS>` to execute the project.
 

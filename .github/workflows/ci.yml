@@ -78,8 +78,7 @@ jobs:
         # if: github.ref == 'refs/heads/master'
         strategy:
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
-                arch: [x64]
+                os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
 
         runs-on: ${{ matrix.os }}
 
@@ -109,7 +108,7 @@ jobs:
             - name: Upload Binary as Artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: binary-${{ matrix.os }}-${{ matrix.arch }}
+                  name: wrench-${{ runner.os }}-${{ runner.arch }}
                   path: ./dist/*
 
     # docker-build-and-push:
