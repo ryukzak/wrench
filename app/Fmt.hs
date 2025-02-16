@@ -14,6 +14,7 @@ data Options = Options
     , isa :: String
     , inplace :: Bool
     , verbose :: Bool
+    , check :: Bool
     }
 
 options :: Parser Options
@@ -39,11 +40,19 @@ options =
                 <> short 'v'
                 <> help "Verbose output"
             )
+        <*> switch
+            ( long "check"
+                <> help "Check the formatting without modifying the file"
+            )
 
 main :: IO ()
 main = do
-    Options{verbose, isa, inplace, fileNames} <- execParser optsParser
-    mapM_ (process isa verbose inplace) fileNames
+    opts@Options{verbose, fileNames} <- execParser optsParser
+    results <- mapM (process opts) fileNames
+    when verbose $ mapM_ (putTextLn . either id id) results
+    case lefts results of
+        [] -> exitSuccess
+        _ -> exitFailure
     where
         optsParser =
             info
@@ -85,22 +94,29 @@ f32aFmt =
 acc32Fmt :: FmtConfig
 acc32Fmt = def{textCommandTokenWidths = [12, 8, 8, 8, 8, 8, 8]}
 
-process :: String -> Bool -> Bool -> String -> IO ()
-process isa verbose inplace fileName = do
+process :: Options -> String -> IO (Either Text Text)
+process Options{isa, inplace, check} fileName = do
     content <- decodeUtf8 <$> readFileBS fileName
     let formattedContent = case readMaybe isa of
             Just RiscIv -> formatFile def content
             Just F32a -> formatFile f32aFmt content
             Just Acc32 -> formatFile acc32Fmt content
             _ -> error $ "Invalid ISA: " <> show isa
-    case inplace of
-        False -> putTextLn formattedContent
-        True | content == formattedContent ->
-            do
-                when verbose $ putTextLn $ "No changes to " <> toText fileName
-        True -> do
-            when verbose $ putTextLn $ "Formatted " <> toText fileName
+        msgFormatted = toText fileName <> " already formatted"
+        msgReformatted = toText fileName <> " reformatted"
+    case (check, inplace, content == formattedContent) of
+        (True, _, True) -> return $ Right msgFormatted
+        (True, _, False) -> return $ Left $ toText fileName <> " needs formatting"
+        (_, False, True) -> do
+            putTextLn formattedContent
+            return $ Right msgFormatted
+        (_, False, False) -> do
+            putTextLn formattedContent
+            return $ Right msgReformatted
+        (_, True, True) -> return $ Right msgFormatted
+        (_, True, False) -> do
             writeFileText fileName formattedContent
+            return $ Right msgReformatted
 
 data Statement
     = OutOfSection [Text]
