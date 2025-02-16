@@ -179,11 +179,18 @@ instance DerefMnemonic (Isa w) w where
             Over -> Over
             Halt -> Halt
 
--- FIXME: make instruction size more real
 instance ByteLength (Isa w l) where
-    byteLength (FetchP _) = 8
-    byteLength (StoreP _) = 8
-    byteLength _ = 4
+    -- NOTE: in f18a multiple instructions can be fitted in one machine word.
+    -- Here we simplify it: args -- is just a muchine word. Opcode -- one byte.
+    byteLength (Lit _) = 5
+    byteLength (Call _) = 5
+    byteLength (Jump _) = 5
+    byteLength (Next _) = 5
+    byteLength (If _) = 5
+    byteLength (MinusIf _) = 5
+    byteLength (FetchP _) = 5
+    byteLength (StoreP _) = 5
+    byteLength _ = 1
 
 data MachineState mem w = State
     { p :: Int

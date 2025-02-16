@@ -8,6 +8,8 @@ Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.
 
 ## Instructions
 
+Instruction size: 4 bytes.
+
 ### Data Movement Instructions
 
 - **Load Upper Immediate**

@@ -6,13 +6,13 @@
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	01 00 00 00	@"const_1"
-mem[12..19]: 	FetchP 0 	@_start
-mem[20..23]: 	AStore
-mem[24..27]: 	Fetch
-mem[28..35]: 	FetchP 8
-mem[36..39]: 	Xor
-mem[40..47]: 	FetchP 4
-mem[48..51]: 	AStore
-mem[52..55]: 	Store
-mem[56..59]: 	Halt
+mem[12..16]: 	FetchP 0 	@_start
+mem[17..17]: 	AStore
+mem[18..18]: 	Fetch
+mem[19..23]: 	FetchP 8
+mem[24..24]: 	Xor
+mem[25..29]: 	FetchP 4
+mem[30..30]: 	AStore
+mem[31..31]: 	Store
+mem[32..32]: 	Halt
 ---
