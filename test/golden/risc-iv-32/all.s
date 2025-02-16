@@ -6,7 +6,7 @@ output_addr:       .word 0x84    ; Output address where the result should be sto
     .text
 
 _start:
-    addi     t0, t0, input_addr  ; Add immediate
+    addi     t0, t0, %hi(input_addr)  ; Add immediate
     add      t2, t1, t0          ; Add
     sub      t3, t1, t0          ; Subtract
     mul      t4, t1, t0          ; Multiply

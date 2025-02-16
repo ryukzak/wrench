@@ -25,7 +25,7 @@ main = defaultMainWithRerun tests
 tests :: TestTree
 tests =
     testGroup
-        "ca-wrench"
+        "Wrench"
         [ testGroup
             "Config"
             [ goldenConfig "test/golden/config/bad_no_limit.yaml"
@@ -43,16 +43,18 @@ tests =
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/factorial.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/hello.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/all.s"
+                , goldenTranslate RiscIv "test/golden/risc-iv-32/lui_addi.s"
                 ]
             , Isa.RiscIv.Test.tests
             , testGroup
                 "Simulator"
-                [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/default.yaml"
+                [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/count.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/hello.s" "test/golden/risc-iv-32/hello_const.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_87.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/ble_bleu.s" "test/golden/risc-iv-32/ble_bleu.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"

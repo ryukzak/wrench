@@ -53,7 +53,7 @@
 128 0 120 0
 28:	Beqz {rs1 = T1, k = 16}	@factorial_while
 128 0 120 0
-44:	Lui {rd = T0, k = 4}	@factorial_end
+44:	Lui {rd = T0, k = 0}	@factorial_end
 0 0 120 0
 48:	Addi {rd = T0, rs1 = T0, k = 4}	
 4 0 120 0

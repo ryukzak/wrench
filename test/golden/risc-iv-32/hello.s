@@ -6,8 +6,8 @@ output_addr:       .word 0x84    ; Output address where the result should be sto
     .text
 
 _start:
-    lui      t0, output_addr     ; int * output_addr_const = *output_addr;
-    addi t0, t0, output_addr
+    lui      t0, %hi(output_addr)     ; int * output_addr_const = *output_addr;
+    addi t0, t0, %lo(output_addr)
 
     lw      t0, 0(t0)            ; int output_addr = *output_addr_const;
 

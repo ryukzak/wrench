@@ -6,8 +6,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {T0} {T1} {T2} {T3} ;;
-      {pc}:	{instruction}	{pc:label} ;;
+      {pc}:	{instruction}	{T0:hex} {T1:hex} {T2:hex} {T3:hex} {pc:label}
   - name: Result
     slice: last
     view: |

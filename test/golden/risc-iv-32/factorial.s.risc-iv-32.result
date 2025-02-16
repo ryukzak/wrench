@@ -16,7 +16,7 @@ mem[28..31]: 	Beqz {rs1 = T1, k = 16} 	@factorial_while
 mem[32..35]: 	Mul {rd = T2, rs1 = T2, rs2 = T1}
 mem[36..39]: 	Addi {rd = T1, rs1 = T1, k = -1}
 mem[40..43]: 	J {k = -12}
-mem[44..47]: 	Lui {rd = T0, k = 4} 	@factorial_end
+mem[44..47]: 	Lui {rd = T0, k = 0} 	@factorial_end
 mem[48..51]: 	Addi {rd = T0, rs1 = T0, k = 4}
 mem[52..55]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[56..59]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
