@@ -39,7 +39,7 @@ Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add an immediate value to the source register and store the result in the destination register.
+    - **Description:** Add an immediate value to the source register and store the result in the destination register. Only the lower 12 bits of the result are stored (upper 20 bits sets depending on the sign of the immediate value).
     - **Operation:** `rd <- rs1 + k`
 
 - **Add**
