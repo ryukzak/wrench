@@ -116,7 +116,8 @@ tests:
             - -rtsopts
             - -with-rtsopts=-N
         dependencies:
-            - wrench
             - tasty
             - tasty-golden
             - tasty-hunit
+            - tasty-rerun
+            - wrench

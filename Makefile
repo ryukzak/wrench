@@ -30,7 +30,7 @@ release-image:
 	git push origin $(VERSION)
 
 test:
-	stack build --fast --test
+	stack build --fast --test --test-arguments "--rerun"
 
 test-examples: build
 	stack exec wrench -- --isa risc-iv-32 example/risc-iv-32/factorial.s    -c example/risc-iv-32/factorial-5.yaml
@@ -53,8 +53,7 @@ test-examples: build
 
 update-golden:
 	script/variants.py
-	stack test --fast --test --test-arguments=--accept
-
+	stack test --fast --test --test-arguments="--accept --rerun"
 fix: lint-fix format-fix update-golden readme-fix
 
 readme-fix:

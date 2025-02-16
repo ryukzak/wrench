@@ -6,3 +6,4 @@ bin
 variants/
 variants.csv
 .zed/tasks.json
+.tasty-rerun-log

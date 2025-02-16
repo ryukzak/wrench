@@ -238,6 +238,7 @@ test-suite wrench-test
     , tasty
     , tasty-golden
     , tasty-hunit
+    , tasty-rerun
     , wrench
     , yaml
   default-language: Haskell2010

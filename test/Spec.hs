@@ -10,8 +10,9 @@ import Machine.Types
 import Relude
 import Report.Test qualified
 import System.FilePath
-import Test.Tasty (TestTree, defaultMain, testGroup)
+import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Golden (goldenVsString)
+import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
 import Translator
 import Translator.Parser.Types
@@ -19,7 +20,7 @@ import Translator.Types
 import Wrench
 
 main :: IO ()
-main = defaultMain tests
+main = defaultMainWithRerun tests
 
 tests :: TestTree
 tests =
