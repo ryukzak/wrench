@@ -15,14 +15,22 @@ import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default
 import Data.Text qualified as T
 import Machine.Memory
-import Machine.Types
+import Machine.Types (
+    InitState (..),
+    IoMem (..),
+    Machine (..),
+    StateInterspector (..),
+    ViewState (..),
+    arithmAnd,
+    fromSign,
+ )
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Report
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
-import Translator.Parser.Misc
+import Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
 import Translator.Parser.Types
 import Translator.Types
 
@@ -223,7 +231,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         where
             cmd =
                 choice
-                    [ cmd3args "addi" Addi register register reference
+                    [ cmd3args "addi" Addi register register referenceWithDirective
                     , cmd3args "add" Add register register register
                     , cmd3args "sub" Sub register register register
                     , cmd3args "mul" Mul register register register
@@ -239,7 +247,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "mv" Mv register register
                     , cmd2args "sw" Sw register memRef
                     , cmd2args "sb" Sb register memRef
-                    , cmd2args "lui" Lui register reference
+                    , cmd2args "lui" Lui register referenceWithDirective
                     , cmd2args "lw" Lw register memRef
                     , cmd1args "j" J reference
                     , cmd2args "beqz" Beqz register reference
@@ -380,7 +388,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' + k)
+                setReg rd (rs1' + (k `arithmAnd` 0x00000FFF))
                 nextPc
             Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
             Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)
@@ -421,8 +429,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setWord (fromEnum (mrReg' + mrOffset)) (0xFF .&. rs2')
                 nextPc
             Lui{rd, k} -> do
-                w <- getWord $ fromEnum k
-                setReg rd (w `shiftR` 12)
+                setReg rd ((k .&. 0x000FFFFF) `shiftL` 12)
                 nextPc
             Lw{rd, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs1' <- getReg mrReg

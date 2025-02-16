@@ -12,8 +12,10 @@ module Translator.Parser.Misc (
     eol',
     label,
     reference,
+    referenceWithDirective,
 ) where
 
+import Data.Bits
 import Relude
 import Relude.Unsafe (read)
 import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single)
@@ -58,17 +60,36 @@ label = do
 
 labelRef = name
 
-reference :: (Num w, Read w) => Parser (Ref w)
-reference =
+referenceInner :: (Num w, Read w) => (w -> w) -> Parser (Ref w)
+referenceInner f =
     choice
         [ do
             void quote
             c <- anySingleBut '\''
             void quote
-            return $ ValueR $ fromIntegral $ ord c
-        , labelRef <&> Ref
-        , hexNum <&> ValueR . read
-        , num <&> ValueR . read
+            return $ ValueR f $ fromIntegral $ ord c
+        , labelRef <&> Ref f
+        , hexNum <&> ValueR f . read
+        , num <&> ValueR f . read
         ]
     where
         quote = char '\''
+
+referenceWithDirective :: (Bits w, Num w, Read w) => Parser (Ref w)
+referenceWithDirective =
+    choice
+        [ do
+            void $ string "%hi("
+            ref <- referenceInner (\w -> (w `shiftR` 12) .&. 0xFFFFF)
+            void $ string ")"
+            return ref
+        , do
+            void $ string "%lo("
+            ref <- referenceInner (.&. 0xFFF)
+            void $ string ")"
+            return ref
+        , reference
+        ]
+
+reference :: (Num w, Read w) => Parser (Ref w)
+reference = referenceInner id

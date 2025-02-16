@@ -20,6 +20,7 @@ module Translator.Types (
 import Data.Default (Default, def)
 import Machine.Types
 import Relude
+import Prelude qualified
 
 class DerefMnemonic m w where
     derefMnemonic :: (String -> Maybe w) -> w -> m (Ref w) -> m w
@@ -85,13 +86,16 @@ instance (ByteLength isa) => ByteLength (CodeToken isa l) where
     byteLength _ = 0
 
 data Ref w
-    = Ref String
-    | ValueR w
-    deriving (Show)
+    = Ref (w -> w) String
+    | ValueR (w -> w) w
+
+instance (Show w) => Show (Ref w) where
+    show (Ref _ l) = l
+    show (ValueR _ x) = show x
 
 deref' :: (String -> Maybe w) -> Ref w -> w
-deref' f (Ref l) = fromMaybe (error ("Can't resolve label: " <> show l)) $ f l
-deref' _f (ValueR x) = x
+deref' f (Ref prepare l) = prepare <$> fromMaybe (error ("Can't resolve label: " <> show l)) $ f l
+deref' _f (ValueR prepare x) = prepare x
 
 data DataToken w l = DataToken
     { dtLabel :: !l
