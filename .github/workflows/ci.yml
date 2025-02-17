@@ -120,7 +120,7 @@ jobs:
 
     docker-build-and-push:
         timeout-minutes: 45
-        if: github.ref == 'refs/heads/main'
+        # if: github.ref == 'refs/heads/main'
         needs:
             - wrench
             - haskell-formatting
@@ -152,7 +152,7 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ${{ secrets.DOCKER_USERNAME }}/wrench:latest
+                  tags: ${{ secrets.DOCKER_USERNAME }}/wrench:ci-preview
                   platforms: linux/amd64,linux/arm64
                   cache-from: type=local,src=/tmp/.buildx-cache
                   cache-to: type=local,dest=/tmp/.buildx-cache
