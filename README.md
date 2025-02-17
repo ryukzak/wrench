@@ -1,5 +1,7 @@
 # Wrench
 
+[![wrench CI](https://github.com/ryukzak/wrench/actions/workflows/ci.yml/badge.svg)](https://github.com/ryukzak/wrench/actions/workflows/ci.yml)
+
 This is an educational project designed to explore different types of processor architectures. It includes simple CPU models and assemblers for them.
 
 - `wrench` -- translator/simulator itself

@@ -14,8 +14,8 @@ jobs:
             - uses: actions/cache@v4
               name: Cache ~/.stack
               with:
-                  path: ~/.stack
-                  key: ${{ runner.os }}-stack-global-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+                  path: ${{ '~/.stack' }}
+                  key: ${{ runner.os }}-stack-test-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
                   restore-keys: |
                       ${{ runner.os }}-stack-global-
 
@@ -69,13 +69,11 @@ jobs:
                   files: .
                   config_file: .markdownlint.yaml
 
-    build-release:
-        name: Build and Release Binary
+    build-binaries:
         needs:
             - wrench
             - haskell-formatting
             - haskell-lint
-        # if: github.ref == 'refs/heads/master'
         strategy:
             matrix:
                 os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
@@ -86,13 +84,22 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - uses: actions/cache@v4
-              name: Cache ~/.stack
+            - name: Cache dependencies on *nix
+              uses: actions/cache@v4
+              if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
               with:
-                  path: ${{ runner.os == 'Windows' && 'C:\\Users\\runneradmin\\AppData\\Local\\Programs\\stack' || '~/.stack' }}
-                  key: ${{ runner.os }}-stack-global-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
-                  restore-keys: |
-                      ${{ runner.os }}-stack-global-
+                  path: ${{ '~/.stack' }}
+                  key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+
+            - name: Cache dependencies on Windows
+              if: startsWith(runner.os, 'Windows')
+              uses: actions/cache@v4
+              with:
+                path: |
+                  ~\AppData\Roaming\stack
+                  ~\AppData\Local\Programs\stack
+                  C:\sr
+                key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
 
             - name: Install haskell-stack
               uses: haskell-actions/setup@v2
