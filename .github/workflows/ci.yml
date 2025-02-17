@@ -152,7 +152,7 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: ${{ secrets.DOCKER_USERNAME }}/wrench:ci-preview
+                  tags: ${{ secrets.DOCKERHUB_USERNAME }}/wrench:ci-preview
                   platforms: linux/amd64,linux/arm64
                   cache-from: type=local,src=/tmp/.buildx-cache
                   cache-to: type=local,dest=/tmp/.buildx-cache
