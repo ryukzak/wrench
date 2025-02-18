@@ -7,7 +7,7 @@ output_addr:     .word  0x84               ; Output address where the result sho
 
 _start:
 
-    load_ind     input_addr
-    store_ind    output_addr
+    load_ind     input_addr                  ; acc <- mem[mem[input_addr]]
+    store_ind    output_addr                 ; mem[mem[output_addr]] <- acc
 
     halt

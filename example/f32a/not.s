@@ -13,7 +13,7 @@ _start:
     \ |           |  /---- [A] -> T
     \ v           v  v
     @p input_addr a! @
-    @p const_1 xor                           \ T <- T xor S
+    @p const_1 xor           \ T <- T xor S
 
     \                /-- T -> [A]
     \                v

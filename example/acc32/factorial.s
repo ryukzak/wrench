@@ -9,27 +9,27 @@ const_1:         .word  0x01               ; Constant 1
     .text
 
 _start:
-    load_ind     input_addr                  ; acc <- mem[*input_addr]
-    store_addr   n                           ; mem[n] <- acc
+    load_ind     input_addr                  ; acc = mem[mem[input_addr]]
+    store        n                           ; mem[n] = acc
 
 factorial_begin:
-    load_addr    const_1                     ; acc <- m[const_1]
-    store_addr   result                      ; mem[result] <- acc
-    load_addr    n                           ; acc <- m[n]
+    load         const_1                     ; acc = mem[const_1]
+    store        result                      ; mem[result] = acc
+    load         n                           ; acc = mem[n]
 
 factorial_while:
-    beqz         factorial_end               ; while (acc != 0) {
-    load_addr    result                      ;   acc <- m[result]
-    mul          n                           ;   acc *= m[n]
-    store_addr   result                      ;   m[result] <- acc
+    beqz         factorial_end               ; if (acc == 0) goto factorial_end
+    load         result                      ; acc = mem[result]
+    mul          n                           ; acc = acc * mem[n]
+    store        result                      ; mem[result] = acc
 
-    load_addr    n                           ;   acc <- m[n]
-    sub          const_1                     ;   acc = acc - 1
-    store_addr   n                           ;   m[n] <- acc
-    jmp          factorial_while             ; }
+    load         n                           ; acc = mem[n]
+    sub          const_1                     ; acc = acc - mem[const_1]
+    store        n                           ; mem[n] = acc
+    jmp          factorial_while             ; goto factorial_while
 
 factorial_end:
-    load_addr    result                      ; acc <- m[result]
-    store_ind    output_addr                 ; m[output_addr] <- acc
+    load         result                      ; acc = mem[result]
+    store_ind    output_addr                 ; mem[mem[output_addr]] = acc
 
     halt

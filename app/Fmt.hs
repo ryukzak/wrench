@@ -88,6 +88,7 @@ f32aFmt :: FmtConfig
 f32aFmt =
     def
         { textCommandTokenWidths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        , textCommandWidth = 24
         , commentStart = "\\"
         }
 
