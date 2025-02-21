@@ -2,11 +2,15 @@
 4:	output_addr
 8:	alligment
 136:	_start
-156:	multiply
-162:	multiply_do
-172:	factorial
-178:	factorial_while
-209:	factorial_finish
+154:	continue
+167:	handler_negative
+180:	handler_overflow
+193:	multiply
+199:	multiply_do
+209:	factorial
+215:	factorial_while
+235:	continue_factorial
+257:	factorial_finish
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -14,32 +18,48 @@ mem[8..135]: 	2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 
 mem[136..140]: 	FetchP 0 	@_start
 mem[141..141]: 	AStore
 mem[142..142]: 	Fetch
-mem[143..147]: 	Call 172
-mem[148..152]: 	FetchP 4
-mem[153..153]: 	AStore
-mem[154..154]: 	Store
-mem[155..155]: 	Halt
-mem[156..160]: 	Lit 31 	@multiply
-mem[161..161]: 	RPush
-mem[162..162]: 	MulStep 	@multiply_do
-mem[163..167]: 	Next 162
-mem[168..168]: 	Drop
-mem[169..169]: 	Drop
-mem[170..170]: 	AFetch
-mem[171..171]: 	Return
-mem[172..176]: 	Lit 1 	@factorial
-mem[177..177]: 	Over
-mem[178..178]: 	Dup 	@factorial_while
-mem[179..183]: 	If 209
-mem[184..184]: 	Dup
-mem[185..185]: 	AStore
-mem[186..186]: 	Over
-mem[187..191]: 	Lit 0
-mem[192..196]: 	Call 156
-mem[197..197]: 	Over
-mem[198..202]: 	Lit (-1)
-mem[203..203]: 	Add
-mem[204..208]: 	Jump 178
-mem[209..209]: 	Drop 	@factorial_finish
-mem[210..210]: 	Return
+mem[143..143]: 	Dup
+mem[144..148]: 	MinusIf 154
+mem[149..153]: 	Call 167
+mem[154..158]: 	Call 209 	@continue
+mem[159..163]: 	FetchP 4
+mem[164..164]: 	AStore
+mem[165..165]: 	Store
+mem[166..166]: 	Halt
+mem[167..171]: 	Lit (-1) 	@handler_negative
+mem[172..176]: 	FetchP 4
+mem[177..177]: 	AStore
+mem[178..178]: 	Store
+mem[179..179]: 	Halt
+mem[180..184]: 	Lit (-858993460) 	@handler_overflow
+mem[185..189]: 	FetchP 4
+mem[190..190]: 	AStore
+mem[191..191]: 	Store
+mem[192..192]: 	Halt
+mem[193..197]: 	Lit 31 	@multiply
+mem[198..198]: 	RPush
+mem[199..199]: 	MulStep 	@multiply_do
+mem[200..204]: 	Next 199
+mem[205..205]: 	Drop
+mem[206..206]: 	Drop
+mem[207..207]: 	AFetch
+mem[208..208]: 	Return
+mem[209..213]: 	Lit 1 	@factorial
+mem[214..214]: 	Over
+mem[215..215]: 	Dup 	@factorial_while
+mem[216..220]: 	If 257
+mem[221..221]: 	Dup
+mem[222..222]: 	AStore
+mem[223..223]: 	Over
+mem[224..224]: 	Dup
+mem[225..229]: 	MinusIf 235
+mem[230..234]: 	Call 180
+mem[235..239]: 	Lit 0 	@continue_factorial
+mem[240..244]: 	Call 193
+mem[245..245]: 	Over
+mem[246..250]: 	Lit (-1)
+mem[251..251]: 	Add
+mem[252..256]: 	Jump 215
+mem[257..257]: 	Drop 	@factorial_finish
+mem[258..258]: 	Return
 ---
