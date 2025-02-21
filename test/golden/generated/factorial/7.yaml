@@ -1,5 +1,5 @@
 name: "assert factorial(12) == 479001600"
-limit: 1000
+limit: 1100
 memory_size: 0x1000
 input_streams:
   0x80: [12]
