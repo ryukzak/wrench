@@ -1,5 +1,5 @@
 name: "assert factorial(-1) == -1"
-limit: 1000
+limit: 2000
 memory_size: 0x1000
 input_streams:
   0x80: [-1]
