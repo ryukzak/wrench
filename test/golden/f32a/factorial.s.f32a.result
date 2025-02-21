@@ -1,65 +1,95 @@
 0:	input_addr
 4:	output_addr
-8:	alligment
-136:	_start
-154:	continue
-167:	handler_negative
-180:	handler_overflow
-193:	multiply
-199:	multiply_do
-209:	factorial
-215:	factorial_while
-235:	continue_factorial
-257:	factorial_finish
+8:	tmp_divisor
+12:	tmp_prev
+16:	alligment
+144:	_start
+168:	continue
+181:	handler_negative
+194:	handler_overflow
+207:	multiply
+213:	multiply_do
+223:	divide
+229:	divide_do
+236:	factorial
+242:	factorial_while
+257:	continue_factorial
+297:	continue_factorial2
+320:	continue_factorial3
+331:	factorial_finish
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
-mem[8..135]: 	2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00	@"alligment"
-mem[136..140]: 	FetchP 0 	@_start
-mem[141..141]: 	AStore
-mem[142..142]: 	Fetch
-mem[143..143]: 	Dup
-mem[144..148]: 	MinusIf 154
-mem[149..153]: 	Call 167
-mem[154..158]: 	Call 209 	@continue
-mem[159..163]: 	FetchP 4
-mem[164..164]: 	AStore
-mem[165..165]: 	Store
-mem[166..166]: 	Halt
-mem[167..171]: 	Lit (-1) 	@handler_negative
-mem[172..176]: 	FetchP 4
-mem[177..177]: 	AStore
-mem[178..178]: 	Store
-mem[179..179]: 	Halt
-mem[180..184]: 	Lit (-858993460) 	@handler_overflow
-mem[185..189]: 	FetchP 4
-mem[190..190]: 	AStore
-mem[191..191]: 	Store
-mem[192..192]: 	Halt
-mem[193..197]: 	Lit 31 	@multiply
-mem[198..198]: 	RPush
-mem[199..199]: 	MulStep 	@multiply_do
-mem[200..204]: 	Next 199
-mem[205..205]: 	Drop
-mem[206..206]: 	Drop
-mem[207..207]: 	AFetch
-mem[208..208]: 	Return
-mem[209..213]: 	Lit 1 	@factorial
-mem[214..214]: 	Over
-mem[215..215]: 	Dup 	@factorial_while
-mem[216..220]: 	If 257
-mem[221..221]: 	Dup
-mem[222..222]: 	AStore
-mem[223..223]: 	Over
-mem[224..224]: 	Dup
-mem[225..229]: 	MinusIf 235
-mem[230..234]: 	Call 180
-mem[235..239]: 	Lit 0 	@continue_factorial
-mem[240..244]: 	Call 193
-mem[245..245]: 	Over
-mem[246..250]: 	Lit (-1)
-mem[251..251]: 	Add
-mem[252..256]: 	Jump 215
-mem[257..257]: 	Drop 	@factorial_finish
-mem[258..258]: 	Return
+mem[8..11]: 	00 00 00 00	@"tmp_divisor"
+mem[12..15]: 	01 00 00 00	@"tmp_prev"
+mem[16..143]: 	2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00 2e 00 00 00	@"alligment"
+mem[144..148]: 	Lit 8 	@_start
+mem[149..149]: 	BStore
+mem[150..154]: 	FetchP 0
+mem[155..155]: 	AStore
+mem[156..156]: 	Fetch
+mem[157..157]: 	Dup
+mem[158..162]: 	MinusIf 168
+mem[163..167]: 	Call 181
+mem[168..172]: 	Call 236 	@continue
+mem[173..177]: 	FetchP 4
+mem[178..178]: 	AStore
+mem[179..179]: 	Store
+mem[180..180]: 	Halt
+mem[181..185]: 	Lit (-1) 	@handler_negative
+mem[186..190]: 	FetchP 4
+mem[191..191]: 	AStore
+mem[192..192]: 	Store
+mem[193..193]: 	Halt
+mem[194..198]: 	Lit (-858993460) 	@handler_overflow
+mem[199..203]: 	FetchP 4
+mem[204..204]: 	AStore
+mem[205..205]: 	Store
+mem[206..206]: 	Halt
+mem[207..211]: 	Lit 31 	@multiply
+mem[212..212]: 	RPush
+mem[213..213]: 	MulStep 	@multiply_do
+mem[214..218]: 	Next 213
+mem[219..219]: 	Drop
+mem[220..220]: 	Drop
+mem[221..221]: 	AFetch
+mem[222..222]: 	Return
+mem[223..227]: 	Lit 31 	@divide
+mem[228..228]: 	RPush
+mem[229..229]: 	DivStep 	@divide_do
+mem[230..234]: 	Next 229
+mem[235..235]: 	Return
+mem[236..240]: 	Lit 1 	@factorial
+mem[241..241]: 	Over
+mem[242..242]: 	Dup 	@factorial_while
+mem[243..247]: 	If 331
+mem[248..248]: 	Dup
+mem[249..249]: 	AStore
+mem[250..250]: 	Over
+mem[251..251]: 	Dup
+mem[252..256]: 	StoreP 12
+mem[257..261]: 	Lit 0 	@continue_factorial
+mem[262..266]: 	Call 207
+mem[267..267]: 	AStore
+mem[268..268]: 	StoreB
+mem[269..269]: 	AFetch
+mem[270..270]: 	FetchB
+mem[271..275]: 	Lit 0
+mem[276..280]: 	Lit 0
+mem[281..285]: 	Call 223
+mem[286..286]: 	Over
+mem[287..291]: 	If 297
+mem[292..296]: 	Call 194
+mem[297..301]: 	FetchP 12 	@continue_factorial2
+mem[302..302]: 	Inv
+mem[303..307]: 	Lit 1
+mem[308..308]: 	Add
+mem[309..309]: 	Add
+mem[310..314]: 	If 320
+mem[315..319]: 	Call 194
+mem[320..324]: 	Lit (-1) 	@continue_factorial3
+mem[325..325]: 	Add
+mem[326..330]: 	Jump 242
+mem[331..331]: 	Drop 	@factorial_finish
+mem[332..332]: 	Return
 ---

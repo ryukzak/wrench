@@ -1,6 +1,6 @@
 name: factorial-4
-limit: 500
-memory_size: 0x120
+limit: 2000
+memory_size: 0x240
 input_streams:
   0x80: [4]
   0x84: []
