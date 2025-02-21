@@ -10,9 +10,28 @@ alligment:       .word  '................................'
 
 _start:
     @p input_addr a! @       \ n:[]
+    
+    dup
+    -if continue
 
+    handler_negative
+
+continue:
     factorial
+    @p output_addr a! !
+    halt
 
+    \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+handler_negative:
+    lit -1 
+    @p output_addr a! !
+    halt
+
+    \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+handler_overflow:
+    lit -858993460
     @p output_addr a! !
     halt
 
@@ -23,6 +42,7 @@ multiply:
 multiply_do:
     +*                       \ mres-high:acc-old:n:[]
     \ mres-low in a
+
     next multiply_do
     drop drop a              \ mres-low:n:[] => acc:n:[]
     ;
@@ -38,6 +58,11 @@ factorial_while:
     dup a!                   \ n:acc:[]
 
     over                     \ acc:n:[]
+    dup
+    -if continue_factorial
+    handler_overflow
+
+continue_factorial:
     lit 0                    \ 0:acc:n:[]
 
     multiply
