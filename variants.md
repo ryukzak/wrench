@@ -38,6 +38,8 @@ Variants:
     - [sum_n](#sum_n)
     - [sum_odd_n](#sum_odd_n)
     - [sum_of_digits](#sum_of_digits)
+    - [sum_word_cstream](#sum_word_cstream)
+    - [sum_word_pstream](#sum_word_pstream)
 - String Manipulation
     - [capital_case_cstr](#capital_case_cstr)
     - [capital_case_pstr](#capital_case_pstr)
@@ -59,6 +61,7 @@ Variants:
 
 ```python
 def big_to_little_endian(n):
+    """Convert a 32-bit integer from big-endian to little-endian format"""
     return int.from_bytes(n.to_bytes(4, byteorder="big"), byteorder="little")
 
 
@@ -70,7 +73,14 @@ assert big_to_little_endian(3721182122) == 2864434397
 
 ```python
 def count_leading_zeros(n):
-    """Count the number of leading zeros in the binary representation of an integer"""
+    """Count the number of leading zeros in the binary representation of an integer.
+
+    Args:
+        n (int): The integer to count leading zeros for.
+
+    Returns:
+        int: The number of leading zeros.
+    """
     if n == 0:
         return 32
     count = 0
@@ -109,7 +119,14 @@ assert count_ones(2147483647) == 31
 
 ```python
 def count_trailing_zeros(n):
-    """Count the number of trailing zeros in the binary representation of an integer"""
+    """Count the number of trailing zeros in the binary representation of an integer.
+
+    Args:
+        n (int): The integer to count trailing zeros for.
+
+    Returns:
+        int: The number of trailing zeros.
+    """
     if n == 0:
         return 32
     count = 0
@@ -128,7 +145,7 @@ assert count_trailing_zeros(16) == 4
 
 ```python
 def count_zero(n):
-    """Count the number of zero in the binary representation of a number"""
+    """Count the number of zeros in the binary representation of a number"""
     count = 0
     for _ in range(32):
         count += 0 if n & 1 else 1
@@ -145,7 +162,14 @@ assert count_zero(247923789) == 19
 
 ```python
 def is_binary_palindrome(n):
-    """Check if the 32-bit binary representation of a number is a palindrome"""
+    """Check if the 32-bit binary representation of a number is a palindrome.
+
+    Args:
+        n (int): The integer to check.
+
+    Returns:
+        int: 1 if the binary representation is a palindrome, otherwise 0.
+    """
     binary_str = f"{n:032b}"  # Convert to 32-bit binary string
     res = binary_str == binary_str[::-1]
     return 1 if res else 0
@@ -161,6 +185,7 @@ assert is_binary_palindrome(3221225474) == 0
 
 ```python
 def little_to_big_endian(n):
+    """Convert a 32-bit integer from little-endian to big-endian format"""
     return int.from_bytes(n.to_bytes(4, byteorder="little"), byteorder="big")
 
 
@@ -278,7 +303,7 @@ assert is_prime(293) == 1
 
 ```python
 def sum_even_n(n):
-    """Sum of even numbers from 1 to n"""
+    """Calculate the sum of even numbers from 1 to n"""
     if n <= 0:
         return -1
     total = 0
@@ -297,7 +322,7 @@ assert sum_even_n(90000) == 2025045000
 
 ```python
 def sum_n(n):
-    """Sum of numbers from 1 to n"""
+    """Calculate the sum of numbers from 1 to n"""
     if n <= 0:
         return -1
     total = 0
@@ -314,7 +339,7 @@ assert sum_n(10) == 55
 
 ```python
 def sum_odd_n(n):
-    """Sum of odd numbers from 1 to n"""
+    """Calculate the sum of odd numbers from 1 to n"""
     if n <= 0:
         return -1
     total = 0
@@ -333,7 +358,7 @@ assert sum_odd_n(90000) == 2025000000
 
 ```python
 def sum_of_digits(n):
-    """Sum of the digits of a number"""
+    """Calculate the sum of the digits of a number"""
     total = 0
     n = abs(n)
     while n > 0:
@@ -346,13 +371,75 @@ assert sum_of_digits(123) == 6
 assert sum_of_digits(-456) == 15
 ```
 
+### `sum_word_cstream`
+
+```python
+def sum_word_cstream(*xs):
+    """Input: stream of word (32 bit) in c string style (end with 0).
+
+    Need to sum all numbers and send result in two words (64 bits).
+    """
+    tmp = 0
+    x = 0
+    for x in xs:
+        if x is 0:
+            break
+        tmp += x
+    assert x == 0
+    hw, lw = ((tmp & 0xFFFF_FFFF_0000_0000) >> 32), tmp & 0x0000_0000_FFFF_FFFF
+    return [hw, lw]
+
+
+assert sum_word_cstream([48, 18, 0]) == [0, 66]
+assert sum_word_cstream([1, 0]) == [0, 1]
+assert sum_word_cstream([48, 18, 0, 12, 0]) == [0, 66]
+assert sum_word_cstream([1, 0]) == [0, 1]
+assert sum_word_cstream([2147483647, 1, 0]) == [0, 2147483648]
+assert sum_word_cstream([2147483647, 1, 2147483647, 0]) == [0, 4294967295]
+assert sum_word_cstream([2147483647, 1, 2147483647, 1, 0]) == [1, 0]
+assert sum_word_cstream([2147483647, 1, 2147483647, 2, 0]) == [1, 1]
+```
+
+### `sum_word_pstream`
+
+```python
+def sum_word_pstream(n, *xs):
+    """Input: stream of word (32 bit) in pascal string style (how many words,
+    after that the words itself).
+
+    Need to sum all numbers and send result in two words (64 bits).
+    """
+    tmp = 0
+    for i in range(n):
+        tmp += xs[i]
+    hw, lw = ((tmp & 0xFFFF_FFFF_0000_0000) >> 32), tmp & 0x0000_0000_FFFF_FFFF
+    return [hw, lw]
+
+
+assert sum_word_pstream([2, 48, 18]) == [0, 66]
+assert sum_word_pstream([1, 1]) == [0, 1]
+assert sum_word_pstream([2, 48, 18, 0, 12]) == [0, 66]
+assert sum_word_pstream([2, 48, 18, 12]) == [0, 66]
+assert sum_word_pstream([2, 2147483647, 1, 0]) == [0, 2147483648]
+assert sum_word_pstream([3, 2147483647, 1, 2147483647, 0]) == [0, 4294967295]
+assert sum_word_pstream([4, 2147483647, 1, 2147483647, 1, 0]) == [1, 0]
+assert sum_word_pstream([4, 2147483647, 1, 2147483647, 2, 0]) == [1, 1]
+```
+
 ## String Manipulation
 
 ### `capital_case_cstr`
 
 ```python
 def capital_case_cstr(s):
-    """Convert the first character of each word in a C string to upper case"""
+    """Convert the first character of each word in a C string to upper case.
+
+    Args:
+        s (str): The input C string.
+
+    Returns:
+        tuple: A tuple containing the capitalized string and an empty string.
+    """
     return capital_case_pstr(s)
 
 
@@ -364,7 +451,14 @@ assert capital_case_cstr('python programming') == ('Python Programming', '')
 
 ```python
 def capital_case_pstr(s):
-    """Convert the first character of each word in a Pascal string to upper case"""
+    """Convert the first character of each word in a Pascal string to upper case.
+
+    Args:
+        s (str): The input Pascal string.
+
+    Returns:
+        tuple: A tuple containing the capitalized string and an empty string.
+    """
     return (s.title(), "")
 
 
@@ -379,6 +473,12 @@ def hello_user_cstr(input):
     """Greet the user with C strings.
 
     External behavior is the same as hello_user_pstr.
+
+    Args:
+        input (str): The input string containing the user's name.
+
+    Returns:
+        tuple: A tuple containing the greeting message and the remaining input.
     """
     return hello_user_pstr(input)
 
@@ -391,7 +491,14 @@ assert hello_user_cstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 
 
 ```python
 def hello_user_pstr(input):
-    """Greet the user with Pascal strings."""
+    """Greet the user with Pascal strings.
+
+    Args:
+        input (str): The input string containing the user's name.
+
+    Returns:
+        tuple: A tuple containing the greeting message and the remaining input.
+    """
     input = list(input)
     out = []
     for c in list("What is your name?\n"):
@@ -419,7 +526,14 @@ assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 
 
 ```python
 def reverse_string_cstr(s):
-    """Reverse a C string"""
+    """Reverse a C string.
+
+    Args:
+        s (str): The input C string.
+
+    Returns:
+        tuple: A tuple containing the reversed string and the remaining input.
+    """
     ss = tuple(s.split("\n", 2))
     if len(ss) == 1:
         return reverse_string_pstr(s)
@@ -436,7 +550,14 @@ assert reverse_string_cstr('world') == ('dlrow', '')
 
 ```python
 def reverse_string_pstr(s):
-    """Reverse a Pascal string"""
+    """Reverse a Pascal string.
+
+    Args:
+        s (str): The input Pascal string.
+
+    Returns:
+        tuple: A tuple containing the reversed string and an empty string.
+    """
     return (s[::-1], "")
 
 
@@ -448,7 +569,14 @@ assert reverse_string_pstr('world') == ('dlrow', '')
 
 ```python
 def upper_case_cstr(s):
-    """Convert a C string to upper case"""
+    """Convert a C string to upper case.
+
+    Args:
+        s (str): The input C string.
+
+    Returns:
+        tuple: A tuple containing the upper case string and an empty string.
+    """
     return upper_case_pstr(s)
 
 
@@ -460,7 +588,14 @@ assert upper_case_cstr('world') == ('WORLD', '')
 
 ```python
 def upper_case_pstr(s):
-    """Convert a Pascal string to upper case"""
+    """Convert a Pascal string to upper case.
+
+    Args:
+        s (str): The input Pascal string.
+
+    Returns:
+        tuple: A tuple containing the upper case string and an empty string.
+    """
     return (s.upper(), "")
 
 
