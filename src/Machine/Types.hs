@@ -12,7 +12,7 @@ module Machine.Types (
     RegisterId,
     ByteLength (..),
     WordParts (..),
-    arithmAnd,
+    signBitAnd,
 ) where
 
 import Data.Bits
@@ -67,8 +67,8 @@ instance WordParts Int32 where
             .|. fromIntegral byte3
     wordCombine _ = error "not applicable"
 
-arithmAnd :: (MachineWord w) => w -> w -> w
-arithmAnd x mask
+signBitAnd :: (MachineWord w) => w -> w -> w
+signBitAnd x mask
     | x < 0 = x .|. complement mask
     | otherwise = x .&. mask
 

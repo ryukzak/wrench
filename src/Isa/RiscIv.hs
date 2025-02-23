@@ -21,8 +21,8 @@ import Machine.Types (
     Machine (..),
     StateInterspector (..),
     ViewState (..),
-    arithmAnd,
     fromSign,
+    signBitAnd,
  )
 import Relude
 import Relude.Extra
@@ -388,7 +388,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' + (k `arithmAnd` 0x00000FFF))
+                setReg rd (rs1' + (k `signBitAnd` 0x00000FFF))
                 nextPc
             Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
             Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)
