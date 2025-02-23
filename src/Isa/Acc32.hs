@@ -52,6 +52,8 @@ data Isa w l
       Div l
     | -- | Syntax: @rem <address>@ Compute the remainder of the accumulator divided by a value from a specific address.
       Rem l
+    | -- | Syntax: @clc@ Clear carry flag
+      Clv
     | -- | Syntax: @shiftl <address>@ Shift the accumulator left by a number of bits from a specific address.
       ShiftL l
     | -- | Syntax: @shiftr <address>@ Shift the accumulator right by a number of bits from a specific address.
@@ -74,6 +76,8 @@ data Isa w l
       Bgz l
     | -- | Syntax: @ble <address>@ Jump to a specific address if the accumulator is less than zero.
       Blz l
+    | Bvs l
+    | Bvc l
     | -- | Syntax: @halt@ Halt the machine.
       Halt
     deriving (Show)
@@ -99,6 +103,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , Mul <$> (string "mul" *> hspace1 *> reference16)
                     , Div <$> (string "div" *> hspace1 *> reference16)
                     , Rem <$> (string "rem" *> hspace1 *> reference16)
+                    , string "clv" >> return Clv
                     , ShiftL <$> (string "shiftl" *> hspace1 *> reference16)
                     , ShiftR <$> (string "shiftr" *> hspace1 *> reference16)
                     , And <$> (string "and" *> hspace1 *> reference16)
@@ -110,9 +115,11 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , Bnez <$> (string "bnez" *> hspace1 *> reference)
                     , Bgz <$> (string "bgt" *> hspace1 *> reference)
                     , Blz <$> (string "ble" *> hspace1 *> reference)
+                    , Bvs <$> (string "bvs" *> hspace1 *> reference)
+                    , Bvc <$> (string "bvc" *> hspace1 *> reference)
                     , string "halt" >> return Halt
                     ]
-            reference16 = referenceWithFn (`arithmAnd` 0x0000FFFF)
+            reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i =
@@ -130,6 +137,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Mul l -> Mul (deref' f l)
                 Div l -> Div (deref' f l)
                 Rem l -> Rem (deref' f l)
+                Clv -> Clv
                 ShiftL l -> ShiftL (deref' f l)
                 ShiftR l -> ShiftR (deref' f l)
                 And l -> And (deref' f l)
@@ -140,6 +148,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Bnez l -> Bnez (deref' f l)
                 Bgz l -> Bgz (deref' f l)
                 Blz l -> Blz (deref' f l)
+                Bvs l -> Bvs (deref' f l)
+                Bvc l -> Bvc (deref' f l)
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
 
@@ -153,24 +163,38 @@ instance ByteLength (Isa w l) where
     byteLength Bnez{} = 5
     byteLength Bgz{} = 5
     byteLength Blz{} = 5
+    byteLength Bvs{} = 5
+    byteLength Bvc{} = 5
     byteLength Jmp{} = 5
     byteLength Not = 1
+    byteLength Clv = 1
     byteLength Halt = 1
     byteLength _ = 3
 
 data MachineState mem w = State
     { pc :: Int
     , acc :: w
+    , overflow :: Bool
     , ram :: mem
     , stopped :: Bool
     }
     deriving (Show)
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump = State{acc = 0, ram = dump, stopped = False, pc = pc}
+    initState pc dump =
+        State
+            { acc = 0
+            , overflow = False
+            , ram = dump
+            , stopped = False
+            , pc = pc
+            }
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
+
+setOverflow :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setOverflow overflow = modify $ \st -> st{overflow}
 
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
@@ -195,6 +219,11 @@ getAcc = do
     State{acc} <- get
     return acc
 
+getOverflow :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getOverflow = do
+    State{overflow} <- get
+    return overflow
+
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{acc} =
         fromList
@@ -205,8 +234,9 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{acc} v =
+    reprState labels st@State{acc, overflow} v =
         case T.splitOn ":" v of
+            ["V"] -> if overflow then "1" else "0"
             [r] -> reprState labels st (r <> ":dec")
             ["Acc", f] -> viewRegister f acc
             [r, _] -> unknownView r
@@ -246,11 +276,12 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setWord (fromEnum addr) acc
                 nextPc
             Store a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
-            Add a -> withAcc (+) a
-            Sub a -> withAcc (-) a
-            Mul a -> withAcc (*) a
+            Add a -> withOverflow addWithOverflow a
+            Sub a -> withOverflow subWithOverflow a
+            Mul a -> withOverflow mulWithOverflow a
             Div a -> withAcc div a
             Rem a -> withAcc rem a
+            Clv -> setOverflow False >> nextPc
             ShiftL a -> withAcc (\x y -> shiftL x (fromEnum y)) a
             ShiftR a -> withAcc (\x y -> shiftR x (fromEnum y)) a
             And a -> withAcc (.&.) a
@@ -262,8 +293,17 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Bnez a -> condJmp (/= 0) a
             Bgz a -> condJmp (> 0) a
             Blz a -> condJmp (< 0) a
+            Bvs a -> getOverflow >>= \overflow -> if overflow then setPc (fromEnum a) else nextPc
+            Bvc a -> getOverflow >>= \overflow -> if not overflow then setPc (fromEnum a) else nextPc
             Halt -> modify $ \st -> st{stopped = True}
         where
+            withOverflow f addr = do
+                acc <- getAcc
+                value <- getWord $ fromEnum addr
+                let (result, overflow) = f acc value
+                setAcc result
+                setOverflow overflow
+                nextPc
             withAcc f addr = do
                 acc <- getAcc
                 value <- getWord $ fromEnum addr

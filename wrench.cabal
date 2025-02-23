@@ -251,6 +251,7 @@ test-suite wrench-test
   main-is: Spec.hs
   other-modules:
       Isa.RiscIv.Test
+      Machine.Types.Test
       Report.Test
       Paths_wrench
   autogen-modules:

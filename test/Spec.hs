@@ -7,6 +7,7 @@ import Isa.RiscIv qualified as RiscIv
 import Isa.RiscIv.Test qualified
 import Machine.Memory
 import Machine.Types
+import Machine.Types.Test qualified
 import Relude
 import Report.Test qualified
 import System.FilePath
@@ -35,6 +36,7 @@ tests =
             , goldenConfig "test/golden/config/smoke.yaml"
             ]
         , testGroup "Report" [Report.Test.tests]
+        , testGroup "Machine.Types" [Machine.Types.Test.tests]
         , testGroup
             "RiscIv IV 32"
             [ testGroup
@@ -110,6 +112,7 @@ tests =
             , testGroup
                 "Acc32"
                 [ goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
+                , goldenSimulate Acc32 "test/golden/acc32/overflow.s" "test/golden/acc32/overflow.yaml"
                 ]
             , testGroup
                 "Generated tests"

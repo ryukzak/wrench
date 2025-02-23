@@ -1,0 +1,8 @@
+---
+# Step-by-step
+12:	Load (-12)	@_start Acc: 0 Overflow: 0
+15:	Add 4	 Acc: 2147483647 Overflow: 0
+18:	Bvs 24	 Acc: -2147483648 Overflow: 1
+24:	Clv	@clean_overflow Acc: -2147483648 Overflow: 1
+25:	Add 8	 Acc: -2147483648 Overflow: 0
+28:	Halt	 Acc: 2147483647 Overflow: 1

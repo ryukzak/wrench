@@ -13,6 +13,9 @@ module Machine.Types (
     ByteLength (..),
     WordParts (..),
     signBitAnd,
+    addWithOverflow,
+    subWithOverflow,
+    mulWithOverflow,
 ) where
 
 import Data.Bits
@@ -71,6 +74,24 @@ signBitAnd :: (MachineWord w) => w -> w -> w
 signBitAnd x mask
     | x < 0 = x .|. complement mask
     | otherwise = x .&. mask
+
+addWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
+addWithOverflow x y =
+    let result = x + y
+        overflow = ((x > 0 && y > 0 && result < 0) || (x < 0 && y < 0 && result > 0))
+     in (result, overflow)
+
+subWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
+subWithOverflow x y =
+    let result = x - y
+        overflow = ((x > 0 && y < 0 && result < 0) || (x < 0 && y > 0 && result > 0))
+     in (result, overflow)
+
+mulWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
+mulWithOverflow x y =
+    let result = x * y
+        overflow = (x /= 0 && y /= 0 && result `div` x /= y)
+     in (result, overflow)
 
 class ByteLength t where
     byteLength :: t -> Int

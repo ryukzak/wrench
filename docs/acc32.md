@@ -4,6 +4,11 @@ The Acc32 ISA is a simple accumulator-based instruction set designed for educati
 
 Comments in Acc32 assembly code are denoted by the `;` character.
 
+## ISA Specific State Views
+
+- `Acc:dec`, `Acc:hex` -- `Acc` register.
+- `V` -- Overflow flag.
+
 ## Instructions
 
 Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand for relative. Control flow, Load/Store Immidiate/Indirect/Addr use absolute address, other -- relative.
@@ -72,6 +77,11 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Description:** Compute the remainder of the accumulator divided by a value from a specific address.
     - **Operation:** `acc <- acc % mem[<address>]`
 
+- **Clear Overflow**
+    - **Syntax:** `clv`
+    - **Description:** Clear the overflow flag.
+    - **Operation:** `overflow <- 0`
+
 ### Bitwise Instructions
 
 - **Shift Left**
@@ -131,10 +141,16 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Description:** Jump to a specific address if the accumulator is less than zero.
     - **Operation:** `if acc < 0 then pc <- <address>`
 
+- **Branch if Overflow Set**
+    - **Syntax:** `bvs <address>`
+    - **Description:** Jump to a specific address if the overflow flag is set.
+    - **Operation:** `if overflow == 1 then pc <- <address>`
+
+- **Branch if Overflow Clear**
+    - **Syntax:** `bsc <address>`
+    - **Description:** Jump to a specific address if the overflow flag is clear.
+    - **Operation:** `if overflow == 0 then pc <- <address>`
+
 - **Halt**
     - **Syntax:** `halt`
     - **Description:** Halt the machine.
-
-## ISA Specific State Views
-
-- `Acc:dec`, `Acc:hex` -- `Acc` register.
