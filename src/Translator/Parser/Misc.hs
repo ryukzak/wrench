@@ -17,6 +17,7 @@ module Translator.Parser.Misc (
 ) where
 
 import Data.Bits
+import Data.Text qualified as T
 import Relude
 import Relude.Unsafe (read)
 import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single)
@@ -24,18 +25,23 @@ import Text.Megaparsec.Char (char, digitChar, eol, hexDigitChar, hspace, letterC
 import Translator.Parser.Types
 import Translator.Types
 
+removeUnderscores :: String -> String
+removeUnderscores = toString . T.replace "_" "" . toText
+
 num :: Parser String
-num =
-    choice
-        [ char '-' >> many digitChar <&> (:) '-'
-        , many digitChar
-        ]
+num = do
+    s <-
+        choice
+            [ char '-' >> many (digitChar <|> char '_') <&> (:) '-'
+            , many (digitChar <|> char '_')
+            ]
+    return $ removeUnderscores s
 
 hexNum :: Parser String
 hexNum = do
     void $ string "0x"
-    digits <- many hexDigitChar
-    return $ "0x" <> digits
+    digits <- many (hexDigitChar <|> char '_')
+    return $ "0x" <> removeUnderscores digits
 
 eol' cstart = hspace >> void (eol <|> comment cstart)
 
