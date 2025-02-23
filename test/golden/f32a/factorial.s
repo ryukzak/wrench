@@ -14,7 +14,7 @@ _start:
     lit tmp_divisor
     b!
     @p input_addr a! @       \ n:[]
-    
+
     dup
     -if continue
 
@@ -28,7 +28,7 @@ continue:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 handler_negative:
-    lit -1 
+    lit -1
     @p output_addr a! !
     halt
 
@@ -89,7 +89,7 @@ continue_factorial:
 
 continue_factorial2:
     @p tmp_prev              \ prev_acc:quot:n:acc[]
-    
+
     inv lit 1 + +            \ quot-prev_acc:n:acc[]
 
     if continue_factorial3
