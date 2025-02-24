@@ -1,9 +1,12 @@
 0:	input_addr
 4:	output_addr
 8:	_start
-24:	factorial_begin
-28:	factorial_while
-44:	factorial_end
+28:	factorial_begin
+32:	factorial_while
+56:	check_overflow
+84:	negative_case
+108:	factorial_end
+124:	exit
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -11,14 +14,30 @@ mem[8..11]: 	Lui {rd = T0, k = 0} 	@_start
 mem[12..15]: 	Addi {rd = T0, rs1 = T0, k = 0}
 mem[16..19]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[20..23]: 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[24..27]: 	Addi {rd = T2, rs1 = Zero, k = 1} 	@factorial_begin
-mem[28..31]: 	Beqz {rs1 = T1, k = 16} 	@factorial_while
-mem[32..35]: 	Mul {rd = T2, rs1 = T2, rs2 = T1}
-mem[36..39]: 	Addi {rd = T1, rs1 = T1, k = -1}
-mem[40..43]: 	J {k = -12}
-mem[44..47]: 	Lui {rd = T0, k = 0} 	@factorial_end
-mem[48..51]: 	Addi {rd = T0, rs1 = T0, k = 4}
-mem[52..55]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[56..59]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[60..63]: 	Halt
+mem[24..27]: 	Bgt {rs1 = Zero, rs2 = T1, k = 60}
+mem[28..31]: 	Addi {rd = T2, rs1 = Zero, k = 1} 	@factorial_begin
+mem[32..35]: 	Beqz {rs1 = T1, k = 76} 	@factorial_while
+mem[36..39]: 	Mulh {rd = T3, rs1 = T2, rs2 = T1}
+mem[40..43]: 	Bnez {rs1 = T3, k = 16}
+mem[44..47]: 	Mul {rd = T2, rs1 = T2, rs2 = T1}
+mem[48..51]: 	Addi {rd = T1, rs1 = T1, k = -1}
+mem[52..55]: 	J {k = -20}
+mem[56..59]: 	Lui {rd = T0, k = 0} 	@check_overflow
+mem[60..63]: 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[64..67]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[68..71]: 	Lui {rd = T4, k = 838860}
+mem[72..75]: 	Addi {rd = T4, rs1 = T4, k = 3276}
+mem[76..79]: 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[80..83]: 	J {k = 44}
+mem[84..87]: 	Lui {rd = T0, k = 0} 	@negative_case
+mem[88..91]: 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[92..95]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[96..99]: 	Addi {rd = T4, rs1 = Zero, k = -1}
+mem[100..103]: 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[104..107]: 	J {k = 20}
+mem[108..111]: 	Lui {rd = T0, k = 0} 	@factorial_end
+mem[112..115]: 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[116..119]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[120..123]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[124..127]: 	Halt 	@exit
 ---
