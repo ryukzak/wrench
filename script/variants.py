@@ -1393,4 +1393,4 @@ if __name__ == "__main__":
     print("Generate variant tests")
     generate_wrench_variant_test_cases("variants")
 
-    generate_variants(350, "variants.csv")
+    generate_variants(375, "variants.csv")
