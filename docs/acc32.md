@@ -12,7 +12,7 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
-Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand for relative. Control flow, Load/Store Immidiate/Indirect/Addr use absolute address, other -- relative.
+Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand for relative. Control flow, Load/Store Immediate/Indirect/Addr use absolute address, other -- relative.
 
 ### Data Movement Instructions
 
@@ -148,9 +148,19 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Operation:** `if overflow == 1 then pc <- <address>`
 
 - **Branch if Overflow Clear**
-    - **Syntax:** `bsc <address>`
+    - **Syntax:** `bvc <address>`
     - **Description:** Jump to a specific address if the overflow flag is clear.
     - **Operation:** `if overflow == 0 then pc <- <address>`
+
+- **Branch if Carry Set**
+    - **Syntax:** `bcs <address>`
+    - **Description:** Jump to a specific address if the carry flag is set.
+    - **Operation:** `if carry == 1 then pc <- <address>`
+
+- **Branch if Carry Clear**
+    - **Syntax:** `bcc <address>`
+    - **Description:** Jump to a specific address if the carry flag is clear.
+    - **Operation:** `if carry == 0 then pc <- <address>`
 
 - **Halt**
     - **Syntax:** `halt`
