@@ -117,7 +117,7 @@ tests =
                 ]
             , testGroup
                 "Generated tests"
-                [ generatedTest Acc32 "factorial" 6
+                [ generatedTest Acc32 "factorial" 11
                 , generatedTest Acc32 "get_put_char" 12
                 , generatedTest Acc32 "hello" 1
                 , generatedTest Acc32 "logical_not" 2
