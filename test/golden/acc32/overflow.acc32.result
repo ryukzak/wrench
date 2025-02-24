@@ -1,8 +1,14 @@
 ---
 # Step-by-step
-12:	Load (-12)	@_start Acc: 0 Overflow: 0
-15:	Add 4	 Acc: 2147483647 Overflow: 0
-18:	Bvs 24	 Acc: -2147483648 Overflow: 1
-24:	Clv	@clean_overflow Acc: -2147483648 Overflow: 1
-25:	Add 8	 Acc: -2147483648 Overflow: 0
-28:	Halt	 Acc: 2147483647 Overflow: 1
+16:	Load (-16)	@_start Acc: 0 Overflow: 0 Carry: 0
+19:	Add 8	 Acc: 2147483647 Overflow: 0 Carry: 0
+22:	Bvs 28	 Acc: -2147483648 Overflow: 1 Carry: 0
+28:	Clv	@clean_overflow Acc: -2147483648 Overflow: 1 Carry: 0
+29:	Add 12	 Acc: -2147483648 Overflow: 0 Carry: 0
+32:	Clv	 Acc: 2147483647 Overflow: 1 Carry: 1
+33:	Clc	 Acc: 2147483647 Overflow: 0 Carry: 1
+34:	Load (-30)	 Acc: 2147483647 Overflow: 0 Carry: 0
+37:	Add 8	 Acc: -1 Overflow: 0 Carry: 0
+40:	Bcs 46	 Acc: 0 Overflow: 0 Carry: 1
+46:	Clc	@clean_carry Acc: 0 Overflow: 0 Carry: 1
+47:	Halt	 Acc: 0 Overflow: 0 Carry: 0

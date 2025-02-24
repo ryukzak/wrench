@@ -5,4 +5,4 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction}	{pc:label} Acc: {Acc} Overflow: {V}
+      {pc}:	{instruction}	{pc:label} Acc: {Acc} Overflow: {V} Carry: {C}

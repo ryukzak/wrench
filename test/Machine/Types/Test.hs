@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-overflowed-literals #-}
+
 module Machine.Types.Test (tests) where
 
 import Machine.Types
@@ -9,22 +11,24 @@ tests :: TestTree
 tests =
     testGroup
         "Machine.Types"
-        [ testCase "addWithOverflow: 1 + 1 = 2, no overflow" $ do
-            (1 :: Int32) `addWithOverflow` 1 @?= (2, False)
-        , testCase "addWithOverflow: maxBound + 1 = minBound, overflow" $ do
-            (maxBound :: Int32) `addWithOverflow` 1 @?= (minBound, True)
-        , testCase "addWithOverflow: maxBound + maxBound = -2, overflow" $ do
-            (maxBound :: Int32) `addWithOverflow` maxBound @?= (-2, True)
-        , testCase "subWithOverflow: 1 - 1 = 0, no overflow" $ do
-            (1 :: Int32) `subWithOverflow` 1 @?= (0, False)
-        , testCase "subWithOverflow: minBound - 1 = maxBound, overflow" $ do
-            (minBound :: Int32) `subWithOverflow` 1 @?= (maxBound, True)
-        , testCase "subWithOverflow: minBound - maxBound = 1, overflow" $ do
-            (minBound :: Int32) `subWithOverflow` maxBound @?= (1, True)
-        , testCase "mulWithOverflow: 2 * 3 = 6, no overflow" $ do
-            (2 :: Int32) `mulWithOverflow` 3 @?= (6, False)
-        , testCase "mulWithOverflow: maxBound * 2 = -2, overflow" $ do
-            (maxBound :: Int32) `mulWithOverflow` 2 @?= (-2, True)
-        , testCase "mulWithOverflow: maxBound * maxBound = 1, overflow" $ do
-            (maxBound :: Int32) `mulWithOverflow` maxBound @?= (1, True)
+        [ testCase "addExt: 1 + 1 = 2, no overflow, no carry" $ do
+            addExt (1 :: Int32) 1 @?= Ext{value = 2, overflow = False, carry = False}
+        , testCase "addExt: maxBound + 1 = minBound, overflow, carry" $ do
+            addExt (maxBound :: Int32) 1 @?= Ext{value = minBound, overflow = True, carry = False}
+        , testCase "addExt: maxBound + maxBound = -2, overflow, carry" $ do
+            addExt (maxBound :: Int32) maxBound @?= Ext{value = -2, overflow = True, carry = False}
+        , testCase "addExt: 0xFFFFFFFF + 1, overflow, carry" $ do
+            addExt (0xFFFFFFFF :: Int32) 1 @?= Ext{value = 0, overflow = False, carry = True}
+        , testCase "subExt: 1 - 1 = 0, no overflow, no carry" $ do
+            subExt (1 :: Int32) 1 @?= Ext{value = 0, overflow = False, carry = False}
+        , testCase "subExt: minBound - 1 = maxBound, overflow, carry" $ do
+            subExt (minBound :: Int32) 1 @?= Ext{value = maxBound, overflow = True, carry = False}
+        , testCase "subExt: minBound - maxBound = 1, overflow, carry" $ do
+            subExt (minBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = False}
+        , testCase "mulExt: 2 * 3 = 6, no overflow, no carry" $ do
+            mulExt (2 :: Int32) 3 @?= Ext{value = 6, overflow = False, carry = False}
+        , testCase "mulExt: maxBound * 2 = -2, overflow, carry" $ do
+            mulExt (maxBound :: Int32) 2 @?= Ext{value = -2, overflow = True, carry = False}
+        , testCase "mulExt: maxBound * maxBound = 1, overflow, carry" $ do
+            mulExt (maxBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = False}
         ]

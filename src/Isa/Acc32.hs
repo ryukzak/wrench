@@ -54,6 +54,8 @@ data Isa w l
       Rem l
     | -- | Syntax: @clc@ Clear carry flag
       Clv
+    | -- | Syntax: @clc@ Clear carry flag
+      Clc
     | -- | Syntax: @shiftl <address>@ Shift the accumulator left by a number of bits from a specific address.
       ShiftL l
     | -- | Syntax: @shiftr <address>@ Shift the accumulator right by a number of bits from a specific address.
@@ -78,6 +80,8 @@ data Isa w l
       Blz l
     | Bvs l
     | Bvc l
+    | Bcs l
+    | Bcc l
     | -- | Syntax: @halt@ Halt the machine.
       Halt
     deriving (Show)
@@ -104,6 +108,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , Div <$> (string "div" *> hspace1 *> reference16)
                     , Rem <$> (string "rem" *> hspace1 *> reference16)
                     , string "clv" >> return Clv
+                    , string "clc" >> return Clc
                     , ShiftL <$> (string "shiftl" *> hspace1 *> reference16)
                     , ShiftR <$> (string "shiftr" *> hspace1 *> reference16)
                     , And <$> (string "and" *> hspace1 *> reference16)
@@ -117,6 +122,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , Blz <$> (string "ble" *> hspace1 *> reference)
                     , Bvs <$> (string "bvs" *> hspace1 *> reference)
                     , Bvc <$> (string "bvc" *> hspace1 *> reference)
+                    , Bcs <$> (string "bcs" *> hspace1 *> reference)
+                    , Bcc <$> (string "bcc" *> hspace1 *> reference)
                     , string "halt" >> return Halt
                     ]
             reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
@@ -138,6 +145,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Div l -> Div (deref' f l)
                 Rem l -> Rem (deref' f l)
                 Clv -> Clv
+                Clc -> Clc
                 ShiftL l -> ShiftL (deref' f l)
                 ShiftR l -> ShiftR (deref' f l)
                 And l -> And (deref' f l)
@@ -150,6 +158,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Blz l -> Blz (deref' f l)
                 Bvs l -> Bvs (deref' f l)
                 Bvc l -> Bvc (deref' f l)
+                Bcs l -> Bcs (deref' f l)
+                Bcc l -> Bcc (deref' f l)
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
 
@@ -165,16 +175,20 @@ instance ByteLength (Isa w l) where
     byteLength Blz{} = 5
     byteLength Bvs{} = 5
     byteLength Bvc{} = 5
+    byteLength Bcs{} = 5
+    byteLength Bcc{} = 5
     byteLength Jmp{} = 5
     byteLength Not = 1
     byteLength Clv = 1
+    byteLength Clc = 1
     byteLength Halt = 1
     byteLength _ = 3
 
 data MachineState mem w = State
     { pc :: Int
     , acc :: w
-    , overflow :: Bool
+    , overflowFlag :: Bool
+    , carryFlag :: Bool
     , ram :: mem
     , stopped :: Bool
     }
@@ -184,7 +198,8 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
     initState pc dump =
         State
             { acc = 0
-            , overflow = False
+            , overflowFlag = False
+            , carryFlag = False
             , ram = dump
             , stopped = False
             , pc = pc
@@ -193,8 +208,11 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-setOverflow :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
-setOverflow overflow = modify $ \st -> st{overflow}
+setOverflowFlag :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setOverflowFlag overflowFlag = modify $ \st -> st{overflowFlag}
+
+setCarryFlag :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
@@ -215,14 +233,13 @@ setWord addr w = do
 setAcc w = modify $ \st -> st{acc = w}
 
 getAcc :: State (MachineState (IoMem (Isa w w) w) w) w
-getAcc = do
-    State{acc} <- get
-    return acc
+getAcc = acc <$> get
 
-getOverflow :: State (MachineState (IoMem (Isa w w) w) w) Bool
-getOverflow = do
-    State{overflow} <- get
-    return overflow
+getOverflowFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getOverflowFlag = overflowFlag <$> get
+
+getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getCarryFlag = carryFlag <$> get
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
     registers State{acc} =
@@ -234,9 +251,10 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{acc, overflow} v =
+    reprState labels st@State{acc, overflowFlag, carryFlag} v =
         case T.splitOn ":" v of
-            ["V"] -> if overflow then "1" else "0"
+            ["V"] -> if overflowFlag then "1" else "0"
+            ["C"] -> if carryFlag then "1" else "0"
             [r] -> reprState labels st (r <> ":dec")
             ["Acc", f] -> viewRegister f acc
             [r, _] -> unknownView r
@@ -276,12 +294,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setWord (fromEnum addr) acc
                 nextPc
             Store a -> getAcc >>= setWord (fromEnum (pc + fromEnum a)) >> nextPc
-            Add a -> withOverflow addWithOverflow a
-            Sub a -> withOverflow subWithOverflow a
-            Mul a -> withOverflow mulWithOverflow a
+            Add a -> withExt addExt a
+            Sub a -> withExt subExt a
+            Mul a -> withExt mulExt a
             Div a -> withAcc div a
             Rem a -> withAcc rem a
-            Clv -> setOverflow False >> nextPc
+            Clv -> setOverflowFlag False >> nextPc
+            Clc -> setCarryFlag False >> nextPc
             ShiftL a -> withAcc (\x y -> shiftL x (fromEnum y)) a
             ShiftR a -> withAcc (\x y -> shiftR x (fromEnum y)) a
             And a -> withAcc (.&.) a
@@ -293,16 +312,19 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Bnez a -> condJmp (/= 0) a
             Bgz a -> condJmp (> 0) a
             Blz a -> condJmp (< 0) a
-            Bvs a -> getOverflow >>= \overflow -> if overflow then setPc (fromEnum a) else nextPc
-            Bvc a -> getOverflow >>= \overflow -> if not overflow then setPc (fromEnum a) else nextPc
+            Bvs a -> getOverflowFlag >>= \overflow -> if overflow then setPc (fromEnum a) else nextPc
+            Bvc a -> getOverflowFlag >>= \overflow -> if not overflow then setPc (fromEnum a) else nextPc
+            Bcs a -> getCarryFlag >>= \carry -> if carry then setPc (fromEnum a) else nextPc
+            Bcc a -> getCarryFlag >>= \carry -> if not carry then setPc (fromEnum a) else nextPc
             Halt -> modify $ \st -> st{stopped = True}
         where
-            withOverflow f addr = do
+            withExt f addr = do
                 acc <- getAcc
                 value <- getWord $ fromEnum addr
-                let (result, overflow) = f acc value
+                let Ext{value = result, overflow, carry} = f acc value
                 setAcc result
-                setOverflow overflow
+                setOverflowFlag overflow
+                setCarryFlag carry
                 nextPc
             withAcc f addr = do
                 acc <- getAcc

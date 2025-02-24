@@ -13,9 +13,10 @@ module Machine.Types (
     ByteLength (..),
     WordParts (..),
     signBitAnd,
-    addWithOverflow,
-    subWithOverflow,
-    mulWithOverflow,
+    Ext (..),
+    addExt,
+    subExt,
+    mulExt,
 ) where
 
 import Data.Bits
@@ -26,6 +27,7 @@ import Relude
 
 type MachineWord w =
     ( Bits w
+    , FiniteBits w
     , ByteLength w
     , Default w
     , Enum w
@@ -39,11 +41,12 @@ type MachineWord w =
     , Show w
     , WordParts w
     , Integral w
+    , FromSign w
     )
 
 type RegisterId r = (Hashable r, Show r, Read r)
 
-class FromSign w where
+class (Bits (Unsign w), Integral (Unsign w), Show (Unsign w)) => FromSign w where
     type Unsign w :: Type
     fromSign :: w -> Unsign w
 
@@ -75,23 +78,29 @@ signBitAnd x mask
     | x < 0 = x .|. complement mask
     | otherwise = x .&. mask
 
-addWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
-addWithOverflow x y =
+data Ext a = Ext {value :: a, overflow :: Bool, carry :: Bool}
+    deriving (Eq, Show)
+
+addExt :: (MachineWord w) => w -> w -> Ext w
+addExt x y =
     let result = x + y
         overflow = ((x > 0 && y > 0 && result < 0) || (x < 0 && y < 0 && result > 0))
-     in (result, overflow)
+        carry = testBit (toInteger (fromSign x) + toInteger (fromSign y)) (finiteBitSize x)
+     in Ext{value = result, overflow, carry}
 
-subWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
-subWithOverflow x y =
+subExt :: (MachineWord w) => w -> w -> Ext w
+subExt x y =
     let result = x - y
         overflow = ((x > 0 && y < 0 && result < 0) || (x < 0 && y > 0 && result > 0))
-     in (result, overflow)
+        carry = False
+     in Ext{value = result, overflow, carry}
 
-mulWithOverflow :: (MachineWord w) => w -> w -> (w, Bool)
-mulWithOverflow x y =
+mulExt :: (MachineWord w) => w -> w -> Ext w
+mulExt x y =
     let result = x * y
         overflow = (x /= 0 && y /= 0 && result `div` x /= y)
-     in (result, overflow)
+        carry = (fromIntegral x * fromIntegral y) > (maxBound :: Word)
+     in Ext{value = result, overflow, carry}
 
 class ByteLength t where
     byteLength :: t -> Int

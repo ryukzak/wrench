@@ -8,6 +8,7 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 - `Acc:dec`, `Acc:hex` -- `Acc` register.
 - `V` -- Overflow flag.
+- `C` -- Carry flag.
 
 ## Instructions
 
@@ -55,17 +56,17 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 - **Add**
     - **Syntax:** `add <address>`
     - **Description:** Add a value from a specific address to the accumulator.
-    - **Operation:** `acc <- acc + mem[<address>]`
+    - **Operation:** `acc <- acc + mem[<address>]` and set `C` and `V` flags.
 
 - **Subtract**
     - **Syntax:** `sub <address>`
     - **Description:** Subtract a value from a specific address from the accumulator.
-    - **Operation:** `acc <- acc - mem[<address>]`
+    - **Operation:** `acc <- acc - mem[<address>]` and set `V` flags.
 
 - **Multiply**
     - **Syntax:** `mul <address>`
     - **Description:** Multiply the accumulator by a value from a specific address.
-    - **Operation:** `acc <- acc * mem[<address>]`
+    - **Operation:** `acc <- acc * mem[<address>]` and set `V` flags.
 
 - **Divide**
     - **Syntax:** `div <address>`
