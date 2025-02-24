@@ -8,15 +8,22 @@
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      body,
+      h1,
+      label,
       textarea,
       input[type="text"],
-      select {
-        font-size: 0.875rem; /* Smaller font size */
-      }
-      textarea {
-        min-height: 20rem; /* Expand to avoid scrolling */
+      select,
+      a {
         font-family:
+          "Anonymous Pro",
           Consolas,
           Monaco,
           Lucida Console,
@@ -25,6 +32,14 @@
           Bitstream Vera Sans Mono,
           Courier New,
           monospace;
+      }
+      textarea,
+      input[type="text"],
+      select {
+        font-size: 0.875rem; /* Smaller font size */
+      }
+      textarea {
+        min-height: 20rem; /* Expand to avoid scrolling */
       }
       #comment {
         min-height: 5rem; /* Smaller height for comment section */
@@ -53,6 +68,28 @@
   <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-6xl">
       <h1 class="text-2xl font-bold mb-6 text-center">Wrench Submit</h1>
+      <div class="mb-6 text-center">
+        <a
+          href="https://github.com/ryukzak/wrench"
+          class="text-indigo-600 hover:underline"
+          target="_blank"
+          >GitHub</a
+        >
+        |
+        <a
+          href="https://github.com/ryukzak/wrench/tree/master/docs"
+          class="text-indigo-600 hover:underline"
+          target="_blank"
+          >ISA Doc</a
+        >
+        |
+        <a
+          href="https://github.com/ryukzak/wrench/blob/master/variants.md"
+          class="text-indigo-600 hover:underline"
+          target="_blank"
+          >Variants</a
+        >
+      </div>
       <form
         action="/submit"
         method="post"
