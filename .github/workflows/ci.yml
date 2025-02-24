@@ -69,6 +69,13 @@ jobs:
                   files: .
                   config_file: .markdownlint.yaml
 
+    is-variants-and-tests-actual:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - run: python script/variants.py
+            - run: git diff --exit-code
+
     build-binaries:
         needs:
             - wrench
