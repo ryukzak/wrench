@@ -1,0 +1,6 @@
+0:	_start
+5:	halt
+---
+mem[0..4]: 	Jmp 5 	@_start
+mem[5..5]: 	Halt 	@halt
+---

@@ -20,7 +20,7 @@ import Data.Bits
 import Data.Text qualified as T
 import Relude
 import Relude.Unsafe (read)
-import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single)
+import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single, try)
 import Text.Megaparsec.Char (char, digitChar, eol, hexDigitChar, hspace, letterChar, string)
 import Translator.Parser.Types
 import Translator.Types
@@ -60,7 +60,7 @@ nothing :: (Monad m) => m a -> m (Maybe b)
 nothing p = p >> return Nothing
 
 label :: Parser String
-label = do
+label = try $ do
     n <- name
     void $ single ':'
     return n

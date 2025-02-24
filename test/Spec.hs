@@ -108,6 +108,7 @@ tests =
                 , goldenTranslate Acc32 "test/golden/acc32/factorial.s"
                 , goldenTranslate Acc32 "test/golden/acc32/all.s"
                 , goldenTranslate Acc32 "test/golden/acc32/relative.s"
+                , goldenTranslate Acc32 "test/golden/acc32/label_like_instr.s"
                 ]
             , testGroup
                 "Acc32"

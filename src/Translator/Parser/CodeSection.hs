@@ -19,7 +19,7 @@ codeSection cstart = do
         <$> many
             ( choice
                 [ nothing (hspace1 <|> eol' cstart)
-                , Just . Mnemonic <$> mnemonic
                 , Just . Label <$> label
+                , Just . Mnemonic <$> mnemonic
                 ]
             )
