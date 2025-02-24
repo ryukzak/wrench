@@ -11,7 +11,7 @@ HS_SRC_DIR = .
 build:
 	stack build --copy-bins
 
-server: build
+server-run: build
 	stack exec wrench-serv
 
 build-image-local:

@@ -8,6 +8,7 @@ module Main (main) where
 
 import Data.List.Split
 import Data.Text (isSuffixOf, replace)
+import Data.Text qualified as T
 import Data.Time
 import Data.UUID.V4 (nextRandom)
 import Lucid (Html, toHtmlRaw)
@@ -45,6 +46,7 @@ data Config = Config
     , cWrenchArgs :: [String]
     , cStoragePath :: FilePath
     , cVariantsPath :: FilePath
+    , cLogLimit :: Int
     }
     deriving (Show)
 
@@ -55,7 +57,8 @@ main = do
     (cWrenchPath : cWrenchArgs) <- maybe ["stack", "exec", "wrench", "--"] (splitOn " ") <$> lookupEnv "WRENCH_EXEC"
     cStoragePath <- fromMaybe "uploads" <$> lookupEnv "STORAGE_PATH"
     cVariantsPath <- fromMaybe "variants" <$> lookupEnv "VARIANTS"
-    let conf = Config{cPort, cWrenchPath, cWrenchArgs, cStoragePath, cVariantsPath}
+    cLogLimit <- maybe 10000 Unsafe.read <$> lookupEnv "LOG_LIMIT"
+    let conf = Config{cPort, cWrenchPath, cWrenchArgs, cStoragePath, cVariantsPath, cLogLimit}
     print conf
     putStrLn $ "Starting server on port " <> show cPort
     run cPort (logStdoutDev $ app conf)
@@ -88,7 +91,7 @@ listVariants path = do
     filterM (doesDirectoryExist . (path </>)) contents
 
 submitForm :: Config -> SubmitForm -> Handler (Headers '[Header "Location" String] NoContent)
-submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config, comment, variant, isa} = do
+submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, asm, config, comment, variant, isa} = do
     guid <- liftIO nextRandom
     let dir = cStoragePath <> "/" <> show guid
 
@@ -109,7 +112,12 @@ submitForm conf@Config{cStoragePath, cVariantsPath} SubmitForm{name, asm, config
         $ writeFile
             (dir <> "/status.log")
             ("$ date\n" <> show currentTime <> "\n$ wrench --version\n" <> version <> "\n" <> show exitCode <> "\n" <> stderr_)
-    liftIO $ writeFile (dir <> "/result.log") stdout_
+    let stdoutText = toText stdout_
+        stdoutText' =
+            if T.length stdoutText > cLogLimit
+                then "LOG TOO LONG, CROPPED\n\n" <> T.drop (T.length stdoutText - cLogLimit) stdoutText
+                else toText stdout_
+    liftIO $ writeFileText (dir <> "/result.log") stdoutText'
 
     (_exitCode, stdoutDump, _stderrDump) <- liftIO $ dumpOutput isa conf asmFile
     liftIO $ writeFile (dir <> "/dump.log") stdoutDump
