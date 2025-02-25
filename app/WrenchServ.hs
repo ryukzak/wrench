@@ -9,9 +9,11 @@ module Main (main) where
 import Data.List.Split
 import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TLE
 import Data.Time
 import Data.UUID.V4 (nextRandom)
-import Lucid (Html, toHtmlRaw)
+import Lucid (Html, toHtmlRaw, toHtml, renderText)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Relude
@@ -179,6 +181,9 @@ maybeReadFile path = do
         True -> Just . decodeUtf8 <$> readFileBS path
         False -> return Nothing
 
+escapeHtml :: Text -> Text
+escapeHtml = TL.toStrict . renderText . toHtml
+
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do
     let dir = cStoragePath <> "/" <> guid
@@ -197,16 +202,16 @@ resultPage Config{cStoragePath} guid = do
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
     let renderTemplate =
-            replace "{{name}}" nameContent
-                . replace "{{variant}}" variantContent
-                . replace "{{comment}}" commentContent
-                . replace "{{assembler_code}}" asmContent
-                . replace "{{yaml_content}}" configContent
-                . replace "{{status}}" status
-                . replace "{{result}}" logContent
-                . replace "{{test_cases_status}}" testCaseStatus
-                . replace "{{test_cases_result}}" testCaseResult
-                . replace "{{dump}}" dump
+            replace "{{name}}" (escapeHtml nameContent)
+                . replace "{{variant}}" (escapeHtml variantContent)
+                . replace "{{comment}}" (escapeHtml commentContent)
+                . replace "{{assembler_code}}" (escapeHtml asmContent)
+                . replace "{{yaml_content}}" (escapeHtml configContent)
+                . replace "{{status}}" (escapeHtml status)
+                . replace "{{result}}" (escapeHtml logContent)
+                . replace "{{test_cases_status}}" (escapeHtml testCaseStatus)
+                . replace "{{test_cases_result}}" (escapeHtml testCaseResult)
+                . replace "{{dump}}" (escapeHtml dump)
 
     return $ toHtmlRaw $ renderTemplate template
 
