@@ -6,7 +6,6 @@
 module Isa.F32a (
     Isa (..),
     MachineState (..),
-    Register (..),
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -20,11 +19,6 @@ import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
-
-data Register = T | S | A | B | P | R
-    deriving (Eq, Generic, Read, Show)
-
-instance Hashable Register
 
 data Isa w l
     = -- | __;__ return
@@ -266,15 +260,7 @@ getA = do
 getB :: State (MachineState (IoMem (Isa w w) w) w) w
 getB = get <&> b
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
-    registers State{a, b, dataStack, returnStack} =
-        fromList
-            [ (A, a)
-            , (B, b)
-            , (T, fromMaybe 0 $ dataStack !!? 0)
-            , (S, fromMaybe 0 $ dataStack !!? 1)
-            , (R, fromMaybe 0 $ returnStack !!? 0)
-            ]
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     programCounter State{p} = p
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams

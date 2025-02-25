@@ -6,9 +6,8 @@
 -- | Inspired by https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
 module Isa.RiscIv (
     Isa (..),
-    Register (..),
-    registers,
     MachineState (..),
+    Register (..),
 ) where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -356,8 +355,7 @@ setWord addr w = do
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump = State{pc, mem = dump, regs = def, stopped = False}
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
-    registers State{regs} = regs
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem = IoMem{mIoCells}} = mIoCells
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams

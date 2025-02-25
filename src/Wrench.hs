@@ -85,7 +85,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
 
     case readMaybe isa of
         Just RiscIv ->
-            case wrench @RiscIv.Isa @RiscIv.Register @Int32 @(RiscIv.MachineState (IoMem (RiscIv.Isa Int32 Int32) Int32) Int32)
+            case wrench @RiscIv.Isa @Int32 @(RiscIv.MachineState (IoMem (RiscIv.Isa Int32 Int32) Int32) Int32)
                 conf
                 opts
                 src of
@@ -97,7 +97,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just F32a ->
-            case wrench @F32a.Isa @F32a.Register @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32) conf opts src of
+            case wrench @F32a.Isa @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then translationResult rLabels rDump
@@ -106,7 +106,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just Acc32 ->
-            case wrench @Acc32.Isa @Acc32.Register @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32) conf opts src of
+            case wrench @Acc32.Isa @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then translationResult rLabels rDump
@@ -125,7 +125,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
             exitFailure
 
 wrench ::
-    forall isa_ r w st isa1 isa2.
+    forall isa_ w st isa1 isa2.
     ( ByteLength isa1
     , ByteLength isa2
     , DerefMnemonic (isa_ w) w
@@ -133,7 +133,7 @@ wrench ::
     , Machine st isa2 w
     , MachineWord w
     , MnemonicParser isa1
-    , StateInterspector st isa2 w r
+    , StateInterspector st isa2 w
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>

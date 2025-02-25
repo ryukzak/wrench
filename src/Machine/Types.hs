@@ -114,8 +114,7 @@ instance ByteLength Int32 where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> st
 
-class StateInterspector st isa w r | st -> isa w r where
-    registers :: st -> HashMap r w
+class StateInterspector st isa w | st -> isa w where
     programCounter :: st -> Int
     memoryDump :: st -> Mem isa w
     ioStreams :: st -> IntMap ([w], [w])

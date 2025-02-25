@@ -5,7 +5,6 @@
 module Isa.Acc32 (
     Isa (..),
     MachineState (..),
-    Register (..),
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
@@ -19,11 +18,6 @@ import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
-
-data Register = Acc
-    deriving (Eq, Generic, Read, Show)
-
-instance Hashable Register
 
 -- | The 'Isa' type represents the instruction set architecture for the Acc32 machine.
 -- Each constructor corresponds to a specific instruction.
@@ -241,11 +235,7 @@ getOverflowFlag = overflowFlag <$> get
 getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
 getCarryFlag = carryFlag <$> get
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w Register where
-    registers State{acc} =
-        fromList
-            [ (Acc, acc)
-            ]
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{ram = IoMem{mIoCells}} = mIoCells
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
