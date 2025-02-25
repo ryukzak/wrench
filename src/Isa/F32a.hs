@@ -67,6 +67,8 @@ data Isa w l
       Inv
     | -- | __+__    add (or add with carry)
       Add
+    | -- | __eam__  set arithmetic mode, pop T, if T == 0 then 0 else 1
+      Eam
     | -- | __and__
       And
     | -- | __xor__  Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
@@ -108,6 +110,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "2/" >> return RShift
                     , string "inv" >> return Inv
                     , string "+" >> return Add
+                    , string "eam" >> return Eam
                     , string "and" >> return And
                     , string "xor" >> return Xor
                     , string "drop" >> return Drop
@@ -166,6 +169,7 @@ instance DerefMnemonic (Isa w) w where
             RShift -> RShift
             Inv -> Inv
             Add -> Add
+            Eam -> Eam
             And -> And
             Xor -> Xor
             Drop -> Drop
@@ -194,11 +198,24 @@ data MachineState mem w = State
     , dataStack :: [w]
     , returnStack :: [w]
     , stopped :: Bool
+    , extendedArithmeticMode :: Bool
+    , carryFlag :: Bool
     }
     deriving (Show)
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump = State{p = pc, a = 0, b = 0, dataStack = [], returnStack = [], ram = dump, stopped = False}
+    initState pc dump =
+        State
+            { p = pc
+            , a = 0
+            , b = 0
+            , dataStack = []
+            , returnStack = []
+            , ram = dump
+            , stopped = False
+            , extendedArithmeticMode = False
+            , carryFlag = False
+            }
 
 setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setP addr = modify $ \st -> st{p = addr}
@@ -223,6 +240,7 @@ setWord addr w = do
     put st{ram = ram'}
 
 dataPush w = do
+    setCarryFlag False
     st@State{dataStack} <- get
     put st{dataStack = w : dataStack}
 
@@ -248,6 +266,15 @@ returnPop = do
             put st{returnStack = xs}
             return x
 
+setExtendedArithmeticMode :: Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setExtendedArithmeticMode flag = modify $ \st -> st{extendedArithmeticMode = flag}
+
+setCarryFlag :: Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setCarryFlag flag = modify $ \st -> st{carryFlag = flag}
+
+getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getCarryFlag = get <&> carryFlag
+
 setA w = modify $ \st -> st{a = w}
 
 setB w = modify $ \st -> st{b = w}
@@ -266,8 +293,10 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{a, b, dataStack, returnStack} v =
+    reprState labels st@State{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
         case T.splitOn ":" v of
+            ["EAM"] -> if extendedArithmeticMode then "1" else "0"
+            ["C"] -> if carryFlag then "1" else "0"
             [r] -> reprState labels st (r <> ":dec")
             ["A", f] -> viewRegister f a
             ["B", f] -> viewRegister f b
@@ -426,7 +455,20 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Add -> do
                 t <- dataPop
                 s <- dataPop
-                dataPush (s + t)
+                State{extendedArithmeticMode, carryFlag} <- get
+                let Ext{value = v1, carry = c1} = addExt s t
+                    (result, carry) =
+                        if extendedArithmeticMode && carryFlag
+                            then
+                                let Ext{value = v2, carry = c2} = addExt v1 1
+                                 in (v2, c1 || c2)
+                            else (v1, c1)
+                dataPush result
+                setCarryFlag carry
+                nextP
+            Eam -> do
+                t <- dataPop
+                setExtendedArithmeticMode (t /= 0)
                 nextP
             And -> do
                 t <- dataPop
@@ -440,11 +482,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 nextP
             Drop -> do
                 void dataPop
+                setCarryFlag False
                 nextP
             Dup -> do
+                carryFlag <- getCarryFlag
                 w <- dataPop
                 dataPush w
                 dataPush w
+                setCarryFlag carryFlag
                 nextP
             Over -> do
                 t <- dataPop

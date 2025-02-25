@@ -1,0 +1,31 @@
+name: factorial-4
+limit: 2000
+memory_size: 0x240
+input_streams:
+  0x80: [4]
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}: {instruction} {pc:label} carry: {C} eam: {EAM} stack: {stack:hex}
+    assert: |
+      0: Lit 2 @_start carry: 0 eam: 0 stack:
+      5: Lit (-2)  carry: 0 eam: 0 stack: 0x00000002
+      10: Lit 1  carry: 0 eam: 0 stack: 0xfffffffe:0x00000002
+      15: Add  carry: 0 eam: 0 stack: 0x00000001:0xfffffffe:0x00000002
+      16: Lit 1  carry: 0 eam: 0 stack: 0xffffffff:0x00000002
+      21: Add  carry: 0 eam: 0 stack: 0x00000001:0xffffffff:0x00000002
+      22: Add  carry: 1 eam: 0 stack: 0x00000000:0x00000002
+      23: Drop  carry: 0 eam: 0 stack: 0x00000002
+      24: Lit 1  carry: 0 eam: 0 stack:
+      29: Eam  carry: 0 eam: 0 stack: 0x00000001
+      30: Lit 2  carry: 0 eam: 1 stack:
+      35: Lit (-2)  carry: 0 eam: 1 stack: 0x00000002
+      40: Lit 1  carry: 0 eam: 1 stack: 0xfffffffe:0x00000002
+      45: Add  carry: 0 eam: 1 stack: 0x00000001:0xfffffffe:0x00000002
+      46: Lit 1  carry: 0 eam: 1 stack: 0xffffffff:0x00000002
+      51: Add  carry: 0 eam: 1 stack: 0x00000001:0xffffffff:0x00000002
+      52: Add  carry: 1 eam: 1 stack: 0x00000000:0x00000002
+      53: Drop  carry: 0 eam: 1 stack: 0x00000003
+      54: Halt  carry: 0 eam: 1 stack:
