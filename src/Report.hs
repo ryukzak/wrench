@@ -67,8 +67,8 @@ prepareReport
                         $ filter (not . null)
                         $ map (prepareStateView rvView' trResult . (\(TState st) -> st)) sliced
             assertReport =
-                let actual = T.strip (toText stateViews)
-                    expect = maybe "" (T.strip . toText) rcAssert
+                let actual = nospaces $ toText stateViews
+                    expect = maybe "" (nospaces . toText) rcAssert
                  in if isNothing rcAssert || actual == expect
                         then ""
                         else "ASSERTION FAIL, expect:\n" <> toString expect
@@ -77,6 +77,8 @@ prepareReport
                 $ map (T.strip . toText)
                 $ filter (not . null) [header, details, stateViews, assertReport]
             )
+        where
+            nospaces = unlines . map T.strip . lines . T.strip
 
 -----------------------------------------------------------
 
