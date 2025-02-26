@@ -217,7 +217,6 @@ resultPage Config{cStoragePath} guid = do
 
     return $ toHtmlRaw renderTemplate
 
-
 listFiles :: FilePath -> IO [FilePath]
 listFiles path = do
     contents <- listDirectory path
