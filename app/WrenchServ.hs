@@ -199,20 +199,21 @@ resultPage Config{cStoragePath} guid = do
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
-    let renderTemplate = foldl'
-            (\st (pat, new) -> replace pat (escapeHtml new) st)
-            template
-            [ ("{{name}}", nameContent)
-            , ("{{variant}}", variantContent)
-            , ("{{comment}}", commentContent)
-            , ("{{assembler_code}}", asmContent)
-            , ("{{yaml_content}}", configContent)
-            , ("{{status}}", status)
-            , ("{{result}}", logContent)
-            , ("{{test_cases_status}}", testCaseStatus)
-            , ("{{test_cases_result}}", testCaseResult)
-            , ("{{dump}}", dump)
-            ]
+    let renderTemplate =
+            foldl'
+                (\st (pat, new) -> replace pat (escapeHtml new) st)
+                template
+                [ ("{{name}}", nameContent)
+                , ("{{variant}}", variantContent)
+                , ("{{comment}}", commentContent)
+                , ("{{assembler_code}}", asmContent)
+                , ("{{yaml_content}}", configContent)
+                , ("{{status}}", status)
+                , ("{{result}}", logContent)
+                , ("{{test_cases_status}}", testCaseStatus)
+                , ("{{test_cases_result}}", testCaseResult)
+                , ("{{dump}}", dump)
+                ]
 
     return $ toHtmlRaw renderTemplate
 
