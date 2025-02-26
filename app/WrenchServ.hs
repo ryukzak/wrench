@@ -11,7 +11,7 @@ import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
 import Data.Time
 import Data.UUID.V4 (nextRandom)
-import Lucid (Html, toHtmlRaw)
+import Lucid (Html, renderText, toHtml, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Relude
@@ -179,6 +179,9 @@ maybeReadFile path = do
         True -> Just . decodeUtf8 <$> readFileBS path
         False -> return Nothing
 
+escapeHtml :: Text -> Text
+escapeHtml = toText . renderText . toHtml
+
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do
     let dir = cStoragePath <> "/" <> guid
@@ -197,18 +200,22 @@ resultPage Config{cStoragePath} guid = do
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
     let renderTemplate =
-            replace "{{name}}" nameContent
-                . replace "{{variant}}" variantContent
-                . replace "{{comment}}" commentContent
-                . replace "{{assembler_code}}" asmContent
-                . replace "{{yaml_content}}" configContent
-                . replace "{{status}}" status
-                . replace "{{result}}" logContent
-                . replace "{{test_cases_status}}" testCaseStatus
-                . replace "{{test_cases_result}}" testCaseResult
-                . replace "{{dump}}" dump
+            foldl'
+                (\st (pat, new) -> replace pat (escapeHtml new) st)
+                template
+                [ ("{{name}}", nameContent)
+                , ("{{variant}}", variantContent)
+                , ("{{comment}}", commentContent)
+                , ("{{assembler_code}}", asmContent)
+                , ("{{yaml_content}}", configContent)
+                , ("{{status}}", status)
+                , ("{{result}}", logContent)
+                , ("{{test_cases_status}}", testCaseStatus)
+                , ("{{test_cases_result}}", testCaseResult)
+                , ("{{dump}}", dump)
+                ]
 
-    return $ toHtmlRaw $ renderTemplate template
+    return $ toHtmlRaw renderTemplate
 
 listFiles :: FilePath -> IO [FilePath]
 listFiles path = do
