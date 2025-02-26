@@ -9,11 +9,9 @@ module Main (main) where
 import Data.List.Split
 import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TLE
 import Data.Time
 import Data.UUID.V4 (nextRandom)
-import Lucid (Html, toHtmlRaw, toHtml, renderText)
+import Lucid (Html, renderText, toHtml, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Relude
@@ -182,7 +180,7 @@ maybeReadFile path = do
         False -> return Nothing
 
 escapeHtml :: Text -> Text
-escapeHtml = TL.toStrict . renderText . toHtml
+escapeHtml = toText . renderText . toHtml
 
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do
@@ -201,19 +199,23 @@ resultPage Config{cStoragePath} guid = do
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
-    let renderTemplate =
-            replace "{{name}}" (escapeHtml nameContent)
-                . replace "{{variant}}" (escapeHtml variantContent)
-                . replace "{{comment}}" (escapeHtml commentContent)
-                . replace "{{assembler_code}}" (escapeHtml asmContent)
-                . replace "{{yaml_content}}" (escapeHtml configContent)
-                . replace "{{status}}" (escapeHtml status)
-                . replace "{{result}}" (escapeHtml logContent)
-                . replace "{{test_cases_status}}" (escapeHtml testCaseStatus)
-                . replace "{{test_cases_result}}" (escapeHtml testCaseResult)
-                . replace "{{dump}}" (escapeHtml dump)
+    let renderTemplate = foldl'
+            (\st (pat, new) -> replace pat (escapeHtml new) st)
+            template
+            [ ("{{name}}", nameContent)
+            , ("{{variant}}", variantContent)
+            , ("{{comment}}", commentContent)
+            , ("{{assembler_code}}", asmContent)
+            , ("{{yaml_content}}", configContent)
+            , ("{{status}}", status)
+            , ("{{result}}", logContent)
+            , ("{{test_cases_status}}", testCaseStatus)
+            , ("{{test_cases_result}}", testCaseResult)
+            , ("{{dump}}", dump)
+            ]
 
-    return $ toHtmlRaw $ renderTemplate template
+    return $ toHtmlRaw renderTemplate
+
 
 listFiles :: FilePath -> IO [FilePath]
 listFiles path = do
