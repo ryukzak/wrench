@@ -97,15 +97,15 @@
           >
 
           <form
-            action="/{{result_guid}}"
+            action="/result/{{result_guid}}"
             method="post"
             enctype="application/x-www-form-urlencoded;charset=UTF-8"
             class="space-y-6"
           >
           <h2 class="text-xl font-semibold mt-6 mb-4">Assembler Code:</h2>
           <textarea
-              id="asm"
-              name="asm"
+              id="new_asm"
+              name="new_asm"
               required
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             >{{assembler_code}}</textarea>
@@ -114,8 +114,8 @@
             Simulation Config (YAML):
           </h2>
           <textarea 
-              id="config"
-              name="config"
+              id="new_config"
+              name="new_config"
               required
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             >{{yaml_content}}</textarea>
