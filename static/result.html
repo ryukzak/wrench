@@ -70,6 +70,16 @@
       pre {
         white-space: pre-wrap; /* Wrap lines in pre elements */
       }
+      @media (prefers-color-scheme: dark) {
+        * {
+          background-color: inherit;
+          color: inherit;
+        }
+        html,
+        img:not([src$='.svg']) {
+          filter: invert(1) hue-rotate(180deg);
+        }
+      }
     </style>
   </head>
   <body class="bg-gray-100 flex items-center justify-center min-h-screen">
