@@ -28,6 +28,10 @@ type API =
     "submit" :> ReqBody '[FormUrlEncoded] SubmitForm :> Post '[JSON] (Headers '[Header "Location" String] NoContent)
         :<|> "submit-form" :> Get '[HTML] (Html ())
         :<|> "result" :> Capture "guid" String :> Get '[HTML] (Html ())
+        :<|> "result"
+            :> Capture "guid" String
+            :> ReqBody '[FormUrlEncoded] EditForm
+            :> Post '[JSON] (Headers '[Header "Location" String] NoContent)
         :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
 
 data SubmitForm = SubmitForm
@@ -37,6 +41,12 @@ data SubmitForm = SubmitForm
     , comment :: Text
     , variant :: Maybe Text
     , isa :: Text
+    }
+    deriving (FromForm, Generic, Show)
+
+data EditForm = EditForm
+    { new_asm :: Text
+    , new_config :: Text
     }
     deriving (FromForm, Generic, Show)
 
@@ -74,7 +84,69 @@ server conf =
     submitForm conf
         :<|> formPage conf
         :<|> resultPage conf
+        :<|> editForm conf
         :<|> redirectToForm
+
+editForm :: Config -> String -> EditForm -> Handler (Headers '[Header "Location" String] NoContent)
+editForm conf@Config{cStoragePath, cLogLimit, cVariantsPath} guid EditForm{new_asm, new_config} = do
+    let dir = cStoragePath <> "/" <> guid
+
+    let asmFile = dir <> "/source.s"
+        configFile = dir <> "/config.yaml"
+    liftIO $ writeFileText asmFile new_asm
+    liftIO $ writeFileText configFile new_config
+    isa <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/isa.txt"))
+
+    currentTime <- liftIO getCurrentTime
+    version <- liftIO getWrenchVersion
+    (exitCode, stdout_, stderr_) <- liftIO $ runSimulation isa conf asmFile configFile
+    liftIO
+        $ writeFile
+            (dir <> "/status.log")
+            ("$ date\n" <> show currentTime <> "\n$ wrench --version\n" <> version <> "\n" <> show exitCode <> "\n" <> stderr_)
+    let stdoutText = toText stdout_
+        stdoutText' =
+            if T.length stdoutText > cLogLimit
+                then "LOG TOO LONG, CROPPED\n\n" <> T.drop (T.length stdoutText - cLogLimit) stdoutText
+                else toText stdout_
+    liftIO $ writeFileText (dir <> "/result.log") stdoutText'
+
+    (_exitCode, stdoutDump, _stderrDump) <- liftIO $ dumpOutput isa conf asmFile
+    liftIO $ writeFile (dir <> "/dump.log") stdoutDump
+
+    varChecks <- do
+        variant' <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/variant.txt"))
+        if variant' == "-"
+            then return []
+            else do
+                variantDir <- liftIO $ sort . map takeFileName <$> listFiles (cVariantsPath </> variant')
+                let yamlFiles = filter (isSuffixOf ".yaml" . toText) variantDir
+                forM yamlFiles $ \yamlFile -> do
+                    let fn = cVariantsPath </> toString variant' </> yamlFile
+                    (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation isa conf asmFile fn
+                    return (yamlFile, fn, tcExitCode, tcStdout, tcStderr)
+
+    liftIO $ writeFile (dir <> "/test_cases_status.log") ""
+
+    forM_ varChecks $ \(yamlFile, _fn, tcExitCode, _tcStdout, tcStderr) -> do
+        liftIO
+            $ appendFile
+                (dir <> "/test_cases_status.log")
+                (yamlFile <> ": " <> show tcExitCode <> "\n" <> tcStderr)
+
+    liftIO $ writeFile (dir <> "/test_cases_result.log") ""
+
+    let fails = take 1 $ filter (\(_, _, x, _, _) -> x /= ExitSuccess) varChecks
+
+    forM_ fails $ \(yamlFile, fn, _tcExitCode, tcStdout, tcStderr) -> do
+        simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
+        liftIO
+            $ writeFile
+                (dir <> "/test_cases_result.log")
+                (yamlFile <> "\n" <> simConf <> "\n\n===\n\n" <> tcStdout <> "\n" <> tcStderr)
+
+    let location = "/result/" <> guid
+    throwError $ err301{errHeaders = [("Location", fromString location)]}
 
 formPage :: Config -> Handler (Html ())
 formPage Config{cVariantsPath} = do
