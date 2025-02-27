@@ -206,6 +206,7 @@ resultPage Config{cStoragePath} guid = do
                 [ ("{{name}}", nameContent)
                 , ("{{variant}}", variantContent)
                 , ("{{comment}}", commentContent)
+                , ("{{result_guid}}", fromString guid)
                 , ("{{assembler_code}}", asmContent)
                 , ("{{yaml_content}}", configContent)
                 , ("{{status}}", status)

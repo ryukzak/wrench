@@ -96,17 +96,38 @@
 {{comment}}</pre
           >
 
-          <h2 class="text-xl font-semibold mt-6 mb-4">Assembler Code:</h2>
-          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
-{{assembler_code}}</pre
+          <form
+            action="/{{result_guid}}"
+            method="post"
+            enctype="application/x-www-form-urlencoded;charset=UTF-8"
+            class="space-y-6"
           >
+          <h2 class="text-xl font-semibold mt-6 mb-4">Assembler Code:</h2>
+          <textarea
+              id="asm"
+              name="asm"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >{{assembler_code}}</textarea>
 
           <h2 class="text-xl font-semibold mt-6 mb-4">
             Simulation Config (YAML):
           </h2>
-          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
-{{yaml_content}}</pre
-          >
+          <textarea 
+              id="config"
+              name="config"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >{{yaml_content}}</textarea>
+
+        <div class="text-center">
+          <input
+            type="submit"
+            value="Edit"
+            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          />
+        </div>
+          </form>
         </div>
         <div class="flex-1 min-w-[300px] max-w-[40%] p-4">
           <h2 class="text-xl font-semibold mb-4">Simulation Result:</h2>
