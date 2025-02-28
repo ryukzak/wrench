@@ -1,6 +1,6 @@
 ---
-name: ISA Bug report
-about: Create a report to fix bug in ISA implementation
+name: Bug report
+about: Create a report to fix bug
 title: ''
 labels: ''
 assignees: ''
