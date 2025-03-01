@@ -41,6 +41,7 @@ body {
     --c-blue: #18b6ff;
     --c-green: #1beb9e;
     --c-orange: #ff9528;
+    --c-orange-low-saturation: #a5692d;
     --c-yellow: #dddd25;
     --line: 2.5ch;
     --font: "IBM", monospace;
@@ -55,7 +56,13 @@ body.inverted {
     --c-blue: #0b8cff;
     --c-green: #00a76c;
     --c-orange: #dd7200;
+    --c-orange-low-saturation: #d08c47;
     --c-yellow: #949700;
+}
+
+.orange-low-saturation {
+    color: var(--c-orange-low-saturation);
+    --c-current: var(--c-orange-low-saturation);
 }
 
 .black {
