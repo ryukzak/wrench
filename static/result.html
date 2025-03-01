@@ -14,7 +14,7 @@
 </head>
 
 <body class="full flex flex-col justify-center items-center min-h-screen">
-    <div class="text-center w-full mb-8"> <!-- Добавляем отступ снизу -->
+    <div class="text-center w-full mt-4 mb-2"> <!-- Добавляем отступ снизу -->
         <h1 class="large white">
             <a class="subtle-hover " href="/">Wrench Report</a>
         </h1>
@@ -35,8 +35,8 @@
             document.body.classList.add('inverted')
         }
     </script>
-    <div class="self-center flex flex-wrap gap-4 w-full max-w-screen-xl p-4">
-        <div class="flex-1 min-w-[300px] max-w-[60%] mt-4">
+    <div class="self-center flex flex-wrap gap-20 w-full max-w-screen-xl p-4 mt-8">
+        <div class="flex-1 min-w-[300px] max-w-[50%] mt-4">
             <em>
                 <p class="orange texm-sm text-left mb-4"><span>[author]</span> {{name}}</p>
             </em>
@@ -58,7 +58,7 @@
             <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{yaml_content}}</pre>
         </div>
-        <div class="flex-1 min-w-[300px] max-w-[40%]">
+        <div class="flex-1 min-w-[300px] max-w-[50%]">
             <h2 class="fuschia mb-4">[simulation_result]</h2>
             <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{status}}</pre>
@@ -250,14 +250,6 @@
             font-weight: 200;
         }
 
-        @media (min-width: 1024px) {
-            .large {
-                font-size: 4vw;
-                line-height: 1.11111111em;
-                font-weight: 200;
-            }
-        }
-
         .italic {
             font-style: italic;
         }
@@ -293,24 +285,26 @@
             display: none;
         }
 
-        body {
-            font-size: 3.97vw;
-        }
-
         @media (min-width: 768px) {
             body {
-                font-size: 2vw;
-            }
-
-            .separator-char {
-                display: contents;
+                font-size: 2*0.7vw;
             }
         }
 
         @media (min-width: 1024px) {
             body {
-                font-size: 1.11111111vw;
+                font-size: 1vw;
                 overflow: auto;
+
+                .separator-char {
+                    display: contents;
+                }
+            }
+
+            .large {
+                font-size: 4vw;
+                line-height: 1.11111111em;
+                font-weight: 200;
             }
         }
 
