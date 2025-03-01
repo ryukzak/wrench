@@ -64,9 +64,21 @@
             <a href="https://github.com/ryukzak/wrench/blob/master/variants.md" class="orange hover"
                 target="_blank">[variants]</a>
             <span class="grey separator-char">|</span>
-            <button onclick="document.body.classList.toggle('inverted')"
-                class="self-center blue hover">[invert]</button>
+            <button onclick="onInvertClick()" class="self-center blue hover">[invert]</button>
+            <script>
+                function onInvertClick() {
+                    document.body.classList.toggle('inverted')
+                    window.localStorage.setItem("prefers-color-scheme", document.body.classList.contains("inverted") ? "light" : "dark")
+                }
 
+                if (window.matchMedia && window.localStorage.getItem("prefers-color-scheme") === null) {
+                    if (!window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        document.body.classList.add("inverted")
+                    }
+                } else if (window.localStorage.getItem("prefers-color-scheme") === "light") {
+                    document.body.classList.add('inverted')
+                }
+            </script>
         </div>
         <form action="/submit" method="post" enctype="application/x-www-form-urlencoded;charset=UTF-8"
             class="space-y-6">

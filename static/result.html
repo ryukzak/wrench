@@ -20,8 +20,21 @@
         </h1>
     </div>
 
-    <button onclick="document.body.classList.toggle('inverted')" class="self-center blue hover">[invert]</button>
+    <button onclick="onInvertClick()" class="self-center blue hover">[invert]</button>
+    <script>
+        function onInvertClick() {
+            document.body.classList.toggle('inverted')
+            window.localStorage.setItem("prefers-color-scheme", document.body.classList.contains("inverted") ? "light" : "dark")
+        }
 
+        if (window.matchMedia && window.localStorage.getItem("prefers-color-scheme") === null) {
+            if (!window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.add("inverted")
+            }
+        } else if (window.localStorage.getItem("prefers-color-scheme") === "light") {
+            document.body.classList.add('inverted')
+        }
+    </script>
     <div class="self-center flex flex-wrap gap-4 w-full max-w-screen-xl p-4">
         <div class="flex-1 min-w-[300px] max-w-[60%] mt-4">
             <em>
