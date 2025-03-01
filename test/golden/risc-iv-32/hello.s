@@ -1,6 +1,6 @@
     .data
 
-buf:             .byte  'Hello\n\0World!\0\0\0\0'
+buf:             .byte  31, 'Hello\n\0World!\0\0\0'
 output_addr:     .word  0x84               ; Output address where the result should be stored
 
     .text
@@ -14,7 +14,7 @@ _start:
     ; FIXME:    lui      t1, buf             ; chat * ptr = buf;
     addi     t1, t1, buf
 
-    addi     t2, zero, 13                    ; int n = 13;
+    addi     t2, zero, 14                    ; int n = 13;
 
     ; t0 -- output_addr
     ; t1 -- ptr

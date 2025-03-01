@@ -1152,7 +1152,7 @@ test_cases["dup"] = TestCase(
 
 
 def hello(_):
-    return ("Hello\n\0World!", "")
+    return ("\x1fHello\n\0World!", "")
 
 
 hello_ref = hello
@@ -1163,9 +1163,9 @@ test_cases["hello"] = TestCase(
     cases=[
         String2String(
             "",
-            "Hello\n\0World!",
+            "\x1fHello\n\0World!",
             "",
-            mem_view=[(0x00, 0x10, "Hello\n\0World!\0\0\0\0")],
+            mem_view=[(0x00, 0x10, "\x1fHello\n\0World!\0\0\0")],
         )
     ],
     reference=hello_ref,

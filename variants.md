@@ -657,11 +657,11 @@ assert get_put_char('ABCD') == ('A', 'BCD')
 
 ```python
 def hello(_):
-    return ("Hello\n\0World!", "")
+    return ("\x1fHello\n\0World!", "")
 
 
-assert hello('') == ('Hello\n\0World!', '')
-# and mem[0..16]: 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00
+assert hello('') == ('\x1fHello\n\0World!', '')
+# and mem[0..16]: 1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
 ```
 
 ### `logical_not`
