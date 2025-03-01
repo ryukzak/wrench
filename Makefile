@@ -61,7 +61,7 @@ readme-fix:
 
 format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
-	ruff format script/*.py
+	ruff format script
 	prettier -w static/
 	yamlfmt example test
 
@@ -80,10 +80,11 @@ format-check:
 
 lint-fix:
 	fd .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
+	ruff check script --fix
 
 lint:
 	hlint $(HS_SRC_DIR)
-	ruff check script/*.py
+	ruff check script
 
 clean:
 	stack clean

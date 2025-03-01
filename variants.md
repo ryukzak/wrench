@@ -383,7 +383,7 @@ def sum_word_cstream(*xs):
     tmp = 0
     x = 0
     for x in xs:
-        if x is 0:
+        if x == 0:
             break
         tmp += x
     assert x == 0
