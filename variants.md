@@ -49,7 +49,8 @@ Variants:
     - [reverse_string_pstr](#reverse_string_pstr)
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
-- _Examples
+- _Examples_
+    - [dup](#dup)
     - [factorial](#factorial)
     - [get_put_char](#get_put_char)
     - [hello](#hello)
@@ -603,7 +604,17 @@ assert upper_case_pstr('hello') == ('HELLO', '')
 assert upper_case_pstr('world') == ('WORLD', '')
 ```
 
-## _Examples
+## _Examples_
+
+### `dup`
+
+```python
+def dup(x):
+    return [x, x]
+
+
+assert dup([42]) == [42, 42]
+```
 
 ### `factorial`
 

@@ -85,7 +85,7 @@ class Words2Words:
         return "\n".join(
             [
                 "      numio[0x80]: [] >>> []",
-                f"      numio[0x84]: [] >>> {self.ys}",
+                f"      numio[0x84]: [] >>> [{','.join(map(str, self.ys))}]",
             ]
         )
 
@@ -1101,7 +1101,7 @@ test_cases["factorial"] = TestCase(
         Word2Word(-2, -1),
     ],
     is_variant=False,
-    category="_Examples",
+    category="_Examples_",
 )
 
 ###########################################################
@@ -1120,7 +1120,25 @@ test_cases["logical_not"] = TestCase(
     reference=logical_not,
     reference_cases=[],
     is_variant=False,
-    category="_Examples",
+    category="_Examples_",
+)
+
+###########################################################
+
+
+def dup(x):
+    return [x, x]
+
+
+test_cases["dup"] = TestCase(
+    simple=dup,
+    cases=[
+        Words2Words([42], [42, 42]),
+    ],
+    reference=dup,
+    reference_cases=[],
+    is_variant=False,
+    category="_Examples_",
 )
 
 ###########################################################
@@ -1132,7 +1150,6 @@ def hello(_):
 
 hello_ref = hello
 
-# TODO: check buffer in memory
 
 test_cases["hello"] = TestCase(
     simple=hello,
@@ -1147,7 +1164,7 @@ test_cases["hello"] = TestCase(
     reference=hello_ref,
     reference_cases=[],
     is_variant=False,
-    category="_Examples",
+    category="_Examples_",
 )
 
 ###########################################################
@@ -1183,7 +1200,7 @@ test_cases["get_put_char"] = TestCase(
         String2String("YZ", [overflow_error_value], "Z"),
     ],
     is_variant=False,
-    category="_Examples",
+    category="_Examples_",
 )
 
 ###########################################################
@@ -1382,7 +1399,7 @@ if __name__ == "__main__":
     print("Generate golden tests:")
     generate_wrench_spec(
         "test/golden/generated",
-        ["factorial", "get_put_char", "hello", "logical_not"],
+        ["factorial", "get_put_char", "hello", "logical_not", "dup"],
     )
 
     print("Generate variant descriptions")

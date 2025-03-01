@@ -122,6 +122,7 @@ tests =
                 , generatedTest Acc32 "get_put_char" 12
                 , generatedTest Acc32 "hello" 1
                 , generatedTest Acc32 "logical_not" 2
+                , generatedTest Acc32 "dup" 1
                 ]
             ]
         ]
