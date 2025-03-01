@@ -1,4 +1,6 @@
 from collections import namedtuple
+import itertools
+
 
 TEST_CASES = {}
 
@@ -19,19 +21,33 @@ def py_str(s):
     return s
 
 
+def yaml_symbol_nums_inner(s, sep=","):
+    if isinstance(s, str):
+        return sep.join([str(ord(c)) for c in s])
+    return str(s)
+
+
 def yaml_symbol_nums(s, sep=","):
-    return "[" + sep.join([str(ord(c)) for c in s]) + "]"
+    if isinstance(s, list):
+        return "[" + sep.join(map(yaml_symbol_nums_inner, s)) + "]"
+    return "[" + yaml_symbol_nums_inner(s, sep) + "]"
 
 
-def yaml_symbols(s):
-    if s == [-1] or s == [overflow_error_value]:
-        return '"?"'
+def yaml_symbols_innr(s):
+    if isinstance(s, int):
+        return "?"
     s = repr(s).strip("'").replace("\\x00", "\\0").replace("\\x0A", "\\n")
     for code in [repr(chr(i)).strip("'") for i in range(32)]:
         if code == "\\n":
             continue
         s = s.replace(code, "?")
-    return '"' + s + '"'
+    return s
+
+
+def yaml_symbols(s):
+    if isinstance(s, list):
+        return '"' + "".join(map(yaml_symbols_innr, s)) + '"'
+    return '"' + yaml_symbols_innr(s) + '"'
 
 
 def hex_byte(x):
@@ -130,11 +146,12 @@ class String2String:
         self.input = input
         self.output = output
         self.rest = rest
-        for a, b, dump in mem_view:
+        for i, (a, b, dump) in enumerate(mem_view):
             # Interval inclusive, so we need +1
-            assert len(dump) == b - a + 1, (
+            assert len(dump) <= b - a + 1, (
                 f"incorrect dump length, actual: {len(dump)}, expect: {b - a + 1}"
             )
+            mem_view[i] = (a, b, dump + ("_" * (b - a + 1 - len(dump))))
         self.mem_view = mem_view
 
     def assert_string(self, name):
@@ -173,7 +190,7 @@ class String2String:
         return "\n".join(
             [
                 f"      numio[0x80]: {yaml_symbol_nums(self.rest)} >>> []",
-                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output) if isinstance(self.output, str) else self.output}",
+                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
                 f'      symio[0x80]: {yaml_symbols(self.rest)} >>> ""',
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
             ]
@@ -182,3 +199,48 @@ class String2String:
                 for a, b, dump in self.mem_view
             ]
         )
+
+
+def read_line(s, buf_size):
+    """Read line from input with buffer size limits."""
+    assert "\n" in s, "input should have a newline character"
+    line = "".join(itertools.takewhile(lambda x: x != "\n", s))
+
+    if len(line) > buf_size - 1:
+        return None, s[buf_size:]
+
+    return line, s[len(line) + 1 :]
+
+
+assert read_line("\n1234\n567890", 5) == ("", "1234\n567890")
+assert read_line("1\n234\n567890", 5) == ("1", "234\n567890")
+assert read_line("1234\n567890", 5) == ("1234", "567890")
+assert read_line("12345\n67890", 5) == (None, "\n67890")
+
+
+def pstr(s, buf_size):
+    """Make content for buffer with pascal string (default value for cell: `_`)."""
+    assert len(s) + 1 <= buf_size
+    buf = chr(len(s)) + s + ("_" * (buf_size - len(s) - 1))
+    return s, buf
+
+
+assert pstr("hello", 10) == ("hello", "\x05hello____")
+
+
+def pbuf(s, buf_size):
+    return pstr(s, buf_size)[1]
+
+
+def cstr(s, buf_size):
+    """Make content for buffer with pascal string (default value for cell: `_`)."""
+    assert len(s) + 1 <= buf_size
+    buf = s + "\0" + ("_" * (buf_size - len(s) - 1))
+    return s, buf
+
+
+assert cstr("hello", 10) == ("hello", "hello\x00____")
+
+
+def cbuf(s, buf_size):
+    return cstr(s, buf_size)[1]

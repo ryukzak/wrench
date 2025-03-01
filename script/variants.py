@@ -6,6 +6,11 @@ import inspect
 import random
 from testcases.core import (
     py_str,
+    read_line,
+    cstr,
+    cbuf,
+    pbuf,
+    pstr,
     TEST_CASES,
 )
 import testcases.examples  # noqa: F401
@@ -38,10 +43,11 @@ def generate_python_test_cases(fname, cases):
     return "\n".join([case.assert_string(fname) for case in cases])
 
 
-variant_readme_description = """
+variant_readme_description = (
+    """
 Variants described as a Python function with several asserts. It is a
-limit implementation because your variant may have additional
-requirements like: specific string representation, limit integer
+limited implementation because your variant may have additional
+requirements like: specific string representation, limited integer
 number representation, etc.
 
 Additional requirements for all variants:
@@ -56,7 +62,16 @@ Additional requirements for all variants:
     unless otherwise specified.
 1. ISA-specific requirements:
     - `F32a`: use procedures.
+
+Also we have the following helper functions not from builtins:
+
+```python
 """
+    + "\n\n".join(
+        map(lambda e: inspect.getsource(e), [read_line, cstr, pstr, cbuf, pbuf])
+    )
+    + "```\n"
+)
 
 
 def get_categories(cases):

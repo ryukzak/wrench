@@ -1,7 +1,11 @@
 from testcases.core import (
     TestCase,
+    overflow_error_value,
     String2String,
     TEST_CASES,
+    read_line,
+    pbuf,
+    cbuf,
 )
 
 ###########################################################
@@ -16,38 +20,52 @@ def hello_user_pstr(input):
     Returns:
         tuple: A tuple containing the greeting message and the remaining input.
     """
-    input = list(input)
-    out = []
-    for c in list("What is your name?\n"):
-        out.append(c)
-    buf = []
-    while True:
-        c = input.pop(0)
-        if c == "\n":
-            break
-        buf.append(c)
-    for c in list("Hello, "):
-        out.append(c)
-    for c in list(buf):
-        out.append(c)
-    out.append("!")
-    out.append("\n")
-    return "".join(out), "".join(input)
+    line, rest = read_line(input, 0x20 - len("Hello, " + "!") - 1)
 
+    q = "What is your name?\n"
+    if not line:
+        return [q, overflow_error_value], rest
 
-hello_user_pstr_ref = hello_user_pstr
+    greet = "Hello, " + line + "!"
+    return q + greet, rest
+
 
 TEST_CASES["hello_user_pstr"] = TestCase(
     simple=hello_user_pstr,
     cases=[
-        # TODO: check buffer in memory for all strings.
-        #        WithMemory(10, 20, ".......",
-        String2String("Alice\n", "What is your name?\nHello, Alice!\n", ""),
-        # )
-        String2String("Alice\nBob", "What is your name?\nHello, Alice!\n", "Bob"),
+        String2String(
+            "Alice\n",
+            "What is your name?\nHello, Alice!",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("Hello, Alice!", 0x20))],
+        ),
+        String2String(
+            "Bob\n",
+            "What is your name?\nHello, Bob!",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("Hello, Bob!", 0x20))],
+        ),
     ],
-    reference=hello_user_pstr_ref,
-    reference_cases=[],
+    reference=hello_user_pstr,
+    reference_cases=[
+        String2String(
+            "Alice\nBob",
+            "What is your name?\nHello, Alice!",
+            "Bob",
+            mem_view=[(0x00, 0x1F, pbuf("Hello, Alice!", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012\n",
+            "What is your name?\nHello, 1234567890123456789012!",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("Hello, 1234567890123456789012!", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123\n",
+            ["What is your name?\n", overflow_error_value],
+            "\n",
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -58,27 +76,58 @@ TEST_CASES["hello_user_pstr"] = TestCase(
 def hello_user_cstr(input):
     """Greet the user with C strings.
 
-    External behavior is the same as hello_user_pstr.
-
     Args:
         input (str): The input string containing the user's name.
 
     Returns:
         tuple: A tuple containing the greeting message and the remaining input.
     """
-    return hello_user_pstr(input)
+    line, rest = read_line(input, 0x20 - len("Hello, " + "!") - 1)
 
+    q = "What is your name?\n"
+    if not line:
+        return [q, overflow_error_value], rest
 
-hello_user_cstr_ref = hello_user_cstr
+    greet = "Hello, " + line + "!"
+    return q + greet, rest
+
 
 TEST_CASES["hello_user_cstr"] = TestCase(
     simple=hello_user_cstr,
     cases=[
-        String2String("Alice\n", "What is your name?\nHello, Alice!\n", ""),
-        String2String("Alice\nBob", "What is your name?\nHello, Alice!\n", "Bob"),
+        String2String(
+            "Alice\n",
+            "What is your name?\nHello, Alice!",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("Hello, Alice!", 0x20))],
+        ),
+        String2String(
+            "Bob\n",
+            "What is your name?\nHello, Bob!",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("Hello, Bob!", 0x20))],
+        ),
     ],
-    reference=hello_user_cstr_ref,
-    reference_cases=[],
+    reference=hello_user_cstr,
+    reference_cases=[
+        String2String(
+            "Alice\nBob",
+            "What is your name?\nHello, Alice!",
+            "Bob",
+            mem_view=[(0x00, 0x1F, cbuf("Hello, Alice!", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012\n",
+            "What is your name?\nHello, 1234567890123456789012!",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("Hello, 1234567890123456789012!", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123\n",
+            ["What is your name?\n", overflow_error_value],
+            "\n",
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -89,25 +138,62 @@ TEST_CASES["hello_user_cstr"] = TestCase(
 def upper_case_pstr(s):
     """Convert a Pascal string to upper case.
 
+    - Output buffer size and its placement specified below.
+    - Name should end at `\n`.
+    - Buffer should be filled by `_`.
+
     Args:
         s (str): The input Pascal string.
 
     Returns:
         tuple: A tuple containing the upper case string and an empty string.
     """
-    return (s.upper(), "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.upper(), rest
 
-
-upper_case_pstr_ref = upper_case_pstr
 
 TEST_CASES["upper_case_pstr"] = TestCase(
     simple=upper_case_pstr,
     cases=[
-        String2String("hello", "HELLO"),
-        String2String("world", "WORLD"),
+        String2String(
+            "Hello\n",
+            "HELLO",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("HELLO", 0x20))],
+        ),
+        String2String(
+            "world\n",
+            "WORLD",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("WORLD", 0x20))],
+        ),
     ],
-    reference=upper_case_pstr_ref,
-    reference_cases=[],
+    reference=upper_case_pstr,
+    reference_cases=[
+        String2String(
+            "Hello World!\n",
+            "HELLO WORLD!",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("HELLO WORLD!", 0x20))],
+        ),
+        String2String(
+            "Hello\nworld",
+            "HELLO",
+            "world",
+            mem_view=[(0x00, 0x1F, pbuf("HELLO", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1234567890123456789012345678901",
+            "23",
+            mem_view=[(0x00, 0x1F, pbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -118,54 +204,125 @@ TEST_CASES["upper_case_pstr"] = TestCase(
 def upper_case_cstr(s):
     """Convert a C string to upper case.
 
+    - Output buffer size and its placement specified below.
+    - Name should end at `\n`.
+    - Buffer should be filled by `_`.
+
     Args:
         s (str): The input C string.
 
     Returns:
         tuple: A tuple containing the upper case string and an empty string.
     """
-    return upper_case_pstr(s)
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.upper(), rest
 
-
-upper_case_cstr_ref = upper_case_cstr
 
 TEST_CASES["upper_case_cstr"] = TestCase(
     simple=upper_case_cstr,
     cases=[
-        String2String("hello", "HELLO"),
-        String2String("world", "WORLD"),
+        String2String(
+            "Hello\n",
+            "HELLO",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("HELLO", 0x20))],
+        ),
+        String2String(
+            "world\n",
+            "WORLD",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("WORLD", 0x20))],
+        ),
     ],
-    reference=upper_case_cstr_ref,
-    reference_cases=[],
+    reference=upper_case_pstr,
+    reference_cases=[
+        String2String(
+            "Hello World!\n",
+            "HELLO WORLD!",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("HELLO WORLD!", 0x20))],
+        ),
+        String2String(
+            "Hello\nworld",
+            "HELLO",
+            "world",
+            mem_view=[(0x00, 0x1F, cbuf("HELLO", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1234567890123456789012345678901",
+            "23",
+            mem_view=[(0x00, 0x1F, cbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
+
 
 ###########################################################
 
 
 def capital_case_pstr(s):
-    """Convert the first character of each word in a Pascal string to upper case.
+    """Convert the first character of each word in a Pascal string to capital case.
+
+    Capital Case Is Something Like This.
 
     Args:
-        s (str): The input Pascal string.
+        s (str): The input string till new line.
 
     Returns:
-        tuple: A tuple containing the capitalized string and an empty string.
+        tuple: A tuple containing the capitalized output string and input rest.
     """
-    return (s.title(), "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.title(), rest
 
-
-capital_case_pstr_ref = capital_case_pstr
 
 TEST_CASES["capital_case_pstr"] = TestCase(
     simple=capital_case_pstr,
     cases=[
-        String2String("hello world", "Hello World"),
-        String2String("python programming", "Python Programming"),
+        String2String(
+            "hello world\n",
+            "Hello World",
+            mem_view=[(0x00, 0x1F, pbuf("Hello World", 0x20))],
+        ),
+        String2String(
+            "python programming\n",
+            "Python Programming",
+            mem_view=[(0x00, 0x1F, pbuf("Python Programming", 0x20))],
+        ),
     ],
-    reference=capital_case_pstr_ref,
-    reference_cases=[],
+    reference=capital_case_pstr,
+    reference_cases=[
+        String2String(
+            "hello\nworld!\n",
+            "Hello",
+            "world!\n",
+            mem_view=[(0x00, 0x1F, pbuf("Hello", 0x20))],
+        ),
+        String2String(
+            "HELLO WORLD!\n",
+            "Hello World!",
+            mem_view=[(0x00, 0x1F, pbuf("Hello World!", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n",
+            "1234567890123456789012345678901",
+            mem_view=[(0x00, 0x1F, pbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n",
+            [overflow_error_value],
+            "\n",
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -174,27 +331,60 @@ TEST_CASES["capital_case_pstr"] = TestCase(
 
 
 def capital_case_cstr(s):
-    """Convert the first character of each word in a C string to upper case.
+    """Convert the first character of each word in a C string to capital case.
+
+    Capital Case Is Something Like This.
 
     Args:
-        s (str): The input C string.
+        s (str): The input string till new line.
 
     Returns:
-        tuple: A tuple containing the capitalized string and an empty string.
+        tuple: A tuple containing the capitalized output string and input rest.
     """
-    return capital_case_pstr(s)
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.title(), rest
 
-
-capital_case_cstr_ref = capital_case_cstr
 
 TEST_CASES["capital_case_cstr"] = TestCase(
     simple=capital_case_cstr,
     cases=[
-        String2String("hello world", "Hello World"),
-        String2String("python programming", "Python Programming"),
+        String2String(
+            "hello world\n",
+            "Hello World",
+            mem_view=[(0x00, 0x1F, cbuf("Hello World", 0x20))],
+        ),
+        String2String(
+            "python programming\n",
+            "Python Programming",
+            mem_view=[(0x00, 0x1F, cbuf("Python Programming", 0x20))],
+        ),
     ],
-    reference=capital_case_cstr_ref,
-    reference_cases=[],
+    reference=capital_case_cstr,
+    reference_cases=[
+        String2String(
+            "hello\nworld!\n",
+            "Hello",
+            "world!\n",
+            mem_view=[(0x00, 0x1F, cbuf("Hello", 0x20))],
+        ),
+        String2String(
+            "HELLO WORLD!\n",
+            "Hello World!",
+            mem_view=[(0x00, 0x1F, cbuf("Hello World!", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n",
+            "1234567890123456789012345678901",
+            mem_view=[(0x00, 0x1F, cbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n",
+            [overflow_error_value],
+            "\n",
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -211,19 +401,33 @@ def reverse_string_pstr(s):
     Returns:
         tuple: A tuple containing the reversed string and an empty string.
     """
-    return (s[::-1], "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line[::-1], rest
 
-
-reverse_string_pstr_ref = reverse_string_pstr
 
 TEST_CASES["reverse_string_pstr"] = TestCase(
     simple=reverse_string_pstr,
     cases=[
-        String2String("hello", "olleh"),
-        String2String("world", "dlrow"),
+        String2String("hello\n", "olleh", mem_view=[(0x00, 0x1F, pbuf("olleh", 0x20))]),
+        String2String(
+            "world!\n", "!dlrow", mem_view=[(0x00, 0x1F, pbuf("!dlrow", 0x20))]
+        ),
     ],
-    reference=reverse_string_pstr_ref,
-    reference_cases=[],
+    reference=reverse_string_pstr,
+    reference_cases=[
+        String2String("\n", "", mem_view=[(0x00, 0x1F, pbuf("", 0x20))]),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1098765432109876543210987654321",
+            "23",
+            mem_view=[(0x00, 0x1F, pbuf("1098765432109876543210987654321", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+    ],
     is_variant=True,
     category="String Manipulation",
 )
@@ -238,27 +442,34 @@ def reverse_string_cstr(s):
         s (str): The input C string.
 
     Returns:
-        tuple: A tuple containing the reversed string and the remaining input.
+        tuple: A tuple containing the reversed string and an empty string.
     """
-    ss = tuple(s.split("\n", 2))
-    if len(ss) == 1:
-        return reverse_string_pstr(s)
-    else:
-        head, tail = ss
-        return head[::-1], tail
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line[::-1], rest
 
-
-reverse_string_cstr_ref = reverse_string_cstr
 
 TEST_CASES["reverse_string_cstr"] = TestCase(
     simple=reverse_string_cstr,
     cases=[
-        String2String("hello", "olleh"),
-        String2String("world", "dlrow"),
+        String2String("hello\n", "olleh", mem_view=[(0x00, 0x1F, cbuf("olleh", 0x20))]),
+        String2String(
+            "world!\n", "!dlrow", mem_view=[(0x00, 0x1F, cbuf("!dlrow", 0x20))]
+        ),
     ],
-    reference=reverse_string_cstr_ref,
+    reference=reverse_string_cstr,
     reference_cases=[
-        String2String("hello\n World", "olleh", " World"),
+        String2String("\n", "", mem_view=[(0x00, 0x1F, cbuf("", 0x20))]),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1098765432109876543210987654321",
+            "23",
+            mem_view=[(0x00, 0x1F, cbuf("1098765432109876543210987654321", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
     ],
     is_variant=True,
     category="String Manipulation",
