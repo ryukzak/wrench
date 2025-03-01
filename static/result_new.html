@@ -31,7 +31,7 @@
     </style>
 </head>
 
-<body class="inverted full flex flex-col justify-center items-center min-h-screen">
+<body class="full flex flex-col justify-center items-center min-h-screen">
     <div class="text-center w-full mb-8"> <!-- Добавляем отступ снизу -->
         <h1 class="large white">
             <a class="subtle-hover " href="/">Wrench Report</a>
@@ -46,29 +46,29 @@
                 <p class="orange texm-sm text-left mb-6"><span>[variant]</span> {{variant}}</p>
             </em>
 
-            <h2 class="grey text-xl mb-4">[comment]</h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+            <h2 class="grey mb-4">[comment]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{comment}}</pre>
 
-            <h2 class="green text-xl mt-6 mb-4">[assembler_code]</h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+            <h2 class="green mt-6 mb-4">[assembler_code]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{assembler_code}}</pre>
 
-            <h2 class="blue text-xl mt-6 mb-4">
+            <h2 class="blue mt-6 mb-4">
                 [simulation_config]: <span class="grey">/* YAML */</span>
             </h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{yaml_content}}</pre>
         </div>
         <div class="flex-1 min-w-[300px] max-w-[40%]">
-            <h2 class="fuschia text-xl mb-4">[simulation_result]</h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+            <h2 class="fuschia mb-4">[simulation_result]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{status}}</pre>
 
             <div id="accordion-collapse" data-accordion="collapse" class="white mb-4"
                 data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
                 <h2 id="accordion-collapse-heading-1"
-                    class="flex items-center justify-between w-full p-4 text-sm text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    class="flex items-center justify-between w-full p-4 text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
                     data-accordion-target="#accordion-collapse-body-1" aria-expanded="false"
                     aria-controls="accordion-collapse-body-1">
                     <span>View Simulation Log</span>
@@ -80,21 +80,21 @@
                     </svg>
                 </h2>
                 <div id="accordion-collapse-body-1" class="hidden" aria-labelledby="accordion-collapse-heading-1">
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto ">
 {{result}}</pre>
                 </div>
             </div>
 
 
-            <h2 class="purple text-xl mt-6 mb-4">[testcase_result]</h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+            <h2 class="purple mt-6 mb-4">[testcase_result]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{test_cases_status}}</pre>
 
             <div id="accordion-collapse" data-accordion="collapse" class="mb-4"
                 data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
 
                 <h2 id="accordion-collapse-heading-2"
-                    class="flex items-center justify-between w-full p-4 text-sm text-left  bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    class="flex items-center justify-between w-full p-4 text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
                     data-accordion-target="#accordion-collapse-body-2" aria-expanded="false"
                     aria-controls="accordion-collapse-body-2">
                     <span>View Failed Test Case</span>
@@ -106,7 +106,7 @@
                     </svg>
                 </h2>
                 <div id="accordion-collapse-body-2" class="hidden" aria-labelledby="accordion-collapse-heading-2">
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto ">
 {{test_cases_result}}</pre>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                 data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
 
                 <h2 id="accordion-collapse-heading-3"
-                    class="flex items-center justify-between w-full p-4 text-sm text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    class="flex items-center justify-between w-full p-4 text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
                     data-accordion-target="#accordion-collapse-body-3" aria-expanded="false"
                     aria-controls="accordion-collapse-body-3">
                     <span>Dump</span>
@@ -126,7 +126,7 @@
                     </svg>
                 </h2>
                 <div id="accordion-collapse-body-3" class="hidden" aria-labelledby="accordion-collapse-heading-3">
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto ">
 {{dump}}</pre>
                 </div>
             </div>

@@ -10,13 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="style.css" rel="stylesheet" />
     <style>
-        textarea,
-        input[type="text"],
-        select {
-            font-size: 0.875rem;
-            /* Smaller font size */
-        }
-
         textarea {
             min-height: 20rem;
             /* Expand to avoid scrolling */
@@ -61,7 +54,7 @@
 <body class="flex items-center justify-center min-h-screen">
     <div class="p-8 rounded-lg w-full max-w-6xl">
         <h1 class="large mb-6 text-center">Wrench Submit</h1>
-        <div class="text-base mb-6 text-center">
+        <div class="mb-6 text-center">
             <a href="https://github.com/ryukzak/wrench" class="purple hover" target="_blank">[GitHub]</a>
             <span class="grey separator-char">|</span>
             <a href="https://github.com/ryukzak/wrench/tree/master/docs" class="fuschia hover"
@@ -73,18 +66,18 @@
         <form action="/submit" method="post" enctype="application/x-www-form-urlencoded;charset=UTF-8"
             class="space-y-6">
             <div class="mb-6">
-                <label for="variant" class="block grey text-sm">/* variant */</label>
+                <label for="variant" class="block grey ">/* variant */</label>
                 <select id="variant" name="variant"
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500  ">
                     <option value="" selected disabled>Select a variant</option>
                     {{variants}}
                 </select>
             </div>
 
             <div class="mb-6">
-                <label for="isa" class="block grey text-sm">/* ISA */</label>
+                <label for="isa" class="block grey ">/* ISA */</label>
                 <select id="isa" name="isa"
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md  sm:text-sm">
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   ">
                     <option value="risc-iv-32" selected>risc-iv-32</option>
                     <option value="f32a">f32a</option>
                     <option value="acc32">acc32</option>
@@ -92,32 +85,32 @@
             </div>
 
             <div class="mb-6">
-                <label for="name" class="block text-sm  grey">/* Author Name */</label>
+                <label for="name" class="block   grey">/* Author Name */</label>
                 <input type="text" id="name" name="name" required
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md  sm:text-sm" />
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   " />
             </div>
 
             <div class="mb-6">
-                <label for="comment" class="block text-sm  grey">/* Comment */</label>
+                <label for="comment" class="block   grey">/* Comment */</label>
                 <textarea id="comment" name="comment"
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md  sm:text-sm"></textarea>
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
             </div>
 
             <div class="mb-6">
-                <label for="asm" class="block text-sm  grey">/* Assembler Code */</label>
+                <label for="asm" class="block   grey">/* Assembler Code */</label>
                 <textarea id="asm" name="asm" required
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md  sm:text-sm"></textarea>
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
             </div>
 
             <div class="mb-6">
-                <label for="config" class="block text-sm  grey">/* Config (YAML) */</label>
+                <label for="config" class="block   grey">/* Config (YAML) */</label>
                 <textarea id="config" name="config" required
-                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md  sm:text-sm"></textarea>
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
             </div>
 
             <div class="text-center">
                 <input type="submit" value="Submit"
-                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm  rounded-md text-white" />
+                    class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm   rounded-md text-white" />
             </div>
 
             <div class="text-center grey">[{{version}}]</div>

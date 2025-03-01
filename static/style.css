@@ -38,7 +38,7 @@ body {
     --c-dark-grey: #222224;
     --c-purple: #b462ff;
     --c-fuschia: #ff45b4;
-    --c-blue: #080808;
+    --c-blue: #18b6ff;
     --c-green: #1beb9e;
     --c-orange: #ff9528;
     --c-yellow: #dddd25;
@@ -170,10 +170,10 @@ body {
     }
 }
 @media (min-width: 1024px) {
-    /* body {
+    body {
         font-size: 1.11111111vw;
         overflow: hidden;
-    } */
+    }
 }
 
 ::selection {
