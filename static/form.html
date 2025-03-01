@@ -1,187 +1,126 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wrench</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="style.css" rel="stylesheet" />
+    <meta content="#1a1a1a" name="theme-color">
     <style>
-      body,
-      h1,
-      label,
-      textarea,
-      input[type="text"],
-      select,
-      a {
-        font-family:
-          "Anonymous Pro",
-          Consolas,
-          Monaco,
-          Lucida Console,
-          Liberation Mono,
-          DejaVu Sans Mono,
-          Bitstream Vera Sans Mono,
-          Courier New,
-          monospace;
-      }
-      textarea,
-      input[type="text"],
-      select {
-        font-size: 0.875rem; /* Smaller font size */
-      }
-      textarea {
-        min-height: 20rem; /* Expand to avoid scrolling */
-      }
-      #comment {
-        min-height: 5rem; /* Smaller height for comment section */
-      }
-      select {
-        appearance: none;
-        background-color: #fff;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.5rem 1rem;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        transition:
-          border-color 0.2s,
-          box-shadow 0.2s;
-      }
-      select:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        outline: none;
-      }
-      select option {
-        padding: 0.5rem;
-      }
+        textarea {
+            min-height: 20rem;
+            /* Expand to avoid scrolling */
+        }
+
+        #comment {
+            min-height: 5rem;
+            /* Smaller height for comment section */
+        }
+
+
+        select {
+            appearance: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            transition: all 0.s
+        }
+
+        select option {
+            padding: 0.5rem;
+            background-color: var(--c-dark-grey);
+        }
+
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: var(--c-purple);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background-color: var(--c-purple);
+            transition: all 0.05s;
+        }
+
+        input[type="submit"]:hover {
+            opacity: 0.8;
+        }
     </style>
-  </head>
-  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-6xl">
-      <h1 class="text-2xl font-bold mb-6 text-center">Wrench Submit</h1>
-      <div class="mb-6 text-center">
-        <a
-          href="https://github.com/ryukzak/wrench"
-          class="text-indigo-600 hover:underline"
-          target="_blank"
-          >GitHub</a
-        >
-        |
-        <a
-          href="https://github.com/ryukzak/wrench/tree/master/docs"
-          class="text-indigo-600 hover:underline"
-          target="_blank"
-          >ISA Doc</a
-        >
-        |
-        <a
-          href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-          class="text-indigo-600 hover:underline"
-          target="_blank"
-          >Variants</a
-        >
-      </div>
-      <form
-        action="/submit"
-        method="post"
-        enctype="application/x-www-form-urlencoded;charset=UTF-8"
-        class="space-y-6"
-      >
-        <div class="mb-6">
-          <label for="variant" class="block text-sm font-medium text-gray-700"
-            >Variant:</label
-          >
-          <select
-            id="variant"
-            name="variant"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="" selected disabled>Select a variant</option>
-            {{variants}}
-          </select>
-        </div>
+</head>
 
-        <div class="mb-6">
-          <label for="isa" class="block text-sm font-medium text-gray-700"
-            >ISA:</label
-          >
-          <select
-            id="isa"
-            name="isa"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="risc-iv-32" selected>risc-iv-32</option>
-            <option value="f32a">f32a</option>
-            <option value="acc32">acc32</option>
-          </select>
-        </div>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="p-8 rounded-lg w-full max-w-6xl">
+        <h1 class="large mb-6 text-center">Wrench Submit</h1>
+        <div class="mb-6 text-center">
+            <a href="https://github.com/ryukzak/wrench" class="purple hover" target="_blank">[GitHub]</a>
+            <span class="grey separator-char">|</span>
+            <a href="https://github.com/ryukzak/wrench/tree/master/docs" class="fuschia hover"
+                target="_blank">[ISA_doc]</a>
+            <span class="grey separator-char">|</span>
+            <a href="https://github.com/ryukzak/wrench/blob/master/variants.md" class="orange hover"
+                target="_blank">[variants]</a>
+            <span class="grey separator-char">|</span>
+            <button onclick="document.body.classList.toggle('inverted')"
+                class="self-center blue hover">[invert]</button>
 
-        <div class="mb-6">
-          <label for="name" class="block text-sm font-medium text-gray-700"
-            >Author Name:</label
-          >
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
         </div>
+        <form action="/submit" method="post" enctype="application/x-www-form-urlencoded;charset=UTF-8"
+            class="space-y-6">
+            <div class="mb-6">
+                <label for="variant" class="block grey ">/* variant */</label>
+                <select id="variant" name="variant"
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500  ">
+                    <option value="" selected disabled>Select a variant</option>
+                    {{variants}}
+                </select>
+            </div>
 
-        <div class="mb-6">
-          <label for="comment" class="block text-sm font-medium text-gray-700"
-            >Comment:</label
-          >
-          <textarea
-            id="comment"
-            name="comment"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          ></textarea>
-        </div>
+            <div class="mb-6">
+                <label for="isa" class="block grey ">/* ISA */</label>
+                <select id="isa" name="isa"
+                    class="subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   ">
+                    <option value="risc-iv-32" selected>risc-iv-32</option>
+                    <option value="f32a">f32a</option>
+                    <option value="acc32">acc32</option>
+                </select>
+            </div>
 
-        <div class="mb-6">
-          <label for="asm" class="block text-sm font-medium text-gray-700"
-            >Assembler Code:</label
-          >
-          <textarea
-            id="asm"
-            name="asm"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          ></textarea>
-        </div>
+            <div class="mb-6">
+                <label for="name" class="block   grey">/* Author Name */</label>
+                <input type="text" id="name" name="name" required
+                    class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   " />
+            </div>
 
-        <div class="mb-6">
-          <label for="config" class="block text-sm font-medium text-gray-700"
-            >Config (YAML):</label
-          >
-          <textarea
-            id="config"
-            name="config"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          ></textarea>
-        </div>
+            <div class="mb-6">
+                <label for="comment" class="block   grey">/* Comment */</label>
+                <textarea id="comment" name="comment"
+                    class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
+            </div>
 
-        <div class="text-center">
-          <input
-            type="submit"
-            value="Submit"
-            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div class="text-center">{{version}}</div>
-      </form>
+            <div class="mb-6">
+                <label for="asm" class="block   grey">/* Assembler Code */</label>
+                <textarea id="asm" name="asm" required
+                    class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
+            </div>
+
+            <div class="mb-6">
+                <label for="config" class="block   grey">/* Config (YAML) */</label>
+                <textarea id="config" name="config" required
+                    class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md   "></textarea>
+            </div>
+
+            <div class="text-center">
+                <input type="submit" value="Submit"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm   rounded-md text-white" />
+            </div>
+
+            <div class="text-center grey">[{{version}}]</div>
+        </form>
     </div>
-  </body>
+</body>
+
 </html>
