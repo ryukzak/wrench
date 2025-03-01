@@ -19,7 +19,8 @@ overflow_error_value = -858993460  # 0xCCCCCCCC
 
 
 def py_str(s):
-    return repr(s).replace("\\x00", "\\0")
+    s = repr(s).replace("\\x00", "\\0")
+    return s
 
 
 def yaml_symbol_nums(s, sep=","):
@@ -29,13 +30,19 @@ def yaml_symbol_nums(s, sep=","):
 def yaml_symbols(s):
     if s == [-1] or s == [overflow_error_value]:
         return '"?"'
-    return '"' + repr(s).strip("'").replace("\\x00", "\\0") + '"'
+    s = repr(s).strip("'").replace("\\x00", "\\0").replace("\\x0A", "\\n")
+    for code in [repr(chr(i)).strip("'") for i in range(32)]:
+        if code == "\\n":
+            continue
+        s = s.replace(code, "?")
+    return '"' + s + '"'
+
+
+def hex_byte(x):
+    return f"{x:02x}"
 
 
 def dump_symbols(s):
-    def hex_byte(x):
-        return f"{x:02x}"
-
     return " ".join([hex_byte(ord(c)) for c in s])
 
 

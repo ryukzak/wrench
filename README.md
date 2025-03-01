@@ -171,7 +171,7 @@ General state view implemented for all ISA:
 - `pc:label` -- print `@label-name` if current program counter assigned with label.
 - `instruction` -- print current instruction.
 - `memory:<a>:<b>` -- print memory dump between `<a>` and `<b>` address.
-- `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- print input-output stream state for the specific address in dec, sym or hex format. Some non-printable characters will be replaced with `#`, other will raise error.
+- `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- print input-output stream state for the specific address in dec, sym or hex format. Printable char code: [32, 126]. Also `\0`, `\n` will be printed as is. Other non-printable characters will be replaced with `?`, others will raise an error.
 
 For ISA specific state views see [docs](/docs).
 
