@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulation Results</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="style.css" rel="stylesheet" />
+    <meta content="#1a1a1a" name="theme-color">
+
+    <style>
+        textarea,
+        input[type="text"],
+        select {
+            font-size: 0.875rem;
+            /* Smaller font size */
+        }
+
+        textarea {
+            min-height: 20rem;
+            /* Expand to avoid scrolling */
+        }
+
+        #comment {
+            min-height: 5rem;
+            /* Smaller height for comment section */
+        }
+    </style>
+</head>
+
+<body class="inverted full flex flex-col justify-center items-center min-h-screen">
+    <div class="text-center w-full mb-8"> <!-- Добавляем отступ снизу -->
+        <h1 class="large white">
+            <a class="subtle-hover " href="/">Wrench Report</a>
+        </h1>
+    </div>
+    <div class="self-center flex flex-wrap gap-4 w-full max-w-screen-xl p-4">
+        <div class="flex-1 min-w-[300px] max-w-[60%] mt-4">
+            <em>
+                <p class="orange texm-sm text-left mb-4"><span>[author]</span> {{name}}</p>
+            </em>
+            <em>
+                <p class="orange texm-sm text-left mb-6"><span>[variant]</span> {{variant}}</p>
+            </em>
+
+            <h2 class="grey text-xl mb-4">[comment]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{comment}}</pre>
+
+            <h2 class="green text-xl mt-6 mb-4">[assembler_code]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{assembler_code}}</pre>
+
+            <h2 class="blue text-xl mt-6 mb-4">
+                [simulation_config]: <span class="grey">/* YAML */</span>
+            </h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{yaml_content}}</pre>
+        </div>
+        <div class="flex-1 min-w-[300px] max-w-[40%]">
+            <h2 class="fuschia text-xl mb-4">[simulation_result]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{status}}</pre>
+
+            <div id="accordion-collapse" data-accordion="collapse" class="white mb-4"
+                data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
+                <h2 id="accordion-collapse-heading-1"
+                    class="flex items-center justify-between w-full p-4 text-sm text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    data-accordion-target="#accordion-collapse-body-1" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-1">
+                    <span>View Simulation Log</span>
+                    <svg data-accordion-icon class="w-6 h-6 shrink-0 rotate-0" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </h2>
+                <div id="accordion-collapse-body-1" class="hidden" aria-labelledby="accordion-collapse-heading-1">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+{{result}}</pre>
+                </div>
+            </div>
+
+
+            <h2 class="purple text-xl mt-6 mb-4">[testcase_result]</h2>
+            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm mb-4">
+{{test_cases_status}}</pre>
+
+            <div id="accordion-collapse" data-accordion="collapse" class="mb-4"
+                data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
+
+                <h2 id="accordion-collapse-heading-2"
+                    class="flex items-center justify-between w-full p-4 text-sm text-left  bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    data-accordion-target="#accordion-collapse-body-2" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-2">
+                    <span>View Failed Test Case</span>
+                    <svg data-accordion-icon class="w-6 h-6 shrink-0 rotate-0" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </h2>
+                <div id="accordion-collapse-body-2" class="hidden" aria-labelledby="accordion-collapse-heading-2">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+{{test_cases_result}}</pre>
+                </div>
+            </div>
+            <div id="accordion-collapse" data-accordion="collapse" class="mb-4"
+                data-inactive-classes="white bg-dark-gray" data-active-classes="white bg-dark-gray">
+
+                <h2 id="accordion-collapse-heading-3"
+                    class="flex items-center justify-between w-full p-4 text-sm text-left bg-dark-gray border border-zinc-400 rounded-lg focus:ring-4 focus:ring-zinc-200 subtle-hover"
+                    data-accordion-target="#accordion-collapse-body-3" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-3">
+                    <span>Dump</span>
+                    <svg data-accordion-icon class="w-6 h-6 shrink-0 rotate-0" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </h2>
+                <div id="accordion-collapse-body-3" class="hidden" aria-labelledby="accordion-collapse-heading-3">
+                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto text-sm">
+{{dump}}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"></script>
+</body>
+
+</html>
