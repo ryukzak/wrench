@@ -1,4 +1,4 @@
-name: "assert dup([42]) == [42, 42]"
+name: assert dup([42]) == [42, 42]
 limit: 2000
 memory_size: 0x1000
 input_streams:

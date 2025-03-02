@@ -1,4 +1,4 @@
-name: "assert factorial(14) == -858993460"
+name: assert factorial(14) == -858993460
 limit: 2000
 memory_size: 0x1000
 input_streams:

@@ -1,4 +1,4 @@
-name: "assert get_put_char('B') == ('B', '')"
+name: assert get_put_char('B') == ('B', '')
 limit: 2000
 memory_size: 0x1000
 input_streams:

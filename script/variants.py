@@ -115,7 +115,7 @@ def run_python_test_cases(verbose):
 def generate_wrench_test_cases(conf_name, case):
     limit = 2000
     conf_name = case.assert_string(conf_name)
-    return f"""name: "{conf_name}"
+    return f"""name: {conf_name}
 limit: {limit}
 memory_size: 0x1000
 input_streams:

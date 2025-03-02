@@ -1,4 +1,4 @@
-name: "assert logical_not(False) == True"
+name: assert logical_not(False) == True
 limit: 2000
 memory_size: 0x1000
 input_streams:
