@@ -128,10 +128,10 @@ jobs:
 
     docker-build-and-push:
         timeout-minutes: 45
-        needs:
-            - wrench
-            - haskell-formatting
-            - haskell-lint
+        # needs:
+        #     - wrench
+        #     - haskell-formatting
+        #     - haskell-lint
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
