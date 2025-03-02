@@ -160,6 +160,7 @@ jobs:
               with:
                   context: .
                   push: true
+                  file: hub.Dockerfile
                   tags: ${{ secrets.DOCKERHUB_USERNAME }}/wrench:ci-preview
                   platforms: linux/amd64,linux/arm64
                   cache-from: type=local,src=/tmp/.buildx-cache
