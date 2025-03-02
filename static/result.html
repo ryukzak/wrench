@@ -56,19 +56,49 @@
 
                 <div>
                     <h2 class="grey mt-6 mb-4">/* assembler_code */</h2>
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
+                    <div id="accordion-collapse-assembler" data-accordion="collapse"
+                        class="mb-4 bg-dark-gray p-4 rounded-lg"
+                        data-inactive-classes="vim-folded orange-low-saturation"
+                        data-active-classes="white bg-transparent">
+
+                        <h2 id="accordion-collapse-heading-assembler"
+                            class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                            data-accordion-target="#accordion-collapse-body-assembler" aria-expanded="false"
+                            aria-controls="accordion-collapse-body-assembler">
+                            <span class="noselect">assembler_code =</span>
+                        </h2>
+                        <div id="accordion-collapse-body-assembler" class="hidden"
+                            aria-labelledby="accordion-collapse-heading-assembler">
+                            <pre id="dump-text-element" class="rounded-lg overflow-x-auto ">
 {{assembler_code}}</pre>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
-                    <h2 class="grey mt-6 mb-4">
-                        /* simulation_config (YAML) */
-                    </h2>
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
+                    <h2 class="grey mt-6 mb-4">/* simulation_config (YAML) */</h2>
+                    <div id="accordion-collapse-simulation-config" data-accordion="collapse"
+                        class="mb-4 bg-dark-gray p-4 rounded-lg"
+                        data-inactive-classes="vim-folded orange-low-saturation"
+                        data-active-classes="white bg-transparent">
+
+                        <h2 id="accordion-collapse-heading-simulation-config"
+                            class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                            data-accordion-target="#accordion-collapse-body-simulation-config" aria-expanded="false"
+                            aria-controls="accordion-collapse-body-simulation-config">
+                            <span class="noselect">simulation_config =</span>
+                        </h2>
+                        <div id="accordion-collapse-body-simulation-config" class="hidden"
+                            aria-labelledby="accordion-collapse-heading-simulation-config">
+                            <pre id="dump-text-element" class="rounded-lg overflow-x-auto ">
 {{yaml_content}}</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+
+
         <div class="flex-1 min-w-[300px] max-w-[50%]">
 
             <div>
@@ -80,18 +110,20 @@
             <div id="accordion-collapse-simulation-log" data-accordion="collapse"
                 class="mb-4 bg-dark-gray p-4 rounded-lg" data-inactive-classes="vim-folded orange-low-saturation"
                 data-active-classes="white bg-transparent">
-                <h2 id="accordion-collapse-heading-1"
+                <h2 id="accordion-collapse-heading-simulation-log"
                     class="vim-folded orange-low-saturation flex items-center justify-between w-full text-left hover"
-                    data-accordion-target="#accordion-collapse-body-1" aria-expanded="false"
-                    aria-controls="accordion-collapse-body-1">
+                    data-accordion-target="#accordion-collapse-body-simulation-log" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-simulation-log">
                     <span class="noselect">simulation_log =</span>
                 </h2>
-                <div id="accordion-collapse-body-1" class="hidden" aria-labelledby="accordion-collapse-heading-1">
+                <div id="accordion-collapse-body-simulation-log" class="hidden"
+                    aria-labelledby="accordion-collapse-heading-simulation-log">
                     <pre id="simulation-log-text-element" class="overflow-x-auto ">
 {{result}}</pre>
                 </div>
             </div>
-            <div id="simulation-log-empty-tag" class="hidden mb-4 bg-dark-gray p-4 rounded-lg">simulation_log = ""
+            <div id="simulation-log-empty-tag" class="hidden mb-4 bg-dark-gray p-4 rounded-lg">simulation_log =
+                ""
                 <span class="grey"> /* nothing returned */</span>
             </div>
 
@@ -103,30 +135,32 @@
                 class="mb-4 bg-dark-gray p-4 rounded-lg" data-inactive-classes="vim-folded orange-low-saturation"
                 data-active-classes="white bg-transparent">
 
-                <h2 id="accordion-collapse-heading-2"
+                <h2 id="accordion-collapse-heading-test-cases-result"
                     class="vim-folded flex orange-low-saturation items-center justify-between w-full text-left hover"
-                    data-accordion-target="#accordion-collapse-body-2" aria-expanded="false"
-                    aria-controls="accordion-collapse-body-2">
+                    data-accordion-target="#accordion-collapse-body-test-cases-result" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-test-cases-result">
                     <span class="noselect">failed_test_case =</span>
                 </h2>
-                <div id="accordion-collapse-body-2" class="hidden" aria-labelledby="accordion-collapse-heading-2">
+                <div id="accordion-collapse-body-test-cases-result" class="hidden"
+                    aria-labelledby="accordion-collapse-heading-test-cases-result">
                     <pre id="test_cases_result-text-element" class="overflow-x-auto">
 {{test_cases_result}}</pre>
                 </div>
             </div>
-            <div id="test-cases-result-empty-tag" class="hidden mb-4 bg-dark-gray p-4 rounded-lg">failed_test_case = ""
+            <div id="test-cases-result-empty-tag" class="hidden mb-4 bg-dark-gray p-4 rounded-lg">
+                failed_test_case = ""
                 <span class="grey"> /* nothing returned */</span>
             </div>
             <div id="accordion-collapse-dump" data-accordion="collapse" class="mb-4 bg-dark-gray p-4 rounded-lg"
                 data-inactive-classes="vim-folded orange-low-saturation" data-active-classes="white bg-transparent">
 
-                <h2 id="accordion-collapse-heading-3"
+                <h2 id="accordion-collapse-heading-dump"
                     class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
-                    data-accordion-target="#accordion-collapse-body-3" aria-expanded="false"
-                    aria-controls="accordion-collapse-body-3">
+                    data-accordion-target="#accordion-collapse-body-dump" aria-expanded="false"
+                    aria-controls="accordion-collapse-body-dump">
                     <span class="noselect">dump =</span>
                 </h2>
-                <div id="accordion-collapse-body-3" class="hidden" aria-labelledby="accordion-collapse-heading-3">
+                <div id="accordion-collapse-body-dump" class="hidden" aria-labelledby="accordion-collapse-heading-dump">
                     <pre id="dump-text-element" class="rounded-lg overflow-x-auto ">
 {{dump}}</pre>
                 </div>
