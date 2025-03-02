@@ -236,7 +236,7 @@ def cstr(s, buf_size):
     """Make content for buffer with pascal string (default value for cell: `_`)."""
     assert len(s) + 1 <= buf_size
     buf = s + "\0" + ("_" * (buf_size - len(s) - 1))
-    return s, buf
+    return "".join(itertools.takewhile(lambda c: c != "\0", s)), buf
 
 
 assert cstr("hello", 10) == ("hello", "hello\x00____")

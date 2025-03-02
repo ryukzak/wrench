@@ -6,15 +6,21 @@ from testcases.core import (
     read_line,
     pbuf,
     cbuf,
+    cstr,
 )
 
 ###########################################################
 
 
 def hello_user_pstr(input):
-    """Greet the user with Pascal strings.
+    """Greet the user with Pascal string: ask the name and greet by `Hello, <name>!` message.
 
-    Args:
+    - Result string with greet message should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         input (str): The input string containing the user's name.
 
     Returns:
@@ -74,9 +80,14 @@ TEST_CASES["hello_user_pstr"] = TestCase(
 
 
 def hello_user_cstr(input):
-    """Greet the user with C strings.
+    """Greet the user with C string: ask the name and greet by `Hello, <name>!` message.
 
-    Args:
+    - Result string with greet message should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         input (str): The input string containing the user's name.
 
     Returns:
@@ -89,7 +100,7 @@ def hello_user_cstr(input):
         return [q, overflow_error_value], rest
 
     greet = "Hello, " + line + "!"
-    return q + greet, rest
+    return q + cstr(greet, 0x20)[0], rest
 
 
 TEST_CASES["hello_user_cstr"] = TestCase(
@@ -127,6 +138,12 @@ TEST_CASES["hello_user_cstr"] = TestCase(
             ["What is your name?\n", overflow_error_value],
             "\n",
         ),
+        String2String(
+            "1234567890\x0012345\n",
+            "What is your name?\nHello, 1234567890",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("Hello, 1234567890\x0012345!", 0x20))],
+        ),
     ],
     is_variant=True,
     category="String Manipulation",
@@ -138,12 +155,13 @@ TEST_CASES["hello_user_cstr"] = TestCase(
 def upper_case_pstr(s):
     """Convert a Pascal string to upper case.
 
-    - Output buffer size and its placement specified below.
-    - Name should end at `\n`.
-    - Buffer should be filled by `_`.
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
 
-    Args:
-        s (str): The input Pascal string.
+    Python example args:
+        s (str): The input string.
 
     Returns:
         tuple: A tuple containing the upper case string and an empty string.
@@ -204,11 +222,12 @@ TEST_CASES["upper_case_pstr"] = TestCase(
 def upper_case_cstr(s):
     """Convert a C string to upper case.
 
-    - Output buffer size and its placement specified below.
-    - Name should end at `\n`.
-    - Buffer should be filled by `_`.
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
 
-    Args:
+    Python example args:
         s (str): The input C string.
 
     Returns:
@@ -217,7 +236,7 @@ def upper_case_cstr(s):
     line, rest = read_line(s, 0x20)
     if line is None:
         return [overflow_error_value], rest
-    return line.upper(), rest
+    return cstr(line.upper(), 0x20)[0], rest
 
 
 TEST_CASES["upper_case_cstr"] = TestCase(
@@ -236,7 +255,7 @@ TEST_CASES["upper_case_cstr"] = TestCase(
             mem_view=[(0x00, 0x1F, cbuf("WORLD", 0x20))],
         ),
     ],
-    reference=upper_case_pstr,
+    reference=upper_case_cstr,
     reference_cases=[
         String2String(
             "Hello World!\n",
@@ -259,11 +278,16 @@ TEST_CASES["upper_case_cstr"] = TestCase(
         String2String(
             "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
         ),
+        String2String(
+            "1234567890\x0012345\n",
+            "1234567890",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("1234567890\x0012345!", 0x20))],
+        ),
     ],
     is_variant=True,
     category="String Manipulation",
 )
-
 
 ###########################################################
 
@@ -273,7 +297,12 @@ def capital_case_pstr(s):
 
     Capital Case Is Something Like This.
 
-    Args:
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input string till new line.
 
     Returns:
@@ -335,7 +364,12 @@ def capital_case_cstr(s):
 
     Capital Case Is Something Like This.
 
-    Args:
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input string till new line.
 
     Returns:
@@ -344,7 +378,7 @@ def capital_case_cstr(s):
     line, rest = read_line(s, 0x20)
     if line is None:
         return [overflow_error_value], rest
-    return line.title(), rest
+    return (cstr(line.title(), 0x20)[0]), rest
 
 
 TEST_CASES["capital_case_cstr"] = TestCase(
@@ -384,6 +418,12 @@ TEST_CASES["capital_case_cstr"] = TestCase(
             [overflow_error_value],
             "\n",
         ),
+        String2String(
+            "1234567890\x0012345\n",
+            "1234567890",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("1234567890\x0012345!", 0x20))],
+        ),
     ],
     is_variant=True,
     category="String Manipulation",
@@ -395,7 +435,12 @@ TEST_CASES["capital_case_cstr"] = TestCase(
 def reverse_string_pstr(s):
     """Reverse a Pascal string.
 
-    Args:
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input Pascal string.
 
     Returns:
@@ -438,7 +483,12 @@ TEST_CASES["reverse_string_pstr"] = TestCase(
 def reverse_string_cstr(s):
     """Reverse a C string.
 
-    Args:
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input C string.
 
     Returns:
@@ -447,7 +497,7 @@ def reverse_string_cstr(s):
     line, rest = read_line(s, 0x20)
     if line is None:
         return [overflow_error_value], rest
-    return line[::-1], rest
+    return cstr(line[::-1], 0x20)[0], rest
 
 
 TEST_CASES["reverse_string_cstr"] = TestCase(
@@ -469,6 +519,12 @@ TEST_CASES["reverse_string_cstr"] = TestCase(
         ),
         String2String(
             "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+        String2String(
+            "1234567890\x0012345\n",
+            "54321",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("54321\x000987654321", 0x20))],
         ),
     ],
     is_variant=True,
