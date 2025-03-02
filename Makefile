@@ -29,6 +29,15 @@ release-image:
 		echo "Error: You have uncommitted changes. Please commit or stash them before releasing."; \
 		exit 1; \
 	fi
+	@if [ "$(shell git rev-list --count --left-only HEAD...@{u})" -gt 0 ]; then \
+		echo "Error: You have unpushed commits. Please push them before releasing."; \
+		exit 1; \
+	fi
+	git fetch
+	@if [ "$(shell git rev-list --count --left-only @{u}...HEAD)" -gt 0 ]; then \
+		echo "Error: You have unpulled commits. Please pull them before releasing."; \
+		exit 1; \
+	fi
 	@if docker pull $(IMAGE); then \
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
