@@ -46,8 +46,9 @@
                     <p class="grey texm-sm text-left mb-6"><span>/* author:</span> {{name}} */</p>
                 </div>
                 <div>
-                    <h2 class="grey mb-4">/* comment */</h2>
-                    <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
+                    <h2 id="comment-header" class="grey mb-4">/* comment */</h2>
+                    <h2 id="empty-comment-header" class="hidden grey mb-4">/* comment: not found */</h2>
+                    <pre id="comment-text-element" class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{comment}}</pre>
                 </div>
 
@@ -135,6 +136,13 @@
     </div>
 
     <script>
+
+        const commentText = document.getElementById("comment-text-element").innerText;
+        if (commentText.trim() === "") {
+            document.getElementById("comment-header").classList.add("hidden")
+            document.getElementById("empty-comment-header").classList.remove("hidden")
+        }
+
         const dumpText = document.getElementById("dump-text-element").innerText;
         if (dumpText.trim() === "") {
             document.getElementById("accordion-collapse-dump").classList.add("hidden");
