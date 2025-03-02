@@ -21,6 +21,14 @@ preview-image:
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
 
 release-image:
+	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
+		echo "Error: You must be on the master branch to release."; \
+		exit 1; \
+	fi
+	@if ! git diff-index --quiet HEAD --; then \
+		echo "Error: You have uncommitted changes. Please commit or stash them before releasing."; \
+		exit 1; \
+	fi
 	@if docker pull $(IMAGE); then \
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
