@@ -1,8 +1,8 @@
 # Wrench variants
 
 Variants described as a Python function with several asserts. It is a
-limit implementation because your variant may have additional
-requirements like: specific string representation, limit integer
+limited implementation because your variant may have additional
+requirements like: specific string representation, limited integer
 number representation, etc.
 
 Additional requirements for all variants:
@@ -17,6 +17,42 @@ Additional requirements for all variants:
     unless otherwise specified.
 1. ISA-specific requirements:
     - `F32a`: use procedures.
+
+Also we have the following helper functions not from builtins:
+
+```python
+def read_line(s, buf_size):
+    """Read line from input with buffer size limits."""
+    assert "\n" in s, "input should have a newline character"
+    line = "".join(itertools.takewhile(lambda x: x != "\n", s))
+
+    if len(line) > buf_size - 1:
+        return None, s[buf_size:]
+
+    return line, s[len(line) + 1 :]
+
+
+def cstr(s, buf_size):
+    """Make content for buffer with pascal string (default value for cell: `_`)."""
+    assert len(s) + 1 <= buf_size
+    buf = s + "\0" + ("_" * (buf_size - len(s) - 1))
+    return "".join(itertools.takewhile(lambda c: c != "\0", s)), buf
+
+
+def pstr(s, buf_size):
+    """Make content for buffer with pascal string (default value for cell: `_`)."""
+    assert len(s) + 1 <= buf_size
+    buf = chr(len(s)) + s + ("_" * (buf_size - len(s) - 1))
+    return s, buf
+
+
+def cbuf(s, buf_size):
+    return cstr(s, buf_size)[1]
+
+
+def pbuf(s, buf_size):
+    return pstr(s, buf_size)[1]
+```
 
 Variants:
 
@@ -49,7 +85,8 @@ Variants:
     - [reverse_string_pstr](#reverse_string_pstr)
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
-- _Examples
+- _Examples_
+    - [dup](#dup)
     - [factorial](#factorial)
     - [get_put_char](#get_put_char)
     - [hello](#hello)
@@ -382,7 +419,7 @@ def sum_word_cstream(*xs):
     tmp = 0
     x = 0
     for x in xs:
-        if x is 0:
+        if x == 0:
             break
         tmp += x
     assert x == 0
@@ -432,94 +469,128 @@ assert sum_word_pstream([4, 2147483647, 1, 2147483647, 2, 0]) == [1, 1]
 
 ```python
 def capital_case_cstr(s):
-    """Convert the first character of each word in a C string to upper case.
+    """Convert the first character of each word in a C string to capital case.
 
-    Args:
-        s (str): The input C string.
+    Capital Case Is Something Like This.
+
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input string till new line.
 
     Returns:
-        tuple: A tuple containing the capitalized string and an empty string.
+        tuple: A tuple containing the capitalized output string and input rest.
     """
-    return capital_case_pstr(s)
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return (cstr(line.title(), 0x20)[0]), rest
 
 
-assert capital_case_cstr('hello world') == ('Hello World', '')
-assert capital_case_cstr('python programming') == ('Python Programming', '')
+assert capital_case_cstr('hello world\n') == ('Hello World', '')
+# and mem[0..31]: 48 65 6c 6c 6f 20 57 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert capital_case_cstr('python programming\n') == ('Python Programming', '')
+# and mem[0..31]: 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `capital_case_pstr`
 
 ```python
 def capital_case_pstr(s):
-    """Convert the first character of each word in a Pascal string to upper case.
+    """Convert the first character of each word in a Pascal string to capital case.
 
-    Args:
-        s (str): The input Pascal string.
+    Capital Case Is Something Like This.
+
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input string till new line.
 
     Returns:
-        tuple: A tuple containing the capitalized string and an empty string.
+        tuple: A tuple containing the capitalized output string and input rest.
     """
-    return (s.title(), "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.title(), rest
 
 
-assert capital_case_pstr('hello world') == ('Hello World', '')
-assert capital_case_pstr('python programming') == ('Python Programming', '')
+assert capital_case_pstr('hello world\n') == ('Hello World', '')
+# and mem[0..31]: 0b 48 65 6c 6c 6f 20 57 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert capital_case_pstr('python programming\n') == ('Python Programming', '')
+# and mem[0..31]: 12 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `hello_user_cstr`
 
 ```python
 def hello_user_cstr(input):
-    """Greet the user with C strings.
+    """Greet the user with C string: ask the name and greet by `Hello, <name>!` message.
 
-    External behavior is the same as hello_user_pstr.
+    - Result string with greet message should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
 
-    Args:
+    Python example args:
         input (str): The input string containing the user's name.
 
     Returns:
         tuple: A tuple containing the greeting message and the remaining input.
     """
-    return hello_user_pstr(input)
+    line, rest = read_line(input, 0x20 - len("Hello, " + "!") - 1)
+
+    q = "What is your name?\n"
+    if not line:
+        return [q, overflow_error_value], rest
+
+    greet = "Hello, " + line + "!"
+    return q + cstr(greet, 0x20)[0], rest
 
 
-assert hello_user_cstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
-assert hello_user_cstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
+assert hello_user_cstr('Alice\n') == ('What is your name?\nHello, Alice!', '')
+# and mem[0..31]: 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert hello_user_cstr('Bob\n') == ('What is your name?\nHello, Bob!', '')
+# and mem[0..31]: 48 65 6c 6c 6f 2c 20 42 6f 62 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `hello_user_pstr`
 
 ```python
 def hello_user_pstr(input):
-    """Greet the user with Pascal strings.
+    """Greet the user with Pascal string: ask the name and greet by `Hello, <name>!` message.
 
-    Args:
+    - Result string with greet message should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         input (str): The input string containing the user's name.
 
     Returns:
         tuple: A tuple containing the greeting message and the remaining input.
     """
-    input = list(input)
-    out = []
-    for c in list("What is your name?\n"):
-        out.append(c)
-    buf = []
-    while True:
-        c = input.pop(0)
-        if c == "\n":
-            break
-        buf.append(c)
-    for c in list("Hello, "):
-        out.append(c)
-    for c in list(buf):
-        out.append(c)
-    out.append("!")
-    out.append("\n")
-    return "".join(out), "".join(input)
+    line, rest = read_line(input, 0x20 - len("Hello, " + "!") - 1)
+
+    q = "What is your name?\n"
+    if not line:
+        return [q, overflow_error_value], rest
+
+    greet = "Hello, " + line + "!"
+    return q + greet, rest
 
 
-assert hello_user_pstr('Alice\n') == ('What is your name?\nHello, Alice!\n', '')
-assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 'Bob')
+assert hello_user_pstr('Alice\n') == ('What is your name?\nHello, Alice!', '')
+# and mem[0..31]: 0d 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert hello_user_pstr('Bob\n') == ('What is your name?\nHello, Bob!', '')
+# and mem[0..31]: 0b 48 65 6c 6c 6f 2c 20 42 6f 62 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `reverse_string_cstr`
@@ -528,22 +599,27 @@ assert hello_user_pstr('Alice\nBob') == ('What is your name?\nHello, Alice!\n', 
 def reverse_string_cstr(s):
     """Reverse a C string.
 
-    Args:
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input C string.
 
     Returns:
-        tuple: A tuple containing the reversed string and the remaining input.
+        tuple: A tuple containing the reversed string and an empty string.
     """
-    ss = tuple(s.split("\n", 2))
-    if len(ss) == 1:
-        return reverse_string_pstr(s)
-    else:
-        head, tail = ss
-        return head[::-1], tail
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return cstr(line[::-1], 0x20)[0], rest
 
 
-assert reverse_string_cstr('hello') == ('olleh', '')
-assert reverse_string_cstr('world') == ('dlrow', '')
+assert reverse_string_cstr('hello\n') == ('olleh', '')
+# and mem[0..31]: 6f 6c 6c 65 68 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert reverse_string_cstr('world!\n') == ('!dlrow', '')
+# and mem[0..31]: 21 64 6c 72 6f 77 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `reverse_string_pstr`
@@ -552,17 +628,27 @@ assert reverse_string_cstr('world') == ('dlrow', '')
 def reverse_string_pstr(s):
     """Reverse a Pascal string.
 
-    Args:
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input Pascal string.
 
     Returns:
         tuple: A tuple containing the reversed string and an empty string.
     """
-    return (s[::-1], "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line[::-1], rest
 
 
-assert reverse_string_pstr('hello') == ('olleh', '')
-assert reverse_string_pstr('world') == ('dlrow', '')
+assert reverse_string_pstr('hello\n') == ('olleh', '')
+# and mem[0..31]: 05 6f 6c 6c 65 68 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert reverse_string_pstr('world!\n') == ('!dlrow', '')
+# and mem[0..31]: 06 21 64 6c 72 6f 77 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `upper_case_cstr`
@@ -571,17 +657,27 @@ assert reverse_string_pstr('world') == ('dlrow', '')
 def upper_case_cstr(s):
     """Convert a C string to upper case.
 
-    Args:
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
         s (str): The input C string.
 
     Returns:
         tuple: A tuple containing the upper case string and an empty string.
     """
-    return upper_case_pstr(s)
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return cstr(line.upper(), 0x20)[0], rest
 
 
-assert upper_case_cstr('hello') == ('HELLO', '')
-assert upper_case_cstr('world') == ('WORLD', '')
+assert upper_case_cstr('Hello\n') == ('HELLO', '')
+# and mem[0..31]: 48 45 4c 4c 4f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert upper_case_cstr('world\n') == ('WORLD', '')
+# and mem[0..31]: 57 4f 52 4c 44 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `upper_case_pstr`
@@ -590,20 +686,40 @@ assert upper_case_cstr('world') == ('WORLD', '')
 def upper_case_pstr(s):
     """Convert a Pascal string to upper case.
 
-    Args:
-        s (str): The input Pascal string.
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input string.
 
     Returns:
         tuple: A tuple containing the upper case string and an empty string.
     """
-    return (s.upper(), "")
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.upper(), rest
 
 
-assert upper_case_pstr('hello') == ('HELLO', '')
-assert upper_case_pstr('world') == ('WORLD', '')
+assert upper_case_pstr('Hello\n') == ('HELLO', '')
+# and mem[0..31]: 05 48 45 4c 4c 4f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert upper_case_pstr('world\n') == ('WORLD', '')
+# and mem[0..31]: 05 57 4f 52 4c 44 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
-## _Examples
+## _Examples_
+
+### `dup`
+
+```python
+def dup(x):
+    return [x, x]
+
+
+assert dup([42]) == [42, 42]
+```
 
 ### `factorial`
 
@@ -646,11 +762,11 @@ assert get_put_char('ABCD') == ('A', 'BCD')
 
 ```python
 def hello(_):
-    return ("Hello\n\0World!", "")
+    return ("\x1fHello\n\0World!", "")
 
 
-assert hello('') == ('Hello\n\0World!', '')
-# and mem[0..16]: 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00
+assert hello('') == ('\x1fHello\n\0World!', '')
+# and mem[0..16]: 1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
 ```
 
 ### `logical_not`

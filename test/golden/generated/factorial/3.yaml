@@ -1,4 +1,4 @@
-name: "assert factorial(6) == 720"
+name: assert factorial(6) == 720
 limit: 2000
 memory_size: 0x1000
 input_streams:

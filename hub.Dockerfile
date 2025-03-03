@@ -20,7 +20,7 @@ RUN stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
 FROM python:3.13-alpine3.21 AS wrench-variants
 
 WORKDIR /app
-COPY script/variants.py /app/
+COPY script /app
 
 RUN [ "python", "/app/variants.py" ]
 

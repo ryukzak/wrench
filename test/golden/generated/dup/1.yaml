@@ -1,8 +1,8 @@
-name: assert get_put_char('C') == ('C', '')
+name: assert dup([42]) == [42, 42]
 limit: 2000
 memory_size: 0x1000
 input_streams:
-  0x80: [67]
+  0x80: [42]
   0x84: []
 reports:
   - name: Check results
@@ -12,10 +12,6 @@ reports:
     view: |
       numio[0x80]: {io:0x80:dec}
       numio[0x84]: {io:0x84:dec}
-      symio[0x80]: {io:0x80:sym}
-      symio[0x84]: {io:0x84:sym}
     assert: |
       numio[0x80]: [] >>> []
-      numio[0x84]: [] >>> [67]
-      symio[0x80]: "" >>> ""
-      symio[0x84]: "" >>> "C"
+      numio[0x84]: [] >>> [42,42]

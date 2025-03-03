@@ -21,6 +21,23 @@ preview-image:
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
 
 release-image:
+	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
+		echo "Error: You must be on the master branch to release."; \
+		exit 1; \
+	fi
+	@if ! git diff-index --quiet HEAD --; then \
+		echo "Error: You have uncommitted changes. Please commit or stash them before releasing."; \
+		exit 1; \
+	fi
+	@if [ "$(shell git rev-list --count --left-only HEAD...@{u})" -gt 0 ]; then \
+		echo "Error: You have unpushed commits. Please push them before releasing."; \
+		exit 1; \
+	fi
+	git fetch
+	@if [ "$(shell git rev-list --count --left-only @{u}...HEAD)" -gt 0 ]; then \
+		echo "Error: You have unpulled commits. Please pull them before releasing."; \
+		exit 1; \
+	fi
 	@if docker pull $(IMAGE); then \
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
@@ -61,7 +78,7 @@ readme-fix:
 
 format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
-	ruff format script/*.py
+	ruff format script
 	prettier -w static/
 	yamlfmt example test
 
@@ -80,10 +97,11 @@ format-check:
 
 lint-fix:
 	fd .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
+	ruff check script --fix
 
 lint:
 	hlint $(HS_SRC_DIR)
-	ruff check script/*.py
+	ruff check script
 
 clean:
 	stack clean
