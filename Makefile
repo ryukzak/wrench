@@ -86,7 +86,9 @@ test-examples: build
 update-golden:
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
+
 fix: lint-fix format-fix update-golden readme-fix
+	stack ls dependencies > .stack-deps.txt
 
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix

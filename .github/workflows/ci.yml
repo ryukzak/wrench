@@ -15,9 +15,7 @@ jobs:
               name: Cache ~/.stack
               with:
                   path: ${{ '~/.stack' }}
-                  key: ${{ runner.os }}-stack-test-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
-                  restore-keys: |
-                      ${{ runner.os }}-stack-global-
+                  key: ${{ runner.os }}-wrench-with-test-${{ hashFiles('.stack-deps.txt') }}
 
             - name: Install haskell-stack
               uses: haskell-actions/setup@v2
@@ -96,7 +94,7 @@ jobs:
               if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
               with:
                   path: ${{ '~/.stack' }}
-                  key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+                  key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('.stack-deps.txt') }}
 
             - name: Cache dependencies on Windows
               if: startsWith(runner.os, 'Windows')
@@ -106,7 +104,7 @@ jobs:
                   ~\AppData\Roaming\stack
                   ~\AppData\Local\Programs\stack
                   C:\sr
-                key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+                key: ${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
 
             - name: Install haskell-stack
               uses: haskell-actions/setup@v2
