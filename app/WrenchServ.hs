@@ -88,7 +88,8 @@ formPage Config{cVariantsPath} = do
 listVariants :: FilePath -> IO [String]
 listVariants path = do
     contents <- listDirectory path
-    filterM (doesDirectoryExist . (path </>)) contents
+    variants <- filterM (doesDirectoryExist . (path </>)) contents
+    return $ sort variants
 
 submitForm :: Config -> SubmitForm -> Handler (Headers '[Header "Location" String] NoContent)
 submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, asm, config, comment, variant, isa} = do
