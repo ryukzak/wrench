@@ -33,7 +33,7 @@ data Isa w l
       Jump l
     | -- | __if__   If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
       If l
-    | -- | __-if__  Minus-if. If T is negative (T17 set), continues with the next instruction word addressed by P. If T is positive, jumps
+    | -- | __-if__  Minus-if. If T is negative (T[31] set), continues with the next instruction word addressed by P. If T is nonnegative, jumps
       MinusIf l
     | -- | __a!__   A-Store. Stores T into register A, popping the data stack
       AStore
