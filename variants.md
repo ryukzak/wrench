@@ -550,7 +550,7 @@ def hello_user_cstr(input):
     if not line:
         return [q, overflow_error_value], rest
 
-    greet = "Hello, " + line + "!"
+    greet = "Hello, " + "".join(itertools.takewhile(lambda c: c != "\0", line)) + "!"
     return q + cstr(greet, 0x20)[0], rest
 
 

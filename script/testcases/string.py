@@ -8,6 +8,8 @@ from testcases.core import (
     cbuf,
     cstr,
 )
+import itertools
+
 
 ###########################################################
 
@@ -99,7 +101,7 @@ def hello_user_cstr(input):
     if not line:
         return [q, overflow_error_value], rest
 
-    greet = "Hello, " + line + "!"
+    greet = "Hello, " + "".join(itertools.takewhile(lambda c: c != "\0", line)) + "!"
     return q + cstr(greet, 0x20)[0], rest
 
 
@@ -140,9 +142,9 @@ TEST_CASES["hello_user_cstr"] = TestCase(
         ),
         String2String(
             "1234567890\x0012345\n",
-            "What is your name?\nHello, 1234567890",
+            "What is your name?\nHello, 1234567890!",
             "",
-            mem_view=[(0x00, 0x1F, cbuf("Hello, 1234567890\x0012345!", 0x20))],
+            mem_view=[(0x00, 0x12, cbuf("Hello, 1234567890!", 0x13))],
         ),
     ],
     is_variant=True,
