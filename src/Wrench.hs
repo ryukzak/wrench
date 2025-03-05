@@ -81,7 +81,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
         putStrLn "---"
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
-    src <- decodeUtf8 <$> readFileBS input
+    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
 
     case readMaybe isa of
         Just RiscIv ->
