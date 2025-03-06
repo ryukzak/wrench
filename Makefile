@@ -97,7 +97,7 @@ format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
-	yamlfmt example test
+	yamlfmt example test .github/workflows
 
 format-asm-fix:
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
