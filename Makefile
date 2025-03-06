@@ -2,9 +2,16 @@
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
+
+BUILDER_IMAGE_NAME = ryukzak/wrench-builder
+
 IMAGE_NAME = ryukzak/wrench
-IMAGE = $(IMAGE_NAME):$(VERSION)
-IMAGE_PREVIEW = $(IMAGE_NAME):$(VERSION)-rc-$(COMMIT)
+
+EDGE_IMAGE = $(IMAGE_NAME):edge
+COMMIT_IMAGE = $(IMAGE_NAME):$(COMMIT)
+
+RELEASE_IMAGE = $(IMAGE_NAME):$(VERSION)
+LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
@@ -15,10 +22,15 @@ server-run: build
 	stack exec wrench-serv
 
 build-image-local:
-	docker build -t $(IMAGE_NAME) -f hub.Dockerfile .
+	docker build -t $(IMAGE_NAME) .
 
-preview-image:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
+builder-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
+
+edge-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:
 	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
@@ -43,6 +55,9 @@ release-image:
 		exit 1; \
 	fi
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
+	# docker pull $(COMMIT_IMAGE)
+	# docker image tag $(COMMIT_IMAGE) $(RELEASE_IMAGE)
+	# docker image tag $(COMMIT_IMAGE) $(LATEST_IMAGE)
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 
