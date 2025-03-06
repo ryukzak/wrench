@@ -24,8 +24,16 @@
     </div>
 
     <div class="self-center">
+        <a href="https://github.com/ryukzak/wrench" class="purple hover" target="_blank">[GitHub]</a>
+        <span class="grey separator-char">|</span>
+        <a href="https://github.com/ryukzak/wrench/tree/master/docs" class="fuschia hover" target="_blank">[ISA_doc]</a>
+        <span class="grey separator-char">|</span>
+        <a href="https://github.com/ryukzak/wrench/blob/master/variants.md" class="orange hover"
+            target="_blank">[variants]</a>
+        <span class="grey separator-char">|</span>
         <button onclick="onInvertClick()" class="blue hover">[invert]</button>
-        <button id="copy-link-button" onclick="copyLink()" class="orange hover">[copy_link]</button>
+        <span class="grey separator-char">|</span>
+        <button id="copy-link-button" onclick="copyLink()" class="white hover">[copy_link]</button>
     </div>
 
     <script>
@@ -47,7 +55,7 @@
             await navigator.clipboard.writeText(window.location.href);
             copiedLinkCount++
             let button = document.getElementById("copy-link-button");
-            button.classList.remove("orange");
+            button.classList.remove("white");
             button.classList.add("green");
             let button_text = ""
             if (copiedLinkCount === 1) {
@@ -407,6 +415,10 @@
         @media (min-width: 768px) {
             body {
                 font-size: 2*0.7vw;
+            }
+
+            .separator-char {
+                display: contents;
             }
         }
 
