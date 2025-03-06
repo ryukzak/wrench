@@ -23,7 +23,11 @@
         </h1>
     </div>
 
-    <button onclick="onInvertClick()" class="self-center blue hover">[invert]</button>
+    <div class="self-center">
+        <button onclick="onInvertClick()" class="blue hover">[invert]</button>
+        <button id="copy-link-button" onclick="copyLink()" class="orange hover">[copy_link]</button>
+    </div>
+
     <script>
         function onInvertClick() {
             document.body.classList.toggle('inverted')
@@ -37,13 +41,29 @@
         } else if (window.localStorage.getItem("prefers-color-scheme") === "light") {
             document.body.classList.add('inverted')
         }
+
+        var copiedLinkCount = 0;
+        async function copyLink() {
+            await navigator.clipboard.writeText(window.location.href);
+            copiedLinkCount++
+            let button = document.getElementById("copy-link-button");
+            button.classList.remove("orange");
+            button.classList.add("green");
+            let button_text = ""
+            if (copiedLinkCount === 1) {
+                button_text = "[copied!]"
+            } else {
+                button_text = `[copied ${copiedLinkCount} times!]`
+            }
+            button.innerText = button_text;
+        }
     </script>
-    <div class="self-center flex flex-wrap gap-8 w-full max-w-screen-xl p-4 mt-8">
+    <div class="self-center flex flex-wrap gap-8 w-full p-4 mt-8 pr-8 pl-8">
         <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
             <div>
                 <div>
                     <p class="grey texm-sm text-left"><span>/* variant:</span> {{variant}} */</p>
-                    <p class="grey texm-sm text-left mb-6"><span>/* author:</span> {{name}} */</p>
+                    <p class="grey texm-sm text-left mb-6 "><span>/* author:</span> {{name}} */</p>
                 </div>
                 <div>
                     <h2 id="empty-comment-header" class="hidden grey mb-4">/* comment: not found */</h2>
@@ -55,7 +75,11 @@
                 </div>
 
                 <div>
-                    <h2 class="grey mt-6 mb-4">/* assembler_code */</h2>
+                    <div class="pr-6 flex flex-row justify-between items-center mt-6 mb-4">
+                        <span class="grey ">/* assembler_code */</span>
+                        <button id="copy-assembler-button" onclick="copyAssembler()"
+                            class="place-self-end white hover">[copy]</button>
+                    </div>
                     <div id="accordion-collapse-assembler" data-accordion="collapse"
                         class="mb-4 bg-dark-gray p-4 rounded-lg"
                         data-inactive-classes="vim-folded orange-low-saturation"
@@ -69,14 +93,18 @@
                         </h2>
                         <div id="accordion-collapse-body-assembler" class="hidden"
                             aria-labelledby="accordion-collapse-heading-assembler">
-                            <pre id="dump-text-element" class="rounded-lg overflow-x-auto ">
+                            <pre id="assembler-code-text-element" class="rounded-lg overflow-x-auto ">
 {{assembler_code}}</pre>
                         </div>
                     </div>
                 </div>
 
                 <div>
-                    <h2 class="grey mt-6 mb-4">/* simulation_config (YAML) */</h2>
+                    <div class="pr-6 flex flex-row justify-between items-center mt-6 mb-4">
+                        <span class="grey ">/* simulation_config (YAML) */</span>
+                        <button id="copy-simulation-config-button" onclick="copySimulationConfig()"
+                            class="place-self-end white hover">[copy]</button>
+                    </div>
                     <div id="accordion-collapse-simulation-config" data-accordion="collapse"
                         class="mb-4 bg-dark-gray p-4 rounded-lg"
                         data-inactive-classes="vim-folded orange-low-saturation"
@@ -90,7 +118,7 @@
                         </h2>
                         <div id="accordion-collapse-body-simulation-config" class="hidden"
                             aria-labelledby="accordion-collapse-heading-simulation-config">
-                            <pre id="dump-text-element" class="rounded-lg overflow-x-auto ">
+                            <pre id="simulation-config-text-element" class="rounded-lg overflow-x-auto ">
 {{yaml_content}}</pre>
                         </div>
                     </div>
@@ -172,6 +200,8 @@
     </div>
 
     <script>
+        const assemblerCodeText = document.getElementById("assembler-code-text-element").innerText;
+        const simulationConfigText = document.getElementById("simulation-config-text-element").innerText;
 
         const commentText = document.getElementById("comment-text-element").innerText;
         if (commentText.trim() === "") {
@@ -196,10 +226,45 @@
             document.getElementById("accordion-collapse-simulation-log").classList.add("hidden");
             document.getElementById("simulation-log-empty-tag").classList.remove("hidden")
         }
+
+        var copyCountAssembler = 0;
+        async function copyAssembler() {
+            await navigator.clipboard.writeText(assemblerCodeText);
+            const button = document.getElementById("copy-assembler-button");
+            let buttonText = ""
+            copyCountAssembler++;
+            if (copyCountAssembler === 1) {
+                buttonText = "[copied!]"
+                button.classList.remove("white");
+                button.classList.add("green");
+            }
+            else {
+                buttonText = `[copied ${copyCountAssembler} times!]`
+            }
+
+            button.innerText = buttonText;
+        }
+
+        var copyCountSimulationConfig = 0;
+        async function copySimulationConfig() {
+            await navigator.clipboard.writeText(simulationConfigText);
+            const button = document.getElementById("copy-simulation-config-button");
+            let buttonText = ""
+            copyCountSimulationConfig++;
+            if (copyCountSimulationConfig === 1) {
+                buttonText = "[copied!]"
+                button.classList.remove("white");
+                button.classList.add("green");
+            }
+            else {
+                buttonText = `[copied ${copyCountSimulationConfig} times!]`
+            }
+
+            button.innerText = buttonText;
+        }
     </script>
 
     <style>
-        /* Palette */
         body {
             --c-black: #1a1a1a;
             --c-white: #e1e1e1;
@@ -284,7 +349,6 @@
             background-color: var(--c-dark-grey);
         }
 
-        /* Type */
         a {
             color: var(--c-current);
             text-decoration: none;
@@ -324,7 +388,6 @@
             line-break: anywhere;
         }
 
-        /* Reset */
         html,
         body {
             margin: 0;
@@ -410,12 +473,10 @@
 
         textarea {
             min-height: 20rem;
-            /* Expand to avoid scrolling */
         }
 
         #comment {
             min-height: 5rem;
-            /* Smaller height for comment section */
         }
 
         .vim-folded {
@@ -430,7 +491,6 @@
 
         .vim-folded::after {
             display: inline;
-            /* non wrapping white space */
             content: "\00A0··························································································································································";
             white-space: nowrap;
             text-align: left;
