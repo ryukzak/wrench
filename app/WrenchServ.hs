@@ -10,6 +10,7 @@ import Data.List.Split
 import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
 import Data.Time
+import Data.UUID qualified as UUID
 import Data.UUID.V4 (nextRandom)
 import Lucid (Html, renderText, toHtml, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
@@ -197,6 +198,7 @@ escapeHtml = toText . renderText . toHtml
 
 resultPage :: Config -> String -> Handler (Html ())
 resultPage Config{cStoragePath} guid = do
+    when (isNothing $ UUID.fromString guid) $ error "invalid uuid"
     let dir = cStoragePath <> "/" <> guid
 
     nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
