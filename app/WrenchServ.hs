@@ -108,11 +108,14 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
 
     currentTime <- liftIO getCurrentTime
     version <- liftIO getWrenchVersion
-    (exitCode, stdout_, stderr_) <- liftIO $ runSimulation isa conf asmFile configFile
+    (cmd0, exitCode, stdout_, stderr_) <- liftIO $ runSimulation isa conf asmFile configFile
     liftIO
-        $ writeFile
+        $ writeFileText
             (dir <> "/status.log")
-            ("$ date\n" <> show currentTime <> "\n$ wrench --version\n" <> version <> "\n" <> show exitCode <> "\n" <> stderr_)
+        $ T.intercalate "\n"
+        $ map
+            toText
+            ["$ date", show currentTime, "$ wrench --version", version, toString cmd0, show exitCode, stderr_]
     let stdoutText = toText stdout_
         stdoutText' =
             if T.length stdoutText > cLogLimit
@@ -130,12 +133,12 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
             let yamlFiles = filter (isSuffixOf ".yaml" . toText) variantDir
             forM yamlFiles $ \yamlFile -> do
                 let fn = cVariantsPath </> toString variant' </> yamlFile
-                (tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation isa conf asmFile fn
-                return (yamlFile, fn, tcExitCode, tcStdout, tcStderr)
+                (cmd, tcExitCode, tcStdout, tcStderr) <- liftIO $ runSimulation isa conf asmFile fn
+                return (yamlFile, fn, cmd, tcExitCode, tcStdout, tcStderr)
 
     liftIO $ writeFile (dir <> "/test_cases_status.log") ""
 
-    forM_ varChecks $ \(yamlFile, _fn, tcExitCode, _tcStdout, tcStderr) -> do
+    forM_ varChecks $ \(yamlFile, _fn, _cmd, tcExitCode, _tcStdout, tcStderr) -> do
         liftIO
             $ appendFile
                 (dir <> "/test_cases_status.log")
@@ -143,14 +146,22 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
 
     liftIO $ writeFile (dir <> "/test_cases_result.log") ""
 
-    let fails = take 1 $ filter (\(_, _, x, _, _) -> x /= ExitSuccess) varChecks
+    let fails = take 1 $ filter (\(_, _, _, x, _, _) -> x /= ExitSuccess) varChecks
 
-    forM_ fails $ \(yamlFile, fn, _tcExitCode, tcStdout, tcStderr) -> do
+    forM_ fails $ \(yamlFile, fn, cmd, _tcExitCode, tcStdout, tcStderr) -> do
         simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
         liftIO
-            $ writeFile
+            $ writeFileText
                 (dir <> "/test_cases_result.log")
-                (yamlFile <> "\n" <> simConf <> "\n\n===\n\n" <> tcStdout <> "\n" <> tcStderr)
+            $ T.intercalate "\n\n"
+            $ map
+                toText
+                [ "# " <> yamlFile
+                , simConf <> "==="
+                , tcStdout <> tcStderr
+                , "==="
+                , toString cmd
+                ]
 
     let location = "/result/" <> show guid
     throwError $ err301{errHeaders = [("Location", location)]}
@@ -162,11 +173,12 @@ getWrenchVersion = do
         then return out
         else return "unknown"
 
-runSimulation :: Text -> Config -> FilePath -> FilePath -> IO (ExitCode, String, String)
+runSimulation :: Text -> Config -> FilePath -> FilePath -> IO (Text, ExitCode, String, String)
 runSimulation isa Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
     let args = cWrenchArgs <> ["--isa", toString isa, asmFile, "-c", configFile]
     putStrLn ("process: " <> cWrenchPath <> " " <> show args)
-    readProcessWithExitCode cWrenchPath args ""
+    (code, out, err) <- readProcessWithExitCode cWrenchPath args ""
+    return (T.intercalate " " $ map toText ([cWrenchPath] <> args), code, out, err)
 
 dumpOutput :: Text -> Config -> FilePath -> IO (ExitCode, String, String)
 dumpOutput isa Config{cWrenchPath, cWrenchArgs} asmFile = do
