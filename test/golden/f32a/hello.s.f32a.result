@@ -4,13 +4,13 @@
 38:	while
 63:	end
 ---
-mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00	@"buf"
+mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
 mem[17..20]: 	84 00 00 00	@"output_addr"
 mem[21..25]: 	FetchP 17 	@_start
 mem[26..26]: 	BStore
 mem[27..31]: 	Lit 0
 mem[32..32]: 	AStore
-mem[33..37]: 	Lit 13
+mem[33..37]: 	Lit 14
 mem[38..38]: 	Dup 	@while
 mem[39..43]: 	If 63
 mem[44..44]: 	FetchPlus

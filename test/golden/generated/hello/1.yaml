@@ -1,5 +1,5 @@
-name: "assert hello('') == ('Hello\n\0World!', '')
-# and mem[0..16]: 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00"
+name: assert hello('') == ('\x1fHello\n\0World!', '')
+# and mem[0..16]: 1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
 limit: 2000
 memory_size: 0x1000
 input_streams:
@@ -18,7 +18,7 @@ reports:
       {memory:0:16}
     assert: |
       numio[0x80]: [] >>> []
-      numio[0x84]: [] >>> [72,101,108,108,111,10,0,87,111,114,108,100,33]
+      numio[0x84]: [] >>> [31,72,101,108,108,111,10,0,87,111,114,108,100,33]
       symio[0x80]: "" >>> ""
-      symio[0x84]: "" >>> "Hello\n\0World!"
-      mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00
+      symio[0x84]: "" >>> "?Hello\n\0World!"
+      mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00

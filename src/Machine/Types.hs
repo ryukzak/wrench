@@ -42,17 +42,21 @@ type MachineWord w =
     , WordParts w
     , Integral w
     , FromSign w
+    , Bounded w
+    , Bounded (Unsign w)
     )
 
 type RegisterId r = (Hashable r, Show r, Read r)
 
-class (Bits (Unsign w), Integral (Unsign w), Show (Unsign w)) => FromSign w where
+class (Bits (Unsign w), Bounded (Unsign w), Integral (Unsign w), Show (Unsign w)) => FromSign w where
     type Unsign w :: Type
     fromSign :: w -> Unsign w
+    toSign :: Unsign w -> w
 
 instance FromSign Int32 where
     type Unsign Int32 = Word32
     fromSign = fromIntegral
+    toSign = fromIntegral
 
 class WordParts w where
     wordSplit :: w -> [Word8]

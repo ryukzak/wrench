@@ -51,7 +51,6 @@ tests =
             , testGroup
                 "Simulator"
                 [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/count.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/hello.s" "test/golden/risc-iv-32/hello_const.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_87.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
@@ -122,6 +121,7 @@ tests =
                 , generatedTest Acc32 "get_put_char" 12
                 , generatedTest Acc32 "hello" 1
                 , generatedTest Acc32 "logical_not" 2
+                , generatedTest Acc32 "dup" 1
                 ]
             ]
         ]

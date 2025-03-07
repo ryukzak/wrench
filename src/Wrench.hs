@@ -81,7 +81,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
         putStrLn "---"
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
-    src <- decodeUtf8 <$> readFileBS input
+    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
 
     case readMaybe isa of
         Just RiscIv ->
@@ -147,7 +147,7 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =
             IoMem
-                { mIoStreams = bimap (map toEnum) (map toEnum) <$> fromMaybe mempty cInputStreamsFlat
+                { mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cInputStreamsFlat
                 , mIoCells = dump
                 }
         st = initState (fromEnum pc) ioDump
@@ -164,3 +164,11 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
             , rSuccess = isSuccess
             , rDump = dump
             }
+    where
+        int2mword x
+            | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
+                toEnum x
+            | fromEnum (minBound :: Unsign w) <= x && x <= fromEnum (maxBound :: Unsign w) =
+                toSign $ toEnum x
+            | otherwise =
+                error $ "integer value out of machine word range: " <> show x

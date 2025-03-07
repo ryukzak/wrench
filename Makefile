@@ -2,9 +2,16 @@
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
+
+BUILDER_IMAGE_NAME = ryukzak/wrench-builder
+
 IMAGE_NAME = ryukzak/wrench
-IMAGE = $(IMAGE_NAME):$(VERSION)
-IMAGE_PREVIEW = $(IMAGE_NAME):$(VERSION)-rc-$(COMMIT)
+
+EDGE_IMAGE = $(IMAGE_NAME):edge
+COMMIT_IMAGE = $(IMAGE_NAME):$(COMMIT)
+
+RELEASE_IMAGE = $(IMAGE_NAME):$(VERSION)
+LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
@@ -15,17 +22,42 @@ server-run: build
 	stack exec wrench-serv
 
 build-image-local:
-	docker build -t $(IMAGE_NAME) -f hub.Dockerfile .
+	docker build -t $(IMAGE_NAME) .
 
-preview-image:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
+builder-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
+
+edge-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:
+	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
+		echo "Error: You must be on the master branch to release."; \
+		exit 1; \
+	fi
+	@if ! git diff-index --quiet HEAD --; then \
+		echo "Error: You have uncommitted changes. Please commit or stash them before releasing."; \
+		exit 1; \
+	fi
+	@if [ "$(shell git rev-list --count --left-only HEAD...@{u})" -gt 0 ]; then \
+		echo "Error: You have unpushed commits. Please push them before releasing."; \
+		exit 1; \
+	fi
+	git fetch
+	@if [ "$(shell git rev-list --count --left-only @{u}...HEAD)" -gt 0 ]; then \
+		echo "Error: You have unpulled commits. Please pull them before releasing."; \
+		exit 1; \
+	fi
 	@if docker pull $(IMAGE); then \
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
 	fi
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(LATEST_IMAGE) --push .
+	# docker pull $(COMMIT_IMAGE)
+	# docker image tag $(COMMIT_IMAGE) $(RELEASE_IMAGE)
+	# docker image tag $(COMMIT_IMAGE) $(LATEST_IMAGE)
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 
@@ -61,7 +93,7 @@ readme-fix:
 
 format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
-	ruff format script/*.py
+	ruff format script
 	prettier -w static/
 	yamlfmt example test
 
@@ -80,10 +112,11 @@ format-check:
 
 lint-fix:
 	fd .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
+	ruff check script --fix
 
 lint:
 	hlint $(HS_SRC_DIR)
-	ruff check script/*.py
+	ruff check script
 
 clean:
 	stack clean

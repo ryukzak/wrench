@@ -4,13 +4,13 @@
 41:	while
 65:	end
 ---
-mem[0..16]: 	48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00 00	@"buf"
+mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
 mem[17..20]: 	84 00 00 00	@"output_addr"
 mem[21..24]: 	Lui {rd = T0, k = 0} 	@_start
 mem[25..28]: 	Addi {rd = T0, rs1 = T0, k = 17}
 mem[29..32]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[33..36]: 	Addi {rd = T1, rs1 = T1, k = 0}
-mem[37..40]: 	Addi {rd = T2, rs1 = Zero, k = 13}
+mem[37..40]: 	Addi {rd = T2, rs1 = Zero, k = 14}
 mem[41..44]: 	Beqz {rs1 = T2, k = 24} 	@while
 mem[45..48]: 	Addi {rd = T2, rs1 = T2, k = -1}
 mem[49..52]: 	Lw {rd = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}
