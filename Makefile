@@ -54,7 +54,7 @@ release-image:
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
 	fi
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push .
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(LATEST_IMAGE) --push .
 	# docker pull $(COMMIT_IMAGE)
 	# docker image tag $(COMMIT_IMAGE) $(RELEASE_IMAGE)
 	# docker image tag $(COMMIT_IMAGE) $(LATEST_IMAGE)
