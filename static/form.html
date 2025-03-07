@@ -16,12 +16,10 @@
     <style>
         textarea {
             min-height: 20rem;
-            /* Expand to avoid scrolling */
         }
 
         #comment {
             min-height: 5rem;
-            /* Smaller height for comment section */
         }
 
 
@@ -45,11 +43,11 @@
             outline: none;
         }
 
-        input[type="submit"] {
+        input[type="button"] {
             background-color: var(--c-purple);
         }
 
-        input[type="submit"]:hover {
+        input[type="button"]:hover {
             opacity: 0.8;
         }
     </style>
@@ -83,7 +81,7 @@
                 }
             </script>
         </div>
-        <form action="/submit" method="post" enctype="application/x-www-form-urlencoded;charset=UTF-8"
+        <form id="main-form" action="/submit" method="post" enctype="application/x-www-form-urlencoded;charset=UTF-8"
             class="space-y-6">
             <div class="mb-6">
                 <label for="variant" class="block grey ">/* variant */</label>
@@ -129,15 +127,32 @@
             </div>
 
             <div class="text-center">
-                <input type="submit" value="Submit"
+                <input type="button" value="Submit" onclick="Submit()"
                     class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm rounded-md text-white" />
             </div>
 
-            <div class="text-center grey">[{{version}}]</div>
+            <script>
+                function Submit() {
+                    let asmElement = document.getElementById("asm");
+                    asmElement.value = asmElement.value.replace(new RegExp("\u00A0", "g"), " ");
+
+                    let configElement = document.getElementById("config");
+                    configElement.value = configElement.value.replace(new RegExp("\u00A0", "g"), " ");
+                    let form = document.getElementById("main-form");
+
+
+                    if (form.checkValidity()) {
+                        form.submit();
+                    } else {
+                        form.reportValidity()
+                    }
+                }
+            </script>
+
+            <div class="text-center grey">/* {{version}} */</div>
         </form>
     </div>
     <style>
-        /* Palette */
         body {
             --c-black: #1a1a1a;
             --c-white: #e1e1e1;
@@ -222,7 +237,6 @@
             background-color: var(--c-dark-grey);
         }
 
-        /* Type */
         a {
             color: var(--c-current);
             text-decoration: none;
@@ -262,7 +276,6 @@
             line-break: anywhere;
         }
 
-        /* Reset */
         html,
         body {
             margin: 0;
