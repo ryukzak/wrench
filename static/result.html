@@ -70,8 +70,8 @@
         <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
             <div>
                 <div>
-                    <p class="grey texm-sm text-left"><span>/* variant:</span> {{variant}} */</p>
-                    <p class="grey texm-sm text-left mb-6 "><span>/* author:</span> {{name}} */</p>
+                    <p class="grey texm-sm text-left">/* variant: {{variant}} */</p>
+                    <p class="grey texm-sm text-left mb-6 ">/* author: {{name}} */</p>
                 </div>
                 <div>
                     <h2 id="empty-comment-header" class="hidden grey mb-4">/* comment: not found */</h2>
@@ -137,9 +137,10 @@
 
         <div class="flex-1 min-w-[300px] max-w-[50%]">
 
+            <h2 class="grey mt-6 mb-4">/* simulation_result */</h2>
+
             <div>
-                <h2 class="grey mt-6 mb-4">/* simulation_result */</h2>
-                <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
+                <pre id="status-text-element" class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{status}}</pre>
             </div>
 
@@ -164,7 +165,7 @@
             </div>
 
             <h2 class="grey mt-6 mb-4">/* testcase_result */</h2>
-            <pre class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
+            <pre id="test-cases-status-element" class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4">
 {{test_cases_status}}</pre>
 
             <div id="accordion-collapse-test-cases-result" data-accordion="collapse"
@@ -233,6 +234,16 @@
         if (simulationLogText.trim() === "") {
             document.getElementById("accordion-collapse-simulation-log").classList.add("hidden");
             document.getElementById("simulation-log-empty-tag").classList.remove("hidden")
+        }
+
+        const statusTextElement = document.getElementById("status-text-element");
+        if (statusTextElement.innerText === "") {
+            statusTextElement.innerHTML = 'status = "" <span class="grey">/* nothing returned */</span>'
+        }
+
+        const testCasesStatusElement = document.getElementById("test-cases-status-element")
+        if (testCasesStatusElement.innerText === "") {
+            testCasesStatusElement.innerHTML = 'test_cases_status = "" <span class="grey">/* nothing returned */</span>'
         }
 
         var copyCountAssembler = 0;
