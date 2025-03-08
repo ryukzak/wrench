@@ -53,20 +53,25 @@
 
   <body class="flex items-center justify-center min-h-screen">
     <div class="p-8 rounded-lg w-full max-w-6xl">
-      <h1 class="large mb-6 text-center">Wrench Submit</h1>
-      <div class="mb-6 text-center">
+      <div class="text-center w-full mt-4 mb-2">
+        <h1 class="large white">
+          <a class="subtle-hover" href="/">Wrench Submit</a>
+        </h1>
+      </div>
+
+      <div class="self-center text-center mb-6">
         <a
           href="https://github.com/ryukzak/wrench"
           class="purple hover"
           target="_blank"
-          >[GitHub]</a
+          >[github]</a
         >
         <span class="grey separator-char">|</span>
         <a
           href="https://github.com/ryukzak/wrench/tree/master/docs"
           class="fuschia hover"
           target="_blank"
-          >[ISA_doc]</a
+          >[isa_docs]</a
         >
         <span class="grey separator-char">|</span>
         <a
@@ -76,8 +81,8 @@
           >[variants]</a
         >
         <span class="grey separator-char">|</span>
-        <button onclick="onInvertClick()" class="self-center blue hover">
-          [invert]
+        <button onclick="onInvertClick()" class="blue hover">
+          [invert_theme]
         </button>
         <script>
           function onInvertClick() {
@@ -135,7 +140,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="name" class="block grey">/* Author Name */</label>
+          <label for="name" class="block grey">/* author */</label>
           <input
             type="text"
             id="name"
@@ -146,7 +151,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="comment" class="block grey">/* Comment */</label>
+          <label for="comment" class="block grey">/* comment */</label>
           <textarea
             id="comment"
             name="comment"
@@ -155,7 +160,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="asm" class="block grey">/* Assembler Code */</label>
+          <label for="asm" class="block grey">/* assembler_code */</label>
           <textarea
             id="asm"
             name="asm"
@@ -165,7 +170,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="config" class="block grey">/* Config (YAML) */</label>
+          <label for="config" class="block grey">/* simulation_config */</label>
           <textarea
             id="config"
             name="config"
