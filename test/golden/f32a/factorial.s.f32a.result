@@ -47,7 +47,7 @@ mem[204..204]: 	AStore
 mem[205..205]: 	Store
 mem[206..206]: 	Halt
 mem[207..211]: 	Lit 31 	@multiply
-mem[212..212]: 	RPush
+mem[212..212]: 	TIntoR
 mem[213..213]: 	MulStep 	@multiply_do
 mem[214..218]: 	Next 213
 mem[219..219]: 	Drop
@@ -55,7 +55,7 @@ mem[220..220]: 	Drop
 mem[221..221]: 	AFetch
 mem[222..222]: 	Return
 mem[223..227]: 	Lit 31 	@divide
-mem[228..228]: 	RPush
+mem[228..228]: 	TIntoR
 mem[229..229]: 	DivStep 	@divide_do
 mem[230..234]: 	Next 229
 mem[235..235]: 	Return

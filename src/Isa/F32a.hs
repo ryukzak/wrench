@@ -77,10 +77,10 @@ data Isa w l
       Drop
     | -- | __dup__  Dup. Duplicates T on the data stack
       Dup
-    | -- | __>r__   Moves R into T, popping the return stack and pushing the data stack
-      RPop
-    | -- | __r>__   Moves T into R, pushing the return stack and popping the data stack
-      RPush
+    | -- | __r>__   Moves R into T, popping the return stack and pushing the data stack
+      RIntoT
+    | -- | __>r__   Moves T into R, pushing the return stack and popping the data stack
+      TIntoR
     | -- | __over__
       Over
     | -- | __a__    Fetches the contents of register A into T, pushing the data stack
@@ -125,8 +125,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "!b" >> return StoreB
                     , string "!+" >> return StorePlus
                     , string "!" >> return Store
-                    , string "r>" >> return RPush
-                    , string ">r" >> return RPop
+                    , string "r>" >> return RIntoT
+                    , string ">r" >> return TIntoR
                     , string "halt" >> return Halt
                     , string ";" >> return Return
                     , try $ do
@@ -161,8 +161,8 @@ instance DerefMnemonic (Isa w) w where
             StoreB -> StoreB
             StorePlus -> StorePlus
             Store -> Store
-            RPush -> RPush
-            RPop -> RPop
+            RIntoT -> RIntoT
+            TIntoR -> TIntoR
             MulStep -> MulStep
             DivStep -> DivStep
             LShift -> LShift
@@ -450,8 +450,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 w <- dataPop
                 setWord (fromEnum a) w
                 nextP
-            RPop -> returnPop >>= dataPush >> nextP
-            RPush -> dataPop >>= returnPush >> nextP
+            RIntoT -> returnPop >>= dataPush >> nextP
+            TIntoR -> dataPop >>= returnPush >> nextP
             Add -> do
                 t <- dataPop
                 s <- dataPop

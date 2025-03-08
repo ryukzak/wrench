@@ -18,7 +18,7 @@ mem[27..27]: 	AStore
 mem[28..32]: 	Lit 0
 mem[33..37]: 	Lit 0
 mem[38..42]: 	Lit 31
-mem[43..43]: 	RPush
+mem[43..43]: 	TIntoR
 mem[44..44]: 	DivStep 	@multiply_begin
 mem[45..49]: 	Next 44
 mem[50..54]: 	FetchP 0

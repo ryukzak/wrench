@@ -18,7 +18,7 @@ _start:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 multiply:
-    lit 31 r>                \ for R = 31
+    lit 31 >r                \ for R = 31
 multiply_do:
     +*                       \ mres-high:acc-old:n:[]; mres-low in a
     next multiply_do
