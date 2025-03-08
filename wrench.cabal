@@ -128,6 +128,7 @@ executable wrench
     , regex-tdfa
     , relude
     , split
+    , th-env
     , wrench
     , yaml
   default-language: Haskell2010

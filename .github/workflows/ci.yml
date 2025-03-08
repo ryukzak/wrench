@@ -197,6 +197,8 @@ jobs:
           platforms: linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
+          build-args: |
+            EDGE_BUILD=true
 
   deploy-edge:
     needs: build-edge-image

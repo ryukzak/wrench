@@ -60,7 +60,9 @@ docker run -it --rm ryukzak/wrench:latest --help
 
 This service will be used to send laboratory works to check.
 
-1. Open [wrench.edu.swampbuds.me](wrench.edu.swampbuds.me).
+1. Open service:
+    - Last release: [wrench.edu.swampbuds.me](https://wrench.edu.swampbuds.me).
+    - Edge version (master branch): [wrench-edge.edu.swampbuds.me](https://wrench-edge.edu.swampbuds.me)
 2. Fill the form and submit.
 3. Check the results.
 

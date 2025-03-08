@@ -29,7 +29,7 @@ builder-image:
 		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
 
 edge-image:
-	docker buildx build --platform linux/amd64,linux/arm64 --push \
+	EDGE_BUILD=true docker buildx build --platform linux/amd64,linux/arm64 --push \
 		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:

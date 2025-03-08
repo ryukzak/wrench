@@ -79,8 +79,9 @@ executables:
             - -rtsopts
             - -with-rtsopts=-N
         dependencies:
-            - wrench
             - gitrev
+            - th-env
+            - wrench
 
     wrench-serv:
         main: WrenchServ.hs
