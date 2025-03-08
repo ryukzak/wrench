@@ -88,7 +88,7 @@ update-golden:
 	stack test --fast --test --test-arguments="--accept --rerun"
 
 fix: lint-fix format-fix update-golden readme-fix
-	stack ls dependencies > .stack-deps.txt
+	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix
