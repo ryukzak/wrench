@@ -22,14 +22,14 @@ server-run: build
 	stack exec wrench-serv
 
 build-image-local:
-	docker build -t $(IMAGE_NAME) .
+	docker build --build-arg VERSION_SUFFIX=DEV -t $(IMAGE_NAME) .
 
 builder-image:
 	docker buildx build --platform linux/amd64,linux/arm64 --push \
 		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
 
 edge-image:
-	EDGE_BUILD=true docker buildx build --platform linux/amd64,linux/arm64 --push \
+	docker buildx build --build-arg VERSION_SUFFIX=EDGE --platform linux/amd64,linux/arm64 --push \
 		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:

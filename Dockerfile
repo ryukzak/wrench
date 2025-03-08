@@ -19,7 +19,7 @@ RUN stack build --only-dependencies
 FROM ryukzak/wrench-builder AS wrench-build
 
 COPY . /app
-RUN stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
+RUN VERSION_SUFFIX=${VERSION_SUFFIX} stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
 
 ###########################################################
 # Stage 2.2: Generate variants

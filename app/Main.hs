@@ -64,8 +64,8 @@ options =
 main :: IO ()
 main = wrenchIO =<< execParser opts
     where
-        edge = maybe "" (\(_ :: String) -> "-EDGE") $$(envQ "EDGE_BUILD")
-        fullVersion = showVersion version <> edge <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
+        ver :: String = showVersion version <>  fromMaybe "" $$(envQ "VERSION_SUFFIX")
+        fullVersion = ver <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
         opts =
             info
                 (options <**> helper <**> simpleVersioner fullVersion)
