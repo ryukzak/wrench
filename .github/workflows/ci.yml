@@ -177,4 +177,4 @@ jobs:
         build-edge-image
       runs-on: ubuntu-latest
       steps:
-        - run: echo "ok"
+        - run: curl https://updater.edu.swampbuds.me/update/wrench-serv-edge/${{ secrets.DEPLOY_EDGE_WEBHOOK }}
