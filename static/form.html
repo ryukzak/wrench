@@ -141,7 +141,7 @@
             id="name"
             name="name"
             required
-            class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           />
         </div>
 
@@ -150,7 +150,7 @@
           <textarea
             id="comment"
             name="comment"
-            class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
@@ -160,7 +160,7 @@
             id="asm"
             name="asm"
             required
-            class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
@@ -170,7 +170,7 @@
             id="config"
             name="config"
             required
-            class="whitespace-nowrap overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
@@ -185,17 +185,6 @@
 
         <script>
           function Submit() {
-            let asmElement = document.getElementById("asm");
-            asmElement.value = asmElement.value.replace(
-              new RegExp("\u00A0", "g"),
-              " ",
-            );
-
-            let configElement = document.getElementById("config");
-            configElement.value = configElement.value.replace(
-              new RegExp("\u00A0", "g"),
-              " ",
-            );
             let form = document.getElementById("main-form");
 
             if (form.checkValidity()) {
