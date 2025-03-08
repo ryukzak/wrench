@@ -64,7 +64,7 @@ options =
 main :: IO ()
 main = wrenchIO =<< execParser opts
     where
-        ver :: String = showVersion version <>  fromMaybe "" $$(envQ "VERSION_SUFFIX")
+        ver :: String = showVersion version <> fromMaybe "" $$(envQ "VERSION_SUFFIX")
         fullVersion = ver <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
         opts =
             info
