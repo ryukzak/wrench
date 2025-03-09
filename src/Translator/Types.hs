@@ -11,6 +11,7 @@ module Translator.Types (
     ByteLength (..),
     MachineWord,
     markupOffsets,
+    markupSectionOffsets,
     DerefMnemonic (..),
     deref',
     Ref (..),
@@ -27,10 +28,12 @@ class DerefMnemonic m w where
 
 data Section isa w l
     = Code
-        { codeTokens :: ![CodeToken isa l]
+        { org :: Maybe Int
+        , codeTokens :: ![CodeToken isa l]
         }
     | Data
-        { dataTokens :: ![DataToken w l]
+        { org :: Maybe Int
+        , dataTokens :: ![DataToken w l]
         }
     deriving (Show)
 
@@ -45,11 +48,11 @@ derefSection ::
     -> w
     -> Section (isa (Ref w)) w String
     -> Section (isa w) w w
-derefSection f offset Code{codeTokens} =
+derefSection f offset code@Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]
         marked = markupOffsets offset mnemonics
-     in Code
+     in code
             { codeTokens =
                 map
                     ( \(offset', m) ->
@@ -58,8 +61,8 @@ derefSection f offset Code{codeTokens} =
                     )
                     marked
             }
-derefSection f _offset Data{dataTokens} =
-    Data
+derefSection f _offset dt@Data{dataTokens} =
+    dt
         { dataTokens =
             map
                 ( \DataToken{dtLabel, dtValue} ->
@@ -74,6 +77,12 @@ derefSection f _offset Data{dataTokens} =
 markupOffsets :: (ByteLength t, MachineWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
 markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteLength m)) ms
+
+markupSectionOffsets :: (ByteLength isa, MachineWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
+markupSectionOffsets _offset [] = []
+markupSectionOffsets offset (s : ss) =
+    let offset' = Prelude.maybe offset toEnum (org s)
+     in (offset', s) : markupSectionOffsets (offset' + toEnum (byteLength s)) ss
 
 data CodeToken isa l
     = Comment l

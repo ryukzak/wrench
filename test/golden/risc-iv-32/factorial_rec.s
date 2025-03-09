@@ -43,12 +43,12 @@ factorial_overflow_case:
 
     .data
 
-io:              .word  '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0'
 input_addr:      .word  0x80               ; Input address where the number 'n' is stored
 output_addr:     .word  0x84               ; Output address where the result should be stored
 
-    .text
 
+    .text
+    .org     140
 _start:
     lui      t0, %hi(input_addr)             ; int * input_addr_const = 0x00;
     addi     t0, t0, %lo(input_addr)         ; // t0 <- 0x00;

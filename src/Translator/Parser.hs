@@ -22,8 +22,8 @@ asmParser =
                 <$> many
                     ( choice
                         [ nothing (space1 <|> eol' cstart)
-                        , dataSection cstart <&> Just . Data
-                        , codeSection cstart <&> Just . Code
+                        , dataSection cstart <&> Just
+                        , codeSection cstart <&> Just
                         ]
                     )
         eof

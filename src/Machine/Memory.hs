@@ -22,36 +22,40 @@ import Translator.Types
 
 prepareDump :: (ByteLength isa, MachineWord w) => Maybe Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
-    let mSize = fromMaybe (foldr ((+) . byteLength) 0 sections) memorySize
-     in fromList
-            $ zip
-                [0 .. mSize - 1]
-                ( concatMap
-                    ( \case
-                        Code{codeTokens} ->
-                            ( concatMap
-                                ( \case
-                                    Mnemonic m ->
-                                        Instruction m : replicate (byteLength m - 1) InstructionPart
-                                    _other -> []
-                                )
-                                codeTokens
-                            )
-                        Data{dataTokens} ->
-                            ( concatMap
-                                ( \DataToken{dtValue} ->
-                                    map
-                                        Value
-                                        $ case dtValue of
-                                            DByte bs -> bs
-                                            DWord ws -> concatMap wordSplit ws
-                                )
-                                dataTokens
-                            )
-                    )
-                    sections
-                    <> repeat (Value 0)
+    let addSection cells offset dump =
+            let dump' = zip [offset ..] cells
+             in (offset + length dump', dump' <> dump)
+        processCode =
+            concatMap
+                ( \case
+                    Mnemonic m ->
+                        Instruction m : replicate (byteLength m - 1) InstructionPart
+                    _other -> []
                 )
+        processData =
+            concatMap
+                ( \case
+                    DataToken{dtValue} ->
+                        map
+                            Value
+                            $ case dtValue of
+                                DByte bs -> bs
+                                DWord ws -> concatMap wordSplit ws
+                )
+        fromSections =
+            snd
+                $ foldl'
+                    ( \(offset, dump) ->
+                        ( \case
+                            Code{org, codeTokens} -> addSection (processCode codeTokens) (fromMaybe offset org) dump
+                            Data{org, dataTokens} -> addSection (processData dataTokens) (fromMaybe offset org) dump
+                        )
+                    )
+                    (0, [])
+                    sections
+        mSize = fromMaybe (maximum1 $ 0 :| keys fromSections) memorySize
+        placeholder = map (,Value 0) [0 .. mSize - 1]
+     in fromList (placeholder <> fromSections)
 
 isValue Value{} = True
 isValue _ = False

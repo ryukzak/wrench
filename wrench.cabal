@@ -60,6 +60,7 @@ library
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -106,6 +107,7 @@ executable wrench
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -151,6 +153,7 @@ executable wrench-fmt
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -208,6 +211,7 @@ executable wrench-serv
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -273,6 +277,7 @@ test-suite wrench-test
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections

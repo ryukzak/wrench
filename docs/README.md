@@ -2,6 +2,11 @@
 
 This assembler supports multiple Instruction Set Architectures (ISAs) and provides a flexible way to write and translate assembly code for different machine architectures.
 
+For example see:
+
+- [/example](/example)
+- [/test/golden](/test/golden)
+
 ## Writing Assembly Programs
 
 Data and text sections can be defined in any order and multiple times. The assembler will merge them into a single program (dump).
@@ -66,7 +71,19 @@ To see ISA specific details (instructions, registers, etc.), refer to the respec
 
 If you can't find something in documentation, check the [source code](/src/Isa). It is actually the best and most up-to-date documentation.
 
-For example see:
+### Setting Section Addresses
 
-- [/example](/example)
-- [/test/golden](/test/golden)
+The `.org` directive can be used to set the starting address for a section. When specified, the assembler will begin placing data or code at the specified address.
+
+Example:
+
+```assembly
+.data
+.org 0x1000       ; Data section starts at address 0x1000
+value:  .word 42
+
+.text
+.org 0x2000       ; Text section starts at address 0x2000
+_start:
+    load_ind value
+```

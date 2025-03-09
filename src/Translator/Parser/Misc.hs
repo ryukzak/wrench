@@ -14,16 +14,55 @@ module Translator.Parser.Misc (
     reference,
     referenceWithDirective,
     referenceWithFn,
+    SectionItem (..),
+    orgDirective,
+    sectionItems,
+    sectionOrg,
 ) where
 
 import Data.Bits
 import Data.Text qualified as T
 import Relude
-import Relude.Unsafe (read)
+import Relude.Unsafe as Unsafe
 import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single, try)
-import Text.Megaparsec.Char (char, digitChar, eol, hexDigitChar, hspace, letterChar, string)
+import Text.Megaparsec.Char (
+    char,
+    digitChar,
+    eol,
+    hexDigitChar,
+    hspace,
+    hspace1,
+    letterChar,
+    string,
+ )
 import Translator.Parser.Types
 import Translator.Types
+
+data SectionItem i = Item i | Org Int
+
+sectionItems :: [SectionItem i] -> [i]
+sectionItems = mapMaybe $ \case
+    Item i -> Just i
+    Org _ -> Nothing
+
+sectionOrg :: [SectionItem i] -> Maybe Int
+sectionOrg items =
+    let orgs =
+            mapMaybe
+                ( \case
+                    Org i -> Just i
+                    _ -> Nothing
+                )
+                items
+     in listToMaybe orgs
+
+orgDirective :: String -> Parser Int
+orgDirective cstart = do
+    void $ string ".org"
+    hspace1
+    value <- Unsafe.read <$> choice [hexNum, num]
+    eol' cstart
+    return value
 
 removeUnderscores :: String -> String
 removeUnderscores = toString . T.replace "_" "" . toText
