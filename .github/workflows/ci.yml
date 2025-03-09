@@ -206,6 +206,6 @@ jobs:
     steps:
       - name: Trigger deployment
         run: |
-          curl -X POST -H "Content-Type: application/json" \
+          curl -X POST -H "Content-Type: application/json" --fail-with-body \
             -d '{"task": "wrench-serv-edge", "secret": "${{ secrets.DEPLOY_EDGE_WEBHOOK }}", "async":true}' \
             https://updater.edu.swampbuds.me/update
