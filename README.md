@@ -8,6 +8,8 @@ This is an educational project designed to explore different types of processor 
 - `wrench-fmt` -- formatter for assembly files
 - `wrench-serv` -- service for uploading and running testcases
 
+Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237)
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
