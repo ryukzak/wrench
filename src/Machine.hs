@@ -10,7 +10,7 @@ import Relude.Extra
 journal :: (Machine st isa w) => Int -> HashMap Int String -> st -> [Trace st isa]
 journal limit pc2label st = execWriter $ journal' limit pc2label st
 
-journal' 0 _ _ = return ()
+journal' 0 _ _ = tell [TError "Simulation limit reached"]
 journal' limit pc2label st
     | Just _ <- evalState instructionFetch st = do
         tell [TState st]

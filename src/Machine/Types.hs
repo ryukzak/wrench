@@ -1,5 +1,7 @@
 module Machine.Types (
     Trace (..),
+    getTraceStates,
+    getErrors,
     Machine (..),
     Mem,
     IoMem (..),
@@ -132,9 +134,26 @@ class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Maybe (Int, isa))
     instructionStep :: State st ()
 
-newtype Trace st isa
+data Trace st isa
     = TState st
+    | TError Text
     deriving (Show)
+
+getTraceStates :: [Trace st isa] -> [st]
+getTraceStates =
+    mapMaybe
+        ( \case
+            (TState st) -> Just st
+            _ -> Nothing
+        )
+
+getErrors :: [Trace st isa] -> [Text]
+getErrors =
+    mapMaybe
+        ( \case
+            (TError err) -> Just err
+            _ -> Nothing
+        )
 
 type Mem isa w = IntMap (Cell isa w)
 
