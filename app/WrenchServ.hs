@@ -29,6 +29,7 @@ type API =
     "submit" :> ReqBody '[FormUrlEncoded] SubmitForm :> Post '[JSON] (Headers '[Header "Location" String] NoContent)
         :<|> "submit-form" :> Get '[HTML] (Html ())
         :<|> "result" :> Capture "guid" String :> Get '[HTML] (Html ())
+        :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
 
 data SubmitForm = SubmitForm
@@ -75,6 +76,7 @@ server conf =
     submitForm conf
         :<|> formPage conf
         :<|> resultPage conf
+        :<|> serveDirectoryWebApp "static/assets"
         :<|> redirectToForm
 
 formPage :: Config -> Handler (Html ())
