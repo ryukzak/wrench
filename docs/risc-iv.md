@@ -113,6 +113,16 @@ Instruction size: 4 bytes.
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter.
     - **Operation:** `pc <- pc + k`
 
+- **Jump and Link**
+    - **Syntax:** `jal <rd>, <k>`
+    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
+    - **Operation:** `rd <- pc + 4, pc <- pc + k`
+
+- **Jump Register**
+    - **Syntax:** `jr <rs>`
+    - **Description:** Jump to the address stored in the source register.
+    - **Operation:** `pc <- rs`
+
 - **Branch if Equal to Zero**
     - **Syntax:** `beqz <rs1>, <k>`
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the source register is zero.

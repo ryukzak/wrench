@@ -63,8 +63,16 @@ tests =
                     , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_7.yaml"
                     ]
                 , testGroup
+                    "Factorial Rec"
+                    [ goldenSimulate
+                        RiscIv
+                        "test/golden/risc-iv-32/factorial_rec.s"
+                        "test/golden/risc-iv-32/factorial_rec_input_5.yaml"
+                    ]
+                , testGroup
                     "Generated tests"
                     [ generatedTest RiscIv "factorial" 11
+                    , generatedTest' RiscIv "factorial_rec" "factorial" 11
                     , generatedTest RiscIv "get_put_char" 12
                     , generatedTest RiscIv "hello" 1
                     , generatedTest RiscIv "logical_not" 2
@@ -132,16 +140,19 @@ isaPath isa = case isa of
     F32a -> "f32a"
     Acc32 -> "acc32"
 
-generatedTest :: Isa -> String -> Int -> TestTree
-generatedTest isa name n = testGroup name testCases
+generatedTest' :: Isa -> String -> String -> Int -> TestTree
+generatedTest' isa sname vname n = testGroup sname testCases
     where
         testCases =
             [ goldenSimulate
                 isa
-                ("test/golden/" <> isaPath isa <> "/" <> name <> ".s")
-                ("test/golden/generated/" <> name <> "/" <> show i <> ".yaml")
+                ("test/golden/" <> isaPath isa <> "/" <> sname <> ".s")
+                ("test/golden/generated/" <> vname <> "/" <> show i <> ".yaml")
             | i <- [1 .. n]
             ]
+
+generatedTest :: Isa -> String -> Int -> TestTree
+generatedTest isa name = generatedTest' isa name name
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =

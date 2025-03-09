@@ -149,6 +149,10 @@ data Isa w l
       Lw {rd :: Register, offsetRs1 :: MemRef w}
     | -- | Jump: PC = PC + k
       J {k :: l}
+    | -- | Jump and Link: rd = PC + 4, PC += k
+      Jal {rd :: Register, k :: l}
+    | -- | Jump register: PC = rs
+      Jr {rs :: Register}
     | -- | Branch if equal to zero: if rs1 == 0 then PC += k
       Beqz {rs1 :: Register, k :: l}
     | -- | Branch if not equal to zero: if rs1 /= 0 then PC += k
@@ -249,6 +253,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "lui" Lui register referenceWithDirective
                     , cmd2args "lw" Lw register memRef
                     , cmd1args "j" J reference
+                    , cmd2args "jal" Jal register reference
+                    , cmd1args "jr" Jr register
                     , cmd2args "beqz" Beqz register reference
                     , cmd2args "bnez" Bnez register reference
                     , cmd3args "bgt" Bgt register register reference
@@ -265,6 +271,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
         let relF = fmap (\x -> x - offset) . f
          in case i of
                 J{k} -> J $ deref' relF k
+                Jal{rd, k} -> Jal rd $ deref' relF k
+                Jr{rs} -> Jr{rs}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
                 Add{rd, rs1, rs2} -> Add{rd, rs1, rs2}
                 Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
@@ -437,6 +445,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             J{k} -> do
                 State{pc} <- get
                 setPc (pc + fromEnum k)
+            Jal{rd, k} -> do
+                State{pc} <- get
+                setReg rd (toEnum pc + 4)
+                setPc (pc + fromEnum k)
+            Jr{rs} -> getReg rs >>= setPc . fromEnum
             Beqz{rs1, k} -> do
                 State{pc} <- get
                 rs1' <- getReg rs1
