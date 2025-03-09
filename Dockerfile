@@ -17,9 +17,10 @@ RUN stack build --only-dependencies
 # Stage 2.1: Build the Haskell application
 
 FROM ryukzak/wrench-builder AS wrench-build
-
 COPY . /app
-RUN VERSION_SUFFIX=${VERSION_SUFFIX} stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
+ARG VERSION_SUFFIX=""
+RUN echo "Building with VERSION_SUFFIX=${VERSION_SUFFIX}" && \
+    stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
 
 ###########################################################
 # Stage 2.2: Generate variants
