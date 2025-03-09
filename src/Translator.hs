@@ -37,7 +37,6 @@ evaluateLabels sections =
             case token of
                 Mnemonic m -> st'{sOffset = sOffset + toEnum (byteLength m)}
                 Label l -> st'{sLabels = (l, sOffset) : sLabels}
-                Comment _ -> st'
         processData st'@St{sOffset, sLabels} DataToken{dtLabel, dtValue} =
             st'
                 { sOffset = sOffset + toEnum (byteLength dtValue)
