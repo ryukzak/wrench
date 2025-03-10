@@ -1,14 +1,17 @@
 <!doctype html>
 <html lang="en">
+  <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simulation Results</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script
       defer
       src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"
     ></script>
+
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,7 +19,9 @@
       rel="stylesheet"
     />
     <meta content="#1a1a1a" name="theme-color" />
-    <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+    <script type="module" crossorigin src="/assets/result-DrSuv2iN.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/ascii_styles-CmJAlacG.js">
+    <link rel="stylesheet" crossorigin href="/assets/ascii_styles-TySRPM5g.css">
   </head>
 
   <body class="full flex flex-col justify-center items-center min-h-screen">
@@ -49,49 +54,11 @@
         >[variants]</a
       >
       <span class="grey separator-char">|</span>
-      <button onclick="onInvertClick()" class="blue hover">
+      <button id="invert-theme-button" class="blue hover">
         [invert_theme]
       </button>
     </div>
 
-    <script>
-      function onInvertClick() {
-        document.body.classList.toggle("inverted");
-        window.localStorage.setItem(
-          "prefers-color-scheme",
-          document.body.classList.contains("inverted") ? "light" : "dark",
-        );
-      }
-
-      if (
-        window.matchMedia &&
-        window.localStorage.getItem("prefers-color-scheme") === null
-      ) {
-        if (!window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          document.body.classList.add("inverted");
-        }
-      } else if (
-        window.localStorage.getItem("prefers-color-scheme") === "light"
-      ) {
-        document.body.classList.add("inverted");
-      }
-
-      var copiedLinkCount = 0;
-      async function copyLink() {
-        await navigator.clipboard.writeText(window.location.href);
-        copiedLinkCount++;
-        let button = document.getElementById("copy-link-button");
-        button.classList.remove("white");
-        button.classList.add("green");
-        let button_text = "";
-        if (copiedLinkCount === 1) {
-          button_text = "[copied!]";
-        } else {
-          button_text = `[copied ${copiedLinkCount} times!]`;
-        }
-        button.innerText = button_text;
-      }
-    </script>
     <div class="self-center flex flex-wrap gap-8 w-full p-4 mt-8 pr-8 pl-8">
       <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
         <div>
@@ -329,347 +296,5 @@
         </div>
       </div>
     </div>
-
-    <script>
-      const assemblerCodeText = document.getElementById(
-        "assembler-code-text-element",
-      ).innerText;
-      const simulationConfigText = document.getElementById(
-        "simulation-config-text-element",
-      ).innerText;
-
-      const commentText = document.getElementById(
-        "comment-text-element",
-      ).innerText;
-      if (commentText.trim() === "") {
-        document.getElementById("comment-header").classList.add("hidden");
-        document
-          .getElementById("empty-comment-header")
-          .classList.remove("hidden");
-      }
-
-      const dumpText = document.getElementById("dump-text-element").innerText;
-      if (dumpText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-dump")
-          .classList.add("hidden");
-        document.getElementById("dump-empty-tag").classList.remove("hidden");
-      }
-
-      const testCasesResultText = document.getElementById(
-        "test_cases_result-text-element",
-      ).innerText;
-      if (testCasesResultText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-test-cases-result")
-          .classList.add("hidden");
-        document
-          .getElementById("test-cases-result-empty-tag")
-          .classList.remove("hidden");
-      }
-
-      const simulationLogText = document.getElementById(
-        "simulation-log-text-element",
-      ).innerText;
-      if (simulationLogText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-simulation-log")
-          .classList.add("hidden");
-        document
-          .getElementById("simulation-log-empty-tag")
-          .classList.remove("hidden");
-      }
-
-      const statusTextElement = document.getElementById("status-text-element");
-      if (statusTextElement.innerText === "") {
-        statusTextElement.innerHTML =
-          'status = "" <span class="grey">/* nothing returned */</span>';
-      }
-
-      const testCasesStatusElement = document.getElementById(
-        "test-cases-status-element",
-      );
-      if (testCasesStatusElement.innerText === "") {
-        testCasesStatusElement.innerHTML =
-          'test_cases_status = "" <span class="grey">/* nothing returned */</span>';
-      }
-
-      var copyCountAssembler = 0;
-      async function copyAssembler() {
-        await navigator.clipboard.writeText(assemblerCodeText);
-        const button = document.getElementById("copy-assembler-button");
-        let buttonText = "";
-        copyCountAssembler++;
-        if (copyCountAssembler === 1) {
-          buttonText = "[copied!]";
-          button.classList.remove("white");
-          button.classList.add("green");
-        } else {
-          buttonText = `[copied ${copyCountAssembler} times!]`;
-        }
-
-        button.innerText = buttonText;
-      }
-
-      var copyCountSimulationConfig = 0;
-      async function copySimulationConfig() {
-        await navigator.clipboard.writeText(simulationConfigText);
-        const button = document.getElementById("copy-simulation-config-button");
-        let buttonText = "";
-        copyCountSimulationConfig++;
-        if (copyCountSimulationConfig === 1) {
-          buttonText = "[copied!]";
-          button.classList.remove("white");
-          button.classList.add("green");
-        } else {
-          buttonText = `[copied ${copyCountSimulationConfig} times!]`;
-        }
-
-        button.innerText = buttonText;
-      }
-    </script>
-
-    <style>
-      body {
-        --c-black: #1a1a1a;
-        --c-white: #e1e1e1;
-        --c-grey: #898989;
-        --c-dark-grey: #222224;
-        --c-purple: #b462ff;
-        --c-fuschia: #ff45b4;
-        --c-blue: #18b6ff;
-        --c-green: #1beb9e;
-        --c-orange: #ff9528;
-        --c-orange-low-saturation: #a5692d;
-        --c-yellow: #dddd25;
-        --line: 2.5ch;
-        --font: "IBM", monospace;
-      }
-
-      body.inverted {
-        --c-black: #d5d5d5;
-        --c-white: #2a2830;
-        --c-dark-grey: #e4e4e7;
-        --c-grey: #7e7e7e;
-        --c-purple: #6b1fa3;
-        --c-fuschia: #f50777;
-        --c-blue: #0b8cff;
-        --c-green: #00a76c;
-        --c-orange: #dd7200;
-        --c-orange-low-saturation: #d08c47;
-        --c-yellow: #949700;
-      }
-
-      .orange-low-saturation {
-        color: var(--c-orange-low-saturation);
-        --c-current: var(--c-orange-low-saturation);
-      }
-
-      .black {
-        color: var(--c-black);
-        --c-current: var(--c-black);
-      }
-
-      .white {
-        color: var(--c-white);
-        --c-current: var(--c-white);
-      }
-
-      .grey {
-        color: var(--c-grey);
-        --c-current: var(--c-grey);
-      }
-
-      .purple {
-        color: var(--c-purple);
-        --c-current: var(--c-purple);
-      }
-
-      .fuschia {
-        color: var(--c-fuschia);
-        --c-current: var(--c-fuschia);
-      }
-
-      .blue {
-        color: var(--c-blue);
-        --c-current: var(--c-blue);
-      }
-
-      .green {
-        color: var(--c-green);
-        --c-current: var(--c-green);
-      }
-
-      .orange {
-        color: var(--c-orange);
-        --c-current: var(--c-orange);
-      }
-
-      .yellow {
-        color: var(--c-yellow);
-        --c-current: var(--c-yellow);
-      }
-
-      .bg-dark-gray {
-        background-color: var(--c-dark-grey);
-      }
-
-      a {
-        color: var(--c-current);
-        text-decoration: none;
-      }
-
-      a:hover,
-      .selected,
-      .hover:hover {
-        color: var(--c-black);
-        background: var(--c-current);
-        box-shadow:
-          0.4ch 0 0 0 var(--c-current),
-          -0.3ch 0 0 0 var(--c-current),
-          0.4ch 0.2ch 0 0 var(--c-current),
-          -0.3ch 0.2ch 0 0 var(--c-current);
-        opacity: 0.8;
-      }
-
-      .large {
-        font-size: 2em;
-        line-height: 1.11111111em;
-        font-weight: 200;
-      }
-
-      .italic {
-        font-style: italic;
-      }
-
-      .columns {
-        width: 100%;
-        column-count: 2;
-        column-gap: 1ch;
-      }
-
-      .noselect {
-        user-select: none;
-      }
-
-      .break-anywhere {
-        line-break: anywhere;
-      }
-
-      html,
-      body {
-        margin: 0;
-        background: var(--c-black);
-        color: var(--c-white);
-        min-height: 100vh;
-        font-family: var(--font);
-        font-weight: 400;
-        line-height: var(--line);
-        letter-spacing: 0.01em;
-      }
-
-      .separator-char {
-        display: none;
-      }
-
-      @media (min-width: 768px) {
-        body {
-          font-size: 2 * 0.7vw;
-        }
-
-        .separator-char {
-          display: contents;
-        }
-      }
-
-      @media (min-width: 1024px) {
-        body {
-          font-size: 1vw;
-          overflow: auto;
-
-          .separator-char {
-            display: contents;
-          }
-        }
-
-        .large {
-          font-size: 4vw;
-          line-height: 1.11111111em;
-          font-weight: 200;
-        }
-      }
-
-      ::selection {
-        color: #000000;
-        background: var(--c-grey);
-      }
-
-      button {
-        display: inline;
-        font-family: inherit;
-        font-weight: inherit;
-        font-size: inherit;
-        letter-spacing: inherit;
-        padding: 0;
-        margin: 0;
-        background: transparent;
-        border: none;
-        outline: none;
-      }
-
-      .hover:hover {
-        cursor: pointer;
-      }
-
-      .pointer-events-none {
-        pointer-events: none;
-      }
-
-      body.invert canvas {
-        opacity: 0.05;
-        filter: none;
-        mix-blend-mode: normal;
-      }
-
-      .subtle-hover:hover {
-        background: transparent;
-        box-shadow: none;
-        cursor: pointer;
-        opacity: 0.8;
-        color: currentColor;
-      }
-
-      .title {
-        font-weight: lighter;
-      }
-
-      textarea {
-        min-height: 20rem;
-      }
-
-      #comment {
-        min-height: 5rem;
-      }
-
-      .vim-folded {
-        white-space: nowrap;
-        overflow-x: hidden;
-      }
-
-      .vim-folded::before {
-        content: "+--\00A0";
-        white-space: nowrap;
-      }
-
-      .vim-folded::after {
-        display: inline;
-        content: "\00A0··························································································································································";
-        white-space: nowrap;
-        text-align: left;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: clip;
-      }
-    </style>
   </body>
 </html>
