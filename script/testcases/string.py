@@ -284,7 +284,7 @@ TEST_CASES["upper_case_cstr"] = TestCase(
             "1234567890\x0012345\n",
             "1234567890",
             "",
-            mem_view=[(0x00, 0x1F, cbuf("1234567890\x0012345!", 0x20))],
+            mem_view=[(0x00, 0x1F, cbuf("1234567890\x0012345", 0x20))],
         ),
     ],
     is_variant=True,
