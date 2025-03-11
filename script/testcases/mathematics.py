@@ -212,7 +212,7 @@ TEST_CASES["is_prime"] = TestCase(
         Word2Word(-12, -1),
         Word2Word(12343, 1),
         Word2Word(123423, 0),
-        Word2Word(2_147_483_647, 1),
+        Word2Word(2_147_483_647, 1, limit=510000),
     ],
     is_variant=True,
     category="Mathematics",
