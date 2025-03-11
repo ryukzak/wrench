@@ -9,6 +9,14 @@ min_int32 = -2_147_483_648
 max_int32 = 2_147_483_647
 overflow_error_value = -858993460  # 0xCCCCCCCC
 
+
+def uint32_to_int32(n):
+    if n > 0x80000000:
+        # Subtract 2^32 to get the signed representation
+        return n - 0x100000000
+    return n
+
+
 # Define the named tuple structure
 TestCase = namedtuple(
     "TestCase",
@@ -104,7 +112,7 @@ class Words2Words:
         return "\n".join(
             [
                 "      numio[0x80]: [] >>> []",
-                f"      numio[0x84]: [] >>> [{','.join(map(str, self.ys))}]",
+                f"      numio[0x84]: [] >>> [{','.join(map(lambda x: str(uint32_to_int32(x)), self.ys))}]",
             ]
         )
 
