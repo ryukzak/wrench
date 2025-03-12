@@ -11,11 +11,15 @@ overflow_error_value = -858993460  # 0xCCCCCCCC
 
 
 def uint32_to_int32(n):
-    if n > 0x80000000:
+    if n > max_int32:
         # Subtract 2^32 to get the signed representation
         return n - 0x100000000
     return n
 
+
+assert uint32_to_int32(2_147_483_647) == 2_147_483_647
+assert uint32_to_int32(2_147_483_648) == -2_147_483_648
+assert uint32_to_int32(2_147_483_649) == -2_147_483_647
 
 # Define the named tuple structure
 TestCase = namedtuple(
@@ -78,9 +82,10 @@ def limit_to_int32(f):
 
 
 class Words2Words:
-    def __init__(self, xs, ys, limit=2000):
+    def __init__(self, xs, ys, rest=[], limit=2000):
         self.xs = xs
         self.ys = ys
+        self.rest = rest
         self.limit = limit
 
     def assert_string(self, name):
@@ -112,7 +117,7 @@ class Words2Words:
     def yaml_assert(self):
         return "\n".join(
             [
-                "      numio[0x80]: [] >>> []",
+                f"      numio[0x80]: [{','.join(map(lambda x: str(uint32_to_int32(x)), self.rest))}] >>> []",
                 f"      numio[0x84]: [] >>> [{','.join(map(lambda x: str(uint32_to_int32(x)), self.ys))}]",
             ]
         )

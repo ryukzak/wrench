@@ -18,7 +18,7 @@ HS_SRC_DIR = .
 build:
 	stack build --copy-bins
 
-server-run: build
+server-run: build generate-variants
 	stack exec wrench-serv
 
 build-image-local:
@@ -83,7 +83,10 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
-update-golden:
+generate-variants:
+	script/variants.py
+
+update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 

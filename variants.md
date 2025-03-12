@@ -461,6 +461,7 @@ assert sum_word_pstream([2, 2147483647, 1, 0]) == [0, 2147483648]
 assert sum_word_pstream([3, 2147483647, 1, 2147483647, 0]) == [0, 4294967295]
 assert sum_word_pstream([4, 2147483647, 1, 2147483647, 1, 0]) == [1, 0]
 assert sum_word_pstream([4, 2147483647, 1, 2147483647, 2, 0]) == [1, 1]
+assert sum_word_pstream([2, 1, -1]) == [0, 0]
 ```
 
 ## String Manipulation
