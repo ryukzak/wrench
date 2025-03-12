@@ -24,8 +24,14 @@ jobs:
           stack-version: "latest"
           stack-no-global: true
 
-      - name: Build & test
-        run: make build test test-examples
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Test examples
+        run: make test-examples
 
   haskell-lint:
     timeout-minutes: 5

@@ -1,8 +1,7 @@
     .data
 
-
+buf:             .byte  'Hello\n\0World!\0\0\0'
 output_addr:     .word  0x84               \ Output address where the result should be stored
-buf:             .byte  'Hello\n\0World'   \ be aware, that it is not a pstr or cstr
 
     .text
 
@@ -17,7 +16,7 @@ while:
     dup
     if end
 
-    @+ lit 0xFF and
+    @+ lit 255 and
 
     !b
 
