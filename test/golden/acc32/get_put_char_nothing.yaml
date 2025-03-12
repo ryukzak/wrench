@@ -1,0 +1,14 @@
+name: "assert get_put_char('\0') == '\0'"
+limit: 1000
+memory_size: 0x1000
+input_streams:
+  0x80: []
+  0x84: []
+reports:
+  - name: Check results
+    slice: last
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      symio[0x80]: {io:0x80:sym}
+      symio[0x84]: {io:0x84:sym}
