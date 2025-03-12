@@ -65,6 +65,7 @@ jobs:
         uses: rutajdash/prettier-cli-action@v1.0.0
         with:
           file_pattern: static/**/*.html
+          config_path: ./.prettierrc
 
       - name: Prettier Output
         if: ${{ failure() }}

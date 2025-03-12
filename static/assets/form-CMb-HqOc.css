@@ -1,1 +1,0 @@
-textarea{min-height:20rem}select{-webkit-appearance:none;-moz-appearance:none;appearance:none;border-radius:.375rem;padding:.5rem 1rem;background-color:var(--c-dark-grey)}select>option{padding:.5rem;background-color:var(--c-dark-grey)}select:focus,input:focus,textarea:focus{border-color:var(--c-white);outline:none}
