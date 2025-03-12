@@ -20,6 +20,7 @@ import Machine.Types (
     Machine (..),
     StateInterspector (..),
     fromSign,
+    halted,
     signBitAnd,
  )
 import Relude
@@ -378,15 +379,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
                     State{pc, mem} -> do
-                        let instruction = either error id $ readInstruction mem pc
-                        Just (pc, instruction)
+                        instruction <- readInstruction mem pc
+                        return (pc, instruction)
                 )
 
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1

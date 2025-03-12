@@ -225,12 +225,12 @@ getP = get <&> (fromEnum . p)
 
 nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextP = do
-    (p, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
+    (p, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
     setP (p + byteLength instruction)
 
 getWord addr = do
     st@State{ram} <- get
-    let (ram', w ) = either error id $ readWord ram addr
+    let (ram', w) = either error id $ readWord ram addr
     put st{ram = ram'}
     return w
 
@@ -316,14 +316,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
                     State{p, ram} -> do
-                        let instruction = either error id $ readInstruction ram p
-                        Just (p, instruction)
+                        instruction <- readInstruction ram p
+                        return (p, instruction)
                 )
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        (_pc, instruction) :: (Int, Isa w w) <- either (error . ("Can't fetch instruction." <>)) id <$> instructionFetch
         case instruction of
             Lit l -> do
                 dataPush l

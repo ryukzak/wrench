@@ -210,7 +210,7 @@ setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
-    (pc, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
+    (pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
     setPc (pc + byteLength instruction)
 
 getWord addr = do
@@ -254,14 +254,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
                     State{pc, ram} -> do
-                        let instruction = either error id $ readInstruction ram pc
-                        Just (pc, instruction)
+                        instruction <- readInstruction ram pc
+                        Right (pc, instruction)
                 )
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        (tmp :: Either Text (Int, Isa w w)) <- instructionFetch
+        let (pc, instruction) = either (error . ("can't fetch instruction: " <>)) id tmp
         case instruction of
             LoadImm a -> setAcc a >> nextPc
             LoadAddr a -> do

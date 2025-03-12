@@ -11,12 +11,14 @@ journal :: (Machine st isa w) => Int -> HashMap Int String -> st -> [Trace st is
 journal limit pc2label st = execWriter $ journal' limit pc2label st
 
 journal' 0 _ _ = tell [TError "Simulation limit reached"]
-journal' limit pc2label st
-    | Just _ <- evalState instructionFetch st = do
-        tell [TState st]
-        let st' = execState instructionStep st
-        journal' (limit - 1) pc2label st'
-    | otherwise = return ()
+journal' limit pc2label st =
+    case evalState instructionFetch st of
+        Right _ -> do
+            tell [TState st]
+            let st' = execState instructionStep st
+            journal' (limit - 1) pc2label st'
+        Left err | err == halted -> return ()
+        Left err -> tell [TError err]
 
 powerOn ::
     (Machine st isa w, MachineWord w) =>

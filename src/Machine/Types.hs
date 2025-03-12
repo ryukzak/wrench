@@ -18,6 +18,7 @@ module Machine.Types (
     addExt,
     subExt,
     mulExt,
+    halted,
 ) where
 
 import Data.Bits
@@ -127,8 +128,11 @@ class StateInterspector st isa w | st -> isa w where
     reprState _labels _st var = "unknown variable: " <> var
 
 class Machine st isa w | st -> isa w where
-    instructionFetch :: State st (Maybe (Int, isa))
+    instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
+
+halted :: Text
+halted = "halted"
 
 data Trace st isa
     = TState st
