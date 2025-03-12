@@ -347,13 +347,13 @@ setReg r value = modify $ \st@State{regs} -> st{regs = insert r value regs}
 
 getWord addr = do
     st@State{mem} <- get
-    let (w, mem') = runState (readWord addr) mem
+    let (mem', w) = either error id $ readWord mem addr
     put st{mem = mem'}
     return w
 
 setWord addr w = do
     st@State{mem} <- get
-    let mem' = execState (writeWord addr w) mem
+    let mem' = either error id $ writeWord mem addr w
     put st{mem = mem'}
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
@@ -380,7 +380,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             <&> ( \case
                     State{stopped = True} -> Nothing
                     State{pc, mem} -> do
-                        let instruction = evalState (readInstruction pc) mem
+                        let instruction = either error id $ readInstruction mem pc
                         Just (pc, instruction)
                 )
 

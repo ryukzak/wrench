@@ -230,13 +230,13 @@ nextP = do
 
 getWord addr = do
     st@State{ram} <- get
-    let (w, ram') = runState (readWord addr) ram
+    let (ram', w ) = either error id $ readWord ram addr
     put st{ram = ram'}
     return w
 
 setWord addr w = do
     st@State{ram} <- get
-    let ram' = execState (writeWord addr w) ram
+    let ram' = either error id $ writeWord ram addr w
     put st{ram = ram'}
 
 dataPush w = do
@@ -318,7 +318,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             <&> ( \case
                     State{stopped = True} -> Nothing
                     State{p, ram} -> do
-                        let instruction = evalState (readInstruction p) ram
+                        let instruction = either error id $ readInstruction ram p
                         Just (p, instruction)
                 )
     instructionStep = do
