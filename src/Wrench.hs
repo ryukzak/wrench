@@ -58,7 +58,7 @@ data Result mem w = Result
     deriving (Show)
 
 maxLimit :: Int
-maxLimit = 10000
+maxLimit = 600000
 
 maxMemorySize :: Int
 maxMemorySize = 8192
