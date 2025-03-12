@@ -149,7 +149,11 @@ jobs:
           path: ./dist/*
 
   publish-release:
-    needs: build-binaries
+    needs:
+      - build-binaries
+      - haskell-formatting
+      - html-formatting
+      - markdown-formatting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
