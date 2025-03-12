@@ -312,15 +312,6 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
             stack f _ = unknownFormat f
 
-instance (MachineWord w) => ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{dataStack, returnStack} v =
-        case v of
-            "dstack" -> toText $ intercalate ":" $ map show dataStack
-            "dstach_hex" -> T.intercalate ":" $ map (toText . word32ToHex) dataStack
-            "rstack" -> toText $ intercalate ":" $ map show returnStack
-            "rstack_hex" -> T.intercalate ":" $ map (toText . word32ToHex) returnStack
-            _ -> "not supported: " <> v <> " (supported: dstack, dstack_hex, rstack, rstack_hex)"
-
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get

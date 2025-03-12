@@ -19,7 +19,6 @@ import Machine.Types (
     IoMem (..),
     Machine (..),
     StateInterspector (..),
-    ViewState (..),
     fromSign,
     signBitAnd,
  )
@@ -331,9 +330,6 @@ data MachineState mem w = State
     , stopped :: Bool
     }
     deriving (Show)
-
-instance ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{} _ = "not supoorted"
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}

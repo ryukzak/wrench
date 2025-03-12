@@ -250,9 +250,6 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             [r, _] -> unknownView r
             _ -> errorView v
 
-instance ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{} _ = error "not supported"
-
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get

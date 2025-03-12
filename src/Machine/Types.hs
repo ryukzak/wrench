@@ -10,7 +10,6 @@ module Machine.Types (
     StateInterspector (..),
     MachineWord,
     FromSign (..),
-    ViewState (..),
     RegisterId,
     ByteLength (..),
     WordParts (..),
@@ -126,9 +125,6 @@ class StateInterspector st isa w | st -> isa w where
     ioStreams :: st -> IntMap ([w], [w])
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
-
-class ViewState st where
-    viewState :: st -> Text -> Text
 
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Maybe (Int, isa))
