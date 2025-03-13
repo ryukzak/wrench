@@ -6,7 +6,7 @@ cabal-version: 2.2
 
 name:           wrench
 version:        0.0.2.2
-description:    Please see the README on GitHub
+description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi
