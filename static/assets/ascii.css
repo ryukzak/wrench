@@ -92,8 +92,11 @@ a:hover,
 .hover:hover {
   color: var(--c-black);
   background: var(--c-current);
-  box-shadow: 0.4ch 0 0 0 var(--c-current), -0.3ch 0 0 0 var(--c-current),
-    0.4ch 0.2ch 0 0 var(--c-current), -0.3ch 0.2ch 0 0 var(--c-current);
+  box-shadow:
+    0.4ch 0 0 0 var(--c-current),
+    -0.3ch 0 0 0 var(--c-current),
+    0.4ch 0.2ch 0 0 var(--c-current),
+    -0.3ch 0.2ch 0 0 var(--c-current);
   opacity: 0.8;
 }
 
