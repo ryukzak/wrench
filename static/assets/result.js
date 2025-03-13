@@ -1,4 +1,4 @@
-export function getTexts() {
+function getTexts() {
   const assemblerCodeTextElement = document.getElementById(
     'assembler-code-text-element',
   )
@@ -8,7 +8,7 @@ export function getTexts() {
   const dumpTextElement = document.getElementById('dump-text-element')
   const commentTextElement = document.getElementById('comment-text-element')
   const testCasesResultTextElement = document.getElementById(
-    'test_cases_result-text-element',
+    'test-cases-result-text-element',
   )
   const simulationLogTextElement = document.getElementById(
     'simulation-log-text-element',
