@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
 
@@ -20,44 +20,49 @@
     ></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 
-    <link rel="stylesheet" href="/assets/ascii.css" />
-    <script defer src="/assets/on_invert_click.js"></script>
-    <script defer src="/assets/result.js"></script>
+    <link rel="stylesheet" href="./assets/ascii.css" />
+    <script defer src="./assets/on_invert_click.js"></script>
+    <script defer src="./assets/result.js"></script>
   </head>
 
   <body
-    class="dark full flex flex-col justify-center items-center min-h-screen"
+    class="dark bg-[var(--c-black)] text-[var(--c-white)] full flex flex-col items-center min-h-screen"
   >
-    <div class="text-center w-full mt-4 mb-2">
+    <div class="text-center w-full mt-4 mb-6">
       <!-- Добавляем отступ снизу -->
-      <h1 class="large white">
-        <a class="white hover" href="/">Wrench Report</a>
-      </h1>
+      <a
+        class="text-6xl text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] cursor-pointer"
+        href="/"
+        >Wrench Report</a
+      >
     </div>
 
-    <div class="self-center">
+    <div class="self-center flex flex-wrap justify-center gap-2 max-w-[75vw]">
       <a
         href="https://github.com/ryukzak/wrench"
-        class="purple hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] hover:bg-[var(--c-purple)] cursor-pointer"
         target="_blank"
         >[github]</a
       >
-      <span class="grey separator-char">|</span>
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
       <a
         href="https://github.com/ryukzak/wrench/tree/master/docs"
-        class="fuschia hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] hover:bg-[var(--c-fuschia)] cursor-pointer"
         target="_blank"
         >[isa_docs]</a
       >
-      <span class="grey separator-char">|</span>
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
       <a
         href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-        class="orange hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] hover:bg-[var(--c-orange)] cursor-pointer"
         target="_blank"
         >[variants]</a
       >
-      <span class="grey separator-char">|</span>
-      <button id="invert-theme-button" class="blue hover">
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
+      <button
+        id="invert-theme-button"
+        class="text-[var(--c-blue)] hover:text-[var(--c-black)] hover:bg-[var(--c-blue)] cursor-pointer"
+      >
         [invert_theme]
       </button>
     </div>
@@ -66,18 +71,24 @@
       <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
         <div>
           <div>
-            <p class="grey texm-sm text-left">/* variant: {{variant}} */</p>
-            <p class="grey texm-sm text-left mb-6">/* author: {{name}} */</p>
+            <!-- prettier-ignore -->
+            <p class="text-[var(--c-grey)] text-left">
+              /* variant: {{variant}} */
+            </p>
+            <!-- prettier-ignore -->
+            <p class="text-[var(--c-grey)] text-left mb-6">
+              /* author: {{name}} */
+            </p>
           </div>
           <div>
             <h2 id="empty-comment-header" class="hidden grey mb-4">
               /* comment: not found */
             </h2>
             <div id="comment-header">
-              <h2 class="grey mb-4">/* comment */</h2>
+              <h2 class="text-[var(--c-grey)] mb-4">/* comment */</h2>
               <pre
                 id="comment-text-element"
-                class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+                class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
               >
 {{comment}}</pre
               >
@@ -88,10 +99,10 @@
             <div
               class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
             >
-              <span class="grey">/* assembler_code */</span>
+              <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <button
                 id="copy-assembler-button"
-                class="place-self-end white hover"
+                class="place-self-end text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] hover:opacity-80 cursor-pointer"
               >
                 [copy]
               </button>
@@ -99,18 +110,18 @@
             <div
               id="accordion-collapse-assembler"
               data-accordion="collapse"
-              class="mb-4 bg-dark-gray p-4 rounded-lg"
-              data-inactive-classes="vim-folded orange-low-saturation"
+              class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+              data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="white bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-assembler"
-                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                class="text-[var(--c-orange-low-saturation)] vim-folded flex items-center justify-between w-full text-left hover:opacity-80"
                 data-accordion-target="#accordion-collapse-body-assembler"
                 aria-expanded="true"
                 aria-controls="accordion-collapse-body-assembler"
               >
-                <span class="noselect">assembler_code =</span>
+                <span class="select-none">assembler_code =</span>
               </h2>
               <div
                 id="accordion-collapse-body-assembler"
@@ -131,10 +142,10 @@
             <div
               class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
             >
-              <span class="grey">/* simulation_config */</span>
+              <span class="text-[var(--c-grey)]">/* simulation_config */</span>
               <button
                 id="copy-simulation-config-button"
-                class="place-self-end white hover"
+                class="text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] hover:opacity-80 cursor-pointer"
               >
                 [copy]
               </button>
@@ -142,18 +153,18 @@
             <div
               id="accordion-collapse-simulation-config"
               data-accordion="collapse"
-              class="mb-4 bg-dark-gray p-4 rounded-lg"
-              data-inactive-classes="vim-folded orange-low-saturation"
+              class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+              data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="white bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-simulation-config"
-                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                class="text-[var(--c-orange-low-saturation)] vim-folded flex items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
                 data-accordion-target="#accordion-collapse-body-simulation-config"
                 aria-expanded="false"
                 aria-controls="accordion-collapse-body-simulation-config"
               >
-                <span class="noselect">simulation_config =</span>
+                <span class="select-none">simulation_config =</span>
               </h2>
               <div
                 id="accordion-collapse-body-simulation-config"
@@ -173,12 +184,12 @@
       </div>
 
       <div class="flex-1 min-w-[300px] max-w-[50%]">
-        <h2 class="grey mt-6 mb-4">/* simulation_result */</h2>
+        <h2 class="text-[var(--c-grey)] mt-6 mb-4">/* simulation_result */</h2>
 
         <div>
           <pre
             id="status-text-element"
-            class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+            class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
           >
 {{status}}</pre
           >
@@ -187,18 +198,18 @@
         <div
           id="accordion-collapse-simulation-log"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-simulation-log"
-            class="vim-folded orange-low-saturation flex items-center justify-between w-full text-left hover"
+            class="vim-folded text-[var(--c-orange-low-saturation)] flex items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-simulation-log"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-simulation-log"
           >
-            <span class="noselect">simulation_log =</span>
+            <span class="select-none">simulation_log =</span>
           </h2>
           <div
             id="accordion-collapse-body-simulation-log"
@@ -212,16 +223,16 @@
         </div>
         <div
           id="simulation-log-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           simulation_log = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
 
-        <h2 class="grey mt-6 mb-4">/* testcase_result */</h2>
+        <h2 class="text-[var(--c-grey)] mt-6 mb-4">/* testcase_result */</h2>
         <pre
           id="test-cases-status-element"
-          class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+          class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
         >
 {{test_cases_status}}</pre
         >
@@ -229,18 +240,18 @@
         <div
           id="accordion-collapse-test-cases-result"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-test-cases-result"
-            class="vim-folded flex orange-low-saturation items-center justify-between w-full text-left hover"
+            class="vim-folded flex text-[var(--c-orange-low-saturation)] items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-test-cases-result"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-test-cases-result"
           >
-            <span class="noselect">failed_test_case =</span>
+            <span class="select-none">failed_test_case =</span>
           </h2>
           <div
             id="accordion-collapse-body-test-cases-result"
@@ -257,26 +268,26 @@
         </div>
         <div
           id="test-cases-result-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           failed_test_case = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
         <div
           id="accordion-collapse-dump"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-dump"
-            class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+            class="text-[var(--c-orange-low-saturation)] vim-folded flex justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-dump"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-dump"
           >
-            <span class="noselect">dump =</span>
+            <span class="select-none">dump =</span>
           </h2>
           <div
             id="accordion-collapse-body-dump"
@@ -290,10 +301,10 @@
         </div>
         <div
           id="dump-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           dump = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
       </div>
     </div>

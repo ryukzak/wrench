@@ -11,7 +11,7 @@ if (
   window.localStorage.getItem('prefers-color-scheme') === null
 ) {
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.body.classList.remove('dark')
+    document.body.classList.add('dark')
   }
 } else if (window.localStorage.getItem('prefers-color-scheme') === 'light') {
   document.body.classList.remove('dark')

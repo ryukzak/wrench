@@ -1,3 +1,5 @@
+/* @import 'tailwindcss'; */
+
 body {
   --c-black: #d5d5d5;
   --c-white: #2a2830;
@@ -28,127 +30,13 @@ body.dark {
   --c-yellow: #dddd25;
 }
 
-.orange-low-saturation {
-  color: var(--c-orange-low-saturation);
-  --c-current: var(--c-orange-low-saturation);
-}
-
-.black {
-  color: var(--c-black);
-  --c-current: var(--c-black);
-}
-
-.white {
-  color: var(--c-white);
-  --c-current: var(--c-white);
-}
-
-.grey {
-  color: var(--c-grey);
-  --c-current: var(--c-grey);
-}
-
-.purple {
-  color: var(--c-purple);
-  --c-current: var(--c-purple);
-}
-
-.fuschia {
-  color: var(--c-fuschia);
-  --c-current: var(--c-fuschia);
-}
-
-.blue {
-  color: var(--c-blue);
-  --c-current: var(--c-blue);
-}
-
-.green {
-  color: var(--c-green);
-  --c-current: var(--c-green);
-}
-
-.orange {
-  color: var(--c-orange);
-  --c-current: var(--c-orange);
-}
-
-.yellow {
-  color: var(--c-yellow);
-  --c-current: var(--c-yellow);
-}
-
-.bg-dark-gray {
-  background-color: var(--c-dark-grey);
-}
-
-a {
-  color: var(--c-current);
-  text-decoration: none;
-}
-
-a:hover,
-.selected,
-.hover:hover {
-  color: var(--c-black);
-  background: var(--c-current);
-  box-shadow:
-    0.4ch 0 0 0 var(--c-current),
-    -0.3ch 0 0 0 var(--c-current),
-    0.4ch 0.2ch 0 0 var(--c-current),
-    -0.3ch 0.2ch 0 0 var(--c-current);
-  opacity: 0.8;
-}
-
-.large {
-  font-size: 2em;
-  line-height: 1.11111111em;
-  font-weight: 200;
-}
-
-.noselect {
-  user-select: none;
-}
-
 html,
 body {
   margin: 0;
-  background: var(--c-black);
-  color: var(--c-white);
+  /* color: var(--c-white); */
   min-height: 100vh;
   font-family: var(--font);
   font-weight: 400;
-  line-height: var(--line);
-  letter-spacing: 0.01em;
-}
-
-.separator-char {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  body {
-    font-size: 2 * 0.7vw;
-  }
-
-  .separator-char {
-    display: contents;
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    font-size: 1vw;
-    overflow: auto;
-  }
-  .separator-char {
-    display: contents;
-  }
-  .large {
-    font-size: 4vw;
-    line-height: 1.11111111em;
-    font-weight: 200;
-  }
 }
 
 ::selection {
@@ -156,34 +44,13 @@ body {
   background: var(--c-grey);
 }
 
-button {
-  display: inline;
-  font-family: inherit;
-  font-weight: inherit;
-  font-size: inherit;
-  letter-spacing: inherit;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-.hover:hover {
-  cursor: pointer;
-}
-
-.pointer-events-none {
-  pointer-events: none;
-}
-
-.title {
-  font-weight: lighter;
-}
-
 .vim-folded {
   white-space: nowrap;
   overflow-x: hidden;
+}
+
+.vim-folded:hover {
+  background-color: var(--c-orange-low-saturation);
 }
 
 .vim-folded::before {
@@ -201,12 +68,6 @@ button {
   text-overflow: clip;
 }
 
-select {
-  appearance: none;
-  border-radius: 0.375rem;
-  padding: 0.5rem 1rem;
-  background-color: var(--c-dark-grey);
-}
 /* those elements are auto generated on server, so we can't do the styles inside a className */
 select > option {
   padding: 0.5rem;

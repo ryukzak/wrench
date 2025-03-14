@@ -113,8 +113,7 @@ async function copyTextAndChangeButtonText(button, text) {
   let buttonText = ''
   if (count === 1) {
     buttonText = '[copied!]'
-    button.classList.remove('white')
-    button.classList.add('green')
+    button.className = button.className.replaceAll('--c-white', '--c-green')
   } else {
     buttonText = `[copied ${count} times!]`
   }

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
 
@@ -17,38 +17,43 @@
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="/assets/ascii.css" />
+    <link rel="stylesheet" href="./assets/ascii.css" />
 
-    <script type="module" defer src="/assets/on_invert_click.js"></script>
-    <script type="module" src="/assets/form.js"></script>
+    <script type="module" defer src="./assets/on_invert_click.js"></script>
+    <script type="module" src="./assets/form.js"></script>
   </head>
 
-  <body class="dark flex items-center justify-center min-h-screen">
-    <div class="p-8 rounded-lg w-full max-w-6xl">
-      <h1 class="large mb-6 text-center">Wrench Submit</h1>
+  <body
+    class="dark bg-[var(--c-black)] text-[var(--c-white)] flex items-center justify-center min-h-screen"
+  >
+    <div class="p-8 rounded-lg w-full max-w-[80vw]">
+      <h1 class="text-6xl mb-6 text-center">Wrench Submit</h1>
       <div class="mb-6 text-center">
         <a
           href="https://github.com/ryukzak/wrench"
-          class="purple hover"
+          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] hover:bg-[var(--c-purple)] cursor-pointer"
           target="_blank"
           >[github]</a
         >
-        <span class="grey separator-char">|</span>
+        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
         <a
           href="https://github.com/ryukzak/wrench/tree/master/docs"
-          class="fuschia hover"
+          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] hover:bg-[var(--c-fuschia)] cursor-pointer"
           target="_blank"
           >[isa_docs]</a
         >
-        <span class="grey separator-char">|</span>
+        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
         <a
           href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-          class="orange hover"
+          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] hover:bg-[var(--c-orange)] cursor-pointer"
           target="_blank"
           >[variants]</a
         >
-        <span class="grey separator-char">|</span>
-        <button id="invert-theme-button" class="self-center blue hover">
+        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
+        <button
+          id="invert-theme-button"
+          class="text-[var(--c-blue)] hover:text-[var(--c-black)] hover:bg-[var(--c-blue)] cursor-pointer"
+        >
           [invert_theme]
         </button>
       </div>
@@ -60,11 +65,11 @@
         class="space-y-6"
       >
         <div class="mb-6">
-          <label class="block grey">/* variant */</label>
+          <label class="block text-[var(--c-grey)]">/* variant */</label>
           <select
             id="variant"
             name="variant"
-            class="white hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           >
             <option value="" selected disabled>Select a variant</option>
             <!-- we don't need prettier to mess with ssr  -->
@@ -74,11 +79,11 @@
         </div>
 
         <div class="mb-6">
-          <label for="isa" class="block grey">/* ISA */</label>
+          <label for="isa" class="block text-[var(--c-grey)]">/* ISA */</label>
           <select
             id="isa"
             name="isa"
-            class="white hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           >
             <option value="risc-iv-32" selected>risc-iv-32</option>
             <option value="f32a">f32a</option>
@@ -87,42 +92,50 @@
         </div>
 
         <div class="mb-6">
-          <label for="name" class="block grey">/* author */</label>
+          <label for="name" class="block text-[var(--c-grey)]"
+            >/* author */</label
+          >
           <input
             type="text"
             id="name"
             name="name"
             required
-            class="whitespace-pre overflow-x-auto hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           />
         </div>
 
         <div class="mb-6">
-          <label for="comment" class="block grey">/* comment */</label>
+          <label for="comment" class="block text-[var(--c-grey)]"
+            >/* comment */</label
+          >
           <textarea
             id="comment"
             name="comment"
-            class="min-h-[6rem] whitespace-pre overflow-x-auto hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre min-h-[6rem] overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
         <div class="mb-6">
-          <label for="asm" class="block grey">/* assembler_code */</label>
+          <label for="asm" class="block text-[var(--c-grey)]"
+            >/* assembler_code */</label
+          >
           <textarea
             id="asm"
             name="asm"
             required
-            class="whitespace-pre min-h-[20rem] overflow-x-auto hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre min-h-[20rem] overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
         <div class="mb-6">
-          <label for="config" class="block grey">/* simulation_config */</label>
+          <label for="config" class="block text-[var(--c-grey)]"
+            >/* simulation_config */</label
+          >
           <textarea
             id="config"
             name="config"
             required
-            class="whitespace-pre min-h-[20rem] overflow-x-auto hover:opacity-80 bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="whitespace-pre min-h-[20rem] hover:opacity-80 overflow-x-auto bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           ></textarea>
         </div>
 
@@ -135,7 +148,7 @@
           />
         </div>
 
-        <div class="text-center grey">
+        <div class="text-center text-[var(--c-grey)]">
           <!-- we don't need prettier to mess with ssr  -->
           <!-- prettier-ignore -->
           /* {{version}} */
