@@ -12,14 +12,17 @@ import Translator.Types
 codeSection ::
     (MnemonicParser isa) =>
     String
-    -> Parser [CodeToken isa String]
+    -> Parser (Section isa w String)
 codeSection cstart = do
     string ".text" >> eol' cstart
-    catMaybes
-        <$> many
-            ( choice
-                [ nothing (hspace1 <|> eol' cstart)
-                , Just . Label <$> label
-                , Just . Mnemonic <$> mnemonic
-                ]
-            )
+    items <-
+        catMaybes
+            <$> many
+                ( choice
+                    [ nothing (hspace1 <|> eol' cstart)
+                    , Just . Org <$> orgDirective cstart
+                    , Just . Item . Label <$> label
+                    , Just . Item . Mnemonic <$> mnemonic
+                    ]
+                )
+    return $ Code (sectionOrg items) $ sectionItems items

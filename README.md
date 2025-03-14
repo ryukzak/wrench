@@ -8,6 +8,8 @@ This is an educational project designed to explore different types of processor 
 - `wrench-fmt` -- formatter for assembly files
 - `wrench-serv` -- service for uploading and running testcases
 
+Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237)
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
@@ -60,7 +62,9 @@ docker run -it --rm ryukzak/wrench:latest --help
 
 This service will be used to send laboratory works to check.
 
-1. Open [wrench.edu.swampbuds.me](wrench.edu.swampbuds.me).
+1. Open service:
+    - Last release: [wrench.edu.swampbuds.me](https://wrench.edu.swampbuds.me).
+    - Edge version (master branch): [wrench-edge.edu.swampbuds.me](https://wrench-edge.edu.swampbuds.me)
 2. Fill the form and submit.
 3. Check the results.
 

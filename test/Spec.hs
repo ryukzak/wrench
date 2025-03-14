@@ -54,6 +54,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_87.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_nothing.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/ble_bleu.s" "test/golden/risc-iv-32/ble_bleu.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , testGroup
@@ -63,8 +64,16 @@ tests =
                     , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_7.yaml"
                     ]
                 , testGroup
+                    "Factorial Rec"
+                    [ goldenSimulate
+                        RiscIv
+                        "test/golden/risc-iv-32/factorial_rec.s"
+                        "test/golden/risc-iv-32/factorial_rec_input_5.yaml"
+                    ]
+                , testGroup
                     "Generated tests"
                     [ generatedTest RiscIv "factorial" 11
+                    , generatedTest' RiscIv "factorial_rec" "factorial" 11
                     , generatedTest RiscIv "get_put_char" 12
                     , generatedTest RiscIv "hello" 1
                     , generatedTest RiscIv "logical_not" 2
@@ -89,10 +98,11 @@ tests =
                 , goldenSimulate F32a "test/golden/f32a/carry.s" "test/golden/f32a/carry.yaml"
                 , goldenSimulate F32a "test/golden/f32a/factorial.s" "test/golden/f32a/factorial.yaml"
                 , goldenSimulate F32a "test/golden/f32a/jmp_and_call.s" "test/golden/f32a/jmp_and_call.yaml"
+                , goldenSimulate F32a "test/golden/f32a/get_put_char.s" "test/golden/f32a/get_put_char_nothing.yaml"
                 ]
             , testGroup
                 "Generated tests"
-                [ generatedTest F32a "factorial" 6
+                [ generatedTest F32a "factorial" 11
                 , generatedTest F32a "get_put_char" 12
                 , generatedTest F32a "hello" 1
                 , generatedTest F32a "logical_not" 2
@@ -114,6 +124,7 @@ tests =
                 "Acc32"
                 [ goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/overflow.s" "test/golden/acc32/overflow.yaml"
+                , goldenSimulate Acc32 "test/golden/acc32/get_put_char.s" "test/golden/acc32/get_put_char_nothing.yaml"
                 ]
             , testGroup
                 "Generated tests"
@@ -132,16 +143,19 @@ isaPath isa = case isa of
     F32a -> "f32a"
     Acc32 -> "acc32"
 
-generatedTest :: Isa -> String -> Int -> TestTree
-generatedTest isa name n = testGroup name testCases
+generatedTest' :: Isa -> String -> String -> Int -> TestTree
+generatedTest' isa sname vname n = testGroup sname testCases
     where
         testCases =
             [ goldenSimulate
                 isa
-                ("test/golden/" <> isaPath isa <> "/" <> name <> ".s")
-                ("test/golden/generated/" <> name <> "/" <> show i <> ".yaml")
+                ("test/golden/" <> isaPath isa <> "/" <> sname <> ".s")
+                ("test/golden/generated/" <> vname <> "/" <> show i <> ".yaml")
             | i <- [1 .. n]
             ]
+
+generatedTest :: Isa -> String -> Int -> TestTree
+generatedTest isa name = generatedTest' isa name name
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =

@@ -1,6 +1,7 @@
 ###########################################################
-# Stage 1: Build the Haskell application
-FROM haskell:9.10.1-bullseye AS wrench-build
+# Stage 1: Build the Haskell builder image with deps
+
+FROM haskell:9.10.1-bullseye AS wrench-builder
 
 RUN apt-get update && apt-get install -y \
     libgmp-dev \
@@ -12,11 +13,18 @@ COPY package.yaml stack.yaml stack.yaml.lock wrench.cabal /app/
 RUN stack setup --install-ghc
 RUN stack build --only-dependencies
 
+###########################################################
+# Stage 2.1: Build the Haskell application
+
+FROM ryukzak/wrench-builder AS wrench-build
 COPY . /app
-RUN stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
+ARG VERSION_SUFFIX=""
+RUN echo "Building with VERSION_SUFFIX=${VERSION_SUFFIX}" && \
+    stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
 
 ###########################################################
-# Stage 2: Generate variants
+# Stage 2.2: Generate variants
+
 FROM python:3.13-alpine3.21 AS wrench-variants
 
 WORKDIR /app

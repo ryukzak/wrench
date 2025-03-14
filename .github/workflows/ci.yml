@@ -1,182 +1,247 @@
 name: wrench CI
 
 on:
-    pull_request:
-    push:
+  pull_request:
+  push:
 
 jobs:
-    wrench:
-        runs-on: ubuntu-latest
-        timeout-minutes: 15
-        steps:
-            - uses: actions/checkout@v4
+  wrench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
 
-            - uses: actions/cache@v4
-              name: Cache ~/.stack
-              with:
-                  path: ${{ '~/.stack' }}
-                  key: ${{ runner.os }}-stack-test-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
-                  restore-keys: |
-                      ${{ runner.os }}-stack-global-
+      - uses: actions/cache@v4
+        name: Cache ~/.stack
+        with:
+          path: ${{ '~/.stack' }}
+          key: ${{ runner.os }}-wrench-with-test-${{ hashFiles('.stack-deps.txt') }}
 
-            - name: Install haskell-stack
-              uses: haskell-actions/setup@v2
-              with:
-                  enable-stack: true
-                  stack-version: "latest"
-                  stack-no-global: true
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
 
-            - name: Build & test
-              run: make build test test-examples
+      - name: Build
+        run: make build
 
-    haskell-lint:
-        timeout-minutes: 5
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+      - name: Test
+        run: make test
 
-            - name: "Set up HLint"
-              uses: haskell-actions/hlint-setup@v2
-              with:
-                  version: "3.8"
+      - name: Test examples
+        run: make test-examples
 
-            - name: "Run HLint"
-              uses: haskell-actions/hlint-run@v2
-              with:
-                  path: .
-                  fail-on: warning
+  haskell-lint:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    haskell-formatting:
-        timeout-minutes: 5
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+      - name: "Set up HLint"
+        uses: haskell-actions/hlint-setup@v2
+        with:
+          version: "3.8"
 
-            - uses: haskell-actions/run-fourmolu@v10
-              with:
-                  version: "0.17.0.0"
+      - name: "Run HLint"
+        uses: haskell-actions/hlint-run@v2
+        with:
+          path: .
+          fail-on: warning
 
-    markdown-formatting:
-        timeout-minutes: 5
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out repository code
-              uses: actions/checkout@v4
+  haskell-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            - name: Run mdl for check markdown format
-              uses: nosborn/github-action-markdown-cli@v3.3.0
-              with:
-                  files: .
-                  config_file: .markdownlint.yaml
+      - uses: haskell-actions/run-fourmolu@v10
+        with:
+          version: "0.17.0.0"
 
-    is-variants-and-tests-actual:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - run: python script/variants.py
-            - run: git diff --exit-code
+  html-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    build-binaries:
-        needs:
-            - wrench
-            - haskell-formatting
-            - haskell-lint
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
-        strategy:
-            matrix:
-                os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
+      - name: Run Prettier
+        id: prettier-run
+        uses: rutajdash/prettier-cli-action@v1.0.0
+        with:
+          file_pattern: static/**/*.html
 
-        runs-on: ${{ matrix.os }}
+      - name: Prettier Output
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          echo "The following files are not formatted:"
+          echo "${{steps.prettier-run.outputs.prettier_output}}"
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  markdown-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
-            - name: Cache dependencies on *nix
-              uses: actions/cache@v4
-              if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
-              with:
-                  path: ${{ '~/.stack' }}
-                  key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+      - name: Run mdl for check markdown format
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: .
+          config_file: .markdownlint.yaml
 
-            - name: Cache dependencies on Windows
-              if: startsWith(runner.os, 'Windows')
-              uses: actions/cache@v4
-              with:
-                path: |
-                  ~\AppData\Roaming\stack
-                  ~\AppData\Local\Programs\stack
-                  C:\sr
-                key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+  is-variants-and-tests-actual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python script/variants.py
+      - run: git diff --exit-code
 
-            - name: Install haskell-stack
-              uses: haskell-actions/setup@v2
-              with:
-                  enable-stack: true
-                  stack-version: "latest"
-                  stack-no-global: true
+  build-binaries:
+    needs:
+      - wrench
+      - haskell-lint
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest, macos-13]
 
-            - name: Build binary
-              run: |
-                  stack build --copy-bins --local-bin-path ./dist
+    runs-on: ${{ matrix.os }}
 
-            - name: Upload Binary as Artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: wrench-${{ runner.os }}-${{ runner.arch }}
-                  path: ./dist/*
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Create Release
-              if: startsWith(github.ref, 'refs/tags/')
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: ${{ github.ref }}
-                  release_name: Release ${{ github.ref }}
-                  draft: true
-                  prerelease: false
-                  generate_release_notes: true
-                  files: ./dist/*
+      - name: Cache dependencies on *nix
+        uses: actions/cache@v4
+        if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
+        with:
+          path: ${{ '~/.stack' }}
+          key: ${{ runner.os }}-${{ runner.arch }}-stack-build-${{ hashFiles('.stack-deps.txt') }}
 
-    # docker-build-and-push:
-    #   name: Build and Push Docker Image
-    #   timeout-minutes: 45
-    #   needs:
-    #     - wrench
-    #     - haskell-formatting
-    #     - haskell-lint
-    #   if: github.ref == 'refs/heads/master'
-    #   runs-on: ubuntu-latest
-    #   steps:
-    #     - name: Checkout code
-    #       uses: actions/checkout@v4
+      - name: Cache dependencies on Windows
+        if: startsWith(runner.os, 'Windows')
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Roaming\stack
+            ~\AppData\Local\Programs\stack
+            C:\sr
+          key: ${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
 
-    #     - name: Set up QEMU
-    #       uses: docker/setup-qemu-action@v2
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
 
-    #     - name: Set up Docker Buildx
-    #       uses: docker/setup-buildx-action@v2
+      - name: Build binary
+        run: |
+          stack build --copy-bins --local-bin-path ./dist
 
-    #     - name: Log in to Docker Hub
-    #       uses: docker/login-action@v2
-    #       with:
-    #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-    #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Upload Binary as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrench-${{ runner.os }}-${{ runner.arch }}
+          path: ./dist/*
 
-    #     - name: Cache Docker layers
-    #       uses: actions/cache@v4
-    #       with:
-    #         path: /tmp/.buildx-cache
-    #         key: ${{ runner.os }}-buildx-${{ github.sha }}
-    #         restore-keys: |
-    #           ${{ runner.os }}-buildx-
+  publish-release:
+    needs:
+      - build-binaries
+      - haskell-formatting
+      - html-formatting
+      - markdown-formatting
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
-    #     - name: Build and push Docker image
-    #       uses: docker/build-push-action@v5
-    #       with:
-    #         context: .
-    #         push: true
-    #         platforms: linux/arm64
-    #         tags: ${{ secrets.DOCKERHUB_USERNAME }}/wrench:latest
-    #         cache-from: type=local,src=/tmp/.buildx-cache
-    #         cache-to: type=local,dest=/tmp/.buildx-cache
-    #         labels: ${{ steps.meta.outputs.labels }}
+      - name: List downloaded artifacts
+        run: ls -la ./dist/
+
+      - name: Prepare files with proper names
+        run: |
+          mkdir -p release_files
+          for file in dist/*; do
+            filename=$(basename "$file")
+            dirname=$(dirname "$file")
+            cp "$file" "release_files/$dirname-$filename"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          name: ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release_files/**/*
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+  # use `make release-image` to trigger it
+  deploy-release:
+    needs: publish-release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment
+        run: |
+          curl -X POST -H "Content-Type: application/json" --fail-with-body \
+            -d '{"task": "wrench-serv", "secret": "${{ secrets.DEPLOY_EDGE_WEBHOOK }}", "async":true}' \
+            https://updater.edu.swampbuds.me/update
+
+  build-edge-image:
+    needs:
+      - wrench
+      - is-variants-and-tests-actual
+      - haskell-lint
+    if: github.ref == 'refs/heads/master'
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: Dockerfile
+          tags: ryukzak/wrench:edge
+          platforms: linux/arm64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          build-args: |
+            VERSION_SUFFIX=EDGE
+
+  deploy-edge:
+    needs: build-edge-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment
+        run: |
+          curl -X POST -H "Content-Type: application/json" --fail-with-body \
+            -d '{"task": "wrench-serv-edge", "secret": "${{ secrets.DEPLOY_EDGE_WEBHOOK }}", "async":true}' \
+            https://updater.edu.swampbuds.me/update

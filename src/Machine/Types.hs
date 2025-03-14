@@ -1,5 +1,7 @@
 module Machine.Types (
     Trace (..),
+    getTraceStates,
+    getErrors,
     Machine (..),
     Mem,
     IoMem (..),
@@ -8,7 +10,6 @@ module Machine.Types (
     StateInterspector (..),
     MachineWord,
     FromSign (..),
-    ViewState (..),
     RegisterId,
     ByteLength (..),
     WordParts (..),
@@ -17,6 +18,7 @@ module Machine.Types (
     addExt,
     subExt,
     mulExt,
+    halted,
 ) where
 
 import Data.Bits
@@ -42,17 +44,21 @@ type MachineWord w =
     , WordParts w
     , Integral w
     , FromSign w
+    , Bounded w
+    , Bounded (Unsign w)
     )
 
 type RegisterId r = (Hashable r, Show r, Read r)
 
-class (Bits (Unsign w), Integral (Unsign w), Show (Unsign w)) => FromSign w where
+class (Bits (Unsign w), Bounded (Unsign w), Integral (Unsign w), Show (Unsign w)) => FromSign w where
     type Unsign w :: Type
     fromSign :: w -> Unsign w
+    toSign :: Unsign w -> w
 
 instance FromSign Int32 where
     type Unsign Int32 = Word32
     fromSign = fromIntegral
+    toSign = fromIntegral
 
 class WordParts w where
     wordSplit :: w -> [Word8]
@@ -121,16 +127,33 @@ class StateInterspector st isa w | st -> isa w where
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
-class ViewState st where
-    viewState :: st -> Text -> Text
-
 class Machine st isa w | st -> isa w where
-    instructionFetch :: State st (Maybe (Int, isa))
+    instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
 
-newtype Trace st isa
+halted :: Text
+halted = "halted"
+
+data Trace st isa
     = TState st
+    | TError Text
     deriving (Show)
+
+getTraceStates :: [Trace st isa] -> [st]
+getTraceStates =
+    mapMaybe
+        ( \case
+            (TState st) -> Just st
+            _ -> Nothing
+        )
+
+getErrors :: [Trace st isa] -> [Text]
+getErrors =
+    mapMaybe
+        ( \case
+            (TError err) -> Just err
+            _ -> Nothing
+        )
 
 type Mem isa w = IntMap (Cell isa w)
 

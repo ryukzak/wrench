@@ -19,8 +19,8 @@ import Machine.Types (
     IoMem (..),
     Machine (..),
     StateInterspector (..),
-    ViewState (..),
     fromSign,
+    halted,
     signBitAnd,
  )
 import Relude
@@ -149,6 +149,10 @@ data Isa w l
       Lw {rd :: Register, offsetRs1 :: MemRef w}
     | -- | Jump: PC = PC + k
       J {k :: l}
+    | -- | Jump and Link: rd = PC + 4, PC += k
+      Jal {rd :: Register, k :: l}
+    | -- | Jump register: PC = rs
+      Jr {rs :: Register}
     | -- | Branch if equal to zero: if rs1 == 0 then PC += k
       Beqz {rs1 :: Register, k :: l}
     | -- | Branch if not equal to zero: if rs1 /= 0 then PC += k
@@ -249,6 +253,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "lui" Lui register referenceWithDirective
                     , cmd2args "lw" Lw register memRef
                     , cmd1args "j" J reference
+                    , cmd2args "jal" Jal register reference
+                    , cmd1args "jr" Jr register
                     , cmd2args "beqz" Beqz register reference
                     , cmd2args "bnez" Bnez register reference
                     , cmd3args "bgt" Bgt register register reference
@@ -265,6 +271,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
         let relF = fmap (\x -> x - offset) . f
          in case i of
                 J{k} -> J $ deref' relF k
+                Jal{rd, k} -> Jal rd $ deref' relF k
+                Jr{rs} -> Jr{rs}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
                 Add{rd, rs1, rs2} -> Add{rd, rs1, rs2}
                 Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
@@ -321,11 +329,9 @@ data MachineState mem w = State
     , mem :: mem
     , regs :: HashMap Register w
     , stopped :: Bool
+    , internalError :: Maybe Text
     }
     deriving (Show)
-
-instance ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{} _ = "not supoorted"
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -335,25 +341,45 @@ nextPc = do
     State{pc} <- get
     setPc (pc + byteLength (def :: w))
 
+raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
+
 getReg r = do
     State{regs} <- get
-    return $ fromMaybe (error "Wrong register ID") $ regs !? r
+    case regs !? r of
+        Just value -> return value
+        Nothing -> do
+            raiseInternalError $ "wrong register: " <> show r
+            return def
 
 setReg r value = modify $ \st@State{regs} -> st{regs = insert r value regs}
 
 getWord addr = do
     st@State{mem} <- get
-    let (w, mem') = runState (readWord addr) mem
-    put st{mem = mem'}
-    return w
+    case readWord mem addr of
+        Right (mem', w) -> do
+            put st{mem = mem'}
+            return w
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
 
 setWord addr w = do
     st@State{mem} <- get
-    let mem' = execState (writeWord addr w) mem
-    put st{mem = mem'}
+    case writeWord mem addr w of
+        Right mem' -> do
+            put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump = State{pc, mem = dump, regs = def, stopped = False}
+    initState pc dump =
+        State
+            { pc
+            , mem = dump
+            , regs = def
+            , stopped = False
+            , internalError = Nothing
+            }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     programCounter State{pc} = pc
@@ -374,15 +400,15 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
+                    State{internalError = Just err} -> Left err
                     State{pc, mem} -> do
-                        let instruction = evalState (readInstruction pc) mem
-                        Just (pc, instruction)
+                        instruction <- readInstruction mem pc
+                        return (pc, instruction)
                 )
 
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
@@ -437,6 +463,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             J{k} -> do
                 State{pc} <- get
                 setPc (pc + fromEnum k)
+            Jal{rd, k} -> do
+                State{pc} <- get
+                setReg rd (toEnum pc + 4)
+                setPc (pc + fromEnum k)
+            Jr{rs} -> getReg rs >>= setPc . fromEnum
             Beqz{rs1, k} -> do
                 State{pc} <- get
                 rs1' <- getReg rs1

@@ -65,7 +65,8 @@ prepareReport
                 Just rvView' ->
                     concat
                         $ filter (not . null)
-                        $ map (prepareStateView rvView' trResult . (\(TState st) -> st)) sliced
+                        $ map (prepareStateView rvView' trResult)
+                        $ getTraceStates sliced
             assertReport =
                 let actual = nospaces $ toText stateViews
                     expect = maybe "" (nospaces . toText) rcAssert
@@ -116,7 +117,7 @@ defaultView labels st "pc:label" =
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
 defaultView _labels st "instruction" =
-    Just $ show $ evalState (readInstruction (programCounter st)) $ memoryDump st
+    Just $ either error show (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"

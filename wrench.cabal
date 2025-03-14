@@ -5,8 +5,8 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.1.3
-description:    Please see the README on GitHub
+version:        0.0.2.2
+description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi
@@ -60,6 +60,7 @@ library
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -106,6 +107,7 @@ executable wrench
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -128,6 +130,7 @@ executable wrench
     , regex-tdfa
     , relude
     , split
+    , th-env
     , wrench
     , yaml
   default-language: Haskell2010
@@ -150,6 +153,7 @@ executable wrench-fmt
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -207,6 +211,7 @@ executable wrench-serv
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections
@@ -272,6 +277,7 @@ test-suite wrench-test
       NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
+      PartialTypeSignatures
       RankNTypes
       ScopedTypeVariables
       TupleSections

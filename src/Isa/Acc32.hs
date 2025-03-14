@@ -8,6 +8,7 @@ module Isa.Acc32 (
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
+import Data.Default (def)
 import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
@@ -185,6 +186,7 @@ data MachineState mem w = State
     , carryFlag :: Bool
     , ram :: mem
     , stopped :: Bool
+    , internalError :: Maybe Text
     }
     deriving (Show)
 
@@ -197,6 +199,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , ram = dump
             , stopped = False
             , pc = pc
+            , internalError = Nothing
             }
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
@@ -210,19 +213,26 @@ setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
-    (pc, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
-    setPc (pc + byteLength instruction)
+    instructionFetch >>= \case
+        Right (pc, instruction) -> setPc (pc + byteLength instruction)
+        Left err -> raiseInternalError $ "nextPc: " <> err
+
+raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getWord addr = do
     st@State{ram} <- get
-    let (w, ram') = runState (readWord addr) ram
-    put st{ram = ram'}
-    return w
+    case readWord ram addr of
+        Right (ram', w) -> put st{ram = ram'} >> return w
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
 
 setWord addr w = do
     st@State{ram} <- get
-    let ram' = execState (writeWord addr w) ram
-    put st{ram = ram'}
+    case writeWord ram addr w of
+        Right ram' -> put st{ram = ram'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
 
 setAcc w = modify $ \st -> st{acc = w}
 
@@ -250,21 +260,19 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             [r, _] -> unknownView r
             _ -> errorView v
 
-instance ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{} _ = error "not supported"
-
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
+                    State{internalError = Just err} -> Left err
                     State{pc, ram} -> do
-                        let instruction = evalState (readInstruction pc) ram
-                        Just (pc, instruction)
+                        instruction <- readInstruction ram pc
+                        Right (pc, instruction)
                 )
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        (tmp :: Either Text (Int, Isa w w)) <- instructionFetch
+        let (pc, instruction) = either (error . ("can't fetch instruction: " <>)) id tmp
         case instruction of
             LoadImm a -> setAcc a >> nextPc
             LoadAddr a -> do

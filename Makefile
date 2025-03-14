@@ -1,24 +1,39 @@
-.PHONY : test build format format-check lint clean
+.PHONY : test build format format-check format-asm-check format-asm-fix \
+         format-fix lint lint-fix clean build-image-local server-run \
+         test-examples generate-variants update-golden fix readme-fix \
+         builder-image edge-image release-image
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
+
+BUILDER_IMAGE_NAME = ryukzak/wrench-builder
+
 IMAGE_NAME = ryukzak/wrench
-IMAGE = $(IMAGE_NAME):$(VERSION)
-IMAGE_PREVIEW = $(IMAGE_NAME):$(VERSION)-rc-$(COMMIT)
+
+EDGE_IMAGE = $(IMAGE_NAME):edge
+COMMIT_IMAGE = $(IMAGE_NAME):$(COMMIT)
+
+RELEASE_IMAGE = $(IMAGE_NAME):$(VERSION)
+LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
 build:
 	stack build --copy-bins
 
-server-run: build
+server-run: build generate-variants
 	stack exec wrench-serv
 
 build-image-local:
-	docker build -t $(IMAGE_NAME) -f hub.Dockerfile .
+	docker build --build-arg VERSION_SUFFIX=DEV -t $(IMAGE_NAME) .
 
-preview-image:
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME):preview -t $(IMAGE_PREVIEW) --push -f hub.Dockerfile .
+builder-image:
+	docker buildx build --platform linux/amd64,linux/arm64 --push \
+		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
+
+edge-image:
+	docker buildx build --build-arg VERSION_SUFFIX=EDGE --platform linux/amd64,linux/arm64 --push \
+		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:
 	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
@@ -42,7 +57,7 @@ release-image:
 		echo "Version already exists: $(IMAGE)"; \
 		exit 1; \
 	fi
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(IMAGE) --push -f hub.Dockerfile .
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(LATEST_IMAGE) --push .
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 
@@ -68,10 +83,15 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
-update-golden:
+generate-variants:
+	script/variants.py
+
+update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
+
 fix: lint-fix format-fix update-golden readme-fix
+	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix
@@ -80,7 +100,7 @@ format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
-	yamlfmt example test
+	yamlfmt package.yaml example test .github/workflows
 
 format-asm-fix:
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s

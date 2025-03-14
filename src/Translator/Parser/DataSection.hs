@@ -12,16 +12,19 @@ import Translator.Parser.Misc
 import Translator.Parser.Types
 import Translator.Types
 
-dataSection :: (Read w) => String -> Parser [DataToken w String]
+dataSection :: (Read w) => String -> Parser (Section isa w String)
 dataSection cstart = do
     string ".data" >> eol' cstart
-    catMaybes
-        <$> many
-            ( choice
-                [ nothing (hspace1 <|> eol' cstart)
-                , Just <$> dataSectionItemM cstart
-                ]
-            )
+    items <-
+        catMaybes
+            <$> many
+                ( choice
+                    [ nothing (hspace1 <|> eol' cstart)
+                    , Just . Item <$> dataSectionItemM cstart
+                    , Just . Org <$> orgDirective cstart
+                    ]
+                )
+    return $ Data (sectionOrg items) $ sectionItems items
 
 dataSectionItemM :: (Read w) => String -> Parser (DataToken w String)
 dataSectionItemM cstart = do

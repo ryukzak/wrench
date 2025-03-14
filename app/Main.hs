@@ -2,8 +2,9 @@
 
 module Main (main) where
 
-import Data.Version
-import Development.GitRev
+import Data.Version (showVersion)
+import Development.GitRev (gitCommitDate, gitHash)
+import Language.Haskell.TH.Env (envQ)
 import Options.Applicative (
     Parser,
     execParser,
@@ -63,7 +64,8 @@ options =
 main :: IO ()
 main = wrenchIO =<< execParser opts
     where
-        fullVersion = showVersion version <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
+        ver :: String = showVersion version <> maybe "" ("-" <>) $$(envQ "VERSION_SUFFIX")
+        fullVersion = ver <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
         opts =
             info
                 (options <**> helper <**> simpleVersioner fullVersion)

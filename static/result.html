@@ -4,98 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simulation Results</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.css"
-      rel="stylesheet"
-    />
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"
+    ></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-    <style>
-      body,
-      h1,
-      label,
-      textarea,
-      input[type="text"],
-      select,
-      a {
-        font-family:
-          "Anonymous Pro",
-          Consolas,
-          Monaco,
-          Lucida Console,
-          Liberation Mono,
-          DejaVu Sans Mono,
-          Bitstream Vera Sans Mono,
-          Courier New,
-          monospace;
-      }
-      textarea,
-      input[type="text"],
-      select {
-        font-size: 0.875rem; /* Smaller font size */
-      }
-      textarea {
-        min-height: 20rem; /* Expand to avoid scrolling */
-      }
-      #comment {
-        min-height: 5rem; /* Smaller height for comment section */
-      }
-      select {
-        appearance: none;
-        background-color: #fff;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.5rem 1rem;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        transition:
-          border-color 0.2s,
-          box-shadow 0.2s;
-      }
-      select:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        outline: none;
-      }
-      select option {
-        padding: 0.5rem;
-      }
-      pre {
-        white-space: pre-wrap; /* Wrap lines in pre elements */
-      }
-      @media (prefers-color-scheme: dark) {
-        * {
-          background-color: inherit;
-          color: inherit;
-        }
-        html,
-        img:not([src$='.svg']) {
-          filter: invert(1) hue-rotate(180deg);
-        }
-      }
-    </style>
+    <meta content="#1a1a1a" name="theme-color" />
+    <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
   </head>
-  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full m-4">
-      <h1 class="text-2xl font-bold mb-6 text-center">
-        <a href="/">Wrench Report</a>
-      </h1>
-      <div class="flex flex-wrap gap-4">
-        <div class="flex-1 min-w-[300px] max-w-[60%]">
-          <p class="text-left mb-4"><strong>Author:</strong> {{name}}</p>
-          <p class="text-left mb-6"><strong>Variant:</strong> {{variant}}</p>
-          <h2 class="text-xl font-semibold mb-4">Comment:</h2>
-          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
-{{comment}}</pre
-          >
 
+  <body class="full flex flex-col justify-center items-center min-h-screen">
+    <div class="text-center w-full mt-4 mb-2">
+      <!-- Добавляем отступ снизу -->
+      <h1 class="large white">
+        <a class="subtle-hover" href="/">Wrench Report</a>
+      </h1>
+    </div>
           <form
             action="/result/{{result_guid}}"
             method="post"
@@ -134,114 +64,649 @@
           <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
 {{status}}</pre
           >
+    <div class="self-center">
+      <a
+        href="https://github.com/ryukzak/wrench"
+        class="purple hover"
+        target="_blank"
+        >[github]</a
+      >
+      <span class="grey separator-char">|</span>
+      <a
+        href="https://github.com/ryukzak/wrench/tree/master/docs"
+        class="fuschia hover"
+        target="_blank"
+        >[isa_docs]</a
+      >
+      <span class="grey separator-char">|</span>
+      <a
+        href="https://github.com/ryukzak/wrench/blob/master/variants.md"
+        class="orange hover"
+        target="_blank"
+        >[variants]</a
+      >
+      <span class="grey separator-char">|</span>
+      <button onclick="onInvertClick()" class="blue hover">
+        [invert_theme]
+      </button>
+    </div>
 
-          <div id="accordion-collapse" data-accordion="collapse" class="mb-4">
-            <h2
-              id="accordion-collapse-heading-1"
-              class="flex items-center justify-between w-full p-4 font-medium text-left text-gray-500 bg-gray-100 border border-gray-200 rounded-lg focus:ring-4 focus:ring-gray-200"
-              data-accordion-target="#accordion-collapse-body-1"
-              aria-expanded="false"
-              aria-controls="accordion-collapse-body-1"
-            >
-              <span>View Simulation Log</span>
-              <svg
-                data-accordion-icon
-                class="w-6 h-6 shrink-0 rotate-180"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
+    <script>
+      function onInvertClick() {
+        document.body.classList.toggle("inverted");
+        window.localStorage.setItem(
+          "prefers-color-scheme",
+          document.body.classList.contains("inverted") ? "light" : "dark",
+        );
+      }
+
+      if (
+        window.matchMedia &&
+        window.localStorage.getItem("prefers-color-scheme") === null
+      ) {
+        if (!window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          document.body.classList.add("inverted");
+        }
+      } else if (
+        window.localStorage.getItem("prefers-color-scheme") === "light"
+      ) {
+        document.body.classList.add("inverted");
+      }
+
+      var copiedLinkCount = 0;
+      async function copyLink() {
+        await navigator.clipboard.writeText(window.location.href);
+        copiedLinkCount++;
+        let button = document.getElementById("copy-link-button");
+        button.classList.remove("white");
+        button.classList.add("green");
+        let button_text = "";
+        if (copiedLinkCount === 1) {
+          button_text = "[copied!]";
+        } else {
+          button_text = `[copied ${copiedLinkCount} times!]`;
+        }
+        button.innerText = button_text;
+      }
+    </script>
+    <div class="self-center flex flex-wrap gap-8 w-full p-4 mt-8 pr-8 pl-8">
+      <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
+        <div>
+          <div>
+            <p class="grey texm-sm text-left">/* variant: {{variant}} */</p>
+            <p class="grey texm-sm text-left mb-6">/* author: {{name}} */</p>
+          </div>
+          <div>
+            <h2 id="empty-comment-header" class="hidden grey mb-4">
+              /* comment: not found */
             </h2>
-            <div
-              id="accordion-collapse-body-1"
-              class="hidden"
-              aria-labelledby="accordion-collapse-heading-1"
-            >
-              <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-{{result}}</pre
+            <div id="comment-header">
+              <h2 class="grey mb-4">/* comment */</h2>
+              <pre
+                id="comment-text-element"
+                class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+              >
+{{comment}}</pre
               >
             </div>
           </div>
-          <h2 class="text-xl font-semibold mt-6 mb-4">Testcase Result:</h2>
-          <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
-{{test_cases_status}}</pre
-          >
 
-          <div id="accordion-collapse" data-accordion="collapse" class="mb-4">
-            <h2
-              id="accordion-collapse-heading-2"
-              class="flex items-center justify-between w-full p-4 font-medium text-left text-gray-500 bg-gray-100 border border-gray-200 rounded-lg focus:ring-4 focus:ring-gray-200"
-              data-accordion-target="#accordion-collapse-body-2"
-              aria-expanded="false"
-              aria-controls="accordion-collapse-body-2"
-            >
-              <span>View Failed Test Case</span>
-              <svg
-                data-accordion-icon
-                class="w-6 h-6 shrink-0 rotate-180"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
-            </h2>
+          <div>
             <div
-              id="accordion-collapse-body-2"
-              class="hidden"
-              aria-labelledby="accordion-collapse-heading-2"
+              class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
             >
-              <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-{{test_cases_result}}</pre
+              <span class="grey">/* assembler_code */</span>
+              <button
+                id="copy-assembler-button"
+                onclick="copyAssembler()"
+                class="place-self-end white hover"
               >
+                [copy]
+              </button>
+            </div>
+            <div
+              id="accordion-collapse-assembler"
+              data-accordion="collapse"
+              class="mb-4 bg-dark-gray p-4 rounded-lg"
+              data-inactive-classes="vim-folded orange-low-saturation"
+              data-active-classes="white bg-transparent"
+            >
+              <h2
+                id="accordion-collapse-heading-assembler"
+                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                data-accordion-target="#accordion-collapse-body-assembler"
+                aria-expanded="true"
+                aria-controls="accordion-collapse-body-assembler"
+              >
+                <span class="noselect">assembler_code =</span>
+              </h2>
+              <div
+                id="accordion-collapse-body-assembler"
+                class="hidden"
+                aria-labelledby="accordion-collapse-heading-assembler"
+              >
+                <pre
+                  id="assembler-code-text-element"
+                  class="pb-4 rounded-lg overflow-x-auto"
+                >
+{{assembler_code}}</pre
+                >
+              </div>
             </div>
           </div>
-          <div id="accordion-collapse" data-accordion="collapse" class="mb-4">
-            <h2
-              id="accordion-collapse-heading-3"
-              class="flex items-center justify-between w-full p-4 font-medium text-left text-gray-500 bg-gray-100 border border-gray-200 rounded-lg focus:ring-4 focus:ring-gray-200"
-              data-accordion-target="#accordion-collapse-body-3"
-              aria-expanded="false"
-              aria-controls="accordion-collapse-body-3"
-            >
-              <span>Dump</span>
-              <svg
-                data-accordion-icon
-                class="w-6 h-6 shrink-0 rotate-180"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
-            </h2>
+
+          <div>
             <div
-              id="accordion-collapse-body-3"
-              class="hidden"
-              aria-labelledby="accordion-collapse-heading-3"
+              class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
             >
-              <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-{{dump}}</pre
+              <span class="grey">/* simulation_config */</span>
+              <button
+                id="copy-simulation-config-button"
+                onclick="copySimulationConfig()"
+                class="place-self-end white hover"
               >
+                [copy]
+              </button>
+            </div>
+            <div
+              id="accordion-collapse-simulation-config"
+              data-accordion="collapse"
+              class="mb-4 bg-dark-gray p-4 rounded-lg"
+              data-inactive-classes="vim-folded orange-low-saturation"
+              data-active-classes="white bg-transparent"
+            >
+              <h2
+                id="accordion-collapse-heading-simulation-config"
+                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                data-accordion-target="#accordion-collapse-body-simulation-config"
+                aria-expanded="false"
+                aria-controls="accordion-collapse-body-simulation-config"
+              >
+                <span class="noselect">simulation_config =</span>
+              </h2>
+              <div
+                id="accordion-collapse-body-simulation-config"
+                class="hidden"
+                aria-labelledby="accordion-collapse-heading-simulation-config"
+              >
+                <pre
+                  id="simulation-config-text-element"
+                  class="pb-4 rounded-lg overflow-x-auto"
+                >
+{{yaml_content}}</pre
+                >
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="flex-1 min-w-[300px] max-w-[50%]">
+        <h2 class="grey mt-6 mb-4">/* simulation_result */</h2>
+
+        <div>
+          <pre
+            id="status-text-element"
+            class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+          >
+{{status}}</pre
+          >
+        </div>
+
+        <div
+          id="accordion-collapse-simulation-log"
+          data-accordion="collapse"
+          class="mb-4 bg-dark-gray p-4 rounded-lg"
+          data-inactive-classes="vim-folded orange-low-saturation"
+          data-active-classes="white bg-transparent"
+        >
+          <h2
+            id="accordion-collapse-heading-simulation-log"
+            class="vim-folded orange-low-saturation flex items-center justify-between w-full text-left hover"
+            data-accordion-target="#accordion-collapse-body-simulation-log"
+            aria-expanded="false"
+            aria-controls="accordion-collapse-body-simulation-log"
+          >
+            <span class="noselect">simulation_log =</span>
+          </h2>
+          <div
+            id="accordion-collapse-body-simulation-log"
+            class="hidden"
+            aria-labelledby="accordion-collapse-heading-simulation-log"
+          >
+            <pre id="simulation-log-text-element" class="pb-4 overflow-x-auto">
+{{result}}</pre
+            >
+          </div>
+        </div>
+        <div
+          id="simulation-log-empty-tag"
+          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+        >
+          simulation_log = ""
+          <span class="grey"> /* nothing returned */</span>
+        </div>
+
+        <h2 class="grey mt-6 mb-4">/* testcase_result */</h2>
+        <pre
+          id="test-cases-status-element"
+          class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+        >
+{{test_cases_status}}</pre
+        >
+
+        <div
+          id="accordion-collapse-test-cases-result"
+          data-accordion="collapse"
+          class="mb-4 bg-dark-gray p-4 rounded-lg"
+          data-inactive-classes="vim-folded orange-low-saturation"
+          data-active-classes="white bg-transparent"
+        >
+          <h2
+            id="accordion-collapse-heading-test-cases-result"
+            class="vim-folded flex orange-low-saturation items-center justify-between w-full text-left hover"
+            data-accordion-target="#accordion-collapse-body-test-cases-result"
+            aria-expanded="false"
+            aria-controls="accordion-collapse-body-test-cases-result"
+          >
+            <span class="noselect">failed_test_case =</span>
+          </h2>
+          <div
+            id="accordion-collapse-body-test-cases-result"
+            class="hidden"
+            aria-labelledby="accordion-collapse-heading-test-cases-result"
+          >
+            <pre
+              id="test_cases_result-text-element"
+              class="pb-4 overflow-x-auto"
+            >
+{{test_cases_result}}</pre
+            >
+          </div>
+        </div>
+        <div
+          id="test-cases-result-empty-tag"
+          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+        >
+          failed_test_case = ""
+          <span class="grey"> /* nothing returned */</span>
+        </div>
+        <div
+          id="accordion-collapse-dump"
+          data-accordion="collapse"
+          class="mb-4 bg-dark-gray p-4 rounded-lg"
+          data-inactive-classes="vim-folded orange-low-saturation"
+          data-active-classes="white bg-transparent"
+        >
+          <h2
+            id="accordion-collapse-heading-dump"
+            class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+            data-accordion-target="#accordion-collapse-body-dump"
+            aria-expanded="false"
+            aria-controls="accordion-collapse-body-dump"
+          >
+            <span class="noselect">dump =</span>
+          </h2>
+          <div
+            id="accordion-collapse-body-dump"
+            class="hidden"
+            aria-labelledby="accordion-collapse-heading-dump"
+          >
+            <pre id="dump-text-element" class="pb-4 rounded-lg overflow-x-auto">
+{{dump}}</pre
+            >
+          </div>
+        </div>
+        <div
+          id="dump-empty-tag"
+          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+        >
+          dump = ""
+          <span class="grey"> /* nothing returned */</span>
+        </div>
+      </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"></script>
+
+    <script>
+      const assemblerCodeText = document.getElementById(
+        "assembler-code-text-element",
+      ).innerText;
+      const simulationConfigText = document.getElementById(
+        "simulation-config-text-element",
+      ).innerText;
+
+      const commentText = document.getElementById(
+        "comment-text-element",
+      ).innerText;
+      if (commentText.trim() === "") {
+        document.getElementById("comment-header").classList.add("hidden");
+        document
+          .getElementById("empty-comment-header")
+          .classList.remove("hidden");
+      }
+
+      const dumpText = document.getElementById("dump-text-element").innerText;
+      if (dumpText.trim() === "") {
+        document
+          .getElementById("accordion-collapse-dump")
+          .classList.add("hidden");
+        document.getElementById("dump-empty-tag").classList.remove("hidden");
+      }
+
+      const testCasesResultText = document.getElementById(
+        "test_cases_result-text-element",
+      ).innerText;
+      if (testCasesResultText.trim() === "") {
+        document
+          .getElementById("accordion-collapse-test-cases-result")
+          .classList.add("hidden");
+        document
+          .getElementById("test-cases-result-empty-tag")
+          .classList.remove("hidden");
+      }
+
+      const simulationLogText = document.getElementById(
+        "simulation-log-text-element",
+      ).innerText;
+      if (simulationLogText.trim() === "") {
+        document
+          .getElementById("accordion-collapse-simulation-log")
+          .classList.add("hidden");
+        document
+          .getElementById("simulation-log-empty-tag")
+          .classList.remove("hidden");
+      }
+
+      const statusTextElement = document.getElementById("status-text-element");
+      if (statusTextElement.innerText === "") {
+        statusTextElement.innerHTML =
+          'status = "" <span class="grey">/* nothing returned */</span>';
+      }
+
+      const testCasesStatusElement = document.getElementById(
+        "test-cases-status-element",
+      );
+      if (testCasesStatusElement.innerText === "") {
+        testCasesStatusElement.innerHTML =
+          'test_cases_status = "" <span class="grey">/* nothing returned */</span>';
+      }
+
+      var copyCountAssembler = 0;
+      async function copyAssembler() {
+        await navigator.clipboard.writeText(assemblerCodeText);
+        const button = document.getElementById("copy-assembler-button");
+        let buttonText = "";
+        copyCountAssembler++;
+        if (copyCountAssembler === 1) {
+          buttonText = "[copied!]";
+          button.classList.remove("white");
+          button.classList.add("green");
+        } else {
+          buttonText = `[copied ${copyCountAssembler} times!]`;
+        }
+
+        button.innerText = buttonText;
+      }
+
+      var copyCountSimulationConfig = 0;
+      async function copySimulationConfig() {
+        await navigator.clipboard.writeText(simulationConfigText);
+        const button = document.getElementById("copy-simulation-config-button");
+        let buttonText = "";
+        copyCountSimulationConfig++;
+        if (copyCountSimulationConfig === 1) {
+          buttonText = "[copied!]";
+          button.classList.remove("white");
+          button.classList.add("green");
+        } else {
+          buttonText = `[copied ${copyCountSimulationConfig} times!]`;
+        }
+
+        button.innerText = buttonText;
+      }
+    </script>
+
+    <style>
+      body {
+        --c-black: #1a1a1a;
+        --c-white: #e1e1e1;
+        --c-grey: #898989;
+        --c-dark-grey: #222224;
+        --c-purple: #b462ff;
+        --c-fuschia: #ff45b4;
+        --c-blue: #18b6ff;
+        --c-green: #1beb9e;
+        --c-orange: #ff9528;
+        --c-orange-low-saturation: #a5692d;
+        --c-yellow: #dddd25;
+        --line: 2.5ch;
+        --font: "IBM", monospace;
+      }
+
+      body.inverted {
+        --c-black: #d5d5d5;
+        --c-white: #2a2830;
+        --c-dark-grey: #e4e4e7;
+        --c-grey: #7e7e7e;
+        --c-purple: #6b1fa3;
+        --c-fuschia: #f50777;
+        --c-blue: #0b8cff;
+        --c-green: #00a76c;
+        --c-orange: #dd7200;
+        --c-orange-low-saturation: #d08c47;
+        --c-yellow: #949700;
+      }
+
+      .orange-low-saturation {
+        color: var(--c-orange-low-saturation);
+        --c-current: var(--c-orange-low-saturation);
+      }
+
+      .black {
+        color: var(--c-black);
+        --c-current: var(--c-black);
+      }
+
+      .white {
+        color: var(--c-white);
+        --c-current: var(--c-white);
+      }
+
+      .grey {
+        color: var(--c-grey);
+        --c-current: var(--c-grey);
+      }
+
+      .purple {
+        color: var(--c-purple);
+        --c-current: var(--c-purple);
+      }
+
+      .fuschia {
+        color: var(--c-fuschia);
+        --c-current: var(--c-fuschia);
+      }
+
+      .blue {
+        color: var(--c-blue);
+        --c-current: var(--c-blue);
+      }
+
+      .green {
+        color: var(--c-green);
+        --c-current: var(--c-green);
+      }
+
+      .orange {
+        color: var(--c-orange);
+        --c-current: var(--c-orange);
+      }
+
+      .yellow {
+        color: var(--c-yellow);
+        --c-current: var(--c-yellow);
+      }
+
+      .bg-dark-gray {
+        background-color: var(--c-dark-grey);
+      }
+
+      a {
+        color: var(--c-current);
+        text-decoration: none;
+      }
+
+      a:hover,
+      .selected,
+      .hover:hover {
+        color: var(--c-black);
+        background: var(--c-current);
+        box-shadow:
+          0.4ch 0 0 0 var(--c-current),
+          -0.3ch 0 0 0 var(--c-current),
+          0.4ch 0.2ch 0 0 var(--c-current),
+          -0.3ch 0.2ch 0 0 var(--c-current);
+        opacity: 0.8;
+      }
+
+      .large {
+        font-size: 2em;
+        line-height: 1.11111111em;
+        font-weight: 200;
+      }
+
+      .italic {
+        font-style: italic;
+      }
+
+      .columns {
+        width: 100%;
+        column-count: 2;
+        column-gap: 1ch;
+      }
+
+      .noselect {
+        user-select: none;
+      }
+
+      .break-anywhere {
+        line-break: anywhere;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--c-black);
+        color: var(--c-white);
+        min-height: 100vh;
+        font-family: var(--font);
+        font-weight: 400;
+        line-height: var(--line);
+        letter-spacing: 0.01em;
+      }
+
+      .separator-char {
+        display: none;
+      }
+
+      @media (min-width: 768px) {
+        body {
+          font-size: 2 * 0.7vw;
+        }
+
+        .separator-char {
+          display: contents;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        body {
+          font-size: 1vw;
+          overflow: auto;
+
+          .separator-char {
+            display: contents;
+          }
+        }
+
+        .large {
+          font-size: 4vw;
+          line-height: 1.11111111em;
+          font-weight: 200;
+        }
+      }
+
+      ::selection {
+        color: #000000;
+        background: var(--c-grey);
+      }
+
+      button {
+        display: inline;
+        font-family: inherit;
+        font-weight: inherit;
+        font-size: inherit;
+        letter-spacing: inherit;
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        border: none;
+        outline: none;
+      }
+
+      .hover:hover {
+        cursor: pointer;
+      }
+
+      .pointer-events-none {
+        pointer-events: none;
+      }
+
+      body.invert canvas {
+        opacity: 0.05;
+        filter: none;
+        mix-blend-mode: normal;
+      }
+
+      .subtle-hover:hover {
+        background: transparent;
+        box-shadow: none;
+        cursor: pointer;
+        opacity: 0.8;
+        color: currentColor;
+      }
+
+      .title {
+        font-weight: lighter;
+      }
+
+      textarea {
+        min-height: 20rem;
+      }
+
+      #comment {
+        min-height: 5rem;
+      }
+
+      .vim-folded {
+        white-space: nowrap;
+        overflow-x: hidden;
+      }
+
+      .vim-folded::before {
+        content: "+--\00A0";
+        white-space: nowrap;
+      }
+
+      .vim-folded::after {
+        display: inline;
+        content: "\00A0··························································································································································";
+        white-space: nowrap;
+        text-align: left;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: clip;
+      }
+    </style>
   </body>
 </html>

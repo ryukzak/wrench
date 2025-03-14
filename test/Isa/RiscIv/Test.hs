@@ -24,6 +24,7 @@ initialState pc regs instr =
         , mem = IoMem{mIoCells = fromList [(pc, Instruction instr)], mIoStreams = def}
         , regs = regs
         , stopped = False
+        , internalError = Nothing
         }
 
 runInstruction :: Isa Int32 Int32 -> [(Register, Int32)] -> Register -> Int32

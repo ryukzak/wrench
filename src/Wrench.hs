@@ -58,7 +58,7 @@ data Result mem w = Result
     deriving (Show)
 
 maxLimit :: Int
-maxLimit = 10000
+maxLimit = 600000
 
 maxMemorySize :: Int
 maxMemorySize = 8192
@@ -81,7 +81,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
         putStrLn "---"
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
-    src <- decodeUtf8 <$> readFileBS input
+    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
 
     case readMaybe isa of
         Just RiscIv ->
@@ -147,7 +147,7 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =
             IoMem
-                { mIoStreams = bimap (map toEnum) (map toEnum) <$> fromMaybe mempty cInputStreamsFlat
+                { mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cInputStreamsFlat
                 , mIoCells = dump
                 }
         st = initState (fromEnum pc) ioDump
@@ -156,11 +156,20 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
+        reportTexts = map snd reports <> map ("ERROR: " <>) (getErrors traceLog)
 
     return
         $ Result
-            { rTrace = unlines $ map (T.strip . ("---\n" <>) . snd) reports
+            { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
             , rLabels = labels
             , rSuccess = isSuccess
             , rDump = dump
             }
+    where
+        int2mword x
+            | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
+                toEnum x
+            | fromEnum (minBound :: Unsign w) <= x && x <= fromEnum (maxBound :: Unsign w) =
+                toSign $ toEnum x
+            | otherwise =
+                error $ "integer value out of machine word range: " <> show x
