@@ -9,6 +9,18 @@ min_int32 = -2_147_483_648
 max_int32 = 2_147_483_647
 overflow_error_value = -858993460  # 0xCCCCCCCC
 
+
+def uint32_to_int32(n):
+    if n > max_int32:
+        # Subtract 2^32 to get the signed representation
+        return n - 0x100000000
+    return n
+
+
+assert uint32_to_int32(2_147_483_647) == 2_147_483_647
+assert uint32_to_int32(2_147_483_648) == -2_147_483_648
+assert uint32_to_int32(2_147_483_649) == -2_147_483_647
+
 # Define the named tuple structure
 TestCase = namedtuple(
     "TestCase",
@@ -70,9 +82,11 @@ def limit_to_int32(f):
 
 
 class Words2Words:
-    def __init__(self, xs, ys):
+    def __init__(self, xs, ys, rest=[], limit=2000):
         self.xs = xs
         self.ys = ys
+        self.rest = rest
+        self.limit = limit
 
     def assert_string(self, name):
         params = f"{self.xs}"
@@ -103,15 +117,15 @@ class Words2Words:
     def yaml_assert(self):
         return "\n".join(
             [
-                "      numio[0x80]: [] >>> []",
-                f"      numio[0x84]: [] >>> [{','.join(map(str, self.ys))}]",
+                f"      numio[0x80]: [{','.join(map(lambda x: str(uint32_to_int32(x)), self.rest))}] >>> []",
+                f"      numio[0x84]: [] >>> [{','.join(map(lambda x: str(uint32_to_int32(x)), self.ys))}]",
             ]
         )
 
 
 class Word2Word(Words2Words):
-    def __init__(self, x, y):
-        super(Word2Word, self).__init__([x], [y])
+    def __init__(self, x, y, limit=2000):
+        super(Word2Word, self).__init__([x], [y], limit=limit)
         self.x = x
         self.y = y
 
@@ -127,8 +141,8 @@ class Word2Word(Words2Words):
 
 
 class Bool2Bool(Word2Word):
-    def __init__(self, x, y):
-        super(Bool2Bool, self).__init__(1 if x else 0, 1 if y else 0)
+    def __init__(self, x, y, limit=2000):
+        super(Bool2Bool, self).__init__(1 if x else 0, 1 if y else 0, limit=limit)
 
     def assert_string(self, name):
         x = True if self.x == 1 else False
@@ -142,10 +156,11 @@ class Bool2Bool(Word2Word):
 
 
 class String2String:
-    def __init__(self, input, output, rest="", mem_view=[]):
+    def __init__(self, input, output, rest="", mem_view=[], limit=2000):
         self.input = input
         self.output = output
         self.rest = rest
+        self.limit = limit
         for i, (a, b, dump) in enumerate(mem_view):
             # Interval inclusive, so we need +1
             assert len(dump) <= b - a + 1, (

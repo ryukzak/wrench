@@ -10,7 +10,6 @@ module Machine.Types (
     StateInterspector (..),
     MachineWord,
     FromSign (..),
-    ViewState (..),
     RegisterId,
     ByteLength (..),
     WordParts (..),
@@ -19,6 +18,7 @@ module Machine.Types (
     addExt,
     subExt,
     mulExt,
+    halted,
 ) where
 
 import Data.Bits
@@ -127,12 +127,12 @@ class StateInterspector st isa w | st -> isa w where
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
-class ViewState st where
-    viewState :: st -> Text -> Text
-
 class Machine st isa w | st -> isa w where
-    instructionFetch :: State st (Maybe (Int, isa))
+    instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
+
+halted :: Text
+halted = "halted"
 
 data Trace st isa
     = TState st

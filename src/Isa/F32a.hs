@@ -9,6 +9,7 @@ module Isa.F32a (
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
+import Data.Default (def)
 import Data.Text qualified as T
 import Machine.Memory
 import Machine.Types
@@ -200,6 +201,7 @@ data MachineState mem w = State
     , stopped :: Bool
     , extendedArithmeticMode :: Bool
     , carryFlag :: Bool
+    , internalError :: Maybe Text
     }
     deriving (Show)
 
@@ -207,14 +209,15 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
     initState pc dump =
         State
             { p = pc
-            , a = 0
-            , b = 0
+            , a = def
+            , b = def
             , dataStack = []
             , returnStack = []
             , ram = dump
             , stopped = False
             , extendedArithmeticMode = False
             , carryFlag = False
+            , internalError = Nothing
             }
 
 setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
@@ -225,30 +228,41 @@ getP = get <&> (fromEnum . p)
 
 nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextP = do
-    (p, instruction) <- fromMaybe (error "internal error") <$> instructionFetch
-    setP (p + byteLength instruction)
+    instructionFetch >>= \case
+        Right (p, instruction) -> setP (p + byteLength instruction)
+        Left err -> raiseInternalError $ "nextPc: " <> err
+
+raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getWord addr = do
     st@State{ram} <- get
-    let (w, ram') = runState (readWord addr) ram
-    put st{ram = ram'}
-    return w
+    case readWord ram addr of
+        Right (ram', w) -> do
+            put st{ram = ram'}
+            return w
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
 
 setWord addr w = do
     st@State{ram} <- get
-    let ram' = execState (writeWord addr w) ram
-    put st{ram = ram'}
+    case writeWord ram addr w of
+        Right ram' -> put st{ram = ram'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
 
 dataPush w = do
     setCarryFlag False
     st@State{dataStack} <- get
     put st{dataStack = w : dataStack}
 
-dataPop :: (Num w) => State (MachineState (IoMem (Isa w w) w) w) w
+dataPop :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
 dataPop = do
     st@State{dataStack} <- get
     case dataStack of
-        [] -> return 0
+        [] -> do
+            raiseInternalError "empty data stack"
+            return def
         (x : xs) -> do
             put st{dataStack = xs}
             return x
@@ -257,11 +271,13 @@ returnPush w = do
     st@State{returnStack} <- get
     put st{returnStack = w : returnStack}
 
-returnPop :: (Num w) => State (MachineState (IoMem (Isa w w) w) w) w
+returnPop :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
 returnPop = do
     st@State{returnStack} <- get
     case returnStack of
-        [] -> return 0
+        [] -> do
+            raiseInternalError "empty return stack"
+            return def
         (x : xs) -> do
             put st{returnStack = xs}
             return x
@@ -312,27 +328,18 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
             stack f _ = unknownFormat f
 
-instance (MachineWord w) => ViewState (MachineState (IoMem (Isa w w) w) w) where
-    viewState State{dataStack, returnStack} v =
-        case v of
-            "dstack" -> toText $ intercalate ":" $ map show dataStack
-            "dstach_hex" -> T.intercalate ":" $ map (toText . word32ToHex) dataStack
-            "rstack" -> toText $ intercalate ":" $ map show returnStack
-            "rstack_hex" -> T.intercalate ":" $ map (toText . word32ToHex) returnStack
-            _ -> "not supported: " <> v <> " (supported: dstack, dstack_hex, rstack, rstack_hex)"
-
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get
             <&> ( \case
-                    State{stopped = True} -> Nothing
+                    State{stopped = True} -> Left halted
+                    State{internalError = Just err} -> Left err
                     State{p, ram} -> do
-                        let instruction = evalState (readInstruction p) ram
-                        Just (p, instruction)
+                        instruction <- readInstruction ram p
+                        return (p, instruction)
                 )
     instructionStep = do
-        (tmp :: Maybe (Int, Isa w w)) <- instructionFetch
-        let (_pc, instruction) = fromMaybe (error "Can't fetch instruction.") tmp
+        (_pc, instruction) :: (Int, Isa w w) <- either (error . ("Can't fetch instruction." <>)) id <$> instructionFetch
         case instruction of
             Lit l -> do
                 dataPush l

@@ -1,5 +1,5 @@
 name: wrench
-version: 0.0.2.1
+version: 0.0.2.2
 github: "ryukzak/wrench"
 license: BSD-3-Clause
 author: "Aleksandr Penskoi"
@@ -7,144 +7,137 @@ maintainer: "aleksandr.penskoi@gmail.com"
 copyright: "2025 Aleksandr Penskoi"
 
 extra-source-files:
-    - README.md
+  - README.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description: Please see the README on GitHub
+description: Wrench - is a tool for educating computer architecture.
 
 default-extensions:
-    - AllowAmbiguousTypes
-    - ConstraintKinds
-    - DeriveGeneric
-    - FlexibleContexts
-    - FlexibleInstances
-    - FunctionalDependencies
-    - ImportQualifiedPost
-    - KindSignatures
-    - LambdaCase
-    - MultiParamTypeClasses
-    - NamedFieldPuns
-    - NoImplicitPrelude
-    - OverloadedStrings
-    - PartialTypeSignatures
-    - RankNTypes
-    - ScopedTypeVariables
-    - TupleSections
-    - TypeApplications
-    - TypeFamilies
-    - TypeOperators
-    - UndecidableInstances
+  - AllowAmbiguousTypes
+  - ConstraintKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - ImportQualifiedPost
+  - KindSignatures
+  - LambdaCase
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - PartialTypeSignatures
+  - RankNTypes
+  - ScopedTypeVariables
+  - TupleSections
+  - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+  - UndecidableInstances
 
 dependencies:
-    - aeson
-    - aeson-casing
-    - base >= 4.7 && < 5
-    - data-default
-    - filepath
-    - megaparsec
-    - mtl
-    - optparse-applicative
-    - pretty-simple
-    - relude
-    - split
-    - regex-tdfa
-    - yaml
+  - aeson
+  - aeson-casing
+  - base >= 4.7 && < 5
+  - data-default
+  - filepath
+  - megaparsec
+  - mtl
+  - optparse-applicative
+  - pretty-simple
+  - relude
+  - split
+  - regex-tdfa
+  - yaml
 
 ghc-options:
-    - -Wall
-    - -Wcompat
-    - -Widentities
-    - -Wincomplete-record-updates
-    - -Wincomplete-uni-patterns
-    - -Wmissing-export-lists
-    - -Wmissing-home-modules
-    - -Wpartial-fields
-    - -Wredundant-constraints
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-export-lists
+  - -Wmissing-home-modules
+  - -Wpartial-fields
+  - -Wredundant-constraints
 
 library:
-    source-dirs: src
+  source-dirs: src
 
 executables:
-    wrench:
-        main: Main.hs
-        other-modules: [Paths_wrench]
-        source-dirs: app
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-        dependencies:
-            - gitrev
-            - th-env
-            - wrench
+  wrench:
+    main: Main.hs
+    other-modules: [Paths_wrench]
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - gitrev
+      - th-env
+      - wrench
 
-    wrench-serv:
-        main: WrenchServ.hs
-        other-modules: []
-        source-dirs: app
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-        dependencies:
-            - directory
-            - http-api-data
-            - lucid
-            - network-uri
-            - process
-            - servant
-            - servant-lucid
-            - servant-server
-            - text
-            - time
-            - uuid
-            - wai
-            - wai-extra
-            - warp
-            - wrench
+  wrench-serv:
+    main: WrenchServ.hs
+    other-modules: []
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - directory
+      - http-api-data
+      - lucid
+      - network-uri
+      - process
+      - servant
+      - servant-lucid
+      - servant-server
+      - text
+      - time
+      - uuid
+      - wai
+      - wai-extra
+      - warp
+      - wrench
 
-    wrench-fmt:
-        main: Fmt.hs
-        other-modules: []
-        source-dirs: app
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-        dependencies:
-            - directory
-            - http-api-data
-            - lucid
-            - network-uri
-            - process
-            - servant
-            - servant-lucid
-            - servant-server
-            - text
-            - time
-            - uuid
-            - wai
-            - wai-extra
-            - warp
-            - wrench
+  wrench-fmt:
+    main: Fmt.hs
+    other-modules: []
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - directory
+      - http-api-data
+      - lucid
+      - network-uri
+      - process
+      - servant
+      - servant-lucid
+      - servant-server
+      - text
+      - time
+      - uuid
+      - wai
+      - wai-extra
+      - warp
+      - wrench
 
 tests:
-    wrench-test:
-        main: Spec.hs
-        source-dirs: test
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-        dependencies:
-            - tasty
-            - tasty-golden
-            - tasty-hunit
-            - tasty-rerun
-            - wrench
+  wrench-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - tasty
+      - tasty-golden
+      - tasty-hunit
+      - tasty-rerun
+      - wrench

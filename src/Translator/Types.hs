@@ -85,8 +85,7 @@ markupSectionOffsets offset (s : ss) =
      in (offset', s) : markupSectionOffsets (offset' + toEnum (byteLength s)) ss
 
 data CodeToken isa l
-    = Comment l
-    | Label l
+    = Label l
     | Mnemonic isa
     deriving (Show)
 

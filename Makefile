@@ -1,4 +1,7 @@
-.PHONY : test build format format-check lint clean
+.PHONY : test build format format-check format-asm-check format-asm-fix \
+         format-fix lint lint-fix clean build-image-local server-run \
+         test-examples generate-variants update-golden fix readme-fix \
+         builder-image edge-image release-image
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
@@ -18,7 +21,7 @@ HS_SRC_DIR = .
 build:
 	stack build --copy-bins
 
-server-run: build
+server-run: build generate-variants
 	stack exec wrench-serv
 
 build-image-local:
@@ -55,9 +58,6 @@ release-image:
 		exit 1; \
 	fi
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(LATEST_IMAGE) --push .
-	# docker pull $(COMMIT_IMAGE)
-	# docker image tag $(COMMIT_IMAGE) $(RELEASE_IMAGE)
-	# docker image tag $(COMMIT_IMAGE) $(LATEST_IMAGE)
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
 
@@ -83,7 +83,10 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
-update-golden:
+generate-variants:
+	script/variants.py
+
+update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 
@@ -97,7 +100,7 @@ format-fix: format-asm-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
-	yamlfmt example test .github/workflows
+	yamlfmt package.yaml example test .github/workflows
 
 format-asm-fix:
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s

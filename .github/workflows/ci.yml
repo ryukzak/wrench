@@ -24,8 +24,14 @@ jobs:
           stack-version: "latest"
           stack-no-global: true
 
-      - name: Build & test
-        run: make build test test-examples
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Test examples
+        run: make test-examples
 
   haskell-lint:
     timeout-minutes: 5
@@ -144,7 +150,11 @@ jobs:
           path: ./dist/*
 
   publish-release:
-    needs: build-binaries
+    needs:
+      - build-binaries
+      - haskell-formatting
+      - html-formatting
+      - markdown-formatting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -157,6 +167,15 @@ jobs:
       - name: List downloaded artifacts
         run: ls -la ./dist/
 
+      - name: Prepare files with proper names
+        run: |
+          mkdir -p release_files
+          for file in dist/*; do
+            filename=$(basename "$file")
+            dirname=$(dirname "$file")
+            cp "$file" "release_files/$dirname-$filename"
+          done
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -165,7 +184,8 @@ jobs:
           draft: true
           prerelease: false
           generate_release_notes: true
-          files: dist/**/*
+          files: |
+            release_files/**/*
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
 
   # use `make release-image` to trigger it

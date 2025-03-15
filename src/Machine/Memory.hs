@@ -9,7 +9,6 @@ module Machine.Memory (
     word32ToHex,
     prepareDump,
     prettyDump,
-    reprInstruction,
 ) where
 
 import Data.Default (def)
@@ -110,60 +109,57 @@ word32ToHex w =
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
 class Memory m isa w | m -> isa w where
-    readInstruction :: Int -> State m isa
-    readWord :: Int -> State m w
-    writeWord :: Int -> w -> State m ()
+    readInstruction :: m -> Int -> Either Text isa
+    readWord :: m -> Int -> Either Text (m, w)
+    writeWord :: m -> Int -> w -> Either Text m
 
 instance
     (MachineWord w) =>
     Memory (Mem isa w) isa w
     where
-    readInstruction idx = do
-        mem <- get
+    readInstruction mem idx =
         case mem !? idx of
-            Just (Instruction i) -> return i
-            Just InstructionPart -> error $ "Can't interpret value as instruction: " <> show idx <> " value: InstructionPart"
-            Just (Value v) -> error $ "Can't interpret value as instruction: " <> show idx <> " value: " <> show v
-            Nothing -> error "Out of memory."
+            Just (Instruction i) -> Right i
+            Just InstructionPart -> Left $ "memory[" <> show idx <> "]: can't read instruction not from start"
+            Just (Value _) -> Left $ "memory[" <> show idx <> "]: can't read instruction from data cell"
+            Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
 
-    readWord idx = do
-        mem <- get
+    readWord mem idx =
         let idxs = [idx .. idx + byteLength (def :: w) - 1]
-            bytes = map (getValue mem) idxs
-        return $ wordCombine bytes
+            values = map getValue idxs
+         in case lefts values of
+                [] -> Right (mem, wordCombine $ rights values)
+                errs -> Left $ unlines errs
         where
-            getValue mem i =
+            getValue i =
                 case mem !? i of
-                    Just (Value v) -> v
-                    Just _ -> 0xAA -- error $ "Can't interpret instruction as data at " <> show i <> " value: " <> show x
-                    Nothing -> error $ "Out of memory at index: " <> show i
+                    Just (Value v) -> Right v
+                    Just _ -> Left $ "memory[" <> show i <> "]: can't read data from instruction cell"
+                    Nothing -> Left $ "memory[" <> show i <> "]: out of memory"
 
-    writeWord idx word = modify $ \mem ->
+    writeWord mem idx word =
         let updates = zip [idx ..] (wordSplit word)
-         in foldl' (\m (i, x) -> insert i (Value x) m) mem updates
+         in Right $ foldl' (\m (i, x) -> insert i (Value x) m) mem updates
 
 instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
-    readInstruction idx = do
-        IoMem{mIoStreams, mIoCells} <- get
+    readInstruction IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
-            Just _ -> error $ "Can't read instruction from input port: " <> show idx
-            Nothing -> return $ evalState (readInstruction idx) mIoCells
+            Just _ -> Left $ "memory[" <> show idx <> "]: can't read instruction from input port"
+            Nothing -> readInstruction mIoCells idx
 
-    readWord idx = do
-        io@IoMem{mIoStreams, mIoCells} <- get
+    readWord io@IoMem{mIoStreams, mIoCells} idx = do
         case mIoStreams !? idx of
-            Just ([], _) -> error "Input is depleted."
+            Just ([], _) -> Left $ "memory[" <> show idx <> "]: input is depleted"
             Just (i : is, os) -> do
-                put io{mIoStreams = insert idx (is, os) mIoStreams}
-                return i
-            Nothing -> return $ evalState (readWord idx) mIoCells
-
-    writeWord idx word = do
-        m@IoMem{mIoStreams, mIoCells} <- get
-        case mIoStreams !? idx of
-            Just (is, os) -> put m{mIoStreams = insert idx (is, word : os) mIoStreams}
+                let io' = io{mIoStreams = insert idx (is, os) mIoStreams}
+                Right (io', i)
             Nothing -> do
-                let mIoCells' = execState (writeWord idx word) mIoCells
-                put m{mIoCells = mIoCells'}
+                (mIoCells', w) <- readWord mIoCells idx
+                return (io{mIoCells = mIoCells'}, w)
 
-reprInstruction pc mem = show $ evalState (readInstruction pc) mem
+    writeWord io idx word =
+        case mIoStreams io !? idx of
+            Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
+            Nothing -> do
+                mIoCells' <- writeWord (mIoCells io) idx word
+                return io{mIoCells = mIoCells'}
