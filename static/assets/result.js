@@ -70,18 +70,19 @@ if (simulationLogText.trim() === '') {
     ?.classList.remove('hidden')
 }
 
+const nothing_returned_comment_string =
+  '<span class="text-[var(--c-grey)]">/* nothing returned */</span>'
+
 const statusTextElement = document.getElementById('status-text-element')
 if (statusTextElement?.innerText === '') {
-  statusTextElement.innerHTML =
-    'status = "" <span class="grey">/* nothing returned */</span>'
+  statusTextElement.innerHTML = `status = "" ${nothing_returned_comment_string}`
 }
 
 const testCasesStatusElement = document.getElementById(
   'test-cases-status-element',
 )
 if (testCasesStatusElement?.innerText === '') {
-  testCasesStatusElement.innerHTML =
-    'test_cases_status = "" <span class="grey">/* nothing returned */</span>'
+  testCasesStatusElement.innerHTML = `test_cases_status = "" ${nothing_returned_comment_string}`
 }
 
 /* copy buttons */

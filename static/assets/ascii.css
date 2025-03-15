@@ -50,7 +50,7 @@ body {
 }
 
 .vim-folded:hover {
-  background-color: var(--c-orange-low-saturation);
+  background-color: var(--c-orange-low-saturation) !important;
 }
 
 .vim-folded::before {
