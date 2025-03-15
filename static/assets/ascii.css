@@ -33,7 +33,6 @@ body.dark {
 html,
 body {
   margin: 0;
-  /* color: var(--c-white); */
   min-height: 100vh;
   font-family: var(--font);
   font-weight: 400;
