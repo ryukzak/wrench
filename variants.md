@@ -17,6 +17,7 @@ Additional requirements for all variants:
     unless otherwise specified.
 1. ISA-specific requirements:
     - `F32a`: use procedures.
+    - `RISC-IV`: use nested procedures and stack.
 
 Also we have the following helper functions not from builtins:
 
