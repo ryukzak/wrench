@@ -1,113 +1,97 @@
 <!doctype html>
 <html lang="en">
+  <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="#1a1a1a" name="theme-color" />
     <title>Simulation Results</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"
-    ></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-    <meta content="#1a1a1a" name="theme-color" />
-    <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"
+    ></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="/assets/ascii.css" />
+    <script defer src="/assets/on_invert_click.js"></script>
+    <script defer src="/assets/result.js"></script>
   </head>
 
-  <body class="full flex flex-col justify-center items-center min-h-screen">
-    <div class="text-center w-full mt-4 mb-2">
+  <body
+    class="dark bg-[var(--c-black)] text-[var(--c-white)] full flex flex-col items-center min-h-screen"
+  >
+    <div class="w-full mt-4 mb-6 text-center">
       <!-- Добавляем отступ снизу -->
-      <h1 class="large white">
-        <a class="subtle-hover" href="/">Wrench Report</a>
-      </h1>
+      <a
+        class="text-6xl text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] cursor-pointer"
+        href="/"
+        >Wrench Report</a
+      >
     </div>
 
-    <div class="self-center">
+    <div class="self-center flex flex-wrap justify-center gap-2 max-w-[75vw]">
       <a
         href="https://github.com/ryukzak/wrench"
-        class="purple hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] hover:bg-[var(--c-purple)] cursor-pointer"
         target="_blank"
         >[github]</a
       >
-      <span class="grey separator-char">|</span>
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
       <a
         href="https://github.com/ryukzak/wrench/tree/master/docs"
-        class="fuschia hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] hover:bg-[var(--c-fuschia)] cursor-pointer"
         target="_blank"
         >[isa_docs]</a
       >
-      <span class="grey separator-char">|</span>
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
       <a
         href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-        class="orange hover"
+        class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] hover:bg-[var(--c-orange)] cursor-pointer"
         target="_blank"
         >[variants]</a
       >
-      <span class="grey separator-char">|</span>
-      <button onclick="onInvertClick()" class="blue hover">
+      <span class="text-[var(--c-grey)] hidden lg:inline">|</span>
+      <button
+        id="invert-theme-button"
+        class="text-[var(--c-blue)] hover:text-[var(--c-black)] hover:bg-[var(--c-blue)] cursor-pointer"
+      >
         [invert_theme]
       </button>
     </div>
 
-    <script>
-      function onInvertClick() {
-        document.body.classList.toggle("inverted");
-        window.localStorage.setItem(
-          "prefers-color-scheme",
-          document.body.classList.contains("inverted") ? "light" : "dark",
-        );
-      }
-
-      if (
-        window.matchMedia &&
-        window.localStorage.getItem("prefers-color-scheme") === null
-      ) {
-        if (!window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          document.body.classList.add("inverted");
-        }
-      } else if (
-        window.localStorage.getItem("prefers-color-scheme") === "light"
-      ) {
-        document.body.classList.add("inverted");
-      }
-
-      var copiedLinkCount = 0;
-      async function copyLink() {
-        await navigator.clipboard.writeText(window.location.href);
-        copiedLinkCount++;
-        let button = document.getElementById("copy-link-button");
-        button.classList.remove("white");
-        button.classList.add("green");
-        let button_text = "";
-        if (copiedLinkCount === 1) {
-          button_text = "[copied!]";
-        } else {
-          button_text = `[copied ${copiedLinkCount} times!]`;
-        }
-        button.innerText = button_text;
-      }
-    </script>
-    <div class="self-center flex flex-wrap gap-8 w-full p-4 mt-8 pr-8 pl-8">
+    <div class="flex flex-wrap self-center w-full gap-8 p-4 pl-8 pr-8 mt-8">
       <div class="flex-1 min-w-[300px] max-w-[50%] mt-6">
         <div>
           <div>
-            <p class="grey texm-sm text-left">/* variant: {{variant}} */</p>
-            <p class="grey texm-sm text-left mb-6">/* author: {{name}} */</p>
+            <!-- prettier-ignore -->
+            <p class="text-[var(--c-grey)] text-left">
+              /* variant: {{variant}} */
+            </p>
+            <!-- prettier-ignore -->
+            <p class="text-[var(--c-grey)] text-left mb-6">
+              /* author: {{name}} */
+            </p>
           </div>
           <div>
-            <h2 id="empty-comment-header" class="hidden grey mb-4">
+            <h2
+              id="empty-comment-header"
+              class="hidden mb-4 text-[var(--c-grey)]"
+            >
               /* comment: not found */
             </h2>
             <div id="comment-header">
-              <h2 class="grey mb-4">/* comment */</h2>
+              <h2 class="text-[var(--c-grey)] mb-4">/* comment */</h2>
               <pre
                 id="comment-text-element"
-                class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+                class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
               >
 {{comment}}</pre
               >
@@ -116,13 +100,12 @@
 
           <div>
             <div
-              class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
+              class="flex flex-row items-center justify-between pr-6 mt-6 mb-4"
             >
-              <span class="grey">/* assembler_code */</span>
+              <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <button
                 id="copy-assembler-button"
-                onclick="copyAssembler()"
-                class="place-self-end white hover"
+                class="place-self-end text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] hover:opacity-80 cursor-pointer"
               >
                 [copy]
               </button>
@@ -130,18 +113,18 @@
             <div
               id="accordion-collapse-assembler"
               data-accordion="collapse"
-              class="mb-4 bg-dark-gray p-4 rounded-lg"
-              data-inactive-classes="vim-folded orange-low-saturation"
+              class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+              data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="white bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-assembler"
-                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                class="text-[var(--c-orange-low-saturation)] vim-folded flex items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
                 data-accordion-target="#accordion-collapse-body-assembler"
                 aria-expanded="true"
                 aria-controls="accordion-collapse-body-assembler"
               >
-                <span class="noselect">assembler_code =</span>
+                <span class="select-none">assembler_code =</span>
               </h2>
               <div
                 id="accordion-collapse-body-assembler"
@@ -150,7 +133,7 @@
               >
                 <pre
                   id="assembler-code-text-element"
-                  class="pb-4 rounded-lg overflow-x-auto"
+                  class="pb-4 overflow-x-auto rounded-lg"
                 >
 {{assembler_code}}</pre
                 >
@@ -160,13 +143,12 @@
 
           <div>
             <div
-              class="pr-6 flex flex-row justify-between items-center mt-6 mb-4"
+              class="flex flex-row items-center justify-between pr-6 mt-6 mb-4"
             >
-              <span class="grey">/* simulation_config */</span>
+              <span class="text-[var(--c-grey)]">/* simulation_config */</span>
               <button
                 id="copy-simulation-config-button"
-                onclick="copySimulationConfig()"
-                class="place-self-end white hover"
+                class="text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] hover:opacity-80 cursor-pointer"
               >
                 [copy]
               </button>
@@ -174,18 +156,18 @@
             <div
               id="accordion-collapse-simulation-config"
               data-accordion="collapse"
-              class="mb-4 bg-dark-gray p-4 rounded-lg"
-              data-inactive-classes="vim-folded orange-low-saturation"
+              class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+              data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="white bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-simulation-config"
-                class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+                class="text-[var(--c-orange-low-saturation)] vim-folded flex items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
                 data-accordion-target="#accordion-collapse-body-simulation-config"
                 aria-expanded="false"
                 aria-controls="accordion-collapse-body-simulation-config"
               >
-                <span class="noselect">simulation_config =</span>
+                <span class="select-none">simulation_config =</span>
               </h2>
               <div
                 id="accordion-collapse-body-simulation-config"
@@ -194,7 +176,7 @@
               >
                 <pre
                   id="simulation-config-text-element"
-                  class="pb-4 rounded-lg overflow-x-auto"
+                  class="pb-4 overflow-x-auto rounded-lg"
                 >
 {{yaml_content}}</pre
                 >
@@ -205,12 +187,12 @@
       </div>
 
       <div class="flex-1 min-w-[300px] max-w-[50%]">
-        <h2 class="grey mt-6 mb-4">/* simulation_result */</h2>
+        <h2 class="text-[var(--c-grey)] mt-6 mb-4">/* simulation_result */</h2>
 
         <div>
           <pre
             id="status-text-element"
-            class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+            class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
           >
 {{status}}</pre
           >
@@ -219,18 +201,18 @@
         <div
           id="accordion-collapse-simulation-log"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-simulation-log"
-            class="vim-folded orange-low-saturation flex items-center justify-between w-full text-left hover"
+            class="vim-folded text-[var(--c-orange-low-saturation)] flex items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-simulation-log"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-simulation-log"
           >
-            <span class="noselect">simulation_log =</span>
+            <span class="select-none">simulation_log =</span>
           </h2>
           <div
             id="accordion-collapse-body-simulation-log"
@@ -244,16 +226,16 @@
         </div>
         <div
           id="simulation-log-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           simulation_log = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
 
-        <h2 class="grey mt-6 mb-4">/* testcase_result */</h2>
+        <h2 class="text-[var(--c-grey)] mt-6 mb-4">/* testcase_result */</h2>
         <pre
           id="test-cases-status-element"
-          class="bg-dark-gray p-4 rounded-lg overflow-x-auto mb-4"
+          class="bg-[var(--c-dark-grey)] p-4 rounded-lg overflow-x-auto mb-4"
         >
 {{test_cases_status}}</pre
         >
@@ -261,18 +243,18 @@
         <div
           id="accordion-collapse-test-cases-result"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-test-cases-result"
-            class="vim-folded flex orange-low-saturation items-center justify-between w-full text-left hover"
+            class="vim-folded flex text-[var(--c-orange-low-saturation)] items-center justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-test-cases-result"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-test-cases-result"
           >
-            <span class="noselect">failed_test_case =</span>
+            <span class="select-none">failed_test_case =</span>
           </h2>
           <div
             id="accordion-collapse-body-test-cases-result"
@@ -280,7 +262,7 @@
             aria-labelledby="accordion-collapse-heading-test-cases-result"
           >
             <pre
-              id="test_cases_result-text-element"
+              id="test-cases-result-text-element"
               class="pb-4 overflow-x-auto"
             >
 {{test_cases_result}}</pre
@@ -289,387 +271,45 @@
         </div>
         <div
           id="test-cases-result-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           failed_test_case = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
         <div
           id="accordion-collapse-dump"
           data-accordion="collapse"
-          class="mb-4 bg-dark-gray p-4 rounded-lg"
-          data-inactive-classes="vim-folded orange-low-saturation"
+          class="mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="white bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-dump"
-            class="orange-low-saturation vim-folded flex items-center justify-between w-full text-left hover"
+            class="text-[var(--c-orange-low-saturation)] vim-folded flex justify-between w-full text-left hover:opacity-80 hover:bg-[var(--c-white)] hover:text-[var(--c-black)] hover:cursor-pointer"
             data-accordion-target="#accordion-collapse-body-dump"
             aria-expanded="false"
             aria-controls="accordion-collapse-body-dump"
           >
-            <span class="noselect">dump =</span>
+            <span class="select-none">dump =</span>
           </h2>
           <div
             id="accordion-collapse-body-dump"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-dump"
           >
-            <pre id="dump-text-element" class="pb-4 rounded-lg overflow-x-auto">
+            <pre id="dump-text-element" class="pb-4 overflow-x-auto rounded-lg">
 {{dump}}</pre
             >
           </div>
         </div>
         <div
           id="dump-empty-tag"
-          class="hidden mb-4 bg-dark-gray p-4 rounded-lg"
+          class="hidden mb-4 bg-[var(--c-dark-grey)] p-4 rounded-lg"
         >
           dump = ""
-          <span class="grey"> /* nothing returned */</span>
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
       </div>
     </div>
-
-    <script>
-      const assemblerCodeText = document.getElementById(
-        "assembler-code-text-element",
-      ).innerText;
-      const simulationConfigText = document.getElementById(
-        "simulation-config-text-element",
-      ).innerText;
-
-      const commentText = document.getElementById(
-        "comment-text-element",
-      ).innerText;
-      if (commentText.trim() === "") {
-        document.getElementById("comment-header").classList.add("hidden");
-        document
-          .getElementById("empty-comment-header")
-          .classList.remove("hidden");
-      }
-
-      const dumpText = document.getElementById("dump-text-element").innerText;
-      if (dumpText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-dump")
-          .classList.add("hidden");
-        document.getElementById("dump-empty-tag").classList.remove("hidden");
-      }
-
-      const testCasesResultText = document.getElementById(
-        "test_cases_result-text-element",
-      ).innerText;
-      if (testCasesResultText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-test-cases-result")
-          .classList.add("hidden");
-        document
-          .getElementById("test-cases-result-empty-tag")
-          .classList.remove("hidden");
-      }
-
-      const simulationLogText = document.getElementById(
-        "simulation-log-text-element",
-      ).innerText;
-      if (simulationLogText.trim() === "") {
-        document
-          .getElementById("accordion-collapse-simulation-log")
-          .classList.add("hidden");
-        document
-          .getElementById("simulation-log-empty-tag")
-          .classList.remove("hidden");
-      }
-
-      const statusTextElement = document.getElementById("status-text-element");
-      if (statusTextElement.innerText === "") {
-        statusTextElement.innerHTML =
-          'status = "" <span class="grey">/* nothing returned */</span>';
-      }
-
-      const testCasesStatusElement = document.getElementById(
-        "test-cases-status-element",
-      );
-      if (testCasesStatusElement.innerText === "") {
-        testCasesStatusElement.innerHTML =
-          'test_cases_status = "" <span class="grey">/* nothing returned */</span>';
-      }
-
-      var copyCountAssembler = 0;
-      async function copyAssembler() {
-        await navigator.clipboard.writeText(assemblerCodeText);
-        const button = document.getElementById("copy-assembler-button");
-        let buttonText = "";
-        copyCountAssembler++;
-        if (copyCountAssembler === 1) {
-          buttonText = "[copied!]";
-          button.classList.remove("white");
-          button.classList.add("green");
-        } else {
-          buttonText = `[copied ${copyCountAssembler} times!]`;
-        }
-
-        button.innerText = buttonText;
-      }
-
-      var copyCountSimulationConfig = 0;
-      async function copySimulationConfig() {
-        await navigator.clipboard.writeText(simulationConfigText);
-        const button = document.getElementById("copy-simulation-config-button");
-        let buttonText = "";
-        copyCountSimulationConfig++;
-        if (copyCountSimulationConfig === 1) {
-          buttonText = "[copied!]";
-          button.classList.remove("white");
-          button.classList.add("green");
-        } else {
-          buttonText = `[copied ${copyCountSimulationConfig} times!]`;
-        }
-
-        button.innerText = buttonText;
-      }
-    </script>
-
-    <style>
-      body {
-        --c-black: #1a1a1a;
-        --c-white: #e1e1e1;
-        --c-grey: #898989;
-        --c-dark-grey: #222224;
-        --c-purple: #b462ff;
-        --c-fuschia: #ff45b4;
-        --c-blue: #18b6ff;
-        --c-green: #1beb9e;
-        --c-orange: #ff9528;
-        --c-orange-low-saturation: #a5692d;
-        --c-yellow: #dddd25;
-        --line: 2.5ch;
-        --font: "IBM", monospace;
-      }
-
-      body.inverted {
-        --c-black: #d5d5d5;
-        --c-white: #2a2830;
-        --c-dark-grey: #e4e4e7;
-        --c-grey: #7e7e7e;
-        --c-purple: #6b1fa3;
-        --c-fuschia: #f50777;
-        --c-blue: #0b8cff;
-        --c-green: #00a76c;
-        --c-orange: #dd7200;
-        --c-orange-low-saturation: #d08c47;
-        --c-yellow: #949700;
-      }
-
-      .orange-low-saturation {
-        color: var(--c-orange-low-saturation);
-        --c-current: var(--c-orange-low-saturation);
-      }
-
-      .black {
-        color: var(--c-black);
-        --c-current: var(--c-black);
-      }
-
-      .white {
-        color: var(--c-white);
-        --c-current: var(--c-white);
-      }
-
-      .grey {
-        color: var(--c-grey);
-        --c-current: var(--c-grey);
-      }
-
-      .purple {
-        color: var(--c-purple);
-        --c-current: var(--c-purple);
-      }
-
-      .fuschia {
-        color: var(--c-fuschia);
-        --c-current: var(--c-fuschia);
-      }
-
-      .blue {
-        color: var(--c-blue);
-        --c-current: var(--c-blue);
-      }
-
-      .green {
-        color: var(--c-green);
-        --c-current: var(--c-green);
-      }
-
-      .orange {
-        color: var(--c-orange);
-        --c-current: var(--c-orange);
-      }
-
-      .yellow {
-        color: var(--c-yellow);
-        --c-current: var(--c-yellow);
-      }
-
-      .bg-dark-gray {
-        background-color: var(--c-dark-grey);
-      }
-
-      a {
-        color: var(--c-current);
-        text-decoration: none;
-      }
-
-      a:hover,
-      .selected,
-      .hover:hover {
-        color: var(--c-black);
-        background: var(--c-current);
-        box-shadow:
-          0.4ch 0 0 0 var(--c-current),
-          -0.3ch 0 0 0 var(--c-current),
-          0.4ch 0.2ch 0 0 var(--c-current),
-          -0.3ch 0.2ch 0 0 var(--c-current);
-        opacity: 0.8;
-      }
-
-      .large {
-        font-size: 2em;
-        line-height: 1.11111111em;
-        font-weight: 200;
-      }
-
-      .italic {
-        font-style: italic;
-      }
-
-      .columns {
-        width: 100%;
-        column-count: 2;
-        column-gap: 1ch;
-      }
-
-      .noselect {
-        user-select: none;
-      }
-
-      .break-anywhere {
-        line-break: anywhere;
-      }
-
-      html,
-      body {
-        margin: 0;
-        background: var(--c-black);
-        color: var(--c-white);
-        min-height: 100vh;
-        font-family: var(--font);
-        font-weight: 400;
-        line-height: var(--line);
-        letter-spacing: 0.01em;
-      }
-
-      .separator-char {
-        display: none;
-      }
-
-      @media (min-width: 768px) {
-        body {
-          font-size: 2 * 0.7vw;
-        }
-
-        .separator-char {
-          display: contents;
-        }
-      }
-
-      @media (min-width: 1024px) {
-        body {
-          font-size: 1vw;
-          overflow: auto;
-
-          .separator-char {
-            display: contents;
-          }
-        }
-
-        .large {
-          font-size: 4vw;
-          line-height: 1.11111111em;
-          font-weight: 200;
-        }
-      }
-
-      ::selection {
-        color: #000000;
-        background: var(--c-grey);
-      }
-
-      button {
-        display: inline;
-        font-family: inherit;
-        font-weight: inherit;
-        font-size: inherit;
-        letter-spacing: inherit;
-        padding: 0;
-        margin: 0;
-        background: transparent;
-        border: none;
-        outline: none;
-      }
-
-      .hover:hover {
-        cursor: pointer;
-      }
-
-      .pointer-events-none {
-        pointer-events: none;
-      }
-
-      body.invert canvas {
-        opacity: 0.05;
-        filter: none;
-        mix-blend-mode: normal;
-      }
-
-      .subtle-hover:hover {
-        background: transparent;
-        box-shadow: none;
-        cursor: pointer;
-        opacity: 0.8;
-        color: currentColor;
-      }
-
-      .title {
-        font-weight: lighter;
-      }
-
-      textarea {
-        min-height: 20rem;
-      }
-
-      #comment {
-        min-height: 5rem;
-      }
-
-      .vim-folded {
-        white-space: nowrap;
-        overflow-x: hidden;
-      }
-
-      .vim-folded::before {
-        content: "+--\00A0";
-        white-space: nowrap;
-      }
-
-      .vim-folded::after {
-        display: inline;
-        content: "\00A0··························································································································································";
-        white-space: nowrap;
-        text-align: left;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: clip;
-      }
-    </style>
   </body>
 </html>
