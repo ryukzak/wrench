@@ -189,8 +189,21 @@
         </div>
 
         <script>
+          // Load saved name when page opens
+          window.addEventListener("DOMContentLoaded", function () {
+            const savedName = window.localStorage.getItem("author-name");
+            if (savedName) {
+              document.getElementById("name").value = savedName;
+            }
+          });
+
           function Submit() {
             let form = document.getElementById("main-form");
+            let authorName = document.getElementById("name").value;
+
+            if (authorName) {
+              window.localStorage.setItem("author-name", authorName);
+            }
 
             if (form.checkValidity()) {
               form.submit();
