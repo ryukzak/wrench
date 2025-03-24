@@ -6,19 +6,26 @@
 
 module Main (main) where
 
-import Data.List.Split
+import Control.Exception (catch)
+import Data.Aeson
+import Data.List.Split (splitOn)
 import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
-import Data.Time
-import Data.UUID qualified as UUID
+import Data.Text.Encoding.Base64 (encodeBase64)
+import Data.Time (getCurrentTime)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
+import Data.Vector qualified as V
 import Lucid (Html, renderText, toHtml, toHtmlRaw)
+import Network.HTTP.Conduit qualified as HTTP
+import Network.HTTP.Simple qualified as HTTP
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Relude
 import Relude.Unsafe qualified as Unsafe
 import Servant
-import Servant.HTML.Lucid
+import Servant.HTML.Lucid (HTML)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, listDirectory)
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeFileName, (</>))
@@ -28,7 +35,7 @@ import Web.FormUrlEncoded (FromForm)
 type API =
     "submit" :> ReqBody '[FormUrlEncoded] SubmitForm :> Post '[JSON] (Headers '[Header "Location" String] NoContent)
         :<|> "submit-form" :> Get '[HTML] (Html ())
-        :<|> "result" :> Capture "guid" String :> Get '[HTML] (Html ())
+        :<|> "result" :> Capture "guid" UUID :> Get '[HTML] (Html ())
         :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
 
@@ -49,8 +56,76 @@ data Config = Config
     , cStoragePath :: FilePath
     , cVariantsPath :: FilePath
     , cLogLimit :: Int
+    , cMixpanelToken :: Maybe Text
+    , cMixpanelProjectId :: Maybe Text
     }
     deriving (Show)
+
+mask :: Config -> Config
+mask conf@Config{cMixpanelToken} =
+    conf
+        { cMixpanelToken = fmap (const "<REDACTED>") cMixpanelToken
+        }
+
+data MixpanelEvent
+    = SimulationEvent
+        { mpGuid :: UUID
+        , mpName :: Text
+        , mpIsa :: Text
+        , mpVariant :: Maybe Text
+        , mpVersion :: Text
+        }
+    | ReportViewEvent
+        { mpGuid :: UUID
+        , mpName :: Text
+        -- TODO: , mpVersion :: Text
+        }
+    deriving (Show)
+
+trackEvent :: Config -> MixpanelEvent -> IO ()
+trackEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing} _ = return ()
+trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
+    now <- getCurrentTime
+    let timestamp = fromInteger $ floor $ utcTimeToPOSIXSeconds now
+        eventName = case event of
+            SimulationEvent{} -> "Simulation"
+            ReportViewEvent{} -> "ReportView"
+        baseProperties =
+            fromList
+                [ ("time", Number timestamp)
+                , ("distinct_id", String $ mpName event)
+                , ("$insert_id", String $ T.replace " " "-" $ show $ mpGuid event)
+                , ("simulation_guid", String $ show $ mpGuid event)
+                -- TODO: Add verbose env
+                -- , ("verbose", Number 1)
+                ]
+        properties = case event of
+            SimulationEvent{mpIsa, mpVariant} ->
+                fromList
+                    [ ("isa", String $ show mpIsa)
+                    , ("variant", maybe Null String mpVariant)
+                    , ("version", String $ mpVersion event)
+                    ]
+            ReportViewEvent{} -> fromList []
+        payload =
+            V.fromList
+                [ object
+                    [ ("event", String eventName)
+                    , ("properties", Object (baseProperties <> properties))
+                    ]
+                ]
+        encodedData = encode payload
+        auth = "Basic " <> (encodeUtf8 (encodeBase64 $ token <> ":") :: ByteString)
+
+    request <- HTTP.parseRequest $ "POST https://api-eu.mixpanel.com/import?strict=1&project_id=" <> toString projectId
+    let request' =
+            HTTP.setRequestBody (HTTP.RequestBodyLBS encodedData)
+                $ HTTP.setRequestHeader "Content-Type" ["application/json"]
+                $ HTTP.setRequestHeader "Authorization" [auth] request
+    catch
+        (void $ HTTP.httpNoBody request')
+        (\(e :: SomeException) -> putStrLn $ "Mixpanel tracking error: " ++ show e)
+trackEvent Config{} _ = error "Mixpanel misconfiguration"
 
 main :: IO ()
 main = do
@@ -60,8 +135,15 @@ main = do
     cStoragePath <- fromMaybe "uploads" <$> lookupEnv "STORAGE_PATH"
     cVariantsPath <- fromMaybe "variants" <$> lookupEnv "VARIANTS"
     cLogLimit <- maybe 10000 Unsafe.read <$> lookupEnv "LOG_LIMIT"
-    let conf = Config{cPort, cWrenchPath, cWrenchArgs, cStoragePath, cVariantsPath, cLogLimit}
-    print conf
+    cMixpanelToken <- fmap toText <$> lookupEnv "MIXPANEL_TOKEN"
+    cMixpanelProjectId <- fmap toText <$> lookupEnv "MIXPANEL_PROJECT_ID"
+    let conf = Config{cPort, cWrenchPath, cWrenchArgs, cStoragePath, cVariantsPath, cLogLimit, cMixpanelToken, cMixpanelProjectId}
+    unless
+        ( (isJust cMixpanelToken && isJust cMixpanelProjectId)
+            || (isNothing cMixpanelToken && isNothing cMixpanelProjectId)
+        )
+        $ error "Mixpanel misconfiguration"
+    print $ mask conf
     putStrLn $ "Starting server on port " <> show cPort
     run cPort (logStdoutDev $ app conf)
 
@@ -154,8 +236,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
     forM_ fails $ \(yamlFile, fn, cmd, _tcExitCode, tcStdout, tcStderr) -> do
         simConf <- liftIO $ decodeUtf8 <$> readFileBS fn
         liftIO
-            $ writeFileText
-                (dir <> "/test_cases_result.log")
+            $ writeFileText (dir <> "/test_cases_result.log")
             $ T.intercalate "\n\n"
             $ map
                 toText
@@ -165,6 +246,8 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
                 , "==="
                 , toString cmd
                 ]
+    let event = SimulationEvent{mpGuid = guid, mpName = name, mpIsa = isa, mpVariant = variant, mpVersion = show version}
+    liftIO $ trackEvent conf event
 
     let location = "/result/" <> show guid
     throwError $ err301{errHeaders = [("Location", location)]}
@@ -198,10 +281,9 @@ maybeReadFile path = do
 escapeHtml :: Text -> Text
 escapeHtml = toText . renderText . toHtml
 
-resultPage :: Config -> String -> Handler (Html ())
-resultPage Config{cStoragePath} guid = do
-    when (isNothing $ UUID.fromString guid) $ error "invalid uuid"
-    let dir = cStoragePath <> "/" <> guid
+resultPage :: Config -> UUID -> Handler (Html ())
+resultPage conf@Config{cStoragePath} guid = do
+    let dir = cStoragePath <> "/" <> show guid
 
     nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
     variantContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/variant.txt"))
@@ -232,6 +314,7 @@ resultPage Config{cStoragePath} guid = do
                 , ("{{dump}}", dump)
                 ]
 
+    liftIO $ trackEvent conf ReportViewEvent{mpGuid = guid, mpName = nameContent}
     return $ toHtmlRaw renderTemplate
 
 listFiles :: FilePath -> IO [FilePath]

@@ -57,7 +57,6 @@ ghc-options:
   - -Wincomplete-uni-patterns
   - -Wmissing-export-lists
   - -Wmissing-home-modules
-  - -Wpartial-fields
   - -Wredundant-constraints
 
 library:
@@ -86,8 +85,11 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
+      - base64
+      - vector
       - directory
       - http-api-data
+      - http-conduit
       - lucid
       - network-uri
       - process

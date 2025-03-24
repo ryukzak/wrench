@@ -68,7 +68,7 @@ library
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints
   build-depends:
       aeson
     , aeson-casing
@@ -115,7 +115,7 @@ executable wrench
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-casing
@@ -161,7 +161,7 @@ executable wrench-fmt
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-casing
@@ -219,15 +219,17 @@ executable wrench-serv
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-casing
     , base >=4.7 && <5
+    , base64
     , data-default
     , directory
     , filepath
     , http-api-data
+    , http-conduit
     , lucid
     , megaparsec
     , mtl
@@ -244,6 +246,7 @@ executable wrench-serv
     , text
     , time
     , uuid
+    , vector
     , wai
     , wai-extra
     , warp
@@ -285,7 +288,7 @@ test-suite wrench-test
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , aeson-casing

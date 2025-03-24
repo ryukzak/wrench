@@ -18,6 +18,8 @@ LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
+all: format-fix lint-fix test
+
 build:
 	stack build --copy-bins
 
