@@ -31,6 +31,7 @@ library
       Machine
       Machine.Memory
       Machine.Types
+      Misc
       Report
       Translator
       Translator.Parser
@@ -75,6 +76,7 @@ library
     , base >=4.7 && <5
     , data-default
     , filepath
+    , gitrev
     , megaparsec
     , mtl
     , optparse-applicative
@@ -82,15 +84,12 @@ library
     , regex-tdfa
     , relude
     , split
+    , th-env
     , yaml
   default-language: Haskell2010
 
 executable wrench
   main-is: Main.hs
-  other-modules:
-      Paths_wrench
-  autogen-modules:
-      Paths_wrench
   hs-source-dirs:
       app
   default-extensions:
@@ -169,6 +168,7 @@ executable wrench-fmt
     , data-default
     , directory
     , filepath
+    , gitrev
     , http-api-data
     , lucid
     , megaparsec
@@ -184,6 +184,7 @@ executable wrench-fmt
     , servant-server
     , split
     , text
+    , th-env
     , time
     , uuid
     , wai
@@ -228,6 +229,7 @@ executable wrench-serv
     , data-default
     , directory
     , filepath
+    , gitrev
     , http-api-data
     , http-conduit
     , lucid
@@ -244,6 +246,7 @@ executable wrench-serv
     , servant-server
     , split
     , text
+    , th-env
     , time
     , uuid
     , vector
@@ -295,6 +298,7 @@ test-suite wrench-test
     , base >=4.7 && <5
     , data-default
     , filepath
+    , gitrev
     , megaparsec
     , mtl
     , optparse-applicative
@@ -306,6 +310,7 @@ test-suite wrench-test
     , tasty-golden
     , tasty-hunit
     , tasty-rerun
+    , th-env
     , wrench
     , yaml
   default-language: Haskell2010

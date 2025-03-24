@@ -1,10 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Main (main) where
 
-import Data.Version (showVersion)
-import Development.GitRev (gitCommitDate, gitHash)
-import Language.Haskell.TH.Env (envQ)
+import Misc (wrenchVersion)
 import Options.Applicative (
     Parser,
     execParser,
@@ -23,7 +19,6 @@ import Options.Applicative (
     switch,
     value,
  )
-import Paths_wrench (version)
 import Relude
 import Wrench (Options (..), wrenchIO)
 
@@ -64,9 +59,7 @@ options =
 main :: IO ()
 main = wrenchIO =<< execParser opts
     where
-        ver :: String = showVersion version <> maybe "" ("-" <>) $$(envQ "VERSION_SUFFIX")
-        fullVersion = ver <> " (" <> take 7 $(gitHash) <> ")" <> " " <> $(gitCommitDate)
         opts =
             info
-                (options <**> helper <**> simpleVersioner fullVersion)
+                (options <**> helper <**> simpleVersioner (toString wrenchVersion))
                 (fullDesc <> progDesc "App for laboratory course of computer architecture.")

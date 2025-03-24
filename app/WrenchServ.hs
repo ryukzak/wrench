@@ -18,6 +18,7 @@ import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import Data.Vector qualified as V
 import Lucid (Html, renderText, toHtml, toHtmlRaw)
+import Misc (wrenchVersion)
 import Network.HTTP.Conduit qualified as HTTP
 import Network.HTTP.Simple qualified as HTTP
 import Network.Wai.Handler.Warp (run)
@@ -78,7 +79,7 @@ data MixpanelEvent
     | ReportViewEvent
         { mpGuid :: UUID
         , mpName :: Text
-        -- TODO: , mpVersion :: Text
+        , mpVersion :: Text
         }
     deriving (Show)
 
@@ -96,15 +97,15 @@ trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just project
                 , ("distinct_id", String $ mpName event)
                 , ("$insert_id", String $ T.replace " " "-" $ show $ mpGuid event)
                 , ("simulation_guid", String $ show $ mpGuid event)
+                , ("version", String $ mpVersion event)
                 -- TODO: Add verbose env
                 -- , ("verbose", Number 1)
                 ]
         properties = case event of
             SimulationEvent{mpIsa, mpVariant} ->
                 fromList
-                    [ ("isa", String $ show mpIsa)
+                    [ ("isa", String mpIsa)
                     , ("variant", maybe Null String mpVariant)
-                    , ("version", String $ mpVersion event)
                     ]
             ReportViewEvent{} -> fromList []
         payload =
@@ -166,8 +167,7 @@ formPage Config{cVariantsPath} = do
     variants <- liftIO $ listVariants cVariantsPath
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") variants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
-    version <- liftIO $ toText <$> getWrenchVersion
-    let renderTemplate = replace "{{variants}}" (mconcat options) . replace "{{version}}" version
+    let renderTemplate = replace "{{variants}}" (mconcat options) . replace "{{version}}" wrenchVersion
     return $ toHtmlRaw $ renderTemplate template
 
 listVariants :: FilePath -> IO [String]
@@ -192,7 +192,6 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
     liftIO $ writeFileText (dir <> "/isa.txt") isa
 
     currentTime <- liftIO getCurrentTime
-    version <- liftIO getWrenchVersion
     (cmd0, exitCode, stdout_, stderr_) <- liftIO $ runSimulation isa conf asmFile configFile
     liftIO
         $ writeFileText
@@ -200,7 +199,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
         $ T.intercalate "\n"
         $ map
             toText
-            ["$ date", show currentTime, "$ wrench --version", version, toString cmd0, show exitCode, stderr_]
+            ["$ date", show currentTime, "$ wrench --version", toString wrenchVersion, toString cmd0, show exitCode, stderr_]
     let stdoutText = toText stdout_
         stdoutText' =
             if T.length stdoutText > cLogLimit
@@ -246,18 +245,11 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
                 , "==="
                 , toString cmd
                 ]
-    let event = SimulationEvent{mpGuid = guid, mpName = name, mpIsa = isa, mpVariant = variant, mpVersion = show version}
+    let event = SimulationEvent{mpGuid = guid, mpName = name, mpIsa = isa, mpVariant = variant, mpVersion = wrenchVersion}
     liftIO $ trackEvent conf event
 
     let location = "/result/" <> show guid
     throwError $ err301{errHeaders = [("Location", location)]}
-
-getWrenchVersion :: IO String
-getWrenchVersion = do
-    (code, out, _) <- readProcessWithExitCode "wrench" ["--version"] ""
-    if code == ExitSuccess
-        then return out
-        else return "unknown"
 
 runSimulation :: Text -> Config -> FilePath -> FilePath -> IO (Text, ExitCode, String, String)
 runSimulation isa Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
@@ -314,7 +306,7 @@ resultPage conf@Config{cStoragePath} guid = do
                 , ("{{dump}}", dump)
                 ]
 
-    liftIO $ trackEvent conf ReportViewEvent{mpGuid = guid, mpName = nameContent}
+    liftIO $ trackEvent conf ReportViewEvent{mpGuid = guid, mpName = nameContent, mpVersion = wrenchVersion}
     return $ toHtmlRaw renderTemplate
 
 listFiles :: FilePath -> IO [FilePath]

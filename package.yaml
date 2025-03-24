@@ -40,13 +40,15 @@ dependencies:
   - base >= 4.7 && < 5
   - data-default
   - filepath
+  - gitrev
   - megaparsec
   - mtl
   - optparse-applicative
   - pretty-simple
+  - regex-tdfa
   - relude
   - split
-  - regex-tdfa
+  - th-env
   - yaml
 
 ghc-options:
@@ -65,15 +67,13 @@ library:
 executables:
   wrench:
     main: Main.hs
-    other-modules: [Paths_wrench]
+    other-modules: []
     source-dirs: app
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - gitrev
-      - th-env
       - wrench
 
   wrench-serv:
