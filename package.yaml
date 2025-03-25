@@ -87,6 +87,8 @@ executables:
     dependencies:
       - base64
       - cookie
+      - cryptohash-sha1
+      - crypton
       - directory
       - http-api-data
       - http-conduit

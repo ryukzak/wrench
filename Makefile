@@ -25,7 +25,7 @@ all: format-fix lint-fix test test-serv
 build:
 	stack build --copy-bins
 
-server-run: build generate-variants
+run-server: build generate-variants
 	stack exec wrench-serv
 
 build-image-local:

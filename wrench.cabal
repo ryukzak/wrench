@@ -227,6 +227,8 @@ executable wrench-serv
     , base >=4.7 && <5
     , base64
     , cookie
+    , cryptohash-sha1
+    , crypton
     , data-default
     , directory
     , filepath
