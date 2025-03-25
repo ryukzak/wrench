@@ -31,12 +31,16 @@ import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileE
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeFileName, (</>))
 import System.Process (readProcessWithExitCode)
+import Web.Cookie (parseCookies)
 import Web.FormUrlEncoded (FromForm)
 
 type API =
-    "submit" :> ReqBody '[FormUrlEncoded] SubmitForm :> Post '[JSON] (Headers '[Header "Location" String] NoContent)
+    "submit"
+        :> Header "Cookie" Text
+        :> ReqBody '[FormUrlEncoded] SubmitForm
+        :> Post '[JSON] (Headers '[Header "Location" String, Header "Set-Cookie" String] NoContent)
         :<|> "submit-form" :> Get '[HTML] (Html ())
-        :<|> "result" :> Capture "guid" UUID :> Get '[HTML] (Html ())
+        :<|> "result" :> Header "Cookie" Text :> Capture "guid" UUID :> Get '[HTML] (Headers '[Header "Set-Cookie" String] (Html ()))
         :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
 
@@ -75,11 +79,13 @@ data MixpanelEvent
         , mpIsa :: Text
         , mpVariant :: Maybe Text
         , mpVersion :: Text
+        , mpTrack :: ByteString
         }
     | ReportViewEvent
         { mpGuid :: UUID
         , mpName :: Text
         , mpVersion :: Text
+        , mpTrack :: ByteString
         }
     deriving (Show)
 
@@ -94,11 +100,11 @@ trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just project
         baseProperties =
             fromList
                 [ ("time", Number timestamp)
-                , ("distinct_id", String $ mpName event)
+                , ("authorName", String $ mpName event)
+                , ("distinct_id", String $ decodeUtf8 $ mpTrack event)
                 , ("$insert_id", String $ T.replace " " "-" $ show $ mpGuid event)
                 , ("simulation_guid", String $ show $ mpGuid event)
                 , ("version", String $ mpVersion event)
-                -- TODO: Add verbose env
                 -- , ("verbose", Number 1)
                 ]
         properties = case event of
@@ -127,6 +133,14 @@ trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just project
         (void $ HTTP.httpNoBody request')
         (\(e :: SomeException) -> putStrLn $ "Mixpanel tracking error: " ++ show e)
 trackEvent Config{} _ = error "Mixpanel misconfiguration"
+
+getTrack :: Maybe Text -> IO ByteString
+getTrack cookie = case filter ((== "track_id") . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
+    [c] -> return $ snd c
+    _ -> show <$> liftIO nextRandom
+
+trackCookie :: ByteString -> ByteString
+trackCookie track = "track_id=" <> track <> "; path=/; Max-Age=10368000"
 
 main :: IO ()
 main = do
@@ -176,11 +190,14 @@ listVariants path = do
     variants <- filterM (doesDirectoryExist . (path </>)) contents
     return $ sort variants
 
-submitForm :: Config -> SubmitForm -> Handler (Headers '[Header "Location" String] NoContent)
-submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, asm, config, comment, variant, isa} = do
+submitForm ::
+    Config
+    -> Maybe Text
+    -> SubmitForm
+    -> Handler (Headers '[Header "Location" String, Header "Set-Cookie" String] NoContent)
+submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} cookie SubmitForm{name, asm, config, comment, variant, isa} = do
     guid <- liftIO nextRandom
     let dir = cStoragePath <> "/" <> show guid
-
     liftIO $ createDirectoryIfMissing True dir
     let asmFile = dir <> "/source.s"
         configFile = dir <> "/config.yaml"
@@ -245,11 +262,22 @@ submitForm conf@Config{cStoragePath, cVariantsPath, cLogLimit} SubmitForm{name, 
                 , "==="
                 , toString cmd
                 ]
-    let event = SimulationEvent{mpGuid = guid, mpName = name, mpIsa = isa, mpVariant = variant, mpVersion = wrenchVersion}
+
+    track <- liftIO $ getTrack cookie
+
+    let event =
+            SimulationEvent
+                { mpGuid = guid
+                , mpName = name
+                , mpIsa = isa
+                , mpVariant = variant
+                , mpVersion = wrenchVersion
+                , mpTrack = track
+                }
     liftIO $ trackEvent conf event
 
     let location = "/result/" <> show guid
-    throwError $ err301{errHeaders = [("Location", location)]}
+    throwError $ err301{errHeaders = [("Location", location), ("Set-Cookie", trackCookie track)]}
 
 runSimulation :: Text -> Config -> FilePath -> FilePath -> IO (Text, ExitCode, String, String)
 runSimulation isa Config{cWrenchPath, cWrenchArgs} asmFile configFile = do
@@ -273,8 +301,8 @@ maybeReadFile path = do
 escapeHtml :: Text -> Text
 escapeHtml = toText . renderText . toHtml
 
-resultPage :: Config -> UUID -> Handler (Html ())
-resultPage conf@Config{cStoragePath} guid = do
+resultPage :: Config -> Maybe Text -> UUID -> Handler (Headers '[Header "Set-Cookie" String] (Html ()))
+resultPage conf@Config{cStoragePath} cookie guid = do
     let dir = cStoragePath <> "/" <> show guid
 
     nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
@@ -306,8 +334,10 @@ resultPage conf@Config{cStoragePath} guid = do
                 , ("{{dump}}", dump)
                 ]
 
-    liftIO $ trackEvent conf ReportViewEvent{mpGuid = guid, mpName = nameContent, mpVersion = wrenchVersion}
-    return $ toHtmlRaw renderTemplate
+    track <- liftIO $ getTrack cookie
+    let event = ReportViewEvent{mpGuid = guid, mpName = nameContent, mpVersion = wrenchVersion, mpTrack = track}
+    liftIO $ trackEvent conf event
+    return $ addHeader (decodeUtf8 (trackCookie track)) $ toHtmlRaw renderTemplate
 
 listFiles :: FilePath -> IO [FilePath]
 listFiles path = do

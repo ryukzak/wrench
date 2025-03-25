@@ -86,7 +86,7 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - base64
-      - vector
+      - cookie
       - directory
       - http-api-data
       - http-conduit
@@ -99,6 +99,7 @@ executables:
       - text
       - time
       - uuid
+      - vector
       - wai
       - wai-extra
       - warp
