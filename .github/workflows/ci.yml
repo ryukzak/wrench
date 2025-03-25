@@ -24,14 +24,21 @@ jobs:
           stack-version: "latest"
           stack-no-global: true
 
-      - name: Build
-        run: make build
-
       - name: Test
         run: make test
 
       - name: Test examples
         run: make test-examples
+
+      - name: Build
+        run: make build
+
+      - uses: gacts/install-hurl@v1
+
+      - name: Test server
+        run: |
+          mkdir variants
+          make test-serv
 
   haskell-lint:
     timeout-minutes: 5
