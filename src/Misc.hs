@@ -11,4 +11,5 @@ import Relude
 wrenchVersion :: Text
 wrenchVersion = ver <> " (" <> toText (take 7 $(gitHash)) <> ")" <> " " <> $(gitCommitDate)
     where
-        ver = toText $ showVersion version <> maybe "" ("-" <>) $$(envQ "VERSION_SUFFIX")
+        suffix :: String = fromMaybe "" $$(envQ "VERSION_SUFFIX")
+        ver = toText $ showVersion version <> if suffix == "" then "" else "-" <> suffix

@@ -18,6 +18,8 @@ LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
+export VERSION_SUFFIX ?= DEV
+
 all: format-fix lint-fix test
 
 build:
