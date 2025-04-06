@@ -5,6 +5,48 @@ on:
   push:
 
 jobs:
+  haskell-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: haskell-actions/run-fourmolu@v10
+        with:
+          version: "0.17.0.0"
+
+  html-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Prettier
+        id: prettier-run
+        uses: rutajdash/prettier-cli-action@v1.0.0
+        with:
+          file_pattern: static/**/*.html
+
+      - name: Prettier Output
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          echo "The following files are not formatted:"
+          echo "${{steps.prettier-run.outputs.prettier_output}}"
+
+  markdown-formatting:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Run mdl for check markdown format
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: .
+          config_file: .markdownlint.yaml
+
   wrench:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -56,48 +98,6 @@ jobs:
         with:
           path: .
           fail-on: warning
-
-  haskell-formatting:
-    timeout-minutes: 5
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: haskell-actions/run-fourmolu@v10
-        with:
-          version: "0.17.0.0"
-
-  html-formatting:
-    timeout-minutes: 5
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Prettier
-        id: prettier-run
-        uses: rutajdash/prettier-cli-action@v1.0.0
-        with:
-          file_pattern: static/**/*.html
-
-      - name: Prettier Output
-        if: ${{ failure() }}
-        shell: bash
-        run: |
-          echo "The following files are not formatted:"
-          echo "${{steps.prettier-run.outputs.prettier_output}}"
-
-  markdown-formatting:
-    timeout-minutes: 5
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-
-      - name: Run mdl for check markdown format
-        uses: nosborn/github-action-markdown-cli@v3.3.0
-        with:
-          files: .
-          config_file: .markdownlint.yaml
 
   is-variants-and-tests-actual:
     runs-on: ubuntu-latest
