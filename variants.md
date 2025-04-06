@@ -618,7 +618,7 @@ def reverse_string_cstr(s):
     line, rest = read_line(s, 0x20)
     if line is None:
         return [overflow_error_value], rest
-    return cstr(line[::-1], 0x20)[0], rest
+    return cstr(line, 0x20)[0][::-1], rest
 
 
 assert reverse_string_cstr('hello\n') == ('olleh', '')
