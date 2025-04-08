@@ -3,11 +3,10 @@
 _start:
     lit 25
     lit 25
-    call
-    jmp ;
+    next_call halt_jmp ;
 
-call:
+next_call:
     + ;
 
-jmp:
+halt_jmp:
     halt
