@@ -10,6 +10,12 @@ const_1:         .word  0x01
 _start:
     load_ind     input_addr                  ; acc <- mem[mem[input_addr]]
     not                                      ; acc <- ~acc
+    jmp          and_label
+
+and_label:
     and          const_1                     ; acc <- acc & const_1
     store_ind    output_addr                 ; mem[mem[output_addr]] <- acc
+    jmp          halt_label
+
+halt_label:
     halt

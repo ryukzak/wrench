@@ -14,7 +14,7 @@ import Machine.Memory
 import Machine.Types
 import Relude
 import Report
-import Text.Megaparsec (choice)
+import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
 import Translator.Parser.Misc
 import Translator.Parser.Types
@@ -86,42 +86,56 @@ instance CommentStart (Isa w l) where
 
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* (hspace1 <|> eol' "\\")
-        where
-            cmd =
-                choice
-                    [ LoadImm <$> (string "load_imm" *> hspace1 *> reference)
-                    , LoadAddr <$> (string "load_addr" *> hspace1 *> reference)
-                    , LoadInd <$> (string "load_ind" *> hspace1 *> reference)
-                    , Load <$> (string "load" *> hspace1 *> reference16)
-                    , StoreAddr <$> (string "store_addr" *> hspace1 *> reference)
-                    , StoreInd <$> (string "store_ind" *> hspace1 *> reference)
-                    , Store <$> (string "store" *> hspace1 *> reference16)
-                    , Add <$> (string "add" *> hspace1 *> reference16)
-                    , Sub <$> (string "sub" *> hspace1 *> reference16)
-                    , Mul <$> (string "mul" *> hspace1 *> reference16)
-                    , Div <$> (string "div" *> hspace1 *> reference16)
-                    , Rem <$> (string "rem" *> hspace1 *> reference16)
-                    , string "clv" >> return Clv
-                    , string "clc" >> return Clc
-                    , ShiftL <$> (string "shiftl" *> hspace1 *> reference16)
-                    , ShiftR <$> (string "shiftr" *> hspace1 *> reference16)
-                    , And <$> (string "and" *> hspace1 *> reference16)
-                    , Or <$> (string "or" *> hspace1 *> reference16)
-                    , Xor <$> (string "xor" *> hspace1 *> reference16)
-                    , string "not" >> return Not
-                    , Jmp <$> (string "jmp" *> hspace1 *> reference)
-                    , Beqz <$> (string "beqz" *> hspace1 *> reference)
-                    , Bnez <$> (string "bnez" *> hspace1 *> reference)
-                    , Bgz <$> (string "bgt" *> hspace1 *> reference)
-                    , Blz <$> (string "ble" *> hspace1 *> reference)
-                    , Bvs <$> (string "bvs" *> hspace1 *> reference)
-                    , Bvc <$> (string "bvc" *> hspace1 *> reference)
-                    , Bcs <$> (string "bcs" *> hspace1 *> reference)
-                    , Bcc <$> (string "bcc" *> hspace1 *> reference)
-                    , string "halt" >> return Halt
-                    ]
-            reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
+        choice
+            [ LoadImm <$> cmdMnemonic1 "load_imm" reference
+            , LoadAddr <$> cmdMnemonic1 "load_addr" reference
+            , LoadInd <$> cmdMnemonic1 "load_ind" reference
+            , Load <$> cmdMnemonic1 "load" reference16
+            , StoreAddr <$> cmdMnemonic1 "store_addr" reference
+            , StoreInd <$> cmdMnemonic1 "store_ind" reference
+            , Store <$> cmdMnemonic1 "store" reference16
+            , Add <$> cmdMnemonic1 "add" reference16
+            , Sub <$> cmdMnemonic1 "sub" reference16
+            , Mul <$> cmdMnemonic1 "mul" reference16
+            , Div <$> cmdMnemonic1 "div" reference16
+            , Rem <$> cmdMnemonic1 "rem" reference16
+            , cmdMnemonic0 "clv" >> return Clv
+            , cmdMnemonic0 "clc" >> return Clc
+            , ShiftL <$> cmdMnemonic1 "shiftl" reference16
+            , ShiftR <$> cmdMnemonic1 "shiftr" reference16
+            , And <$> cmdMnemonic1 "and" reference16
+            , Or <$> cmdMnemonic1 "or" reference16
+            , Xor <$> cmdMnemonic1 "xor" reference16
+            , cmdMnemonic0 "not" >> return Not
+            , Jmp <$> cmdMnemonic1 "jmp" reference
+            , Beqz <$> cmdMnemonic1 "beqz" reference
+            , Bnez <$> cmdMnemonic1 "bnez" reference
+            , Bgz <$> cmdMnemonic1 "bgt" reference
+            , Blz <$> cmdMnemonic1 "ble" reference
+            , Bvs <$> cmdMnemonic1 "bvs" reference
+            , Bvc <$> cmdMnemonic1 "bvc" reference
+            , Bcs <$> cmdMnemonic1 "bcs" reference
+            , Bcc <$> cmdMnemonic1 "bcc" reference
+            , cmdMnemonic0 "halt" >> return Halt
+            ]
+
+reference16 :: (MachineWord w) => Parser (Ref w)
+reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
+
+cmdMnemonic0 :: String -> Parser ()
+cmdMnemonic0 mnemonic = try $ do
+    hspace
+    void (string mnemonic)
+    hspace1 <|> eol' "\\"
+
+cmdMnemonic1 :: String -> Parser (Ref w) -> Parser (Ref w)
+cmdMnemonic1 mnemonic refParser = try $ do
+    void hspace
+    void (string mnemonic)
+    hspace1
+    ref <- refParser
+    hspace1 <|> eol' "\\"
+    return ref
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i =
