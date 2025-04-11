@@ -22,7 +22,7 @@
   </head>
 
   <body
-    class="dark bg-[var(--c-black)] text-[var(--c-white)] flex items-center justify-center min-h-screen"
+    class="flex justify-center items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
   >
     <script type="module">
       import { setupThemeToggle } from '/assets/utils.js'
@@ -36,28 +36,28 @@
       <div class="mb-6 text-center">
         <a
           href="https://github.com/ryukzak/wrench"
-          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] hover:bg-[var(--c-purple)] cursor-pointer"
+          class="hover:bg-[var(--c-purple)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[github]</a
         >
-        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <a
           href="https://github.com/ryukzak/wrench/tree/master/docs"
-          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] hover:bg-[var(--c-fuschia)] cursor-pointer"
+          class="hover:bg-[var(--c-fuschia)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[isa_docs]</a
         >
-        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <a
           href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-          class="pb-[0.2ch] pt-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] hover:bg-[var(--c-orange)] cursor-pointer"
+          class="hover:bg-[var(--c-orange)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[variants]</a
         >
-        <span class="text-[var(-c-grey)] hidden lg:inline">|</span>
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <button
           id="invert-theme-button"
-          class="text-[var(--c-blue)] hover:text-[var(--c-black)] hover:bg-[var(--c-blue)] cursor-pointer"
+          class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
         >
           [invert_theme]
         </button>
@@ -74,7 +74,7 @@
           <select
             id="variant"
             name="variant"
-            class="hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full"
           >
             <option value="" selected disabled>Select a variant</option>
             <!-- prettier-ignore -->
@@ -87,7 +87,7 @@
           <select
             id="isa"
             name="isa"
-            class="hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full"
           >
             <option value="risc-iv-32" selected>risc-iv-32</option>
             <option value="f32a">f32a</option>
@@ -104,7 +104,7 @@
             id="name"
             name="name"
             required
-            class="whitespace-pre overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full overflow-x-auto whitespace-pre"
           />
         </div>
 
@@ -115,7 +115,7 @@
           <textarea
             id="comment"
             name="comment"
-            class="whitespace-pre min-h-[6rem] overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[6rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
@@ -127,7 +127,7 @@
             id="asm"
             name="asm"
             required
-            class="whitespace-pre min-h-[20rem] overflow-x-auto hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[20rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
@@ -139,7 +139,7 @@
             id="config"
             name="config"
             required
-            class="whitespace-pre min-h-[20rem] hover:opacity-80 overflow-x-auto bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[20rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
@@ -148,7 +148,7 @@
             id="submit-button"
             type="submit"
             value="submit"
-            class="bg-[var(--c-purple)] hover:opacity-80 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm rounded-md text-white"
+            class="inline-flex justify-center bg-[var(--c-purple)] hover:opacity-80 shadow-sm px-4 py-2 border focus:border-[var(--c-white)] border-transparent rounded-md focus:outline-none text-white"
           />
         </div>
 
@@ -163,7 +163,7 @@
         </script>
 
         <!-- prettier-ignore -->
-        <div class="text-center text-[var(--c-grey)]">/* {{version}} */</div>
+        <div class="text-[var(--c-grey)] text-center">/* {{version}} */</div>
       </form>
     </div>
   </body>

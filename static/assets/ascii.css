@@ -1,3 +1,5 @@
+/* @import 'tailwindcss'; */
+
 :root {
   /* Theme variables */
   --c-black: #d5d5d5;
@@ -72,11 +74,4 @@ pre {
 select > option {
   padding: 0.5rem;
   background-color: var(--c-dark-grey);
-}
-
-select:focus,
-input:focus,
-textarea:focus {
-  border-color: var(--c-white);
-  outline: none;
 }
