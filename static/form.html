@@ -13,19 +13,24 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
+    <script defer type="module" src="/assets/utils.js"></script>
     <link rel="stylesheet" href="/assets/ascii.css" />
-
-    <script type="module" defer src="/assets/on_invert_click.js"></script>
-    <script type="module" src="/assets/form.js"></script>
   </head>
 
   <body
     class="dark bg-[var(--c-black)] text-[var(--c-white)] flex items-center justify-center min-h-screen"
   >
+    <script type="module">
+      import { setupThemeToggle } from '/assets/utils.js'
+
+      document.addEventListener('DOMContentLoaded', () => {
+        setupThemeToggle('invert-theme-button')
+      })
+    </script>
     <div class="p-8 rounded-lg w-full max-w-[80vw]">
       <h1 class="mb-6 text-6xl text-center">Wrench Submit</h1>
       <div class="mb-6 text-center">
@@ -72,7 +77,6 @@
             class="hover:opacity-80 bg-[var(--c-dark-grey)] mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
           >
             <option value="" selected disabled>Select a variant</option>
-            <!-- we don't need prettier to mess with ssr  -->
             <!-- prettier-ignore -->
             {{variants}}
           </select>
@@ -142,14 +146,13 @@
         <div class="text-center">
           <input
             id="submit-button"
-            type="button"
-            value="Submit"
+            type="submit"
+            value="submit"
             class="bg-[var(--c-purple)] hover:opacity-80 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm rounded-md text-white"
           />
         </div>
 
         <div class="text-center text-[var(--c-grey)]">
-          <!-- we don't need prettier to mess with ssr  -->
           <!-- prettier-ignore -->
           /* {{version}} */
         </div>

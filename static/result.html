@@ -11,25 +11,78 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <script
       defer
       src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.5/flowbite.min.js"
     ></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer type="module" src="/assets/utils.js"></script>
 
     <link rel="stylesheet" href="/assets/ascii.css" />
-    <script defer src="/assets/on_invert_click.js"></script>
-    <script defer src="/assets/result.js"></script>
   </head>
 
   <body
     class="dark bg-[var(--c-black)] text-[var(--c-white)] full flex flex-col items-center min-h-screen"
   >
+    <script type="module">
+      import {
+        setupCopyButton,
+        handleEmptyContent,
+        setupThemeToggle,
+      } from '/assets/utils.js'
+
+      document.addEventListener('DOMContentLoaded', () => {
+        setupCopyButton(
+          'copy-assembler-code-button',
+          'assembler-code-text-element',
+        )
+        setupCopyButton(
+          'copy-simulation-config-button',
+          'simulation-config-text-element',
+        )
+
+        handleEmptyContent(
+          'comment-text-element',
+          'comment-header',
+          'empty-comment-header',
+        )
+        handleEmptyContent(
+          'dump-text-element',
+          'accordion-collapse-dump',
+          'dump-empty-tag',
+        )
+        handleEmptyContent(
+          'test-cases-result-text-element',
+          'accordion-collapse-test-cases-result',
+          'test-cases-result-empty-tag',
+        )
+        handleEmptyContent(
+          'simulation-log-text-element',
+          'accordion-collapse-simulation-log',
+          'simulation-log-empty-tag',
+        )
+
+        // Handle status elements
+        const statusElements = [
+          { id: 'status-text-element', label: 'status' },
+          { id: 'test-cases-status-element', label: 'test_cases_status' },
+        ]
+
+        statusElements.forEach(({ id, label }) => {
+          const element = document.getElementById(id)
+          if (element && element.textContent.trim() === '') {
+            element.innerHTML = `${label} = "" <span class="text-[var(--c-grey)]">/* nothing returned */</span>`
+          }
+        })
+
+        setupThemeToggle('invert-theme-button')
+      })
+    </script>
     <div class="w-full mt-4 mb-6 text-center">
-      <!-- Добавляем отступ снизу -->
       <a
         class="text-6xl text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] cursor-pointer"
         href="/"
@@ -104,7 +157,7 @@
             >
               <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <button
-                id="copy-assembler-button"
+                id="copy-assembler-code-button"
                 class="place-self-end text-[var(--c-white)] hover:text-[var(--c-black)] hover:bg-[var(--c-white)] hover:opacity-80 cursor-pointer"
               >
                 [copy]
