@@ -1,0 +1,77 @@
+/* @import 'tailwindcss'; */
+
+:root {
+  /* Theme variables */
+  --c-black: #d5d5d5;
+  --c-white: #2a2830;
+  --c-dark-grey: #e4e4e7;
+  --c-grey: #7e7e7e;
+  --c-purple: #6b1fa3;
+  --c-fuschia: #f50777;
+  --c-blue: #0b8cff;
+  --c-green: #00a76c;
+  --c-orange: #dd7200;
+  --c-orange-low-saturation: #d08c47;
+  --c-yellow: #949700;
+
+  /* Functional variables */
+  --selection-color: #000000;
+  --selection-bg: var(--c-grey);
+  --font-stack: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
+  font-family: var(--font-stack);
+}
+
+body.dark {
+  --c-black: #1a1a1a;
+  --c-white: #e1e1e1;
+  --c-grey: #898989;
+  --c-dark-grey: #222224;
+  --c-purple: #b462ff;
+  --c-fuschia: #ff45b4;
+  --c-blue: #18b6ff;
+  --c-green: #1beb9e;
+  --c-orange: #ff9528;
+  --c-orange-low-saturation: #a5692d;
+  --c-yellow: #dddd25;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-stack);
+  font-weight: 400;
+}
+pre {
+  font-family: inherit !important;
+}
+
+::selection {
+  color: var(--selection-color);
+  background: var(--selection-bg);
+}
+
+.vim-folded {
+  white-space: nowrap;
+  overflow-x: hidden;
+
+  &::before {
+    content: '+--\00A0';
+    white-space: nowrap;
+  }
+
+  &::after {
+    content: '\00A0····················································';
+    display: inline;
+    text-align: start;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: clip;
+  }
+}
+
+/* those elements are auto generated on server, so we can't do the styles inside a className */
+select > option {
+  padding: 0.5rem;
+  background-color: var(--c-dark-grey);
+}
