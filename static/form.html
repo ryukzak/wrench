@@ -154,15 +154,15 @@
 
         <script>
           // Load saved name when page opens
-          window.addEventListener("DOMContentLoaded", function () {
-            const savedName = window.localStorage.getItem("author-name");
+          window.addEventListener('DOMContentLoaded', function () {
+            const savedName = window.localStorage.getItem('author-name')
             if (savedName) {
-              document.getElementById("name").value = savedName;
+              document.getElementById('name').value = savedName
             }
-          });
+          })
         </script>
-        
-          <!-- prettier-ignore -->
+
+        <!-- prettier-ignore -->
         <div class="text-center text-[var(--c-grey)]">/* {{version}} */</div>
       </form>
     </div>
