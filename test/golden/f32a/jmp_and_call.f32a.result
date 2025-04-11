@@ -3,10 +3,10 @@
 0:	Lit 25	@_start
 5:	Lit 25	
 10:	Call 20	
-20:	Add	@call
+20:	Add	@next_call
 21:	Return	
 15:	Jump 22	
-22:	Halt	@jmp
+22:	Halt	@halt_jmp
 ---
 # Check results
 T A B S 50 0 0x00000000 0

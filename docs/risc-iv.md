@@ -6,6 +6,27 @@ Comments in RiscIv assembly code are denoted by the `;` character.
 
 Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf)
 
+## Immediate Value Relocation Directives
+
+The RiscIv assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats:
+
+- **%hi(symbol)**
+    - **Description:** Used to extract the upper 20 bits of a 32-bit address or immediate value
+    - **Usage:** `lui rd, %hi(symbol)`
+    - **Operation:** `rd <- (symbol & 0xFFFFF000)`
+
+- **%lo(symbol)**
+    - **Description:** Used to extract the lower 12 bits of a 32-bit address or immediate value
+    - **Usage:** `addi rd, rs, %lo(symbol)`
+    - **Operation:** `rd <- rs + (symbol & 0x00000FFF)`
+
+These directives are typically used together to load a full 32-bit address into a register:
+
+```assembly
+lui  a0, %hi(address)    ; Load upper 20 bits into a0
+addi a0, a0, %lo(address) ; Add lower 12 bits to a0
+```
+
 ## Instructions
 
 Instruction size: 4 bytes.

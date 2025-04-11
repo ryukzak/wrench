@@ -59,9 +59,13 @@ Additional requirements for all variants:
 1. The input should be passed through memory cell `0x80`.
 1. The output should be passed to memory cell `0x84`.
 1. The input value and the result by default -- a 32-bit machine word
-    unless otherwise specified.
+   unless otherwise specified.
+1. Source code should be properly formatted (manually or using `wrench-fmt`).
+1. Execution log should not be truncated (use configuration with understanding).
 1. ISA-specific requirements:
     - `F32a`: use procedures.
+    - `RISC-IV`: use nested procedures and stack. Where applicable -- recursive solutions are recommended.
+1. When using procedures, develop a label naming convention that helps visualize code structure.
 
 Also we have the following helper functions not from builtins:
 

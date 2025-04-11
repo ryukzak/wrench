@@ -499,7 +499,7 @@ def reverse_string_cstr(s):
     line, rest = read_line(s, 0x20)
     if line is None:
         return [overflow_error_value], rest
-    return cstr(line[::-1], 0x20)[0], rest
+    return cstr(line, 0x20)[0][::-1], rest
 
 
 TEST_CASES["reverse_string_cstr"] = TestCase(
@@ -524,9 +524,9 @@ TEST_CASES["reverse_string_cstr"] = TestCase(
         ),
         String2String(
             "1234567890\x0012345\n",
-            "54321",
+            "0987654321",
             "",
-            mem_view=[(0x00, 0x1F, cbuf("54321\x000987654321", 0x20))],
+            mem_view=[(0x00, 0x1F, cbuf("0987654321\x0012345", 0x20))],
         ),
     ],
     is_variant=True,

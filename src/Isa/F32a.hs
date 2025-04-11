@@ -95,51 +95,63 @@ instance CommentStart (Isa w l) where
 
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* (hspace1 <|> eol' "\\")
-        where
-            cmd =
-                choice
-                    [ Lit <$> (string "lit" *> hspace1 *> reference)
-                    , Next <$> (string "next" *> hspace1 *> reference)
-                    , If <$> (string "if" *> hspace1 *> reference)
-                    , MinusIf <$> (string "-if" *> hspace1 *> reference)
-                    , string "a!" >> return AStore
-                    , string "b!" >> return BStore
-                    , string "+*" >> return MulStep
-                    , string "+/" >> return DivStep
-                    , string "2*" >> return LShift
-                    , string "2/" >> return RShift
-                    , string "inv" >> return Inv
-                    , string "+" >> return Add
-                    , string "eam" >> return Eam
-                    , string "and" >> return And
-                    , string "xor" >> return Xor
-                    , string "drop" >> return Drop
-                    , string "dup" >> return Dup
-                    , string "over" >> return Over
-                    , string "a" >> return AFetch
-                    , FetchP <$> (string "@p" *> hspace1 *> reference)
-                    , string "@+" >> return FetchPlus
-                    , string "@b" >> return FetchB
-                    , string "@" >> return Fetch
-                    , StoreP <$> (string "!p" *> hspace1 *> reference)
-                    , string "!b" >> return StoreB
-                    , string "!+" >> return StorePlus
-                    , string "!" >> return Store
-                    , string "r>" >> return RIntoT
-                    , string ">r" >> return TIntoR
-                    , string "halt" >> return Halt
-                    , string ";" >> return Return
-                    , try $ do
-                        label <- reference
-                        hspace1
-                        void $ string ";"
-                        return $ Jump label
-                    , try $ do
-                        label <- reference
-                        hspace1 <|> eol' "\\"
-                        return $ Call label
-                    ]
+        choice
+            [ Lit <$> cmdMnemonic1 "lit"
+            , Next <$> cmdMnemonic1 "next"
+            , If <$> cmdMnemonic1 "if"
+            , MinusIf <$> cmdMnemonic1 "-if"
+            , cmdMnemonic0 "a!" >> return AStore
+            , cmdMnemonic0 "b!" >> return BStore
+            , cmdMnemonic0 "+*" >> return MulStep
+            , cmdMnemonic0 "+/" >> return DivStep
+            , cmdMnemonic0 "2*" >> return LShift
+            , cmdMnemonic0 "2/" >> return RShift
+            , cmdMnemonic0 "inv" >> return Inv
+            , cmdMnemonic0 "+" >> return Add
+            , cmdMnemonic0 "eam" >> return Eam
+            , cmdMnemonic0 "and" >> return And
+            , cmdMnemonic0 "xor" >> return Xor
+            , cmdMnemonic0 "drop" >> return Drop
+            , cmdMnemonic0 "dup" >> return Dup
+            , cmdMnemonic0 "over" >> return Over
+            , cmdMnemonic0 "a" >> return AFetch
+            , FetchP <$> cmdMnemonic1 "@p"
+            , cmdMnemonic0 "@+" >> return FetchPlus
+            , cmdMnemonic0 "@b" >> return FetchB
+            , cmdMnemonic0 "@" >> return Fetch
+            , StoreP <$> cmdMnemonic1 "!p"
+            , cmdMnemonic0 "!b" >> return StoreB
+            , cmdMnemonic0 "!+" >> return StorePlus
+            , cmdMnemonic0 "!" >> return Store
+            , cmdMnemonic0 "r>" >> return RIntoT
+            , cmdMnemonic0 ">r" >> return TIntoR
+            , cmdMnemonic0 "halt" >> return Halt
+            , cmdMnemonic0 ";" >> return Return
+            , try $ do
+                label <- reference
+                hspace1
+                void $ string ";"
+                return $ Jump label
+            , try $ do
+                label <- reference
+                hspace1 <|> eol' "\\"
+                return $ Call label
+            ]
+
+cmdMnemonic0 :: String -> Parser ()
+cmdMnemonic0 mnemonic = try $ do
+    hspace
+    void (string mnemonic)
+    hspace1 <|> eol' "\\"
+
+cmdMnemonic1 :: (MachineWord w) => String -> Parser (Ref w)
+cmdMnemonic1 mnemonic = try $ do
+    void hspace
+    void (string mnemonic)
+    hspace1
+    ref <- reference
+    hspace1 <|> eol' "\\"
+    return ref
 
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =

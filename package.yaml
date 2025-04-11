@@ -1,5 +1,5 @@
 name: wrench
-version: 0.0.2.2
+version: 0.0.2.7
 github: "ryukzak/wrench"
 license: BSD-3-Clause
 author: "Aleksandr Penskoi"
@@ -40,13 +40,15 @@ dependencies:
   - base >= 4.7 && < 5
   - data-default
   - filepath
+  - gitrev
   - megaparsec
   - mtl
   - optparse-applicative
   - pretty-simple
+  - regex-tdfa
   - relude
   - split
-  - regex-tdfa
+  - th-env
   - yaml
 
 ghc-options:
@@ -57,7 +59,6 @@ ghc-options:
   - -Wincomplete-uni-patterns
   - -Wmissing-export-lists
   - -Wmissing-home-modules
-  - -Wpartial-fields
   - -Wredundant-constraints
 
 library:
@@ -66,15 +67,13 @@ library:
 executables:
   wrench:
     main: Main.hs
-    other-modules: [Paths_wrench]
+    other-modules: []
     source-dirs: app
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - gitrev
-      - th-env
       - wrench
 
   wrench-serv:
@@ -86,8 +85,13 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
+      - base64
+      - cookie
+      - cryptohash-sha1
+      - crypton
       - directory
       - http-api-data
+      - http-conduit
       - lucid
       - network-uri
       - process
@@ -97,6 +101,7 @@ executables:
       - text
       - time
       - uuid
+      - vector
       - wai
       - wai-extra
       - warp

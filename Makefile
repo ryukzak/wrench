@@ -18,10 +18,14 @@ LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
+export VERSION_SUFFIX ?= DEV
+
+all: format-fix lint-fix test test-serv
+
 build:
 	stack build --copy-bins
 
-server-run: build generate-variants
+run-server: build generate-variants
 	stack exec wrench-serv
 
 build-image-local:
@@ -82,6 +86,11 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-87.yaml
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
+
+test-serv: build
+	stack exec wrench-serv &
+	hurl --retry 3 --no-output test/wrench-serv.hurl
+	pkill -f wrench-serv
 
 generate-variants:
 	script/variants.py
