@@ -1,111 +1,66 @@
 <!doctype html>
 <html lang="en">
+  <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="#1a1a1a" name="theme-color" />
     <title>Wrench</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <meta content="#1a1a1a" name="theme-color" />
-    <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
-    <style>
-      textarea {
-        min-height: 20rem;
-      }
 
-      #comment {
-        min-height: 5rem;
-      }
-
-      select {
-        appearance: none;
-        border-radius: 0.375rem;
-        padding: 0.5rem 1rem;
-        background-color: var(--c-dark-grey);
-      }
-
-      select > option {
-        padding: 0.5rem;
-        background-color: var(--c-dark-grey);
-      }
-
-      select:focus,
-      input:focus,
-      textarea:focus {
-        border-color: var(--c-white);
-        outline: none;
-      }
-
-      input[type="button"] {
-        background-color: var(--c-purple);
-      }
-
-      input[type="button"]:hover {
-        opacity: 0.8;
-      }
-    </style>
+    <script defer type="module" src="/assets/utils.js"></script>
+    <link rel="stylesheet" href="/assets/ascii.css" />
   </head>
 
-  <body class="flex items-center justify-center min-h-screen">
-    <div class="p-8 rounded-lg w-full max-w-6xl">
-      <div class="text-center w-full mt-4 mb-2">
-        <h1 class="large white">
-          <a class="subtle-hover" href="/">Wrench Submit</a>
-        </h1>
-      </div>
+  <body
+    class="flex justify-center items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
+  >
+    <script type="module">
+      import { setupThemeToggle } from '/assets/utils.js'
 
-      <div class="self-center text-center mb-6">
+      document.addEventListener('DOMContentLoaded', () => {
+        setupThemeToggle('invert-theme-button')
+      })
+    </script>
+    <div class="p-8 rounded-lg w-full max-w-[80vw]">
+      <h1 class="mb-6 text-6xl text-center">Wrench Submit</h1>
+      <div class="mb-6 text-center">
         <a
           href="https://github.com/ryukzak/wrench"
-          class="purple hover"
+          class="hover:bg-[var(--c-purple)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[github]</a
         >
-        <span class="grey separator-char">|</span>
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <a
           href="https://github.com/ryukzak/wrench/tree/master/docs"
-          class="fuschia hover"
+          class="hover:bg-[var(--c-fuschia)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[isa_docs]</a
         >
-        <span class="grey separator-char">|</span>
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <a
           href="https://github.com/ryukzak/wrench/blob/master/variants.md"
-          class="orange hover"
+          class="hover:bg-[var(--c-orange)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
           target="_blank"
           >[variants]</a
         >
-        <span class="grey separator-char">|</span>
-        <button onclick="onInvertClick()" class="blue hover">
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
+        <button
+          id="invert-theme-button"
+          class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
+        >
           [invert_theme]
         </button>
-        <script>
-          function onInvertClick() {
-            document.body.classList.toggle("inverted");
-            window.localStorage.setItem(
-              "prefers-color-scheme",
-              document.body.classList.contains("inverted") ? "light" : "dark",
-            );
-          }
-
-          if (
-            window.matchMedia &&
-            window.localStorage.getItem("prefers-color-scheme") === null
-          ) {
-            if (!window.matchMedia("(prefers-color-scheme: dark)").matches) {
-              document.body.classList.add("inverted");
-            }
-          } else if (
-            window.localStorage.getItem("prefers-color-scheme") === "light"
-          ) {
-            document.body.classList.add("inverted");
-          }
-        </script>
       </div>
       <form
         id="main-form"
@@ -115,23 +70,24 @@
         class="space-y-6"
       >
         <div class="mb-6">
-          <label for="variant" class="block grey">/* variant */</label>
+          <label class="block text-[var(--c-grey)]">/* variant */</label>
           <select
             id="variant"
             name="variant"
-            class="white subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full"
           >
             <option value="" selected disabled>Select a variant</option>
+            <!-- prettier-ignore -->
             {{variants}}
           </select>
         </div>
 
         <div class="mb-6">
-          <label for="isa" class="block grey">/* ISA */</label>
+          <label for="isa" class="block text-[var(--c-grey)]">/* ISA */</label>
           <select
             id="isa"
             name="isa"
-            class="white subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full"
           >
             <option value="risc-iv-32" selected>risc-iv-32</option>
             <option value="f32a">f32a</option>
@@ -140,293 +96,75 @@
         </div>
 
         <div class="mb-6">
-          <label for="name" class="block grey">/* author */</label>
+          <label for="name" class="block text-[var(--c-grey)]"
+            >/* author */</label
+          >
           <input
             type="text"
             id="name"
             name="name"
             required
-            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full overflow-x-auto whitespace-pre"
           />
         </div>
 
         <div class="mb-6">
-          <label for="comment" class="block grey">/* comment */</label>
+          <label for="comment" class="block text-[var(--c-grey)]"
+            >/* comment */</label
+          >
           <textarea
             id="comment"
             name="comment"
-            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[6rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
         <div class="mb-6">
-          <label for="asm" class="block grey">/* assembler_code */</label>
+          <label for="asm" class="block text-[var(--c-grey)]"
+            >/* assembler_code */</label
+          >
           <textarea
             id="asm"
             name="asm"
             required
-            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[20rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
         <div class="mb-6">
-          <label for="config" class="block grey">/* simulation_config */</label>
+          <label for="config" class="block text-[var(--c-grey)]"
+            >/* simulation_config */</label
+          >
           <textarea
             id="config"
             name="config"
             required
-            class="whitespace-pre overflow-x-auto subtle-hover bg-dark-gray mt-1 block w-full px-3 py-2 border border-zinc-400 rounded-md"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[20rem] overflow-x-auto whitespace-pre"
           ></textarea>
         </div>
 
         <div class="text-center">
           <input
-            type="button"
-            value="Submit"
-            onclick="Submit()"
-            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm rounded-md text-white"
+            id="submit-button"
+            type="submit"
+            value="submit"
+            class="inline-flex justify-center bg-[var(--c-purple)] hover:opacity-80 shadow-sm px-4 py-2 border focus:border-[var(--c-white)] border-transparent rounded-md focus:outline-none text-white"
           />
         </div>
 
         <script>
           // Load saved name when page opens
-          window.addEventListener("DOMContentLoaded", function () {
-            const savedName = window.localStorage.getItem("author-name");
+          window.addEventListener('DOMContentLoaded', function () {
+            const savedName = window.localStorage.getItem('author-name')
             if (savedName) {
-              document.getElementById("name").value = savedName;
+              document.getElementById('name').value = savedName
             }
-          });
-
-          function Submit() {
-            let form = document.getElementById("main-form");
-            let authorName = document.getElementById("name").value;
-
-            if (authorName) {
-              window.localStorage.setItem("author-name", authorName);
-            }
-
-            if (form.checkValidity()) {
-              form.submit();
-            } else {
-              form.reportValidity();
-            }
-          }
+          })
         </script>
 
-        <div class="text-center grey">/* {{version}} */</div>
+        <!-- prettier-ignore -->
+        <div class="text-[var(--c-grey)] text-center">/* {{version}} */</div>
       </form>
     </div>
-    <style>
-      body {
-        --c-black: #1a1a1a;
-        --c-white: #e1e1e1;
-        --c-grey: #898989;
-        --c-dark-grey: #222224;
-        --c-purple: #b462ff;
-        --c-fuschia: #ff45b4;
-        --c-blue: #18b6ff;
-        --c-green: #1beb9e;
-        --c-orange: #ff9528;
-        --c-orange-low-saturation: #a5692d;
-        --c-yellow: #dddd25;
-        --line: 2.5ch;
-        --font: "IBM", monospace;
-      }
-
-      body.inverted {
-        --c-black: #d5d5d5;
-        --c-white: #2a2830;
-        --c-dark-grey: #e4e4e7;
-        --c-grey: #7e7e7e;
-        --c-purple: #6b1fa3;
-        --c-fuschia: #f50777;
-        --c-blue: #0b8cff;
-        --c-green: #00a76c;
-        --c-orange: #dd7200;
-        --c-orange-low-saturation: #d08c47;
-        --c-yellow: #949700;
-      }
-
-      .orange-low-saturation {
-        color: var(--c-orange-low-saturation);
-        --c-current: var(--c-orange-low-saturation);
-      }
-
-      .black {
-        color: var(--c-black);
-        --c-current: var(--c-black);
-      }
-
-      .white {
-        color: var(--c-white);
-        --c-current: var(--c-white);
-      }
-
-      .grey {
-        color: var(--c-grey);
-        --c-current: var(--c-grey);
-      }
-
-      .purple {
-        color: var(--c-purple);
-        --c-current: var(--c-purple);
-      }
-
-      .fuschia {
-        color: var(--c-fuschia);
-        --c-current: var(--c-fuschia);
-      }
-
-      .blue {
-        color: var(--c-blue);
-        --c-current: var(--c-blue);
-      }
-
-      .green {
-        color: var(--c-green);
-        --c-current: var(--c-green);
-      }
-
-      .orange {
-        color: var(--c-orange);
-        --c-current: var(--c-orange);
-      }
-
-      .yellow {
-        color: var(--c-yellow);
-        --c-current: var(--c-yellow);
-      }
-
-      .bg-dark-gray {
-        background-color: var(--c-dark-grey);
-      }
-
-      a {
-        color: var(--c-current);
-        text-decoration: none;
-      }
-
-      a:hover,
-      .selected,
-      .hover:hover {
-        color: var(--c-black);
-        background: var(--c-current);
-        box-shadow:
-          0.4ch 0 0 0 var(--c-current),
-          -0.3ch 0 0 0 var(--c-current),
-          0.4ch 0.2ch 0 0 var(--c-current),
-          -0.3ch 0.2ch 0 0 var(--c-current);
-        opacity: 0.8;
-      }
-
-      .large {
-        font-size: 2em;
-        line-height: 1.11111111em;
-        font-weight: 200;
-      }
-
-      .italic {
-        font-style: italic;
-      }
-
-      .columns {
-        width: 100%;
-        column-count: 2;
-        column-gap: 1ch;
-      }
-
-      .noselect {
-        user-select: none;
-      }
-
-      .break-anywhere {
-        line-break: anywhere;
-      }
-
-      html,
-      body {
-        margin: 0;
-        background: var(--c-black);
-        color: var(--c-white);
-        min-height: 100vh;
-        font-family: var(--font);
-        font-weight: 400;
-        line-height: var(--line);
-        letter-spacing: 0.01em;
-      }
-
-      .separator-char {
-        display: none;
-      }
-
-      body {
-        font-size: 3.97vw;
-      }
-
-      @media (min-width: 768px) {
-        body {
-          font-size: 2 * 0.7vw;
-        }
-
-        .separator-char {
-          display: contents;
-        }
-      }
-
-      @media (min-width: 1024px) {
-        body {
-          font-size: 1vw;
-          overflow: auto;
-        }
-
-        .large {
-          font-size: 4vw;
-          line-height: 1.11111111em;
-          font-weight: 200;
-        }
-      }
-
-      ::selection {
-        color: #000000;
-        background: var(--c-grey);
-      }
-
-      button {
-        display: inline;
-        font-family: inherit;
-        font-weight: inherit;
-        letter-spacing: inherit;
-        padding: 0;
-        margin: 0;
-        background: transparent;
-        border: none;
-        outline: none;
-      }
-
-      .hover:hover {
-        cursor: pointer;
-      }
-
-      .pointer-events-none {
-        pointer-events: none;
-      }
-
-      body.invert canvas {
-        opacity: 0.05;
-        filter: none;
-        mix-blend-mode: normal;
-      }
-
-      .subtle-hover:hover {
-        box-shadow: none;
-        cursor: pointer;
-        transition: all 0.05s;
-        opacity: 0.8;
-      }
-
-      .title {
-        font-weight: lighter;
-      }
-    </style>
   </body>
 </html>
