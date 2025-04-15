@@ -51,6 +51,11 @@ pre {
   background: var(--selection-bg);
 }
 
+select {
+  height: 42px;
+  -webkit-appearance: none;
+}
+
 .vim-folded {
   white-space: nowrap;
   overflow-x: hidden;
