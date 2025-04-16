@@ -24,29 +24,30 @@ source-repository head
 
 library
   exposed-modules:
-      Config
-      Isa.Acc32
-      Isa.F32a
-      Isa.RiscIv
-      Machine
-      Machine.Memory
-      Machine.Types
-      Misc
-      Report
-      Translator
-      Translator.Parser
-      Translator.Parser.CodeSection
-      Translator.Parser.DataSection
-      Translator.Parser.Misc
-      Translator.Parser.Types
-      Translator.Types
-      Wrench
+      Main
+      Wrench.Config
+      Wrench.Isa.Acc32
+      Wrench.Isa.F32a
+      Wrench.Isa.RiscIv
+      Wrench.Machine
+      Wrench.Machine.Memory
+      Wrench.Machine.Types
+      Wrench.Misc
+      Wrench.Report
+      Wrench.Translator
+      Wrench.Translator.Parser
+      Wrench.Translator.Parser.CodeSection
+      Wrench.Translator.Parser.DataSection
+      Wrench.Translator.Parser.Misc
+      Wrench.Translator.Parser.Types
+      Wrench.Translator.Types
+      Wrench.Wrench
   other-modules:
       Paths_wrench
   autogen-modules:
       Paths_wrench
   hs-source-dirs:
-      src
+      src/wrench
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
@@ -90,8 +91,29 @@ library
 
 executable wrench
   main-is: Main.hs
+  other-modules:
+      Wrench.Config
+      Wrench.Isa.Acc32
+      Wrench.Isa.F32a
+      Wrench.Isa.RiscIv
+      Wrench.Machine
+      Wrench.Machine.Memory
+      Wrench.Machine.Types
+      Wrench.Misc
+      Wrench.Report
+      Wrench.Translator
+      Wrench.Translator.Parser
+      Wrench.Translator.Parser.CodeSection
+      Wrench.Translator.Parser.DataSection
+      Wrench.Translator.Parser.Misc
+      Wrench.Translator.Parser.Types
+      Wrench.Translator.Types
+      Wrench.Wrench
+      Paths_wrench
+  autogen-modules:
+      Paths_wrench
   hs-source-dirs:
-      app
+      src/wrench
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
@@ -195,9 +217,14 @@ executable wrench-fmt
   default-language: Haskell2010
 
 executable wrench-serv
-  main-is: WrenchServ.hs
+  main-is: Main.hs
+  other-modules:
+      WrenchServ.Statistics
+      Paths_wrench
+  autogen-modules:
+      Paths_wrench
   hs-source-dirs:
-      app
+      src/wrench-serv
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
@@ -264,9 +291,9 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Isa.RiscIv.Test
-      Machine.Types.Test
-      Report.Test
+      Wrench.Isa.RiscIv.Test
+      Wrench.Machine.Types.Test
+      Wrench.Report.Test
       Paths_wrench
   autogen-modules:
       Paths_wrench

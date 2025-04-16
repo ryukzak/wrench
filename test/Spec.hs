@@ -1,24 +1,24 @@
-import Config
 import Data.Default
 import Data.Text (replace, toTitle)
-import Isa.Acc32 qualified as Acc32
-import Isa.F32a qualified as F32a
-import Isa.RiscIv qualified as RiscIv
-import Isa.RiscIv.Test qualified
-import Machine.Memory
-import Machine.Types
-import Machine.Types.Test qualified
 import Relude
-import Report.Test qualified
 import System.FilePath
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
-import Translator
-import Translator.Parser.Types
-import Translator.Types
-import Wrench
+import Wrench.Config
+import Wrench.Isa.Acc32 qualified as Acc32
+import Wrench.Isa.F32a qualified as F32a
+import Wrench.Isa.RiscIv qualified as RiscIv
+import Wrench.Isa.RiscIv.Test qualified
+import Wrench.Machine.Memory
+import Wrench.Machine.Types
+import Wrench.Machine.Types.Test qualified
+import Wrench.Report.Test qualified
+import Wrench.Translator
+import Wrench.Translator.Parser.Types
+import Wrench.Translator.Types
+import Wrench.Wrench
 
 main :: IO ()
 main = defaultMainWithRerun tests
@@ -35,8 +35,8 @@ tests =
             , goldenConfig "test/golden/config/only_strict.yaml"
             , goldenConfig "test/golden/config/smoke.yaml"
             ]
-        , testGroup "Report" [Report.Test.tests]
-        , testGroup "Machine.Types" [Machine.Types.Test.tests]
+        , testGroup "Report" [Wrench.Report.Test.tests]
+        , testGroup "Machine.Types" [Wrench.Machine.Types.Test.tests]
         , testGroup
             "RiscIv IV 32"
             [ testGroup
@@ -47,7 +47,7 @@ tests =
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/all.s"
                 , goldenTranslate RiscIv "test/golden/risc-iv-32/lui_addi.s"
                 ]
-            , Isa.RiscIv.Test.tests
+            , Wrench.Isa.RiscIv.Test.tests
             , testGroup
                 "Simulator"
                 [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/count.yaml"

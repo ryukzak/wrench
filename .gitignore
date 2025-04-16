@@ -8,3 +8,4 @@ variants.csv
 .zed/tasks.json
 .tasty-rerun-log
 __pycache__
+src/wrench/Main

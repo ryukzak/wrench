@@ -7,7 +7,7 @@ import Data.Text qualified as T
 import Options.Applicative
 import Relude
 import Relude.Unsafe qualified as Unsafe
-import Wrench (Isa (..))
+import Wrench.Wrench (Isa (..))
 
 data Options = Options
     { fileNames :: [String]

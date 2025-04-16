@@ -62,13 +62,12 @@ ghc-options:
   - -Wredundant-constraints
 
 library:
-  source-dirs: src
+  source-dirs: src/wrench
 
 executables:
   wrench:
     main: Main.hs
-    other-modules: []
-    source-dirs: app
+    source-dirs: src/wrench
     ghc-options:
       - -threaded
       - -rtsopts
@@ -77,9 +76,8 @@ executables:
       - wrench
 
   wrench-serv:
-    main: WrenchServ.hs
-    other-modules: []
-    source-dirs: app
+    main: Main.hs
+    source-dirs: src/wrench-serv
     ghc-options:
       - -threaded
       - -rtsopts
