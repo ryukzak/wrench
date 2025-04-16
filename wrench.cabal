@@ -28,6 +28,7 @@ library
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
@@ -98,6 +99,7 @@ executable wrench
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
