@@ -28,6 +28,7 @@ library
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
@@ -51,6 +52,7 @@ library
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -95,6 +97,7 @@ executable wrench
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
@@ -117,6 +120,7 @@ executable wrench
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -163,6 +167,7 @@ executable wrench-fmt
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -228,6 +233,7 @@ executable wrench-serv
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -302,6 +308,7 @@ test-suite wrench-test
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances

@@ -17,6 +17,7 @@ import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.F32a qualified as F32a
+import Wrench.Isa.M68k qualified as M68k
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Machine
 import Wrench.Machine.Memory
@@ -39,7 +40,7 @@ data Options = Options
 instance Default Options where
     def = Options "" "risc-iv-32" Nothing False False
 
-data Isa = RiscIv | F32a | Acc32
+data Isa = RiscIv | F32a | Acc32 | M68k
     deriving (Show)
 
 instance Read Isa where
@@ -47,6 +48,7 @@ instance Read Isa where
     readsPrec _ "risc-iv" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
+    readsPrec _ "m68k" = [(M68k, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -110,6 +112,15 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                 Left e -> wrenchError e
         Just Acc32 ->
             case wrench @Acc32.Isa @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32) conf opts src of
+                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+                    if onlyTranslation
+                        then translationResult rLabels rDump
+                        else do
+                            putText rTrace
+                            if rSuccess then exitSuccess else exitFailure
+                Left e -> wrenchError e
+        Just M68k ->
+            case wrench @M68k.Isa @Int32 @(M68k.MachineState (IoMem (M68k.Isa Int32 Int32) Int32) Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then translationResult rLabels rDump
