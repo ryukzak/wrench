@@ -18,6 +18,7 @@ import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.RiscIv (RiscIvState)
+import Wrench.Isa.M68k (M68kState)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -39,7 +40,7 @@ data Options = Options
 instance Default Options where
     def = Options "" "risc-iv-32" Nothing False False
 
-data Isa = RiscIv | F32a | Acc32
+data Isa = RiscIv | F32a | Acc32 | M68k
     deriving (Show)
 
 instance Read Isa where
@@ -47,6 +48,7 @@ instance Read Isa where
     readsPrec _ "risc-iv" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
+    readsPrec _ "m68k" = [(M68k, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -90,6 +92,7 @@ wrenchIO opts@Options{input, configFile, isa, verbose} = do
         Just RiscIv -> runWrench @(RiscIvState Int32) conf opts src
         Just F32a -> runWrench @(F32aState Int32) conf opts src
         Just Acc32 -> runWrench @(Acc32State Int32) conf opts src
+        Just M68k -> runWrench @(M68kState Int32) conf opts src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 runWrench ::

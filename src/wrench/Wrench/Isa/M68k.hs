@@ -2,46 +2,54 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
-module Isa.M68k (
-    Isa(..),
-    MachineState(..),
+module Wrench.Isa.M68k (
+    Isa (..),
+    MachineState (..),
 ) where
 
-import Data.Bits (Bits(..), complement, shiftL, shiftR, (.&.), (.|.))
-import Data.Default (def)
+import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.), (.|.))
+import Data.Default (Default, def)
 import Data.Text qualified as T
-import Machine.Memory
-import Machine.Types
 import Relude
-import Report
-import Text.Megaparsec (choice, try)
+import Relude.Unsafe qualified as Unsafe
+import Text.Megaparsec (choice, lookAhead, oneOf, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
-import Translator.Parser.Misc
-import Translator.Parser.Types
-import Translator.Types
+import Text.Megaparsec.Debug (dbg, dbg')
+import Wrench.Machine.Memory
+import Wrench.Machine.Types
+import Wrench.Report
+import Wrench.Translator.Parser.Misc
+import Wrench.Translator.Parser.Types
+import Wrench.Translator.Types
+
+data Mode
+    = -- | 32-bit mode
+      Long
+    deriving (Show)
+
+data DR = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
+    deriving (Eq, Generic, Hashable, Read, Show)
+
+instance (Default w) => Default (HashMap DR w) where
+    def = fromList $ map (,def) [D0, D1, D2, D3, D4, D5, D6, D7]
+
+data AR = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
+    deriving (Eq, Generic, Hashable, Read, Show)
+
+instance (Default w) => Default (HashMap AR w) where
+    def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
+
+data Argument w l
+    = Dn DR
+    | An AR
+    | Imm l
+    deriving (Show)
 
 -- | The 'Isa' type represents the instruction set architecture for the M68k machine.
 -- Each constructor corresponds to a specific instruction.
 data Isa w l
-    = Move l l
-    | Lea l l
-    | Exg l l
-    | Add l l
-    | Sub l l
-    | Mul l l
-    | Div l l
-    | Neg l
-    | And l l
-    | Or l l
-    | Eor l l
-    | Lsl l l
-    | Lsr l l
-    | Bra l
-    | Beq l
-    | Bne l
-    | Jmp l
-    | Push l
-    | Pop l
+    = Move {mode :: Mode, src, dst :: Argument w l}
+    | Not {mode :: Mode, dst :: Argument w l}
     | Halt
     deriving (Show)
 
@@ -51,97 +59,105 @@ instance CommentStart (Isa w l) where
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
         choice
-            [ cmd2args "move" Move reference reference
-            , cmd2args "lea" Lea reference reference
-            , cmd2args "exg" Exg reference reference
-            , cmd2args "add" Add reference reference
-            , cmd2args "sub" Sub reference reference
-            , cmd2args "mul" Mul reference reference
-            , cmd2args "div" Div reference reference
-            , cmd1args "neg" Neg reference
-            , cmd2args "and" And reference reference
-            , cmd2args "or" Or reference reference
-            , cmd2args "eor" Eor reference reference
-            , cmd2args "lsl" Lsl reference reference
-            , cmd2args "lsr" Lsr reference reference
-            , cmd1args "bra" Bra reference
-            , cmd1args "beq" Beq reference
-            , cmd1args "bne" Bne reference
-            , cmd1args "jmp" Jmp reference
-            , cmd1args "push" Push reference
-            , cmd1args "pop" Pop reference
-            , cmdMnemonic0 "halt" >> return Halt
+            [ cmd2args "move" Move
+            , cmd1args "not" Not
+            , cmd0args "halt" Halt
             ]
 
-cmdMnemonic0 :: String -> Parser ()
-cmdMnemonic0 mnemonic = try $ do
-    hspace
-    void (string mnemonic)
-    hspace1 <|> eol' ";"
+cmdMode = void (string ".l") >> return Long
 
-cmdMnemonic1 :: String -> Parser (Ref w) -> Parser (Ref w)
-cmdMnemonic1 mnemonic refParser = try $ do
-    void hspace
-    void (string mnemonic)
+comma :: Parser ()
+comma = hspace >> void (string ",") >> hspace
+
+argument :: (MachineWord w) => Parser (Argument w (Ref w))
+argument =
+    choice
+        [ try $ do
+            void (string "D")
+            n <- oneOf ['0' .. '7']
+            -- lookAhead (hspace1 <|> eol' "\\")
+            return $ Dn $ Unsafe.read ['D', n]
+        , try $ do
+            void (string "(")
+            hspace
+            void (string "A")
+            n <- oneOf ['0' .. '7']
+            hspace
+            void (string ")")
+            -- lookAhead (hspace1 <|> eol' "\\")
+            return $ An $ Unsafe.read ['A', n]
+        , Imm <$> reference
+        ]
+
+cmd0args :: (MachineWord w) => String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
+cmd0args mnemonic constructor = try $ do
+    string mnemonic
+    eol' ";"
+    return constructor
+
+cmd1args :: (MachineWord w) => String -> (Mode -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
+cmd1args mnemonic constructor = try $ do
+    string mnemonic
+    m <- cmdMode
     hspace1
-    ref <- refParser
-    hspace1 <|> eol' ";"
-    return ref
+    a <- argument
+    eol' ";"
+    return $ constructor m a
 
-cmd1args :: String -> (l -> Isa w l) -> Parser l -> Parser (Isa w l)
-cmd1args mnemonic constructor a =
-    constructor <$> (cmdMnemonic mnemonic *> hspace *> a)
-
-cmd2args :: String -> (l -> l -> Isa w l) -> Parser l -> Parser l -> Parser (Isa w l)
-cmd2args mnemonic constructor a b =
-    constructor
-        <$> (cmdMnemonic mnemonic *> hspace *> a)
-        <*> (comma *> b)
-
-comma = hspace >> string "," >> hspace
+cmd2args ::
+    (MachineWord w) =>
+    String -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
+cmd2args mnemonic constructor = try $ do
+    string mnemonic
+    m <- cmdMode
+    hspace1
+    a <- argument
+    comma
+    b <- argument
+    eol' ";"
+    return $ constructor m a b
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i =
-        let relF = fmap (\x -> x - offset) . f
+        let derefArg (Dn r) = Dn r
+            derefArg (An r) = An r
+            derefArg (Imm l) = Imm $ deref' f l
          in case i of
-                Move src dst -> Move (deref' f src) (deref' f dst)
-                Lea src dst -> Lea (deref' f src) (deref' f dst)
-                Exg r1 r2 -> Exg (deref' f r1) (deref' f r2)
-                Add src dst -> Add (deref' f src) (deref' f dst)
-                Sub src dst -> Sub (deref' f src) (deref' f dst)
-                Mul src dst -> Mul (deref' f src) (deref' f dst)
-                Div src dst -> Div (deref' f src) (deref' f dst)
-                Neg dst -> Neg (deref' f dst)
-                And src dst -> And (deref' f src) (deref' f dst)
-                Or src dst -> Or (deref' f src) (deref' f dst)
-                Eor src dst -> Eor (deref' f src) (deref' f dst)
-                Lsl cnt dst -> Lsl (deref' f cnt) (deref' f dst)
-                Lsr cnt dst -> Lsr (deref' f cnt) (deref' f dst)
-                Bra addr -> Bra (deref' relF addr)
-                Beq addr -> Beq (deref' relF addr)
-                Bne addr -> Bne (deref' relF addr)
-                Jmp addr -> Jmp (deref' f addr)
-                Push src -> Push (deref' f src)
-                Pop dst -> Pop (deref' f dst)
+                Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
+                Not{mode, dst} -> Not mode (derefArg dst)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
-    byteLength _ = 2 -- Simplified assumption: all instructions are 2 bytes.
+    byteLength _ = 4 -- Simplified assumption: all instructions are 2 bytes.
 
 data MachineState mem w = State
     { pc :: Int
-    , regs :: HashMap Text w
+    , dr :: HashMap DR w
+    , ar :: HashMap AR w
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
     }
     deriving (Show)
 
+setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setPc addr = modify $ \st -> st{pc = addr}
+
+nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc = do
+    instructionFetch >>= \case
+        Right (pc, instruction) -> setPc (pc + byteLength instruction)
+        Left err -> raiseInternalError $ "nextPc: " <> err
+
+raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
+
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump =
         State
             { pc
-            , regs = def
+            , dr = def
+            , ar = def
             , mem = dump
             , stopped = False
             , internalError = Nothing
@@ -153,13 +169,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{regs} v =
-        case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
-            [r, f]
-                | Just r' <- regs !? r ->
-                    viewRegister f r'
-            _ -> errorView v
+    reprState labels st@State{ar, dr} v =
+        errorView v
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
@@ -175,78 +186,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionStep = do
         ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
-            Move src dst -> do
-                srcVal <- getOperand src
-                setOperand dst srcVal
-                nextPc
-            Lea src dst -> do
-                addr <- getEffectiveAddress src
-                setOperand dst addr
-                nextPc
-            Exg r1 r2 -> do
-                val1 <- getOperand r1
-                val2 <- getOperand r2
-                setOperand r1 val2
-                setOperand r2 val1
-                nextPc
-            Add src dst -> binaryOp src dst (+)
-            Sub src dst -> binaryOp src dst (-)
-            Mul src dst -> binaryOp src dst (*)
-            Div src dst -> binaryOp src dst div
-            Neg dst -> unaryOp dst negate
-            And src dst -> binaryOp src dst (.&.)
-            Or src dst -> binaryOp src dst (.|.)
-            Eor src dst -> binaryOp src dst xor
-            Lsl cnt dst -> shiftOp cnt dst shiftL
-            Lsr cnt dst -> shiftOp cnt dst shiftR
-            Bra addr -> branch addr
-            Beq addr -> conditionalBranch addr (== 0)
-            Bne addr -> conditionalBranch addr (/= 0)
-            Jmp addr -> jump addr
-            Push src -> do
-                val <- getOperand src
-                pushStack val
-                nextPc
-            Pop dst -> do
-                val <- popStack
-                setOperand dst val
+            Move{mode, src, dst} -> do
                 nextPc
             Halt -> modify $ \st -> st{stopped = True}
-        where
-            binaryOp src dst op = do
-                srcVal <- getOperand src
-                dstVal <- getOperand dst
-                setOperand dst (dstVal `op` srcVal)
-                nextPc
-
-            unaryOp dst op = do
-                dstVal <- getOperand dst
-                setOperand dst (op dstVal)
-                nextPc
-
-            shiftOp cnt dst op = do
-                cntVal <- getOperand cnt
-                dstVal <- getOperand dst
-                setOperand dst (dstVal `op` fromEnum cntVal)
-                nextPc
-
-            branch addr = setPc (fromEnum addr)
-
-            conditionalBranch addr cond = do
-                val <- getOperand (Ref "SR") -- Simplified: Assume SR holds condition flags
-                if cond val
-                    then branch addr
-                    else nextPc
-
-            jump addr = setPc (fromEnum addr)
-
-            pushStack val = do
-                sp <- getOperand (Ref "A7")
-                setOperand (Ref "A7") (sp - 2)
-                setWord (fromEnum sp) val
-
-            popStack = do
-                sp <- getOperand (Ref "A7")
-                val <- getWord (fromEnum sp)
-                setOperand (Ref "A7") (sp + 2)
-                return val
