@@ -6,12 +6,12 @@ output_addr:     .word  0x84               ; Output address where the result sho
     .text
 
 _start:
-    move.l   input_addr, A0                ; A0 <- input_addr
+    movea.l  input_addr, A0                  ; A0 <- input_addr
     move.l   (A0), D0                        ; D0 <- n (input value)
 
     not.l    D0                              ; D0 <- ~D0 (logical NOT)
 
-    move.l   output_addr, A1               ; A1 <- output_addr
+    movea.l  output_addr, A1                 ; A1 <- output_addr
     move.l   D0, (A1)                        ; *output_addr <- D0 (result)
 
     halt
