@@ -106,7 +106,7 @@ fix: lint-fix format-fix update-golden readme-fix
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix
 
-format-fix: format-asm-fix
+format-fix: format-asm-fix readme-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
@@ -116,6 +116,7 @@ format-asm-fix:
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
 	stack exec wrench-fmt -- --inplace --isa f32a -v example/f32a/*.s test/golden/f32a/*.s
 	stack exec wrench-fmt -- --inplace --isa acc32 -v example/acc32/*.s test/golden/acc32/*.s
+	stack exec wrench-fmt -- --inplace --isa m68k -v example/m68k/*.s # test/golden/m68k/*.s
 
 format-asm-check: build
 	stack exec wrench-fmt -- --check --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
