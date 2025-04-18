@@ -64,6 +64,34 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd0args "halt" Halt
             ]
 
+cmd0args :: String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
+cmd0args mnemonic constructor = try $ do
+    void $ string mnemonic
+    eol' ";"
+    return constructor
+
+cmd1args :: (MachineWord w) => String -> (Mode -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
+cmd1args mnemonic constructor = try $ do
+    void $ string mnemonic
+    m <- cmdMode
+    hspace1
+    a <- argument
+    eol' ";"
+    return $ constructor m a
+
+cmd2args ::
+    (MachineWord w) =>
+    String -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
+cmd2args mnemonic constructor = try $ do
+    void $ string mnemonic
+    m <- cmdMode
+    hspace1
+    a <- argument
+    comma
+    b <- argument
+    eol' ";"
+    return $ constructor m a b
+
 cmdMode = void (string ".l") >> return Long
 
 comma :: Parser ()
@@ -75,7 +103,7 @@ argument =
         [ try $ do
             void (string "D")
             n <- oneOf ['0' .. '7']
-            -- lookAhead (hspace1 <|> eol' "\\")
+            lookAhead (hspace1 <|> eol' "\\")
             return $ Dn $ Unsafe.read ['D', n]
         , try $ do
             void (string "(")
@@ -84,41 +112,13 @@ argument =
             n <- oneOf ['0' .. '7']
             hspace
             void (string ")")
-            -- lookAhead (hspace1 <|> eol' "\\")
+            lookAhead (hspace1 <|> eol' "\\")
             return $ An $ Unsafe.read ['A', n]
         , Imm <$> reference
         ]
 
-cmd0args :: (MachineWord w) => String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
-cmd0args mnemonic constructor = try $ do
-    string mnemonic
-    eol' ";"
-    return constructor
-
-cmd1args :: (MachineWord w) => String -> (Mode -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
-cmd1args mnemonic constructor = try $ do
-    string mnemonic
-    m <- cmdMode
-    hspace1
-    a <- argument
-    eol' ";"
-    return $ constructor m a
-
-cmd2args ::
-    (MachineWord w) =>
-    String -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
-cmd2args mnemonic constructor = try $ do
-    string mnemonic
-    m <- cmdMode
-    hspace1
-    a <- argument
-    comma
-    b <- argument
-    eol' ";"
-    return $ constructor m a b
-
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
-    derefMnemonic f offset i =
+    derefMnemonic f _offset i =
         let derefArg (Dn r) = Dn r
             derefArg (An r) = An r
             derefArg (Imm l) = Imm $ deref' f l
