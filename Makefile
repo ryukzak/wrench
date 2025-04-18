@@ -1,5 +1,5 @@
 .PHONY : test build format format-check format-asm-check format-asm-fix \
-         format-fix lint lint-fix clean build-image-local server-run \
+         format lint lint-fix clean build-image-local server-run \
          test-examples generate-variants update-golden fix readme-fix \
          builder-image edge-image release-image
 
@@ -20,7 +20,7 @@ HS_SRC_DIR = .
 
 export VERSION_SUFFIX ?= DEV
 
-all: format-fix lint-fix test test-serv
+all: format lint-fix test test-serv
 
 build:
 	stack build --copy-bins
@@ -100,13 +100,13 @@ update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 
-fix: lint-fix format-fix update-golden readme-fix
+fix: lint-fix format update-golden readme-fix
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix
 
-format-fix: format-asm-fix readme-fix
+format: format-asm-fix readme-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
