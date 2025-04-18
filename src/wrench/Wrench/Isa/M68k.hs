@@ -7,15 +7,14 @@ module Wrench.Isa.M68k (
     MachineState (..),
 ) where
 
-import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (complement)
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice, lookAhead, oneOf, try)
+import Text.Megaparsec (choice, oneOf, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
-import Text.Megaparsec.Debug (dbg, dbg')
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
@@ -51,7 +50,7 @@ data Argument w l
 -- Each constructor corresponds to a specific instruction.
 data Isa w l
     = Move {mode :: Mode, src, dst :: Argument w l}
-    -- | MoveA
+    | MoveA {mode :: Mode, src, dst :: Argument w l}
     | Not {mode :: Mode, dst :: Argument w l}
     | Halt
     deriving (Show)
@@ -62,7 +61,9 @@ instance CommentStart (Isa w l) where
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
         choice
+            -- FIXME: restrict arguments
             [ cmd2args "move" Move
+            , cmd2args "movea" MoveA
             , cmd1args "not" Not
             , cmd0args "halt" Halt
             ]
@@ -136,6 +137,7 @@ instance DerefMnemonic (Isa w) w where
             derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
+                MoveA{mode, src, dst} -> MoveA mode (derefArg src) (derefArg dst)
                 Not{mode, dst} -> Not mode (derefArg dst)
                 Halt -> Halt
 
@@ -182,7 +184,17 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{ar, dr} v =
-        errorView v
+        case T.splitOn ":" v of
+            [r] -> reprState labels st (r <> ":dec")
+            [r, f]
+                | Just r' <- readMaybe (toString r)
+                , Just r'' <- dr !? r' ->
+                    viewRegister f r''
+            [r, f]
+                | Just r' <- readMaybe (toString r)
+                , Just r'' <- ar !? r' ->
+                    viewRegister f r''
+            _ -> errorView v
 
 fetch :: (MachineWord w) => Mode -> Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
 fetch _ (DirectDataReg r) = do
@@ -228,6 +240,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
             Move{mode, src, dst} -> do
+                v <- fetch mode src
+                store mode dst v
+                nextPc
+            MoveA{mode, src, dst} -> do
                 v <- fetch mode src
                 store mode dst v
                 nextPc

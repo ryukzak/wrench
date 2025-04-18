@@ -12,6 +12,8 @@ import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
 import Wrench.Isa.RiscIv (RiscIvState)
+import Wrench.Isa.M68k qualified as M86k
+import Wrench.Isa.RiscIv (M68kState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Machine.Memory
@@ -148,6 +150,7 @@ isaPath isa = case isa of
     RiscIv -> "risc-iv-32"
     F32a -> "f32a"
     Acc32 -> "acc32"
+    M68k -> "m68k"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -183,6 +186,7 @@ goldenTranslate :: Isa -> FilePath -> TestTree
 goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.Isa RiscIv fn
 goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
+goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -208,6 +212,7 @@ goldenSimulate isa =
         RiscIv -> goldenSimulate' (wrench @(RiscIvState Int32)) ".risc-iv-32.result"
         F32a -> goldenSimulate' (wrench @(F32aState Int32)) ".f32a.result"
         Acc32 -> goldenSimulate' (wrench @(Acc32State Int32)) ".acc32.result"
+        M68k -> goldenSimulate' (wrench @(M68kState Int32)) ".m68k.result"
     where
         goldenSimulate' wr ext fn confFn =
             let resultFn = dropExtension confFn <> ext
