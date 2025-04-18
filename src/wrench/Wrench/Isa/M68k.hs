@@ -7,7 +7,7 @@ module Wrench.Isa.M68k (
     MachineState (..),
 ) where
 
-import Data.Bits (complement)
+import Data.Bits (complement, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
@@ -52,6 +52,9 @@ data Isa w l
     = Move {mode :: Mode, src, dst :: Argument w l}
     | MoveA {mode :: Mode, src, dst :: Argument w l}
     | Not {mode :: Mode, dst :: Argument w l}
+    | And {mode :: Mode, src, dst :: Argument w l}
+    | Or {mode :: Mode, src, dst :: Argument w l}
+    | Xor {mode :: Mode, src, dst :: Argument w l}
     | Halt
     deriving (Show)
 
@@ -61,12 +64,17 @@ instance CommentStart (Isa w l) where
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
         choice
-            -- FIXME: restrict arguments
-            [ cmd2args "move" Move
-            , cmd2args "movea" MoveA
-            , cmd1args "not" Not
+            [ cmd2args "move" Move src dst
+            , cmd2args "movea" MoveA src addrRegister
+            , cmd1args "not" Not dst
+            , cmd2args "and" And src dst
+            , cmd2args "or" Or src dst
+            , cmd2args "xor" Xor src dst
             , cmd0args "halt" Halt
             ]
+        where
+            src = dataRegister <|> indirectAddrRegister <|> immidiate
+            dst = dataRegister <|> indirectAddrRegister
 
 cmd0args :: String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
 cmd0args mnemonic constructor = try $ do
@@ -74,25 +82,36 @@ cmd0args mnemonic constructor = try $ do
     eol' ";"
     return constructor
 
-cmd1args :: (MachineWord w) => String -> (Mode -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
-cmd1args mnemonic constructor = try $ do
-    void $ string mnemonic
-    m <- cmdMode
-    hspace1
-    a <- argument
+cmd1args ::
+    String
+    -> (Mode -> Argument w (Ref w) -> Isa w (Ref w))
+    -> Parser (Argument w (Ref w))
+    -> Parser (Isa w (Ref w))
+cmd1args mnemonic constructor dstP = try $ do
+    m <- do
+        void $ string mnemonic
+        m <- cmdMode
+        hspace1
+        return m
+    a <- dstP
     eol' ";"
     return $ constructor m a
 
 cmd2args ::
-    (MachineWord w) =>
-    String -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w)) -> Parser (Isa w (Ref w))
-cmd2args mnemonic constructor = try $ do
-    void $ string mnemonic
-    m <- cmdMode
-    hspace1
-    a <- argument
+    String
+    -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w))
+    -> Parser (Argument w (Ref w))
+    -> Parser (Argument w (Ref w))
+    -> Parser (Isa w (Ref w))
+cmd2args mnemonic constructor srcP dstP = do
+    m <- try $ do
+        void $ string mnemonic
+        m <- cmdMode
+        hspace1
+        return m
+    a <- srcP
     comma
-    b <- argument
+    b <- dstP
     eol' ";"
     return $ constructor m a b
 
@@ -126,9 +145,6 @@ indirectAddrRegister = try $ do
 immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
 immidiate = Immediate <$> reference
 
-argument :: (MachineWord w) => Parser (Argument w (Ref w))
-argument = choice [dataRegister, addrRegister, indirectAddrRegister, immidiate]
-
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         let derefArg (DirectDataReg r) = DirectDataReg r
@@ -139,6 +155,9 @@ instance DerefMnemonic (Isa w) w where
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
                 MoveA{mode, src, dst} -> MoveA mode (derefArg src) (derefArg dst)
                 Not{mode, dst} -> Not mode (derefArg dst)
+                And{mode, src, dst} -> And mode (derefArg src) (derefArg dst)
+                Or{mode, src, dst} -> Or mode (derefArg src) (derefArg dst)
+                Xor{mode, src, dst} -> Xor mode (derefArg src) (derefArg dst)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -199,10 +218,10 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
 fetch :: (MachineWord w) => Mode -> Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
 fetch _ (DirectDataReg r) = do
     State{dr} <- get
-    return $ fromMaybe (error "Invalid register") (dr !? r)
+    return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
 fetch _ (IndirectAddrReg r) = do
     st@State{ar, mem} <- get
-    let addr = maybe (error "Invalid register") fromEnum (ar !? r)
+    let addr = maybe (error $ "Invalid register: " <> show r) fromEnum (ar !? r)
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -211,7 +230,7 @@ fetch _ (IndirectAddrReg r) = do
             raiseInternalError $ "memory access error: " <> err
             return def
 fetch _ (Immediate v) = return v
-fetch _ _ = raiseInternalError "internal error" >> return def
+fetch _ arg = raiseInternalError ("can't fetch argument from: " <> show arg) >> return def
 
 store :: (MachineWord w) => Mode -> Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
 store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr}
@@ -223,7 +242,7 @@ store _ (IndirectAddrReg r) v = do
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
-store _ _ _ = raiseInternalError "internal error"
+store _ arg _ = raiseInternalError $ "can't store result in: " <> show arg
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
@@ -237,18 +256,22 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 )
 
     instructionStep = do
-        ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
+        (_pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
-            Move{mode, src, dst} -> do
-                v <- fetch mode src
-                store mode dst v
-                nextPc
-            MoveA{mode, src, dst} -> do
-                v <- fetch mode src
-                store mode dst v
-                nextPc
-            Not{mode, dst} -> do
-                v <- fetch mode dst
-                store mode dst $ complement v
-                nextPc
+            Move{mode, src, dst} -> cmd1 mode src dst id
+            MoveA{mode, src, dst} -> cmd1 mode src dst id
+            Not{mode, dst} -> cmd1 mode dst dst complement
+            And{mode, src, dst} -> cmd2 mode src dst (.&.)
+            Or{mode, src, dst} -> cmd2 mode src dst (.|.)
+            Xor{mode, src, dst} -> cmd2 mode src dst xor
             Halt -> modify $ \st -> st{stopped = True}
+        where
+            cmd1 mode src dst f = do
+                a <- fetch mode src
+                store mode dst $ f a
+                nextPc
+            cmd2 mode src dst f = do
+                a <- fetch mode dst
+                b <- fetch mode src
+                store mode dst $ f a b
+                nextPc

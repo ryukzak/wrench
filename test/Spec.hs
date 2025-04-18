@@ -147,6 +147,12 @@ tests =
                 , generatedTest Acc32 "dup" 1
                 ]
             ]
+        , testGroup
+            "M68k"
+            [ testGroup
+                "Translator"
+                [goldenTranslate M68k "test/golden/m68k/logical_not.s"]
+            ]
         ]
 
 isaPath :: (IsString a) => Isa -> a
