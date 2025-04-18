@@ -9,6 +9,7 @@ import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.F32a qualified as F32a
+import Wrench.Isa.M68k qualified as M68k
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Machine.Memory
@@ -142,6 +143,7 @@ isaPath isa = case isa of
     RiscIv -> "risc-iv-32"
     F32a -> "f32a"
     Acc32 -> "acc32"
+    M68k -> "m68k"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -177,6 +179,7 @@ goldenTranslate :: Isa -> FilePath -> TestTree
 goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.Isa RiscIv fn
 goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
+goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -219,6 +222,15 @@ goldenSimulate Acc32 fn confFn =
     let resultFn = dropExtension confFn <> ".acc32.result"
      in goldenVsString (fn2name confFn) resultFn $ do
             let wrench' = wrench @Acc32.Isa @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32)
+            src <- decodeUtf8 <$> readFileBS fn
+            conf <- either (error . toText) id <$> readConfig confFn
+            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
+                Right Result{rTrace} -> rTrace
+                Left e -> "error: " <> e
+goldenSimulate M68k fn confFn =
+    let resultFn = dropExtension confFn <> ".m68k.result"
+     in goldenVsString (fn2name confFn) resultFn $ do
+            let wrench' = wrench @M68k.Isa @Int32 @(M68k.MachineState (IoMem (M68k.Isa Int32 Int32) Int32) Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
