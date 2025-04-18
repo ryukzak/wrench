@@ -1,0 +1,21 @@
+# 0 - Истина, 1 - Ложь
+name: not true
+limit: 1000
+memory_size: 0x1000
+input_streams:
+  0x80: [1]
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label}
+      {A0} {A1} {D0} {D1}
+  - name: Result
+    slice: last
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [0]
