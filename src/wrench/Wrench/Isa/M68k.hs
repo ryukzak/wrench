@@ -11,6 +11,7 @@ import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
+import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice, lookAhead, oneOf, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
@@ -27,28 +28,30 @@ data Mode
       Long
     deriving (Show)
 
-data DR = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
+data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Generic, Hashable, Read, Show)
 
-instance (Default w) => Default (HashMap DR w) where
+instance (Default w) => Default (HashMap DataReg w) where
     def = fromList $ map (,def) [D0, D1, D2, D3, D4, D5, D6, D7]
 
-data AR = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
+data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
     deriving (Eq, Generic, Hashable, Read, Show)
 
-instance (Default w) => Default (HashMap AR w) where
+instance (Default w) => Default (HashMap AddrReg w) where
     def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
 
 data Argument w l
-    = Dn DR
-    | An AR
-    | Imm l
+    = DirectDataReg DataReg
+    | DirectAddrReg AddrReg
+    | IndirectAddrReg AddrReg
+    | Immediate l
     deriving (Show)
 
 -- | The 'Isa' type represents the instruction set architecture for the M68k machine.
 -- Each constructor corresponds to a specific instruction.
 data Isa w l
     = Move {mode :: Mode, src, dst :: Argument w l}
+    -- | MoveA
     | Not {mode :: Mode, dst :: Argument w l}
     | Halt
     deriving (Show)
@@ -97,31 +100,40 @@ cmdMode = void (string ".l") >> return Long
 comma :: Parser ()
 comma = hspace >> void (string ",") >> hspace
 
-argument :: (MachineWord w) => Parser (Argument w (Ref w))
-argument =
-    choice
-        [ try $ do
-            void (string "D")
-            n <- oneOf ['0' .. '7']
-            lookAhead (hspace1 <|> eol' "\\")
-            return $ Dn $ Unsafe.read ['D', n]
-        , try $ do
-            void (string "(")
-            hspace
-            void (string "A")
-            n <- oneOf ['0' .. '7']
-            hspace
-            void (string ")")
-            lookAhead (hspace1 <|> eol' "\\")
-            return $ An $ Unsafe.read ['A', n]
-        , Imm <$> reference
-        ]
+dataRegister = try $ do
+    void (string "D")
+    n <- oneOf ['0' .. '7']
+    -- lookAhead (comma <|> hspace1 <|> eol' ";")
+    return $ DirectDataReg $ Unsafe.read ['D', n]
 
-instance (MachineWord w) => DerefMnemonic (Isa w) w where
+addrRegister = try $ do
+    void (string "A")
+    n <- oneOf ['0' .. '7']
+    -- lookAhead (comma <|> hspace1 <|> eol' ";")
+    return $ DirectAddrReg $ Unsafe.read ['A', n]
+
+indirectAddrRegister = try $ do
+    void (string "(")
+    hspace
+    void (string "A")
+    n <- oneOf ['0' .. '7']
+    hspace
+    void (string ")")
+    -- lookAhead (comma <|> hspace1 <|> eol' ";")
+    return $ IndirectAddrReg $ Unsafe.read ['A', n]
+
+immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
+immidiate = Immediate <$> reference
+
+argument :: (MachineWord w) => Parser (Argument w (Ref w))
+argument = choice [dataRegister, addrRegister, indirectAddrRegister, immidiate]
+
+instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
-        let derefArg (Dn r) = Dn r
-            derefArg (An r) = An r
-            derefArg (Imm l) = Imm $ deref' f l
+        let derefArg (DirectDataReg r) = DirectDataReg r
+            derefArg (DirectAddrReg r) = DirectAddrReg r
+            derefArg (IndirectAddrReg r) = IndirectAddrReg r
+            derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
                 Not{mode, dst} -> Not mode (derefArg dst)
@@ -132,8 +144,8 @@ instance ByteLength (Isa w l) where
 
 data MachineState mem w = State
     { pc :: Int
-    , dr :: HashMap DR w
-    , ar :: HashMap AR w
+    , dr :: HashMap DataReg w
+    , ar :: HashMap AddrReg w
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -172,6 +184,35 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     reprState labels st@State{ar, dr} v =
         errorView v
 
+fetch :: (MachineWord w) => Mode -> Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
+fetch _ (DirectDataReg r) = do
+    State{dr} <- get
+    return $ fromMaybe (error "Invalid register") (dr !? r)
+fetch _ (IndirectAddrReg r) = do
+    st@State{ar, mem} <- get
+    let addr = maybe (error "Invalid register") fromEnum (ar !? r)
+    case readWord mem addr of
+        Right (mem', w) -> do
+            put st{mem = mem'}
+            return w
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
+fetch _ (Immediate v) = return v
+fetch _ _ = raiseInternalError "internal error" >> return def
+
+store :: (MachineWord w) => Mode -> Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
+store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr}
+store _ (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
+store _ (IndirectAddrReg r) v = do
+    st@State{ar, mem} <- get
+    let addr = maybe (error "Invalid register") fromEnum (ar !? r)
+    case writeWord mem addr v of
+        Right mem' -> do
+            put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+store _ _ _ = raiseInternalError "internal error"
+
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
         get
@@ -187,5 +228,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
             Move{mode, src, dst} -> do
+                v <- fetch mode src
+                store mode dst v
+                nextPc
+            Not{mode, dst} -> do
+                v <- fetch mode dst
+                store mode dst $ complement v
                 nextPc
             Halt -> modify $ \st -> st{stopped = True}
