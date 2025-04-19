@@ -55,6 +55,10 @@ data Isa w l
     | And {mode :: Mode, src, dst :: Argument w l}
     | Or {mode :: Mode, src, dst :: Argument w l}
     | Xor {mode :: Mode, src, dst :: Argument w l}
+    | Add {mode :: Mode, src, dst :: Argument w l}
+    | Sub {mode :: Mode, src, dst :: Argument w l}
+    | Mul {mode :: Mode, src, dst :: Argument w l}
+    | Div {mode :: Mode, src, dst :: Argument w l}
     | Asl {mode :: Mode, src, dst :: Argument w l}
     | Asr {mode :: Mode, src, dst :: Argument w l}
     | Lsl {mode :: Mode, src, dst :: Argument w l}
@@ -74,6 +78,10 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "and" And src dst
             , cmd2args "or" Or src dst
             , cmd2args "xor" Xor src dst
+            , cmd2args "add" Add src dst
+            , cmd2args "sub" Sub src dst
+            , cmd2args "mul" Mul src dst
+            , cmd2args "div" Div src dst
             , cmd2args "asl" Asl (dataRegister <|> immidiate) dst
             , cmd2args "asr" Asr (dataRegister <|> immidiate) dst
             , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
@@ -166,6 +174,10 @@ instance DerefMnemonic (Isa w) w where
                 And{mode, src, dst} -> And mode (derefArg src) (derefArg dst)
                 Or{mode, src, dst} -> Or mode (derefArg src) (derefArg dst)
                 Xor{mode, src, dst} -> Xor mode (derefArg src) (derefArg dst)
+                Add{mode, src, dst} -> Add mode (derefArg src) (derefArg dst)
+                Sub{mode, src, dst} -> Sub mode (derefArg src) (derefArg dst)
+                Mul{mode, src, dst} -> Mul mode (derefArg src) (derefArg dst)
+                Div{mode, src, dst} -> Div mode (derefArg src) (derefArg dst)
                 Asl{mode, src, dst} -> Asl mode (derefArg src) (derefArg dst)
                 Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
                 Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
@@ -182,6 +194,7 @@ data MachineState mem w = State
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
+    , nFlag , zFlag, vFlag , cFlag :: Bool
     }
     deriving (Show)
 
@@ -206,6 +219,10 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , mem = dump
             , stopped = False
             , internalError = Nothing
+            , nFlag = False
+            , zFlag = True
+            , vFlag = False
+            , cFlag = False
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
@@ -276,6 +293,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             And{mode, src, dst} -> cmd2 mode src dst (.&.)
             Or{mode, src, dst} -> cmd2 mode src dst (.|.)
             Xor{mode, src, dst} -> cmd2 mode src dst xor
+            Add{mode, src, dst} -> cmd2Ext mode src dst addExt
+            Sub{mode, src, dst} -> cmd2Ext mode src dst subExt
+            Mul{mode, src, dst} -> cmd2Ext mode src dst mulExt
+            Div{mode, src, dst} -> cmd2 mode src dst div
             Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL s (fromEnum d))
             Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR s (fromEnum d))
             Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
@@ -284,10 +305,25 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         where
             cmd1 mode src dst f = do
                 a <- fetch mode src
-                store mode dst $ f a
+                let result = f a
+                store mode dst result
                 nextPc
             cmd2 mode src dst f = do
                 a <- fetch mode dst
                 b <- fetch mode src
-                store mode dst $ f a b
+                let result = f a b
+                store mode dst result
+                nextPc
+            cmd2Ext mode src dst f = do
+                a <- fetch mode dst
+                b <- fetch mode src
+                let Ext{value, carry, overflow} = f a b
+                store mode dst value
+                modify $ \st ->
+                    st
+                        { nFlag = value < 0
+                        , zFlag = value == 0
+                        , vFlag = overflow
+                        , cFlag = carry
+                        }
                 nextPc
