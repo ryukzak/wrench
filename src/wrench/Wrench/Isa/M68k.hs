@@ -63,6 +63,7 @@ data Isa w l
     | Asr {mode :: Mode, src, dst :: Argument w l}
     | Lsl {mode :: Mode, src, dst :: Argument w l}
     | Lsr {mode :: Mode, src, dst :: Argument w l}
+    | Jmp {ref :: l}
     | Halt
     deriving (Show)
 
@@ -86,6 +87,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "asr" Asr (dataRegister <|> immidiate) dst
             , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
             , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
+            , branchCmd "jmp" Jmp reference
             , cmd0args "halt" Halt
             ]
         where
@@ -130,6 +132,14 @@ cmd2args mnemonic constructor srcP dstP = do
     b <- dstP
     eol' ";"
     return $ constructor m a b
+
+branchCmd mnemonic constructor ref = do
+    try $ do
+        void $ string mnemonic
+        hspace1
+    a <- ref
+    eol' ";"
+    return $ constructor a
 
 cmdMode = void (string ".l") >> return Long
 
@@ -182,6 +192,7 @@ instance DerefMnemonic (Isa w) w where
                 Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
                 Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
                 Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
+                Jmp{ref} -> Jmp (deref' f ref)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -301,8 +312,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR s (fromEnum d))
             Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
             Lsr{mode, src, dst} -> cmd2 mode src dst (flip lShiftR)
+            Jmp{ref} -> branch True ref
             Halt -> modify $ \st -> st{stopped = True}
         where
+            branch True addr = setPc $ fromEnum addr
+            branch False _ = nextPc
             cmd1 mode src dst f = do
                 a <- fetch mode src
                 let result = f a
