@@ -26,8 +26,8 @@ import Wrench.Machine.Types (
     StateInterspector (..),
     fromSign,
     halted,
+    lShiftR,
     signBitAnd,
-    toSign,
  )
 import Wrench.Report
 import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
@@ -433,7 +433,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id div
             Rem{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id rem
             Sll{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
-            Srl{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> toSign (fromSign r1 `shiftR` fromEnum r2))
+            Srl{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id lShiftR
             Sra{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
             And{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (.&.)
             Or{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (.|.)

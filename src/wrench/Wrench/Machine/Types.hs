@@ -19,6 +19,8 @@ module Wrench.Machine.Types (
     subExt,
     mulExt,
     halted,
+    lShiftL,
+    lShiftR,
 ) where
 
 import Data.Bits
@@ -83,6 +85,12 @@ signBitAnd :: (MachineWord w) => w -> w -> w
 signBitAnd x mask
     | x < 0 = x .|. complement mask
     | otherwise = x .&. mask
+
+lShiftR :: (MachineWord w) => w -> w -> w
+lShiftR x n = toSign (fromSign x `shiftR` fromEnum n)
+
+lShiftL :: (MachineWord w) => w -> w -> w
+lShiftL x n = toSign (fromSign x `shiftL` fromEnum n)
 
 data Ext a = Ext {value :: a, overflow :: Bool, carry :: Bool}
     deriving (Eq, Show)
