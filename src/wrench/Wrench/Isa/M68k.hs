@@ -7,7 +7,7 @@ module Wrench.Isa.M68k (
     MachineState (..),
 ) where
 
-import Data.Bits (complement, (.&.), (.|.))
+import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
@@ -55,6 +55,10 @@ data Isa w l
     | And {mode :: Mode, src, dst :: Argument w l}
     | Or {mode :: Mode, src, dst :: Argument w l}
     | Xor {mode :: Mode, src, dst :: Argument w l}
+    | Asl {mode :: Mode, src, dst :: Argument w l}
+    | Asr {mode :: Mode, src, dst :: Argument w l}
+    | Lsl {mode :: Mode, src, dst :: Argument w l}
+    | Lsr {mode :: Mode, src, dst :: Argument w l}
     | Halt
     deriving (Show)
 
@@ -70,6 +74,10 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "and" And src dst
             , cmd2args "or" Or src dst
             , cmd2args "xor" Xor src dst
+            , cmd2args "asl" Asl (dataRegister <|> immidiate) dst
+            , cmd2args "asr" Asr (dataRegister <|> immidiate) dst
+            , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
+            , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
             , cmd0args "halt" Halt
             ]
         where
@@ -84,8 +92,8 @@ cmd0args mnemonic constructor = try $ do
 
 cmd1args ::
     String
-    -> (Mode -> Argument w (Ref w) -> Isa w (Ref w))
-    -> Parser (Argument w (Ref w))
+    -> (Mode -> a -> Isa w (Ref w))
+    -> Parser a
     -> Parser (Isa w (Ref w))
 cmd1args mnemonic constructor dstP = try $ do
     m <- do
@@ -99,9 +107,9 @@ cmd1args mnemonic constructor dstP = try $ do
 
 cmd2args ::
     String
-    -> (Mode -> Argument w (Ref w) -> Argument w (Ref w) -> Isa w (Ref w))
-    -> Parser (Argument w (Ref w))
-    -> Parser (Argument w (Ref w))
+    -> (Mode -> a -> b -> Isa w (Ref w))
+    -> Parser a
+    -> Parser b
     -> Parser (Isa w (Ref w))
 cmd2args mnemonic constructor srcP dstP = do
     m <- try $ do
@@ -158,6 +166,10 @@ instance DerefMnemonic (Isa w) w where
                 And{mode, src, dst} -> And mode (derefArg src) (derefArg dst)
                 Or{mode, src, dst} -> Or mode (derefArg src) (derefArg dst)
                 Xor{mode, src, dst} -> Xor mode (derefArg src) (derefArg dst)
+                Asl{mode, src, dst} -> Asl mode (derefArg src) (derefArg dst)
+                Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
+                Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
+                Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -264,6 +276,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             And{mode, src, dst} -> cmd2 mode src dst (.&.)
             Or{mode, src, dst} -> cmd2 mode src dst (.|.)
             Xor{mode, src, dst} -> cmd2 mode src dst xor
+            Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL s (fromEnum d))
+            Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR s (fromEnum d))
+            Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
+            Lsr{mode, src, dst} -> cmd2 mode src dst (flip lShiftR)
             Halt -> modify $ \st -> st{stopped = True}
         where
             cmd1 mode src dst f = do
