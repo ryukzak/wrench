@@ -1,3 +1,5 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+
 module Main (main) where
 
 import Crypto.Hash.SHA1 qualified as SHA1

@@ -1,7 +1,10 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+
 module WrenchServ.Statistics (
     postHogTracker,
-    MixpanelEvent (..),
+    ReportViewEvent (..),
     trackEvent,
+    SimulationEvent (..),
     getTrack,
     trackCookie,
 ) where
@@ -21,63 +24,90 @@ import Relude
 import Web.Cookie (parseCookies)
 import WrenchServ.Config
 
-data MixpanelEvent
+class MixpanelEvent a where
+    mixpanelEvent :: Integer -> a -> Value
+
+data SimulationEvent
     = SimulationEvent
-        { mpGuid :: UUID
-        , mpName :: Text
-        , mpIsa :: Text
-        , mpVariant :: Maybe Text
-        , mpVersion :: Text
-        , mpTrack :: ByteString
-        , mpAsmSha1 :: Text
-        , mpYamlSha1 :: Text
-        , mpWinCount :: Int
-        , mpFailCount :: Int
-        }
-    | ReportViewEvent
-        { mpGuid :: UUID
-        , mpName :: Text
-        , mpVersion :: Text
-        , mpTrack :: ByteString
-        }
+    { mpGuid :: UUID
+    , mpName :: Text
+    , mpIsa :: Text
+    , mpVariant :: Maybe Text
+    , mpVersion :: Text
+    , mpTrack :: ByteString
+    , mpAsmSha1 :: Text
+    , mpYamlSha1 :: Text
+    , mpWinCount :: Int
+    , mpFailCount :: Int
+    }
     deriving (Show)
 
-trackEvent :: Config -> MixpanelEvent -> IO ()
-trackEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing} _ = return ()
-trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
-    now <- getCurrentTime
-    let timestamp = fromInteger $ floor $ utcTimeToPOSIXSeconds now
-        eventName = case event of
-            SimulationEvent{} -> "Simulation"
-            ReportViewEvent{} -> "ReportView"
-        baseProperties =
-            fromList
-                [ ("time", Number timestamp)
-                , ("authorName", String $ mpName event)
-                , ("distinct_id", String $ decodeUtf8 $ mpTrack event)
-                , ("$insert_id", String $ T.replace " " "-" $ show $ mpGuid event)
-                , ("simulation_guid", String $ show $ mpGuid event)
-                , ("version", String $ mpVersion event)
-                -- , ("verbose", Number 1)
-                ]
-        properties = case event of
-            SimulationEvent{mpIsa, mpVariant} ->
-                fromList
-                    [ ("isa", String mpIsa)
-                    , ("variant", maybe Null String mpVariant)
-                    , ("asm_sha1", String $ mpAsmSha1 event)
-                    , ("yaml_sha1", String $ mpYamlSha1 event)
-                    , ("win_count", Number $ fromInteger $ toInteger $ mpWinCount event)
-                    , ("fail_count", Number $ fromInteger $ toInteger $ mpFailCount event)
-                    ]
-            ReportViewEvent{} -> fromList []
-        payload =
-            V.fromList
+instance MixpanelEvent SimulationEvent where
+    mixpanelEvent utime SimulationEvent{mpGuid, mpName, mpVersion, mpTrack, mpIsa, mpVariant, mpAsmSha1, mpYamlSha1, mpWinCount, mpFailCount} =
+        Array
+            $ V.fromList
                 [ object
-                    [ ("event", String eventName)
-                    , ("properties", Object (baseProperties <> properties))
+                    [ ("event", String "SimulationEvent")
+                    ,
+                        ( "properties"
+                        , Object
+                            ( fromList
+                                [ ("time", Number $ fromInteger utime)
+                                , ("authorName", String mpName)
+                                , ("distinct_id", String $ decodeUtf8 mpTrack)
+                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
+                                , ("simulation_guid", String $ show mpGuid)
+                                , ("version", String mpVersion)
+                                , ("isa", String mpIsa)
+                                , ("variant", maybe Null String mpVariant)
+                                , ("asm_sha1", String mpAsmSha1)
+                                , ("yaml_sha1", String mpYamlSha1)
+                                , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
+                                , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                                ]
+                            )
+                        )
                     ]
                 ]
+
+data ReportViewEvent = ReportViewEvent
+    { mpGuid :: UUID
+    , mpName :: Text
+    , mpVersion :: Text
+    , mpTrack :: ByteString
+    }
+    deriving (Show)
+
+instance MixpanelEvent ReportViewEvent where
+    mixpanelEvent utime ReportViewEvent{mpGuid, mpName, mpVersion, mpTrack} =
+        Array
+            $ V.fromList
+                [ object
+                    [ ("event", String "ReportView")
+                    ,
+                        ( "properties"
+                        , Object
+                            ( fromList
+                                [ ("time", Number $ fromInteger utime)
+                                , ("authorName", String mpName)
+                                , ("distinct_id", String $ decodeUtf8 mpTrack)
+                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
+                                , ("simulation_guid", String $ show mpGuid)
+                                , ("version", String mpVersion)
+                                ]
+                            )
+                        )
+                    ]
+                ]
+
+trackEvent :: (MixpanelEvent a) => Config -> a -> IO ()
+trackEvent = trackMixpanelEvent
+
+trackMixpanelEvent :: (MixpanelEvent a) => Config -> a -> IO ()
+trackMixpanelEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing} _ = return ()
+trackMixpanelEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
+    now <- floor . utcTimeToPOSIXSeconds <$> getCurrentTime
+    let payload = mixpanelEvent now event
         encodedData = encode payload
         auth = "Basic " <> (encodeUtf8 (encodeBase64 $ token <> ":") :: ByteString)
 
@@ -89,7 +119,7 @@ trackEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just project
     catch
         (void $ HTTP.httpNoBody request')
         (\(e :: SomeException) -> putStrLn $ "Mixpanel tracking error: " ++ show e)
-trackEvent Config{} _ = error "Mixpanel misconfiguration"
+trackMixpanelEvent Config{} _ = error "Mixpanel misconfiguration"
 
 getTrack :: Maybe Text -> IO ByteString
 getTrack cookie = case filter ((== "track_id") . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
