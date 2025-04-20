@@ -49,10 +49,10 @@ server conf =
         :<|> serveDirectoryWebApp "static/assets"
         :<|> redirectToForm
 
-type GetForm = Get '[HTML] (Html ())
+type GetForm = Header "Cookie" Text :> Get '[HTML] (Html ())
 
-getForm :: Config -> Handler (Html ())
-getForm Config{cVariantsPath} = do
+getForm :: Config -> Maybe Text -> Handler (Html ())
+getForm Config{cVariantsPath} _cookie = do
     variants <- liftIO $ listVariants cVariantsPath
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") variants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
@@ -113,6 +113,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
         liftIO $ writeFileText testCaseLogFn srTestCase
 
     track <- liftIO $ getTrack cookie
+    posthogId <- liftIO $ getPosthogIdFromCookie cookie
     let event =
             SimulationEvent
                 { mpGuid = guid
@@ -125,6 +126,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
                 , mpYamlSha1 = sha1 config
                 , mpWinCount = length wins
                 , mpFailCount = length fails
+                , mpPosthogId = posthogId
                 }
     liftIO $ trackEvent conf event
     throwError $ err301{errHeaders = [("Location", "/result/" <> show guid), ("Set-Cookie", trackCookie track)]}
@@ -168,7 +170,15 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 ]
 
     track <- liftIO $ getTrack cookie
-    let event = ReportViewEvent{mpGuid = guid, mpName = nameContent, mpVersion = wrenchVersion, mpTrack = track}
+    posthogId <- liftIO $ getPosthogIdFromCookie cookie
+    let event =
+            ReportViewEvent
+                { mpGuid = guid
+                , mpName = nameContent
+                , mpVersion = wrenchVersion
+                , mpTrack = track
+                , mpPosthogId = posthogId
+                }
     liftIO $ trackEvent conf event
     return $ addHeader (decodeUtf8 (trackCookie track)) $ toHtmlRaw renderTemplate
 

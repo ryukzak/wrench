@@ -288,6 +288,7 @@ executable wrench-serv
     , text
     , th-env
     , time
+    , uri-encode
     , uuid
     , vector
     , wai

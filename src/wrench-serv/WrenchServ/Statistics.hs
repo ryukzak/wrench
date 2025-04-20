@@ -6,11 +6,13 @@ module WrenchServ.Statistics (
     trackEvent,
     SimulationEvent (..),
     getTrack,
+    getPosthogIdFromCookie,
     trackCookie,
 ) where
 
 import Control.Exception (catch)
 import Data.Aeson
+import Data.Aeson.KeyMap qualified as JSON
 import Data.Text qualified as T
 import Data.Text.Encoding.Base64 (encodeBase64)
 import Data.Time (getCurrentTime)
@@ -20,12 +22,16 @@ import Data.UUID.V4 (nextRandom)
 import Data.Vector qualified as V
 import Network.HTTP.Conduit qualified as HTTP
 import Network.HTTP.Simple qualified as HTTP
+import Network.URI.Encode qualified as URI
 import Relude
 import Web.Cookie (parseCookies)
 import WrenchServ.Config
 
 class MixpanelEvent a where
     mixpanelEvent :: Integer -> a -> Value
+
+class PosthogEvent a where
+    posthogEvent :: Text -> a -> Value
 
 data SimulationEvent
     = SimulationEvent
@@ -39,6 +45,7 @@ data SimulationEvent
     , mpYamlSha1 :: Text
     , mpWinCount :: Int
     , mpFailCount :: Int
+    , mpPosthogId :: Text
     }
     deriving (Show)
 
@@ -50,24 +57,57 @@ instance MixpanelEvent SimulationEvent where
                     [ ("event", String "SimulationEvent")
                     ,
                         ( "properties"
-                        , Object
-                            ( fromList
-                                [ ("time", Number $ fromInteger utime)
-                                , ("authorName", String mpName)
-                                , ("distinct_id", String $ decodeUtf8 mpTrack)
-                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
-                                , ("simulation_guid", String $ show mpGuid)
-                                , ("version", String mpVersion)
-                                , ("isa", String mpIsa)
-                                , ("variant", maybe Null String mpVariant)
-                                , ("asm_sha1", String mpAsmSha1)
-                                , ("yaml_sha1", String mpYamlSha1)
-                                , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
-                                , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
-                                ]
-                            )
+                        , object
+                            [ ("time", Number $ fromInteger utime)
+                            , ("authorName", String mpName)
+                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
+                            , ("simulation_guid", String $ show mpGuid)
+                            , ("version", String mpVersion)
+                            , ("isa", String mpIsa)
+                            , ("variant", maybe Null String mpVariant)
+                            , ("asm_sha1", String mpAsmSha1)
+                            , ("yaml_sha1", String mpYamlSha1)
+                            , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
+                            , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                            ]
                         )
                     ]
+                ]
+
+instance PosthogEvent SimulationEvent where
+    posthogEvent
+        apiKey
+        SimulationEvent
+            { mpGuid
+            , mpName
+            , mpVersion
+            , mpPosthogId
+            , mpIsa
+            , mpVariant
+            , mpAsmSha1
+            , mpYamlSha1
+            , mpWinCount
+            , mpFailCount
+            } =
+            object
+                [ ("api_key", String apiKey)
+                , ("event", String "wrench:simulation_submit")
+                , ("distinct_id", String mpPosthogId)
+                ,
+                    ( "properties"
+                    , object
+                        [ ("authorName", String mpName)
+                        , ("simulation_guid", String $ show mpGuid)
+                        , ("version", String mpVersion)
+                        , ("isa", String mpIsa)
+                        , ("variant", maybe Null String mpVariant)
+                        , ("asm_sha1", String mpAsmSha1)
+                        , ("yaml_sha1", String mpYamlSha1)
+                        , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
+                        , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                        ]
+                    )
                 ]
 
 data ReportViewEvent = ReportViewEvent
@@ -75,6 +115,7 @@ data ReportViewEvent = ReportViewEvent
     , mpName :: Text
     , mpVersion :: Text
     , mpTrack :: ByteString
+    , mpPosthogId :: Text
     }
     deriving (Show)
 
@@ -86,40 +127,66 @@ instance MixpanelEvent ReportViewEvent where
                     [ ("event", String "ReportView")
                     ,
                         ( "properties"
-                        , Object
-                            ( fromList
-                                [ ("time", Number $ fromInteger utime)
-                                , ("authorName", String mpName)
-                                , ("distinct_id", String $ decodeUtf8 mpTrack)
-                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
-                                , ("simulation_guid", String $ show mpGuid)
-                                , ("version", String mpVersion)
-                                ]
-                            )
+                        , object
+                            [ ("time", Number $ fromInteger utime)
+                            , ("authorName", String mpName)
+                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
+                            , ("simulation_guid", String $ show mpGuid)
+                            , ("version", String mpVersion)
+                            ]
                         )
                     ]
                 ]
 
-trackEvent :: (MixpanelEvent a) => Config -> a -> IO ()
-trackEvent = trackMixpanelEvent
+instance PosthogEvent ReportViewEvent where
+    posthogEvent apiKey ReportViewEvent{mpGuid, mpName, mpVersion, mpPosthogId} =
+        object
+            [ ("api_key", String apiKey)
+            , ("event", String "wrench:report_view")
+            , ("distinct_id", String mpPosthogId)
+            ,
+                ( "properties"
+                , object
+                    [ ("authorName", String mpName)
+                    , ("simulation_guid", String $ show mpGuid)
+                    , ("version", String mpVersion)
+                    ]
+                )
+            ]
+
+trackEvent :: (MixpanelEvent a, PosthogEvent a) => Config -> a -> IO ()
+trackEvent conf event = do
+    trackMixpanelEvent conf event
+    trackPosthogEvent conf event
 
 trackMixpanelEvent :: (MixpanelEvent a) => Config -> a -> IO ()
 trackMixpanelEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing} _ = return ()
 trackMixpanelEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
     now <- floor . utcTimeToPOSIXSeconds <$> getCurrentTime
-    let payload = mixpanelEvent now event
-        encodedData = encode payload
+    let payload = encode $ mixpanelEvent now event
         auth = "Basic " <> (encodeUtf8 (encodeBase64 $ token <> ":") :: ByteString)
 
     request <- HTTP.parseRequest $ "POST https://api-eu.mixpanel.com/import?strict=1&project_id=" <> toString projectId
     let request' =
-            HTTP.setRequestBody (HTTP.RequestBodyLBS encodedData)
+            HTTP.setRequestBody (HTTP.RequestBodyLBS payload)
                 $ HTTP.setRequestHeader "Content-Type" ["application/json"]
                 $ HTTP.setRequestHeader "Authorization" [auth] request
     catch
         (void $ HTTP.httpNoBody request')
         (\(e :: SomeException) -> putStrLn $ "Mixpanel tracking error: " ++ show e)
 trackMixpanelEvent Config{} _ = error "Mixpanel misconfiguration"
+
+trackPosthogEvent :: (PosthogEvent a) => Config -> a -> IO ()
+trackPosthogEvent Config{} event = do
+    let payload = encode $ posthogEvent posthogApiKey event
+    request <- HTTP.parseRequest "POST https://eu.i.posthog.com/i/v0/e"
+    let request' =
+            HTTP.setRequestBody (HTTP.RequestBodyLBS payload)
+                $ HTTP.setRequestHeader "Content-Type" ["application/json"] request
+    catch
+        (void $ HTTP.httpNoBody request')
+        (\(e :: SomeException) -> putStrLn $ "Posthog tracking error: " ++ show e)
 
 getTrack :: Maybe Text -> IO ByteString
 getTrack cookie = case filter ((== "track_id") . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
@@ -128,6 +195,8 @@ getTrack cookie = case filter ((== "track_id") . fst) $ parseCookies $ maybe "" 
 
 trackCookie :: ByteString -> ByteString
 trackCookie track = "track_id=" <> track <> "; path=/; Max-Age=10368000"
+
+-- TODO: make it configurable
 
 posthogApiKey :: Text
 posthogApiKey = "phc_4MVBHknwF8Qok57n2J5S9OVP3z6BpRJM4fiDtH7rGg7"
@@ -143,3 +212,16 @@ postHogTracker =
         , "    })"
         , "</script>"
         ]
+
+getPosthogIdFromCookie :: Maybe Text -> IO Text
+getPosthogIdFromCookie cookie =
+    case filter ((== cookieName) . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
+        [c] -> case decodeStrict $ URI.decodeByteString $ snd c of
+            Just (Object obj) ->
+                case JSON.lookup "distinct_id" obj of
+                    Just (String distinctId) -> return distinctId
+                    _ -> show <$> liftIO nextRandom
+            _ -> show <$> liftIO nextRandom
+        _ -> show <$> liftIO nextRandom
+    where
+        cookieName = "ph_" <> encodeUtf8 posthogApiKey <> "_posthog"
