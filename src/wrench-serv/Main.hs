@@ -29,55 +29,50 @@ main = do
     putStrLn $ "Starting server on port " <> show cPort
     run cPort (logStdoutDev $ app conf)
 
-type API =
-    "submit"
-        :> Header "Cookie" Text
-        :> ReqBody '[FormUrlEncoded] SimulationRequest
-        :> Post '[JSON] (Headers '[Header "Location" String, Header "Set-Cookie" String] NoContent)
-        :<|> "submit-form" :> Get '[HTML] (Html ())
-        :<|> "result" :> Header "Cookie" Text :> Capture "guid" UUID :> Get '[HTML] (Headers '[Header "Set-Cookie" String] (Html ()))
-        :<|> "assets" :> Raw
-        :<|> Get '[JSON] (Headers '[Header "Location" String] NoContent)
-
 app :: Config -> Application
-app conf = serve api (server conf)
+app conf = serve (Proxy :: Proxy API) (server conf)
 
-api :: Proxy API
-api = Proxy
+type API =
+    "submit-form" :> GetForm
+        :<|> "submit" :> SubmitForm
+        :<|> "result" :> GetReport
+        :<|> "assets" :> Raw
+        :<|> Get '[JSON] (Headers '[Header "Location" Text] NoContent)
 
 server :: Config -> Server API
 server conf =
-    submitForm conf
-        :<|> formPage conf
-        :<|> resultPage conf
+    getForm conf
+        :<|> submitForm conf
+        :<|> getReport conf
         :<|> serveDirectoryWebApp "static/assets"
         :<|> redirectToForm
 
-formPage :: Config -> Handler (Html ())
-formPage Config{cVariantsPath} = do
+type GetForm = Get '[HTML] (Html ())
+
+getForm :: Config -> Handler (Html ())
+getForm Config{cVariantsPath} = do
     variants <- liftIO $ listVariants cVariantsPath
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") variants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
-    let renderTemplate = replace "{{variants}}" (mconcat options) . replace "{{version}}" wrenchVersion
-    return $ toHtmlRaw $ renderTemplate template
+    let renderedTemplate =
+            foldl'
+                (\st (pat, new) -> replace pat (escapeHtml new) st)
+                (replace "{{tracker}}" postHogTracker template)
+                [ ("{{variants}}", mconcat options)
+                , ("{{version}}", wrenchVersion)
+                ]
+    return $ toHtmlRaw renderedTemplate
 
-listVariants :: FilePath -> IO [String]
-listVariants path = do
-    contents <- listDirectory path
-    variants <- filterM (doesDirectoryExist . (path </>)) contents
-    return $ sort variants
-
-listTextCases :: FilePath -> IO [FilePath]
-listTextCases path = do
-    contents <- listDirectory path
-    files <- filterM doesFileExist (map (path </>) contents)
-    return $ sort $ filter (isSuffixOf ".yaml" . toText) $ map takeFileName files
+type SubmitForm =
+    Header "Cookie" Text
+        :> ReqBody '[FormUrlEncoded] SimulationRequest
+        :> Post '[JSON] (Headers '[Header "Location" Text, Header "Set-Cookie" Text] NoContent)
 
 submitForm ::
     Config
     -> Maybe Text
     -> SimulationRequest
-    -> Handler (Headers '[Header "Location" String, Header "Set-Cookie" String] NoContent)
+    -> Handler (Headers '[Header "Location" Text, Header "Set-Cookie" Text] NoContent)
 submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationRequest{name, variant, isa, asm, config} = do
     guid <- liftIO nextRandom
     liftIO $ spitSimulationRequest cStoragePath guid task
@@ -132,17 +127,13 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
     liftIO $ trackEvent conf event
     throwError $ err301{errHeaders = [("Location", "/result/" <> show guid), ("Set-Cookie", trackCookie track)]}
 
-maybeReadFile :: FilePath -> IO (Maybe Text)
-maybeReadFile path = do
-    doesFileExist path >>= \case
-        True -> Just . decodeUtf8 <$> readFileBS path
-        False -> return Nothing
+type GetReport =
+    Header "Cookie" Text
+        :> Capture "guid" UUID
+        :> Get '[HTML] (Headers '[Header "Set-Cookie" Text] (Html ()))
 
-escapeHtml :: Text -> Text
-escapeHtml = toText . renderText . toHtml
-
-resultPage :: Config -> Maybe Text -> UUID -> Handler (Headers '[Header "Set-Cookie" String] (Html ()))
-resultPage conf@Config{cStoragePath} cookie guid = do
+getReport :: Config -> Maybe Text -> UUID -> Handler (Headers '[Header "Set-Cookie" Text] (Html ()))
+getReport conf@Config{cStoragePath} cookie guid = do
     let dir = cStoragePath <> "/" <> show guid
 
     nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
@@ -161,7 +152,7 @@ resultPage conf@Config{cStoragePath} cookie guid = do
     let renderTemplate =
             foldl'
                 (\st (pat, new) -> replace pat (escapeHtml new) st)
-                template
+                (replace "{{tracker}}" postHogTracker template)
                 [ ("{{name}}", nameContent)
                 , ("{{variant}}", variantContent)
                 , ("{{comment}}", commentContent)
@@ -179,8 +170,29 @@ resultPage conf@Config{cStoragePath} cookie guid = do
     liftIO $ trackEvent conf event
     return $ addHeader (decodeUtf8 (trackCookie track)) $ toHtmlRaw renderTemplate
 
-redirectToForm :: Handler (Headers '[Header "Location" String] NoContent)
+redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
+
+listVariants :: FilePath -> IO [String]
+listVariants path = do
+    contents <- listDirectory path
+    variants <- filterM (doesDirectoryExist . (path </>)) contents
+    return $ sort variants
+
+listTextCases :: FilePath -> IO [FilePath]
+listTextCases path = do
+    contents <- listDirectory path
+    files <- filterM doesFileExist (map (path </>) contents)
+    return $ sort $ filter (isSuffixOf ".yaml" . toText) $ map takeFileName files
+
+maybeReadFile :: FilePath -> IO (Maybe Text)
+maybeReadFile path = do
+    doesFileExist path >>= \case
+        True -> Just . decodeUtf8 <$> readFileBS path
+        False -> return Nothing
+
+escapeHtml :: Text -> Text
+escapeHtml = toText . renderText . toHtml
 
 sha1 :: Text -> Text
 sha1 text =
