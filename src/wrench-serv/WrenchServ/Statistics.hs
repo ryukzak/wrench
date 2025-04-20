@@ -70,7 +70,7 @@ instance PosthogEvent GetFormEvent where
             ,
                 ( "properties"
                 , object
-                    [ ("version", String mpVersion)
+                    [ ("wrench_version", String mpVersion)
                     ]
                 )
             ]
@@ -105,7 +105,7 @@ instance MixpanelEvent SimulationEvent where
                             , ("distinct_id", String $ decodeUtf8 mpTrack)
                             , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
                             , ("simulation_guid", String $ show mpGuid)
-                            , ("version", String mpVersion)
+                            , ("wrench_version", String mpVersion)
                             , ("isa", String mpIsa)
                             , ("variant", maybe Null String mpVariant)
                             , ("asm_sha1", String mpAsmSha1)
@@ -141,7 +141,7 @@ instance PosthogEvent SimulationEvent where
                     , object
                         [ ("authorName", String mpName)
                         , ("simulation_guid", String $ show mpGuid)
-                        , ("version", String mpVersion)
+                        , ("wrench_version", String mpVersion)
                         , ("isa", String mpIsa)
                         , ("variant", maybe Null String mpVariant)
                         , ("asm_sha1", String mpAsmSha1)
