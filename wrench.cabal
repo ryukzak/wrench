@@ -51,6 +51,8 @@ library
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DataKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -117,6 +119,8 @@ executable wrench
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DataKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -163,6 +167,8 @@ executable wrench-fmt
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DataKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -219,6 +225,8 @@ executable wrench-fmt
 executable wrench-serv
   main-is: Main.hs
   other-modules:
+      WrenchServ.Config
+      WrenchServ.Simulation
       WrenchServ.Statistics
       Paths_wrench
   autogen-modules:
@@ -228,6 +236,8 @@ executable wrench-serv
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DataKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -302,6 +312,8 @@ test-suite wrench-test
   default-extensions:
       AllowAmbiguousTypes
       ConstraintKinds
+      DataKinds
+      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances

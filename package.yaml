@@ -14,6 +14,8 @@ description: Wrench - is a tool for educating computer architecture.
 default-extensions:
   - AllowAmbiguousTypes
   - ConstraintKinds
+  - DataKinds
+  - DeriveAnyClass
   - DeriveGeneric
   - FlexibleContexts
   - FlexibleInstances
