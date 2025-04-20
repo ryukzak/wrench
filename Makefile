@@ -125,7 +125,7 @@ format-check:
 	fourmolu -m check $(HS_SRC_DIR)
 
 lint-fix:
-	fd .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
+	fd -tf .hs | xargs -n 1 -P 8 hlint --refactor --refactor-options="--inplace"
 	ruff check script --fix
 
 lint:
