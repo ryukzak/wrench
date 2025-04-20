@@ -9,3 +9,4 @@ variants.csv
 .tasty-rerun-log
 __pycache__
 src/wrench/Main
+.tasty-rerun-log.wrench-test

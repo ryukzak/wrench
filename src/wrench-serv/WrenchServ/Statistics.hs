@@ -14,6 +14,7 @@ module WrenchServ.Statistics (
 import Control.Exception (catch)
 import Data.Aeson
 import Data.Aeson.KeyMap qualified as JSON
+import Data.Base64.Types (extractBase64)
 import Data.Text qualified as T
 import Data.Text.Encoding.Base64 (encodeBase64)
 import Data.Time (getCurrentTime)
@@ -206,7 +207,7 @@ trackMixpanelEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing
 trackMixpanelEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
     now <- floor . utcTimeToPOSIXSeconds <$> getCurrentTime
     let payload = encode $ mixpanelEvent now event
-        auth = "Basic " <> (encodeUtf8 (encodeBase64 $ token <> ":") :: ByteString)
+        auth = "Basic " <> encodeUtf8 (extractBase64 $ encodeBase64 $ token <> ":")
 
     request <- HTTP.parseRequest $ "POST https://api-eu.mixpanel.com/import?strict=1&project_id=" <> toString projectId
     let request' =
