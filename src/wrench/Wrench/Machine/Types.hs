@@ -1,7 +1,5 @@
 module Wrench.Machine.Types (
     Trace (..),
-    getTraceStates,
-    getErrors,
     Machine (..),
     Mem,
     IoMem (..),
@@ -145,23 +143,8 @@ halted = "halted"
 data Trace st isa
     = TState st
     | TError Text
+    | TWarn Text
     deriving (Show)
-
-getTraceStates :: [Trace st isa] -> [st]
-getTraceStates =
-    mapMaybe
-        ( \case
-            (TState st) -> Just st
-            _ -> Nothing
-        )
-
-getErrors :: [Trace st isa] -> [Text]
-getErrors =
-    mapMaybe
-        ( \case
-            (TError err) -> Just err
-            _ -> Nothing
-        )
 
 type Mem isa w = IntMap (Cell isa w)
 

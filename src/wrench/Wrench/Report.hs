@@ -65,8 +65,14 @@ prepareReport
                 Just rvView' ->
                     concat
                         $ filter (not . null)
-                        $ map (prepareStateView rvView' trResult)
-                        $ getTraceStates sliced
+                        $ map
+                            ( \case
+                                (TState st) -> prepareStateView rvView' trResult st
+                                (TError err) -> "ERROR: " <> toString err <> "\n"
+                                (TWarn warn) -> "WARN: " <> toString warn <> "\n"
+                            )
+                            sliced
+
             assertReport =
                 let actual = nospaces $ toText stateViews
                     expect = maybe "" (nospaces . toText) rcAssert

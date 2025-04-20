@@ -156,7 +156,7 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
-        reportTexts = map snd reports <> map ("ERROR: " <>) (getErrors traceLog)
+        reportTexts = map snd reports
 
     return
         $ Result
