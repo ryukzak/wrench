@@ -57,6 +57,9 @@ data Result mem w = Result
     }
     deriving (Show)
 
+-- TODO: Remove hardcoded limits for limits. Get them from CLI.
+-- Purpose: limit limits in wrench-serv.
+
 maxLimit :: Int
 maxLimit = 600000
 
@@ -151,8 +154,10 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
                 , mIoCells = dump
                 }
         st = initState (fromEnum pc) ioDump
+        -- TODO: Add config field for stateRecordLimits
+        stateRecordLimits = 10000
 
-    (traceLog :: [Trace st isa2]) <- powerOn cLimit labels st
+    (traceLog :: [Trace st isa2]) <- powerOn cLimit stateRecordLimits labels st
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
