@@ -1,0 +1,12 @@
+name: assert is_prime(5) == 1
+limit: 600000
+memory_size: 0x1000
+input_streams:
+  0x80: [2147483647]
+  0x84: []
+reports:
+  - name: Step-by-step log
+    slice: all
+    view: |
+      {T0} {T1} {T2}
+      {pc}:     {instruction}   {pc:label}
