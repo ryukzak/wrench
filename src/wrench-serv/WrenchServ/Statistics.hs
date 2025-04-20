@@ -3,6 +3,7 @@
 module WrenchServ.Statistics (
     postHogTracker,
     ReportViewEvent (..),
+    GetFormEvent (..),
     trackEvent,
     SimulationEvent (..),
     getTrack,
@@ -32,6 +33,46 @@ class MixpanelEvent a where
 
 class PosthogEvent a where
     posthogEvent :: Text -> a -> Value
+
+data GetFormEvent = GetFormEvent
+    { mpVersion :: Text
+    , mpTrack :: ByteString
+    , mpPosthogId :: Text
+    }
+    deriving (Show)
+
+instance MixpanelEvent GetFormEvent where
+    mixpanelEvent utime GetFormEvent{mpVersion, mpTrack} =
+        Array
+            $ V.fromList
+                [ object
+                    [ ("event", String "OpenForm")
+                    ,
+                        ( "properties"
+                        , Object
+                            ( fromList
+                                [ ("time", Number $ fromInteger utime)
+                                , ("distinct_id", String $ decodeUtf8 mpTrack)
+                                , ("version", String mpVersion)
+                                ]
+                            )
+                        )
+                    ]
+                ]
+
+instance PosthogEvent GetFormEvent where
+    posthogEvent apiKey GetFormEvent{mpVersion, mpPosthogId} =
+        object
+            [ ("api_key", String apiKey)
+            , ("event", String "wrench:get_form")
+            , ("distinct_id", String mpPosthogId)
+            ,
+                ( "properties"
+                , object
+                    [ ("version", String mpVersion)
+                    ]
+                )
+            ]
 
 data SimulationEvent
     = SimulationEvent

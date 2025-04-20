@@ -52,7 +52,7 @@ server conf =
 type GetForm = Header "Cookie" Text :> Get '[HTML] (Html ())
 
 getForm :: Config -> Maybe Text -> Handler (Html ())
-getForm Config{cVariantsPath} _cookie = do
+getForm conf@Config{cVariantsPath} cookie = do
     variants <- liftIO $ listVariants cVariantsPath
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") variants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
@@ -63,6 +63,16 @@ getForm Config{cVariantsPath} _cookie = do
                 [ ("{{variants}}", mconcat options)
                 , ("{{version}}", wrenchVersion)
                 ]
+    liftIO $ do
+        track <- getTrack cookie
+        posthogId <- getPosthogIdFromCookie cookie
+        trackEvent
+            conf
+            GetFormEvent
+                { mpVersion = wrenchVersion
+                , mpTrack = track
+                , mpPosthogId = posthogId
+                }
     return $ toHtmlRaw renderedTemplate
 
 type SubmitForm =
