@@ -88,7 +88,7 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
-test-serv: build
+test-serv: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl
 	pkill -f wrench-serv
