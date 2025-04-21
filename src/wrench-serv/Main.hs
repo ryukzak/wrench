@@ -58,10 +58,11 @@ getForm conf@Config{cVariantsPath} cookie = do
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
     let renderedTemplate =
             foldl'
-                (\st (pat, new) -> replace pat (escapeHtml new) st)
-                (replace "{{tracker}}" postHogTracker template)
+                (\st (pat, new) -> replace pat new st)
+                template
                 [ ("{{variants}}", mconcat options)
                 , ("{{version}}", wrenchVersion)
+                , ("{{tracker}}", postHogTracker)
                 ]
     liftIO $ do
         track <- getTrack cookie
