@@ -6,6 +6,8 @@ import Crypto.Hash.SHA1 qualified as SHA1
 import Data.ByteString qualified as B
 import Data.Text (isSuffixOf, replace)
 import Data.Text qualified as T
+import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import Lucid (Html, renderText, toHtml, toHtmlRaw)
@@ -15,7 +17,7 @@ import Numeric (showHex)
 import Relude
 import Servant
 import Servant.HTML.Lucid (HTML)
-import System.Directory (doesDirectoryExist, doesFileExist, listDirectory)
+import System.Directory (doesFileExist, listDirectory)
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeFileName, (</>))
 import Wrench.Misc (wrenchVersion)
@@ -52,9 +54,8 @@ server conf =
 type GetForm = Header "Cookie" Text :> Get '[HTML] (Html ())
 
 getForm :: Config -> Maybe Text -> Handler (Html ())
-getForm conf@Config{cVariantsPath} cookie = do
-    variants <- liftIO $ listVariants cVariantsPath
-    let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") variants
+getForm conf@Config{cVariants} cookie = do
+    let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") cVariants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
     let renderedTemplate =
             foldl'
@@ -81,12 +82,16 @@ type SubmitForm =
         :> ReqBody '[FormUrlEncoded] SimulationRequest
         :> Post '[JSON] (Headers '[Header "Location" Text, Header "Set-Cookie" Text] NoContent)
 
+now :: IO Int
+now = floor . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds <$> getCurrentTime
+
 submitForm ::
     Config
     -> Maybe Text
     -> SimulationRequest
     -> Handler (Headers '[Header "Location" Text, Header "Set-Cookie" Text] NoContent)
 submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationRequest{name, variant, isa, asm, config} = do
+    startAt <- liftIO now
     guid <- liftIO nextRandom
     liftIO $ spitSimulationRequest cStoragePath guid task
 
@@ -98,7 +103,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
 
     liftIO $ spitDump conf simulationTask
 
-    SimulationResult{srOutput, srStatusLog} <- liftIO $ doSimulation conf simulationTask
+    SimulationResult{srOutput, srStatusLog, srSuccess = userSimSuccess} <- liftIO $ doSimulation conf simulationTask
 
     liftIO $ writeFileText (dir <> "/status.log") srStatusLog
     liftIO $ writeFileText (dir <> "/result.log") srOutput
@@ -123,6 +128,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
         let testCaseLogFn = dir <> "/test_cases_result.log"
         liftIO $ writeFileText testCaseLogFn srTestCase
 
+    endAt <- liftIO now
     track <- liftIO $ getTrack cookie
     posthogId <- liftIO $ getPosthogIdFromCookie cookie (track <> "_mp")
     let event =
@@ -138,6 +144,12 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
                 , mpWinCount = length wins
                 , mpFailCount = length fails
                 , mpPosthogId = posthogId
+                , mpSuccess = userSimSuccess
+                , mpDuration = toEnum $ endAt - startAt
+                , mpVariantSuccess =
+                    if not $ null varChecks
+                        then Just $ null fails
+                        else Nothing
                 }
     liftIO $ trackEvent conf event
     throwError
@@ -196,12 +208,6 @@ getReport conf@Config{cStoragePath} cookie guid = do
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
-
-listVariants :: FilePath -> IO [String]
-listVariants path = do
-    contents <- listDirectory path
-    variants <- filterM (doesDirectoryExist . (path </>)) contents
-    return $ sort variants
 
 listTextCases :: FilePath -> IO [FilePath]
 listTextCases path = do

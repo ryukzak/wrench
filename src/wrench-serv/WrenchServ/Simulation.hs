@@ -12,7 +12,7 @@ import Data.Time (getCurrentTime)
 import Data.UUID (UUID)
 import Relude
 import System.Directory (createDirectoryIfMissing)
-import System.Exit (ExitCode)
+import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
 import Web.FormUrlEncoded (FromForm)
 import Wrench.Misc (wrenchVersion)
@@ -66,6 +66,7 @@ data SimulationResult = SimulationResult
     , srStatusLog :: Text
     , srTestCaseStatus :: Text
     , srTestCase :: Text
+    , srSuccess :: Bool
     }
     deriving (Generic, Show)
 
@@ -103,4 +104,14 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
                 , "==="
                 , srCmd
                 ]
-    return $ SimulationResult{srExitCode, srOutput, srError, srCmd, srStatusLog, srTestCase, srTestCaseStatus}
+    return
+        $ SimulationResult
+            { srExitCode
+            , srSuccess = srExitCode == ExitSuccess
+            , srOutput
+            , srError
+            , srCmd
+            , srStatusLog
+            , srTestCase
+            , srTestCaseStatus
+            }

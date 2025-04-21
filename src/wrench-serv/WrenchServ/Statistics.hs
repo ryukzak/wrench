@@ -87,34 +87,59 @@ data SimulationEvent
     , mpWinCount :: Int
     , mpFailCount :: Int
     , mpPosthogId :: Text
+    , mpSuccess :: Bool
+    , mpDuration :: Int
+    , mpVariantSuccess :: Maybe Bool
     }
     deriving (Show)
 
 instance MixpanelEvent SimulationEvent where
-    mixpanelEvent utime SimulationEvent{mpGuid, mpName, mpVersion, mpTrack, mpIsa, mpVariant, mpAsmSha1, mpYamlSha1, mpWinCount, mpFailCount} =
-        Array
-            $ V.fromList
-                [ object
-                    [ ("event", String "Simulation")
-                    ,
-                        ( "properties"
-                        , object
-                            [ ("time", Number $ fromInteger utime)
-                            , ("authorName", String mpName)
-                            , ("distinct_id", String mpTrack)
-                            , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
-                            , ("simulation_guid", String $ show mpGuid)
-                            , ("wrench_version", String mpVersion)
-                            , ("isa", String mpIsa)
-                            , ("variant", maybe Null String mpVariant)
-                            , ("asm_sha1", String mpAsmSha1)
-                            , ("yaml_sha1", String mpYamlSha1)
-                            , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
-                            , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
-                            ]
-                        )
+    mixpanelEvent
+        utime
+        SimulationEvent
+            { mpGuid
+            , mpName
+            , mpVersion
+            , mpTrack
+            , mpIsa
+            , mpVariant
+            , mpAsmSha1
+            , mpYamlSha1
+            , mpWinCount
+            , mpFailCount
+            , mpSuccess
+            , mpDuration
+            , mpVariantSuccess
+            } =
+            Array
+                $ V.fromList
+                    [ object
+                        [ ("event", String "Simulation")
+                        ,
+                            ( "properties"
+                            , object
+                                [ ("time", Number $ fromInteger utime)
+                                , ("authorName", String mpName)
+                                , ("distinct_id", String mpTrack)
+                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
+                                , ("simulation_guid", String $ show mpGuid)
+                                , ("wrench_version", String mpVersion)
+                                , ("isa", String mpIsa)
+                                , ("variant", maybe Null String mpVariant)
+                                , ("asm_sha1", String mpAsmSha1)
+                                , ("yaml_sha1", String mpYamlSha1)
+                                , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
+                                , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                                , ("success", Bool mpSuccess)
+                                , ("duration", Number $ fromInteger $ toInteger mpDuration)
+                                ,
+                                    ( "variant_success"
+                                    , maybe Null Bool mpVariantSuccess
+                                    )
+                                ]
+                            )
+                        ]
                     ]
-                ]
 
 instance PosthogEvent SimulationEvent where
     posthogEvent
@@ -130,6 +155,9 @@ instance PosthogEvent SimulationEvent where
             , mpYamlSha1
             , mpWinCount
             , mpFailCount
+            , mpSuccess
+            , mpDuration
+            , mpVariantSuccess
             } =
             object
                 [ ("api_key", String apiKey)
@@ -147,6 +175,12 @@ instance PosthogEvent SimulationEvent where
                         , ("yaml_sha1", String mpYamlSha1)
                         , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
                         , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                        , ("success", Bool mpSuccess)
+                        , ("duration", Number $ fromInteger $ toInteger mpDuration)
+                        ,
+                            ( "variant_success"
+                            , maybe Null Bool mpVariantSuccess
+                            )
                         , ("$set", object [("name", String mpName)])
                         ]
                     )
