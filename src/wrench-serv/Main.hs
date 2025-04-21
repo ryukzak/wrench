@@ -66,7 +66,7 @@ getForm conf@Config{cVariantsPath} cookie = do
                 ]
     liftIO $ do
         track <- getTrack cookie
-        posthogId <- getPosthogIdFromCookie cookie
+        posthogId <- getPosthogIdFromCookie cookie (track <> "_mp")
         trackEvent
             conf
             GetFormEvent
@@ -124,7 +124,7 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
         liftIO $ writeFileText testCaseLogFn srTestCase
 
     track <- liftIO $ getTrack cookie
-    posthogId <- liftIO $ getPosthogIdFromCookie cookie
+    posthogId <- liftIO $ getPosthogIdFromCookie cookie (track <> "_mp")
     let event =
             SimulationEvent
                 { mpGuid = guid
@@ -140,7 +140,8 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
                 , mpPosthogId = posthogId
                 }
     liftIO $ trackEvent conf event
-    throwError $ err301{errHeaders = [("Location", "/result/" <> show guid), ("Set-Cookie", trackCookie track)]}
+    throwError
+        $ err301{errHeaders = [("Location", "/result/" <> show guid), ("Set-Cookie", encodeUtf8 $ trackCookie track)]}
 
 type GetReport =
     Header "Cookie" Text
@@ -181,7 +182,7 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 ]
 
     track <- liftIO $ getTrack cookie
-    posthogId <- liftIO $ getPosthogIdFromCookie cookie
+    posthogId <- liftIO $ getPosthogIdFromCookie cookie (track <> "_mp")
     let event =
             ReportViewEvent
                 { mpGuid = guid
@@ -191,7 +192,7 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 , mpPosthogId = posthogId
                 }
     liftIO $ trackEvent conf event
-    return $ addHeader (decodeUtf8 (trackCookie track)) $ toHtmlRaw renderTemplate
+    return $ addHeader (trackCookie track) $ toHtmlRaw renderTemplate
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}

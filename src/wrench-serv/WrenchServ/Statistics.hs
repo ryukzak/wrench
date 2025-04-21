@@ -37,7 +37,7 @@ class PosthogEvent a where
 
 data GetFormEvent = GetFormEvent
     { mpVersion :: Text
-    , mpTrack :: ByteString
+    , mpTrack :: Text
     , mpPosthogId :: Text
     }
     deriving (Show)
@@ -52,7 +52,7 @@ instance MixpanelEvent GetFormEvent where
                         ( "properties"
                         , object
                             [ ("time", Number $ fromInteger utime)
-                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("distinct_id", String mpTrack)
                             , ("$insert_id", String $ show utime)
                             , ("version", String mpVersion)
                             ]
@@ -81,7 +81,7 @@ data SimulationEvent
     , mpIsa :: Text
     , mpVariant :: Maybe Text
     , mpVersion :: Text
-    , mpTrack :: ByteString
+    , mpTrack :: Text
     , mpAsmSha1 :: Text
     , mpYamlSha1 :: Text
     , mpWinCount :: Int
@@ -101,7 +101,7 @@ instance MixpanelEvent SimulationEvent where
                         , object
                             [ ("time", Number $ fromInteger utime)
                             , ("authorName", String mpName)
-                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("distinct_id", String mpTrack)
                             , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
                             , ("simulation_guid", String $ show mpGuid)
                             , ("wrench_version", String mpVersion)
@@ -156,7 +156,7 @@ data ReportViewEvent = ReportViewEvent
     { mpGuid :: UUID
     , mpName :: Text
     , mpVersion :: Text
-    , mpTrack :: ByteString
+    , mpTrack :: Text
     , mpPosthogId :: Text
     }
     deriving (Show)
@@ -172,7 +172,7 @@ instance MixpanelEvent ReportViewEvent where
                         , object
                             [ ("time", Number $ fromInteger utime)
                             , ("authorName", String mpName)
-                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("distinct_id", String mpTrack)
                             , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
                             , ("simulation_guid", String $ show mpGuid)
                             , ("version", String mpVersion)
@@ -230,12 +230,12 @@ trackPosthogEvent Config{} event = do
         (void $ HTTP.httpNoBody request')
         (\(e :: SomeException) -> putStrLn $ "Posthog tracking error: " ++ show e)
 
-getTrack :: Maybe Text -> IO ByteString
+getTrack :: Maybe Text -> IO Text
 getTrack cookie = case filter ((== "track_id") . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
-    [c] -> return $ snd c
+    [c] -> return $ decodeUtf8 $ snd c
     _ -> show <$> liftIO nextRandom
 
-trackCookie :: ByteString -> ByteString
+trackCookie :: Text -> Text
 trackCookie track = "track_id=" <> track <> "; path=/; Max-Age=10368000"
 
 -- TODO: make it configurable
@@ -255,15 +255,15 @@ postHogTracker =
         , "</script>"
         ]
 
-getPosthogIdFromCookie :: Maybe Text -> IO Text
-getPosthogIdFromCookie cookie =
+getPosthogIdFromCookie :: Maybe Text -> Text -> IO Text
+getPosthogIdFromCookie cookie fallback =
     case filter ((== cookieName) . fst) $ parseCookies $ maybe "" encodeUtf8 cookie of
         [c] -> case decodeStrict $ URI.decodeByteString $ snd c of
             Just (Object obj) ->
                 case JSON.lookup "distinct_id" obj of
                     Just (String distinctId) -> return distinctId
-                    _ -> show <$> liftIO nextRandom
-            _ -> show <$> liftIO nextRandom
-        _ -> show <$> liftIO nextRandom
+                    _ -> return fallback
+            _ -> return fallback
+        _ -> return fallback
     where
         cookieName = "ph_" <> encodeUtf8 posthogApiKey <> "_posthog"
