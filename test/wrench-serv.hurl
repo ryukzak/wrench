@@ -2,6 +2,7 @@ GET http://localhost:8080/submit-form
 HTTP/1.1 200
 [Asserts]
 xpath "normalize-space(//head/title)" startsWith "Wrench"
+xpath "//select[@id='variant']/option[@value='factorial']" exists
 
 POST http://localhost:8080/submit
 [Form]
