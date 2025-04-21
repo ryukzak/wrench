@@ -1,11 +1,11 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.38.0.
 --
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.2.8
+version:        0.0.2.9
 description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
