@@ -93,7 +93,7 @@ test-serv: build
 	hurl --retry 3 --no-output test/wrench-serv.hurl
 	pkill -f wrench-serv
 
-generate-variants:
+generate-variants: generate-variants
 	script/variants.py
 
 update-golden: generate-variants
