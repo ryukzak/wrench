@@ -87,12 +87,12 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 
 - **Shift Left**
     - **Syntax:** `shiftl <address>`
-    - **Description:** Shift the accumulator left by a number of bits from a specific address.
+    - **Description:** Shift the accumulator left by a number of bits from a specific address (Carry flag will not be used).
     - **Operation:** `acc <- acc << mem[<address>]`
 
 - **Shift Right**
     - **Syntax:** `shiftr <address>`
-    - **Description:** Shift the accumulator right by a number of bits from a specific address.
+    - **Description:** Shift the accumulator right by a number of bits from a specific address (Carry flag will not be used).
     - **Operation:** `acc <- acc >> mem[<address>]`
 
 - **Bitwise AND**
