@@ -450,7 +450,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Sb{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs2' <- getReg rs2
                 mrReg' <- getReg mrReg
-                setWord (fromEnum (mrReg' + mrOffset)) (0xFF .&. rs2')
+                let addr = fromEnum (mrReg' + mrOffset)
+                st@State{mem} <- get
+                case writeByte mem addr (fromIntegral (0xFF .&. rs2')) of
+                    Right mem' -> put st{mem = mem'}
+                    Left err -> raiseInternalError $ "memory access error: " <> err
                 nextPc
             Lui{rd, k} -> do
                 setReg rd ((k .&. 0x000FFFFF) `shiftL` 12)

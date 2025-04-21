@@ -108,10 +108,11 @@ word32ToHex w =
     let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
-class Memory m isa w | m -> isa w where
+class (Integral w) => Memory m isa w | m -> isa w where
     readInstruction :: m -> Int -> Either Text isa
     readWord :: m -> Int -> Either Text (m, w)
     writeWord :: m -> Int -> w -> Either Text m
+    writeByte :: m -> Int -> Word8 -> Either Text m
 
 instance
     (MachineWord w) =>
@@ -141,6 +142,12 @@ instance
         let updates = zip [idx ..] (wordSplit word)
          in Right $ foldl' (\m (i, x) -> insert i (Value x) m) mem updates
 
+    writeByte mem idx byte =
+        case mem !? idx of
+            Just (Value _) -> Right $ insert idx (Value byte) mem
+            Just _ -> Left $ "memory[" <> show idx <> "]: can't write byte to instruction cell"
+            Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
+
 instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
@@ -162,4 +169,13 @@ instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
             Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeWord (mIoCells io) idx word
+                return io{mIoCells = mIoCells'}
+
+    writeByte io idx byte =
+        case mIoStreams io !? idx of
+            Just (is, os) -> 
+                let byteAsW = fromIntegral byte :: w
+                in Right io{mIoStreams = insert idx (is, byteAsW : os) (mIoStreams io)}
+            Nothing -> do
+                mIoCells' <- writeByte (mIoCells io) idx byte
                 return io{mIoCells = mIoCells'}
