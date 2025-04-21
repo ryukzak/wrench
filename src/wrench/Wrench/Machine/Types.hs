@@ -63,6 +63,7 @@ instance FromSign Int32 where
 class WordParts w where
     wordSplit :: w -> [Word8]
     wordCombine :: [Word8] -> w
+    byteToWord :: Word8 -> w
 
 instance WordParts Int32 where
     wordSplit w = [byte3, byte2, byte1, byte0]
@@ -78,6 +79,8 @@ instance WordParts Int32 where
             .|. (fromIntegral byte2 `shiftL` 8)
             .|. fromIntegral byte3
     wordCombine _ = error "not applicable"
+
+    byteToWord = fromIntegral
 
 signBitAnd :: (MachineWord w) => w -> w -> w
 signBitAnd x mask

@@ -112,6 +112,7 @@ class Memory m isa w | m -> isa w where
     readInstruction :: m -> Int -> Either Text isa
     readWord :: m -> Int -> Either Text (m, w)
     writeWord :: m -> Int -> w -> Either Text m
+    writeByte :: m -> Int -> Word8 -> Either Text m
 
 instance
     (MachineWord w) =>
@@ -141,7 +142,10 @@ instance
         let updates = zip [idx ..] (wordSplit word)
          in Right $ foldl' (\m (i, x) -> insert i (Value x) m) mem updates
 
-instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
+    writeByte mem idx byte =
+        Right $ insert idx (Value byte) mem
+
+instance (Memory (Mem isa w) isa w, WordParts w) => Memory (IoMem isa w) isa w where
     readInstruction IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
             Just _ -> Left $ "memory[" <> show idx <> "]: can't read instruction from input port"
@@ -162,4 +166,11 @@ instance (Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
             Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeWord (mIoCells io) idx word
+                return io{mIoCells = mIoCells'}
+
+    writeByte io idx byte =
+        case mIoStreams io !? idx of
+            Just (is, os) -> Right io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
+            Nothing -> do
+                mIoCells' <- writeByte (mIoCells io) idx byte
                 return io{mIoCells = mIoCells'}

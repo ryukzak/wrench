@@ -372,6 +372,13 @@ setWord addr w = do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
+setByte addr byte = do
+    st@State{mem} <- get
+    case writeByte mem addr byte of
+        Right mem' -> do
+            put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
     initState pc dump =
         State
@@ -450,7 +457,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Sb{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs2' <- getReg rs2
                 mrReg' <- getReg mrReg
-                setWord (fromEnum (mrReg' + mrOffset)) (0xFF .&. rs2')
+                setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
                 nextPc
             Lui{rd, k} -> do
                 setReg rd ((k .&. 0x000FFFFF) `shiftL` 12)

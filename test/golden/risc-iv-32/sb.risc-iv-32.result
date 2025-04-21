@@ -1,0 +1,12 @@
+---
+# Step-by-step
+136:	Lui {rd = T0, k = 0}	@_start buf_ptr=t0=0x00000000 char=t1=0x00000000
+140:	Addi {rd = T0, rs1 = T0, k = 0}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+144:	Lui {rd = T1, k = 0}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+148:	Addi {rd = T1, rs1 = T1, k = 4}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+152:	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}	 buf_ptr=t0=0x00000000 char=t1=0x00000004
+156:	Sb {rs2 = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}	 buf_ptr=t0=0x00000000 char=t1=0x000000ff
+160:	Halt	 buf_ptr=t0=0x00000000 char=t1=0x000000ff
+---
+# Check results
+mem[0..5]: 	ff 32 33 34 ff 00
