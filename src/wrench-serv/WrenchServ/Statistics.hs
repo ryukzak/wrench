@@ -47,16 +47,15 @@ instance MixpanelEvent GetFormEvent where
         Array
             $ V.fromList
                 [ object
-                    [ ("event", String "OpenForm")
+                    [ ("event", String "GetForm")
                     ,
                         ( "properties"
-                        , Object
-                            ( fromList
-                                [ ("time", Number $ fromInteger utime)
-                                , ("distinct_id", String $ decodeUtf8 mpTrack)
-                                , ("version", String mpVersion)
-                                ]
-                            )
+                        , object
+                            [ ("time", Number $ fromInteger utime)
+                            , ("distinct_id", String $ decodeUtf8 mpTrack)
+                            , ("$insert_id", String $ show utime)
+                            , ("version", String mpVersion)
+                            ]
                         )
                     ]
                 ]
@@ -96,7 +95,7 @@ instance MixpanelEvent SimulationEvent where
         Array
             $ V.fromList
                 [ object
-                    [ ("event", String "SimulationEvent")
+                    [ ("event", String "Simulation")
                     ,
                         ( "properties"
                         , object
@@ -148,6 +147,7 @@ instance PosthogEvent SimulationEvent where
                         , ("yaml_sha1", String mpYamlSha1)
                         , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
                         , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
+                        , ("$set", object [("name", String mpName)])
                         ]
                     )
                 ]
