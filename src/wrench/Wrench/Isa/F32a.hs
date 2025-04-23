@@ -317,9 +317,9 @@ getA = do
 getB :: State (MachineState (IoMem (Isa w w) w) w) w
 getB = get <&> b
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{p} = p
-    memoryDump State{ram = IoMem{mIoCells}} = mIoCells
+    memoryDump State{ram} = ram
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

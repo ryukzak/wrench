@@ -15,6 +15,7 @@ import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Machine.Memory
+import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
 import Wrench.Machine.Types.Test qualified
 import Wrench.Report.Test qualified
@@ -40,6 +41,7 @@ tests =
             ]
         , testGroup "Report" [Wrench.Report.Test.tests]
         , testGroup "Machine.Types" [Wrench.Machine.Types.Test.tests]
+        , Wrench.Machine.Memory.Test.tests
         , testGroup
             "RiscIv IV 32"
             [ testGroup
@@ -196,7 +198,7 @@ goldenTranslate' isa fn =
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 Nothing fn src of
             Right (TranslatorResult dump labels) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels dump, ""]
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 

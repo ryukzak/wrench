@@ -2,7 +2,7 @@
 
 module Wrench.Machine.Memory (
     sliceMem,
-    Mem,
+    Mem (..),
     Cell (..),
     Memory (..),
     WordParts (..),
@@ -54,20 +54,21 @@ prepareDump memorySize sections =
                     sections
         mSize = fromMaybe (maximum1 $ 0 :| keys fromSections) memorySize
         placeholder = map (,Value 0) [0 .. mSize - 1]
-     in fromList (placeholder <> fromSections)
+     in Mem{memoryData = fromList (placeholder <> fromSections)}
 
 isValue Value{} = True
 isValue _ = False
 
-sliceMem addrs dump = map (\a -> (a, Unsafe.fromJust (dump !? a))) addrs
+sliceMem :: [Int] -> IntMap (Cell isa w) -> [(Int, Cell isa w)]
+sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) addrs
 
 prettyDump ::
     forall w isa.
     (ByteLength isa, MachineWord w, Show isa) =>
     HashMap String w
-    -> Mem isa w
+    -> IntMap (Cell isa w)
     -> String
-prettyDump labels dump = intercalate "\n" $ pretty $ toPairs dump
+prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
     where
         offset2label :: HashMap Int String
         offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
@@ -113,19 +114,20 @@ class Memory m isa w | m -> isa w where
     readWord :: m -> Int -> Either Text (m, w)
     writeWord :: m -> Int -> w -> Either Text m
     writeByte :: m -> Int -> Word8 -> Either Text m
+    dumpCells :: m -> IntMap (Cell isa w)
 
 instance
     (MachineWord w) =>
     Memory (Mem isa w) isa w
     where
-    readInstruction mem idx =
-        case mem !? idx of
+    readInstruction Mem{memoryData} idx =
+        case memoryData !? idx of
             Just (Instruction i) -> Right i
             Just InstructionPart -> Left $ "memory[" <> show idx <> "]: can't read instruction not from start"
             Just (Value _) -> Left $ "memory[" <> show idx <> "]: can't read instruction from data cell"
             Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
 
-    readWord mem idx =
+    readWord mem@Mem{memoryData} idx =
         let idxs = [idx .. idx + byteLength (def :: w) - 1]
             values = map getValue idxs
          in case lefts values of
@@ -133,17 +135,21 @@ instance
                 errs -> Left $ unlines errs
         where
             getValue i =
-                case mem !? i of
+                case memoryData !? i of
                     Just (Value v) -> Right v
                     Just _ -> Left $ "memory[" <> show i <> "]: can't read data from instruction cell"
                     Nothing -> Left $ "memory[" <> show i <> "]: out of memory"
 
-    writeWord mem idx word =
+    writeWord mem@Mem{memoryData} idx word =
         let updates = zip [idx ..] (wordSplit word)
-         in Right $ foldl' (\m (i, x) -> insert i (Value x) m) mem updates
+            memoryData' = foldl' (\m (i, x) -> insert i (Value x) m) memoryData updates
+         in Right $ mem{memoryData = memoryData'}
 
-    writeByte mem idx byte =
-        Right $ insert idx (Value byte) mem
+    writeByte mem@Mem{memoryData} idx byte =
+        let memoryData' = insert idx (Value byte) memoryData
+         in Right $ mem{memoryData = memoryData'}
+
+    dumpCells Mem{memoryData} = memoryData
 
 instance (Memory (Mem isa w) isa w, WordParts w) => Memory (IoMem isa w) isa w where
     readInstruction IoMem{mIoStreams, mIoCells} idx =
@@ -174,3 +180,5 @@ instance (Memory (Mem isa w) isa w, WordParts w) => Memory (IoMem isa w) isa w w
             Nothing -> do
                 mIoCells' <- writeByte (mIoCells io) idx byte
                 return io{mIoCells = mIoCells'}
+
+    dumpCells = memoryData . mIoCells

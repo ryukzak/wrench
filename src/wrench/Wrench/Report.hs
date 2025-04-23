@@ -118,6 +118,9 @@ selectSlice LastSlice = take 1 . reverse
 prepareStateView line TranslatorResult{labels} st =
     toString $ substituteBrackets (reprState labels st) line
 
+defaultView ::
+    (ByteLength isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
+    HashMap String w -> st -> Text -> Maybe Text
 defaultView labels st "pc:label" =
     Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
         (l, _a) : _ -> "@" <> toText l
@@ -128,13 +131,14 @@ defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
         ["pc", f] -> Just $ viewRegister f (programCounter st)
-        ["memory", a, b] -> Just $ viewMemory a b st
+        ["memory", a, b] -> Just $ viewMemory a b $ dumpCells $ memoryDump st
         ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
-viewMemory a b st =
-    toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] $ memoryDump st
+viewMemory :: (ByteLength isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
+viewMemory a b mem =
+    toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
