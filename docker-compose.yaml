@@ -1,6 +1,6 @@
 services:
     wrench-serv:
-        image: ryukzak/wrench:preview
+        image: ryukzak/wrench:edge
         pull_policy: always
         environment:
             - PORT=8080
