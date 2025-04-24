@@ -73,7 +73,7 @@ prettyLabels rLabels =
         $ sortOn snd (toPairs rLabels)
 
 wrenchIO :: Options -> IO ()
-wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
+wrenchIO opts@Options{input, configFile, isa, verbose} = do
     when verbose $ pPrint opts
     conf@Config{cLimit, cMemorySize} <- case configFile of
         Just fn -> either (error . toText) id <$> readConfig fn
@@ -84,40 +84,38 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
         putStrLn "---"
     when (cLimit > maxLimit) $ error "limit too high"
     when (cMemorySize > maxMemorySize) $ error "memory size too high"
-    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
 
+    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv ->
-            case wrench @(RiscIvState Int32)
-                conf
-                opts
-                src of
-                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
-                    if onlyTranslation
-                        then translationResult rLabels rDump
-                        else do
-                            putText rTrace
-                            if rSuccess then exitSuccess else exitFailure
-                Left e -> wrenchError e
-        Just F32a ->
-            case wrench @(F32aState Int32) conf opts src of
-                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
-                    if onlyTranslation
-                        then translationResult rLabels rDump
-                        else do
-                            putText rTrace
-                            if rSuccess then exitSuccess else exitFailure
-                Left e -> wrenchError e
-        Just Acc32 ->
-            case wrench @(Acc32State Int32) conf opts src of
-                Right Result{rLabels, rTrace, rSuccess, rDump} -> do
-                    if onlyTranslation
-                        then translationResult rLabels rDump
-                        else do
-                            putText rTrace
-                            if rSuccess then exitSuccess else exitFailure
-                Left e -> wrenchError e
+        Just RiscIv -> runWrench @(RiscIvState Int32) conf opts src
+        Just F32a -> runWrench @(F32aState Int32) conf opts src
+        Just Acc32 -> runWrench @(Acc32State Int32) conf opts src
         Nothing -> error $ "unknown isa:" <> toText isa
+
+runWrench ::
+    forall st isa_ w isa1 isa2.
+    ( ByteLength isa1
+    , ByteLength isa2
+    , DerefMnemonic (isa_ w) w
+    , InitState (IoMem isa2 w) st
+    , Machine st isa2 w
+    , MachineWord w
+    , MnemonicParser isa1
+    , Show (isa_ w w)
+    , StateInterspector st isa2 w
+    , isa1 ~ isa_ w (Ref w)
+    , isa2 ~ isa_ w w
+    ) =>
+    Config -> Options -> [Char] -> IO ()
+runWrench conf@Config{} opts@Options{isa, onlyTranslation} src =
+    case wrench @st conf opts src of
+        Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+            if onlyTranslation
+                then translationResult rLabels rDump
+                else do
+                    putText rTrace
+                    if rSuccess then exitSuccess else exitFailure
+        Left e -> wrenchError e
     where
         translationResult rLabels rDump = do
             putStrLn $ prettyLabels rLabels
@@ -153,11 +151,11 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
                 { mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cInputStreamsFlat
                 , mIoCells = dump
                 }
-        st = initState (fromEnum pc) ioDump
+        st :: st = initState (fromEnum pc) ioDump
         -- TODO: Add config field for stateRecordLimits
         stateRecordLimits = 10000
 
-    (traceLog :: [Trace st isa2]) <- powerOn cLimit stateRecordLimits labels st
+    traceLog <- powerOn cLimit stateRecordLimits labels st
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports

@@ -201,30 +201,18 @@ goldenTranslate' isa fn =
                 error $ "Translation failed: " <> show err
 
 goldenSimulate :: Isa -> FilePath -> FilePath -> TestTree
-goldenSimulate RiscIv fn confFn =
-    let resultFn = dropExtension confFn <> ".risc-iv-32.result"
-     in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @(RiscIvState Int32)
-            src <- decodeUtf8 <$> readFileBS fn
-            conf <- either (error . toText) id <$> readConfig confFn
-            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace
-                Left e -> "error: " <> e
-goldenSimulate F32a fn confFn =
-    let resultFn = dropExtension confFn <> ".f32a.result"
-     in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @(F32aState Int32)
-            src <- decodeUtf8 <$> readFileBS fn
-            conf <- either (error . toText) id <$> readConfig confFn
-            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace
-                Left e -> "error: " <> e
-goldenSimulate Acc32 fn confFn =
-    let resultFn = dropExtension confFn <> ".acc32.result"
-     in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @(Acc32State Int32)
-            src <- decodeUtf8 <$> readFileBS fn
-            conf <- either (error . toText) id <$> readConfig confFn
-            return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
-                Right Result{rTrace} -> rTrace
-                Left e -> "error: " <> e
+goldenSimulate isa =
+    case isa of
+        RiscIv -> goldenSimulate' (wrench @(RiscIvState Int32)) ".risc-iv-32.result"
+        F32a -> goldenSimulate' (wrench @(F32aState Int32)) ".f32a.result"
+        Acc32 -> goldenSimulate' (wrench @(Acc32State Int32)) ".acc32.result"
+    where
+        goldenSimulate' wr ext fn confFn =
+            let resultFn = dropExtension confFn <> ext
+             in goldenVsString (fn2name confFn) resultFn $ do
+                    let wrench' = wr
+                    src <- decodeUtf8 <$> readFileBS fn
+                    conf <- either (error . toText) id <$> readConfig confFn
+                    return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
+                        Right Result{rTrace} -> rTrace
+                        Left e -> "error: " <> e
