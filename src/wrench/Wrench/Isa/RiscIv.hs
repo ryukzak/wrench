@@ -7,6 +7,7 @@
 module Wrench.Isa.RiscIv (
     Isa (..),
     MachineState (..),
+    RiscIvState,
     Register (..),
 ) where
 
@@ -324,6 +325,8 @@ cmd3args mnemonic constructor a b c =
         <*> (comma *> c)
 
 -- * Machine
+
+type RiscIvState w = MachineState (IoMem (Isa w w) w) w
 
 data MachineState mem w = State
     { pc :: Int

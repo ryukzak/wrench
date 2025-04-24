@@ -7,8 +7,11 @@ import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
+import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.Acc32 qualified as Acc32
+import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
+import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Machine.Memory
@@ -201,7 +204,7 @@ goldenSimulate :: Isa -> FilePath -> FilePath -> TestTree
 goldenSimulate RiscIv fn confFn =
     let resultFn = dropExtension confFn <> ".risc-iv-32.result"
      in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @RiscIv.Isa @Int32 @(RiscIv.MachineState (IoMem (RiscIv.Isa Int32 Int32) Int32) Int32)
+            let wrench' = wrench @(RiscIvState Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
@@ -210,7 +213,7 @@ goldenSimulate RiscIv fn confFn =
 goldenSimulate F32a fn confFn =
     let resultFn = dropExtension confFn <> ".f32a.result"
      in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @F32a.Isa @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32)
+            let wrench' = wrench @(F32aState Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
@@ -219,7 +222,7 @@ goldenSimulate F32a fn confFn =
 goldenSimulate Acc32 fn confFn =
     let resultFn = dropExtension confFn <> ".acc32.result"
      in goldenVsString (fn2name confFn) resultFn $ do
-            let wrench' = wrench @Acc32.Isa @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32)
+            let wrench' = wrench @(Acc32State Int32)
             src <- decodeUtf8 <$> readFileBS fn
             conf <- either (error . toText) id <$> readConfig confFn
             return $ encodeUtf8 $ case wrench' conf def{input = fn} src of

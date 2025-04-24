@@ -4,7 +4,7 @@
 
 module Wrench.Isa.Acc32 (
     Isa (..),
-    MachineState (..),
+    Acc32State,
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
@@ -192,6 +192,8 @@ instance ByteLength (Isa w l) where
     byteLength Clc = 1
     byteLength Halt = 1
     byteLength _ = 3
+
+type Acc32State w = MachineState (IoMem (Isa w w) w) w
 
 data MachineState mem w = State
     { pc :: Int

@@ -5,7 +5,7 @@
 -- | Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18a.pdf
 module Wrench.Isa.F32a (
     Isa (..),
-    MachineState (..),
+    F32aState,
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -202,6 +202,8 @@ instance ByteLength (Isa w l) where
     byteLength (FetchP _) = 5
     byteLength (StoreP _) = 5
     byteLength _ = 1
+
+type F32aState w = MachineState (IoMem (Isa w w) w) w
 
 data MachineState mem w = State
     { p :: Int

@@ -77,7 +77,7 @@ translate ::
     -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)
 translate memorySize fn src =
     case parse asmParser fn src of
-        Right (sections :: [Section isa1 w String]) ->
+        Right sections ->
             case evaluateLabels sections of
                 Left err -> Left $ toText err
                 (Right labels) ->

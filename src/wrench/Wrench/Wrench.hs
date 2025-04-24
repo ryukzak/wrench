@@ -15,9 +15,9 @@ import Relude
 import Relude.Extra
 import Text.Pretty.Simple
 import Wrench.Config
-import Wrench.Isa.Acc32 qualified as Acc32
-import Wrench.Isa.F32a qualified as F32a
-import Wrench.Isa.RiscIv qualified as RiscIv
+import Wrench.Isa.Acc32 (Acc32State)
+import Wrench.Isa.F32a (F32aState)
+import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -88,7 +88,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
 
     case readMaybe isa of
         Just RiscIv ->
-            case wrench @RiscIv.Isa @Int32 @(RiscIv.MachineState (IoMem (RiscIv.Isa Int32 Int32) Int32) Int32)
+            case wrench @(RiscIvState Int32)
                 conf
                 opts
                 src of
@@ -100,7 +100,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just F32a ->
-            case wrench @F32a.Isa @Int32 @(F32a.MachineState (IoMem (F32a.Isa Int32 Int32) Int32) Int32) conf opts src of
+            case wrench @(F32aState Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then translationResult rLabels rDump
@@ -109,7 +109,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
                             if rSuccess then exitSuccess else exitFailure
                 Left e -> wrenchError e
         Just Acc32 ->
-            case wrench @Acc32.Isa @Int32 @(Acc32.MachineState (IoMem (Acc32.Isa Int32 Int32) Int32) Int32) conf opts src of
+            case wrench @(Acc32State Int32) conf opts src of
                 Right Result{rLabels, rTrace, rSuccess, rDump} -> do
                     if onlyTranslation
                         then translationResult rLabels rDump
@@ -128,7 +128,7 @@ wrenchIO opts@Options{input, configFile, isa, onlyTranslation, verbose} = do
             exitFailure
 
 wrench ::
-    forall isa_ w st isa1 isa2.
+    forall st isa_ w isa1 isa2.
     ( ByteLength isa1
     , ByteLength isa2
     , DerefMnemonic (isa_ w) w
