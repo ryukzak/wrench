@@ -150,7 +150,8 @@ data Trace st isa
     deriving (Show)
 
 data Mem isa w = Mem
-    { memoryData :: IntMap (Cell isa w)
+    { memorySize :: Int
+    , memoryData :: IntMap (Cell isa w)
     }
     deriving (Eq, Show)
 

@@ -40,7 +40,7 @@ tests =
             , goldenConfig "test/golden/config/smoke.yaml"
             ]
         , testGroup "Report" [Wrench.Report.Test.tests]
-        , testGroup "Machine.Types" [Wrench.Machine.Types.Test.tests]
+        , Wrench.Machine.Types.Test.tests
         , Wrench.Machine.Memory.Test.tests
         , testGroup
             "RiscIv IV 32"

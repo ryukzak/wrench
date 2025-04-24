@@ -54,7 +54,10 @@ prepareDump memorySize sections =
                     sections
         mSize = fromMaybe (maximum1 $ 0 :| keys fromSections) memorySize
         placeholder = map (,Value 0) [0 .. mSize - 1]
-     in Mem{memoryData = fromList (placeholder <> fromSections)}
+     in Mem
+            { memorySize = mSize
+            , memoryData = fromList (placeholder <> fromSections)
+            }
 
 isValue Value{} = True
 isValue _ = False
@@ -140,11 +143,20 @@ instance
                     Just _ -> Left $ "memory[" <> show i <> "]: can't read data from instruction cell"
                     Nothing -> Left $ "memory[" <> show i <> "]: out of memory"
 
+    writeWord Mem{memorySize} idx _
+        | memorySize
+            < idx
+            + byteLength (def :: w)
+            || idx
+            < 0 =
+            Left $ "memory[" <> show idx <> "]: out of memory for word access"
     writeWord mem@Mem{memoryData} idx word =
         let updates = zip [idx ..] (wordSplit word)
             memoryData' = foldl' (\m (i, x) -> insert i (Value x) m) memoryData updates
          in Right $ mem{memoryData = memoryData'}
 
+    writeByte Mem{memorySize} idx _
+        | memorySize <= idx || idx < 0 = Left $ "memory[" <> show idx <> "]: out of memory"
     writeByte mem@Mem{memoryData} idx byte =
         let memoryData' = insert idx (Value byte) memoryData
          in Right $ mem{memoryData = memoryData'}
