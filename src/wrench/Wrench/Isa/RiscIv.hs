@@ -392,9 +392,9 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
-    memoryDump State{mem = IoMem{mIoCells}} = mIoCells
+    memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

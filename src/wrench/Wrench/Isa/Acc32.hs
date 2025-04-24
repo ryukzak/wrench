@@ -261,9 +261,9 @@ getOverflowFlag = overflowFlag <$> get
 getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
 getCarryFlag = carryFlag <$> get
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
-    memoryDump State{ram = IoMem{mIoCells}} = mIoCells
+    memoryDump State{ram} = ram
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

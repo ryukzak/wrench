@@ -1,7 +1,7 @@
 module Wrench.Machine.Types (
     Trace (..),
     Machine (..),
-    Mem,
+    Mem (..),
     IoMem (..),
     Cell (..),
     InitState (..),
@@ -129,9 +129,9 @@ instance ByteLength Int32 where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> st
 
-class StateInterspector st isa w | st -> isa w where
+class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
-    memoryDump :: st -> Mem isa w
+    memoryDump :: st -> m
     ioStreams :: st -> IntMap ([w], [w])
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
@@ -149,16 +149,20 @@ data Trace st isa
     | TWarn Text
     deriving (Show)
 
-type Mem isa w = IntMap (Cell isa w)
+data Mem isa w = Mem
+    { memorySize :: Int
+    , memoryData :: IntMap (Cell isa w)
+    }
+    deriving (Eq, Show)
 
 data IoMem isa w = IoMem
     { mIoStreams :: IntMap ([w], [w])
     , mIoCells :: Mem isa w
     }
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Cell isa w
     = Instruction isa
     | InstructionPart
     | Value Word8
-    deriving (Show)
+    deriving (Eq, Show)

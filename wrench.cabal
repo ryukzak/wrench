@@ -303,6 +303,7 @@ test-suite wrench-test
   main-is: Spec.hs
   other-modules:
       Wrench.Isa.RiscIv.Test
+      Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test
       Paths_wrench
