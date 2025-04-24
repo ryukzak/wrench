@@ -48,7 +48,10 @@ export function setupThemeToggle(buttonId) {
     localStorage.setItem('prefers-color-scheme', isDark ? 'dark' : 'light')
   }
 
-  if (!localStorage.getItem('prefers-color-scheme') && window.matchMedia) {
+  const storedTheme = localStorage.getItem('prefers-color-scheme')
+  if (storedTheme) {
+    document.body.classList.toggle('dark', storedTheme === 'dark')
+  } else if (window.matchMedia) {
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     document.body.classList.toggle('dark', systemDark)
   }
