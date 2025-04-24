@@ -33,6 +33,8 @@ body.dark {
   --c-orange: #ff9528;
   --c-orange-low-saturation: #a5692d;
   --c-yellow: #dddd25;
+  --selection-color: #ffffff; /* Fixed selection text color for dark mode */
+  --selection-bg: #4a4a4a; /* Adjusted selection background for better contrast */
 }
 
 html,
@@ -47,6 +49,12 @@ pre {
 }
 
 ::selection {
+  color: var(--selection-color);
+  background: var(--selection-bg);
+}
+
+/* Safari specific fix for selection */
+::-webkit-selection {
   color: var(--selection-color);
   background: var(--selection-bg);
 }
