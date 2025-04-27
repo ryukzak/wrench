@@ -64,6 +64,14 @@ data Isa w l
     | Lsl {mode :: Mode, src, dst :: Argument w l}
     | Lsr {mode :: Mode, src, dst :: Argument w l}
     | Jmp {ref :: l}
+    | Beq {ref :: l}
+    | Bne {ref :: l}
+    | Blt {ref :: l}
+    | Bgt {ref :: l}
+    | Ble {ref :: l}
+    | Bge {ref :: l}
+    | Bmi {ref :: l}
+    | Bpl {ref :: l}
     | Halt
     deriving (Show)
 
@@ -88,6 +96,14 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
             , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
             , branchCmd "jmp" Jmp reference
+            , branchCmd "beq" Beq reference
+            , branchCmd "bne" Bne reference
+            , branchCmd "blt" Blt reference
+            , branchCmd "bgt" Bgt reference
+            , branchCmd "ble" Ble reference
+            , branchCmd "bge" Bge reference
+            , branchCmd "bmi" Bmi reference
+            , branchCmd "bpl" Bpl reference
             , cmd0args "halt" Halt
             ]
         where
@@ -193,6 +209,14 @@ instance DerefMnemonic (Isa w) w where
                 Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
                 Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
                 Jmp{ref} -> Jmp (deref' f ref)
+                Beq{ref} -> Beq (deref' f ref)
+                Bne{ref} -> Bne (deref' f ref)
+                Blt{ref} -> Blt (deref' f ref)
+                Bgt{ref} -> Bgt (deref' f ref)
+                Ble{ref} -> Ble (deref' f ref)
+                Bge{ref} -> Bge (deref' f ref)
+                Bmi{ref} -> Bmi (deref' f ref)
+                Bpl{ref} -> Bpl (deref' f ref)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -314,11 +338,19 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR s (fromEnum d))
             Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
             Lsr{mode, src, dst} -> cmd2 mode src dst (flip lShiftR)
-            Jmp{ref} -> branch True ref
+            Jmp{ref} -> branch ref True
+            Beq{ref} -> get >>= branch ref . zFlag
+            Bne{ref} -> get >>= branch ref . not . zFlag
+            Blt{ref} -> get >>= branch ref . (\st -> nFlag st /= vFlag st)
+            Bgt{ref} -> get >>= branch ref . (\st -> not (zFlag st) && (nFlag st == vFlag st))
+            Ble{ref} -> get >>= branch ref . (\st -> zFlag st || (nFlag st /= vFlag st))
+            Bge{ref} -> get >>= branch ref . (\st -> nFlag st == vFlag st)
+            Bmi{ref} -> get >>= branch ref . nFlag
+            Bpl{ref} -> get >>= branch ref . not . nFlag
             Halt -> modify $ \st -> st{stopped = True}
         where
-            branch True addr = setPc $ fromEnum addr
-            branch False _ = nextPc
+            branch addr True = setPc $ fromEnum addr
+            branch _addr False = nextPc
             cmd1 mode src dst f = do
                 a <- fetch mode src
                 let result = f a
