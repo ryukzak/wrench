@@ -11,8 +11,9 @@ import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
-import Wrench.Isa.RiscIv ( RiscIvState, M68kState )
-import Wrench.Isa.M68k qualified as M86k
+import Wrench.Isa.M68k (M68kState)
+import Wrench.Isa.M68k qualified as M68k
+import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Machine.Memory

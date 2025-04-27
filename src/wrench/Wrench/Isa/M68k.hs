@@ -4,7 +4,7 @@
 
 module Wrench.Isa.M68k (
     Isa (..),
-    MachineState (..),
+    M68kState,
 ) where
 
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
@@ -198,6 +198,8 @@ instance DerefMnemonic (Isa w) w where
 instance ByteLength (Isa w l) where
     byteLength _ = 4 -- Simplified assumption: all instructions are 2 bytes.
 
+type M68kState w = MachineState (IoMem (Isa w w) w) w
+
 data MachineState mem w = State
     { pc :: Int
     , dr :: HashMap DataReg w
@@ -205,7 +207,7 @@ data MachineState mem w = State
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
-    , nFlag , zFlag, vFlag , cFlag :: Bool
+    , nFlag, zFlag, vFlag, cFlag :: Bool
     }
     deriving (Show)
 
@@ -236,9 +238,9 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , cFlag = False
             }
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
-    memoryDump State{mem = IoMem{mIoCells}} = mIoCells
+    memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

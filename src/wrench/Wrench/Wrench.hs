@@ -17,8 +17,8 @@ import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.F32a (F32aState)
-import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.M68k (M68kState)
+import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
