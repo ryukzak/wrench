@@ -14,23 +14,14 @@ module WrenchServ.Statistics (
 import Control.Exception (catch)
 import Data.Aeson
 import Data.Aeson.KeyMap qualified as JSON
-import Data.Base64.Types (extractBase64)
-import Data.Text qualified as T
-import Data.Text.Encoding.Base64 (encodeBase64)
-import Data.Time (getCurrentTime)
-import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
-import Data.Vector qualified as V
 import Network.HTTP.Conduit qualified as HTTP
 import Network.HTTP.Simple qualified as HTTP
 import Network.URI.Encode qualified as URI
 import Relude
 import Web.Cookie (parseCookies)
 import WrenchServ.Config
-
-class MixpanelEvent a where
-    mixpanelEvent :: Integer -> a -> Value
 
 class PosthogEvent a where
     posthogEvent :: Text -> a -> Value
@@ -41,24 +32,6 @@ data GetFormEvent = GetFormEvent
     , mpPosthogId :: Text
     }
     deriving (Show)
-
-instance MixpanelEvent GetFormEvent where
-    mixpanelEvent utime GetFormEvent{mpVersion, mpTrack} =
-        Array
-            $ V.fromList
-                [ object
-                    [ ("event", String "GetForm")
-                    ,
-                        ( "properties"
-                        , object
-                            [ ("time", Number $ fromInteger utime)
-                            , ("distinct_id", String mpTrack)
-                            , ("$insert_id", String $ show utime)
-                            , ("version", String mpVersion)
-                            ]
-                        )
-                    ]
-                ]
 
 instance PosthogEvent GetFormEvent where
     posthogEvent apiKey GetFormEvent{mpVersion, mpPosthogId} =
@@ -92,54 +65,6 @@ data SimulationEvent
     , mpVariantSuccess :: Maybe Bool
     }
     deriving (Show)
-
-instance MixpanelEvent SimulationEvent where
-    mixpanelEvent
-        utime
-        SimulationEvent
-            { mpGuid
-            , mpName
-            , mpVersion
-            , mpTrack
-            , mpIsa
-            , mpVariant
-            , mpAsmSha1
-            , mpYamlSha1
-            , mpWinCount
-            , mpFailCount
-            , mpSuccess
-            , mpDuration
-            , mpVariantSuccess
-            } =
-            Array
-                $ V.fromList
-                    [ object
-                        [ ("event", String "Simulation")
-                        ,
-                            ( "properties"
-                            , object
-                                [ ("time", Number $ fromInteger utime)
-                                , ("authorName", String mpName)
-                                , ("distinct_id", String mpTrack)
-                                , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
-                                , ("simulation_guid", String $ show mpGuid)
-                                , ("wrench_version", String mpVersion)
-                                , ("isa", String mpIsa)
-                                , ("variant", maybe Null String mpVariant)
-                                , ("asm_sha1", String mpAsmSha1)
-                                , ("yaml_sha1", String mpYamlSha1)
-                                , ("win_count", Number $ fromInteger $ toInteger mpWinCount)
-                                , ("fail_count", Number $ fromInteger $ toInteger mpFailCount)
-                                , ("success", Bool mpSuccess)
-                                , ("duration", Number $ fromInteger $ toInteger mpDuration)
-                                ,
-                                    ( "variant_success"
-                                    , maybe Null Bool mpVariantSuccess
-                                    )
-                                ]
-                            )
-                        ]
-                    ]
 
 instance PosthogEvent SimulationEvent where
     posthogEvent
@@ -196,27 +121,6 @@ data ReportViewEvent = ReportViewEvent
     }
     deriving (Show)
 
-instance MixpanelEvent ReportViewEvent where
-    mixpanelEvent utime ReportViewEvent{mpGuid, mpName, mpVersion, mpTrack, mpWrenchVersion} =
-        Array
-            $ V.fromList
-                [ object
-                    [ ("event", String "ReportView")
-                    ,
-                        ( "properties"
-                        , object
-                            [ ("time", Number $ fromInteger utime)
-                            , ("authorName", String mpName)
-                            , ("distinct_id", String mpTrack)
-                            , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
-                            , ("simulation_guid", String $ show mpGuid)
-                            , ("version", String mpVersion)
-                            , ("wrench_version", String mpWrenchVersion)
-                            ]
-                        )
-                    ]
-                ]
-
 instance PosthogEvent ReportViewEvent where
     posthogEvent apiKey ReportViewEvent{mpGuid, mpName, mpVersion, mpPosthogId, mpWrenchVersion} =
         object
@@ -234,27 +138,9 @@ instance PosthogEvent ReportViewEvent where
                 )
             ]
 
-trackEvent :: (MixpanelEvent a, PosthogEvent a) => Config -> a -> IO ()
+trackEvent :: (PosthogEvent a) => Config -> a -> IO ()
 trackEvent conf event = do
-    trackMixpanelEvent conf event
     trackPosthogEvent conf event
-
-trackMixpanelEvent :: (MixpanelEvent a) => Config -> a -> IO ()
-trackMixpanelEvent Config{cMixpanelToken = Nothing, cMixpanelProjectId = Nothing} _ = return ()
-trackMixpanelEvent Config{cMixpanelToken = Just token, cMixpanelProjectId = Just projectId} event = do
-    now <- floor . utcTimeToPOSIXSeconds <$> getCurrentTime
-    let payload = encode $ mixpanelEvent now event
-        auth = "Basic " <> encodeUtf8 (extractBase64 $ encodeBase64 $ token <> ":")
-
-    request <- HTTP.parseRequest $ "POST https://api-eu.mixpanel.com/import?strict=1&project_id=" <> toString projectId
-    let request' =
-            HTTP.setRequestBody (HTTP.RequestBodyLBS payload)
-                $ HTTP.setRequestHeader "Content-Type" ["application/json"]
-                $ HTTP.setRequestHeader "Authorization" [auth] request
-    catch
-        (void $ HTTP.httpNoBody request')
-        (\(e :: SomeException) -> putStrLn $ "Mixpanel tracking error: " ++ show e)
-trackMixpanelEvent Config{} _ = error "Mixpanel misconfiguration"
 
 trackPosthogEvent :: (PosthogEvent a) => Config -> a -> IO ()
 trackPosthogEvent Config{} event = do

@@ -13,8 +13,6 @@ data Config = Config
     , cStoragePath :: FilePath
     , cVariantsPath :: FilePath
     , cLogLimit :: Int
-    , cMixpanelToken :: Maybe Text
-    , cMixpanelProjectId :: Maybe Text
     , cVariants :: [String]
     }
     deriving (Show)
@@ -26,15 +24,7 @@ initConfig = do
     cStoragePath <- fromMaybe "uploads" <$> lookupEnv "STORAGE_PATH"
     cVariantsPath <- fromMaybe "variants" <$> lookupEnv "VARIANTS"
     cLogLimit <- maybe 10000 Unsafe.read <$> lookupEnv "LOG_LIMIT"
-    cMixpanelToken <- fmap toText <$> lookupEnv "MIXPANEL_TOKEN"
-    cMixpanelProjectId <- fmap toText <$> lookupEnv "MIXPANEL_PROJECT_ID"
     cVariants <- listVariants cVariantsPath
-
-    unless
-        ( (isJust cMixpanelToken && isJust cMixpanelProjectId)
-            || (isNothing cMixpanelToken && isNothing cMixpanelProjectId)
-        )
-        $ error "Mixpanel misconfiguration"
 
     return
         Config
@@ -44,16 +34,11 @@ initConfig = do
             , cStoragePath
             , cVariantsPath
             , cLogLimit
-            , cMixpanelToken
-            , cMixpanelProjectId
             , cVariants
             }
 
 mask :: Config -> Config
-mask conf@Config{cMixpanelToken} =
-    conf
-        { cMixpanelToken = fmap (const "<REDACTED>") cMixpanelToken
-        }
+mask conf@Config{} = conf
 
 listVariants :: FilePath -> IO [String]
 listVariants path = do
