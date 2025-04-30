@@ -29,7 +29,21 @@ initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState
 initialState pc regs instr =
     State
         { pc = pc
-        , mem = IoMem{mIoCells = Mem{memoryData = fromList [(pc, Instruction instr)]}, mIoStreams = def}
+        , mem =
+            IoMem
+                { mIoCells =
+                    Mem
+                        { memoryData =
+                            fromList
+                                [ (pc, Instruction instr)
+                                , (pc + 1, InstructionPart)
+                                , (pc + 2, InstructionPart)
+                                , (pc + 3, InstructionPart)
+                                ]
+                        , memorySize = 4
+                        }
+                , mIoStreams = def
+                }
         , regs = regs
         , stopped = False
         , internalError = Nothing
