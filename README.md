@@ -65,6 +65,7 @@ This service will be used to send laboratory works to check.
 1. Open service:
     - Last release: [wrench.edu.swampbuds.me](https://wrench.edu.swampbuds.me).
     - Edge version (master branch): [wrench-edge.edu.swampbuds.me](https://wrench-edge.edu.swampbuds.me)
+    - Service usage statistics: [PostHog](https://eu.posthog.com/shared/UAxD9XvX9pnOjWOah6l_AHCO36zPnA)
 2. Fill the form and submit.
 3. Check the results.
 
