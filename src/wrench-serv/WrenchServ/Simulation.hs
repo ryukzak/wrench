@@ -28,13 +28,14 @@ data SimulationRequest = SimulationRequest
     }
     deriving (FromForm, Generic, Show)
 
-nameFn, commentFn, variantFn, isaFn, configFn, asmFn :: FilePath -> UUID -> FilePath
+nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn :: FilePath -> UUID -> FilePath
 nameFn path guid = path <> "/" <> show guid <> "/name.txt"
 commentFn path guid = path <> "/" <> show guid <> "/comment.txt"
 variantFn path guid = path <> "/" <> show guid <> "/variant.txt"
 isaFn path guid = path <> "/" <> show guid <> "/isa.txt"
 configFn path guid = path <> "/" <> show guid <> "/config.yaml"
 asmFn path guid = path <> "/" <> show guid <> "/source.s"
+wrenchVersionFn path guid = path <> "/" <> show guid <> "/wrench-version.txt"
 
 spitSimulationRequest :: FilePath -> UUID -> SimulationRequest -> IO ()
 spitSimulationRequest cStoragePath guid SimulationRequest{name, asm, config, comment, variant, isa} = do
@@ -48,6 +49,7 @@ spitSimulationRequest cStoragePath guid SimulationRequest{name, asm, config, com
         , (commentFn, comment)
         , (variantFn, fromMaybe "-" variant)
         , (isaFn, isa)
+        , (wrenchVersionFn, wrenchVersion)
         ]
 
 data SimulationTask = SimulationTask

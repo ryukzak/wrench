@@ -192,11 +192,12 @@ data ReportViewEvent = ReportViewEvent
     , mpVersion :: Text
     , mpTrack :: Text
     , mpPosthogId :: Text
+    , mpWrenchVersion :: Text
     }
     deriving (Show)
 
 instance MixpanelEvent ReportViewEvent where
-    mixpanelEvent utime ReportViewEvent{mpGuid, mpName, mpVersion, mpTrack} =
+    mixpanelEvent utime ReportViewEvent{mpGuid, mpName, mpVersion, mpTrack, mpWrenchVersion} =
         Array
             $ V.fromList
                 [ object
@@ -210,13 +211,14 @@ instance MixpanelEvent ReportViewEvent where
                             , ("$insert_id", String $ T.replace " " "-" $ show mpGuid)
                             , ("simulation_guid", String $ show mpGuid)
                             , ("version", String mpVersion)
+                            , ("wrench_version", String mpWrenchVersion)
                             ]
                         )
                     ]
                 ]
 
 instance PosthogEvent ReportViewEvent where
-    posthogEvent apiKey ReportViewEvent{mpGuid, mpName, mpVersion, mpPosthogId} =
+    posthogEvent apiKey ReportViewEvent{mpGuid, mpName, mpVersion, mpPosthogId, mpWrenchVersion} =
         object
             [ ("api_key", String apiKey)
             , ("event", String "wrench:report_view")
@@ -227,6 +229,7 @@ instance PosthogEvent ReportViewEvent where
                     [ ("authorName", String mpName)
                     , ("simulation_guid", String $ show mpGuid)
                     , ("version", String mpVersion)
+                    , ("wrench_version", String mpWrenchVersion)
                     ]
                 )
             ]

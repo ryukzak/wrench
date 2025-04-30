@@ -173,6 +173,11 @@ getReport conf@Config{cStoragePath} cookie guid = do
     status <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/status.log"))
     testCaseStatus <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/test_cases_status.log"))
     testCaseResult <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/test_cases_result.log"))
+    reportWrenchVersion <- liftIO $ do
+        exist <- doesFileExist (dir <> "/wrench-version.txt")
+        if exist
+            then decodeUtf8 <$> readFileBS (dir <> "/wrench-version.txt")
+            else return "< 0.2.11"
     dump <- liftIO (fromMaybe "TOO OLD WRENCH" <$> maybeReadFile (dir <> "/dump.log"))
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
@@ -202,6 +207,7 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 , mpVersion = wrenchVersion
                 , mpTrack = track
                 , mpPosthogId = posthogId
+                , mpWrenchVersion = reportWrenchVersion
                 }
     liftIO $ trackEvent conf event
     return $ addHeader (trackCookie track) $ toHtmlRaw renderTemplate
