@@ -10,3 +10,5 @@ variants.csv
 __pycache__
 src/wrench/Main
 .tasty-rerun-log.wrench-test
+tmp.s
+tmp.yaml

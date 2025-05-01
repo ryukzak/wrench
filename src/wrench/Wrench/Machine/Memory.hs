@@ -13,6 +13,7 @@ module Wrench.Machine.Memory (
 
 import Data.Bits (FiniteBits, finiteBitSize)
 import Data.Default (Default, def)
+import Data.List qualified as L
 import Numeric (showHex)
 import Relude
 import Relude.Extra
@@ -172,11 +173,13 @@ instance
 
     dumpCells Mem{memoryData} = memoryData
 
-ioPortInstructionCollision :: forall w isa. (ByteLength isa) => IoMem isa w -> Int -> isa -> Bool
+ioPortInstructionCollision ::
+    forall w isa. (ByteLength isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
 ioPortInstructionCollision IoMem{mIoStreams} addr instr =
     let n = byteLength instr
-        mkParts idx = [idx - n + 1 .. idx - 1] <> [idx + 1 .. idx + n - 1]
-        parts = concatMap mkParts (keys mIoStreams)
+        wn = finiteBitSize (def :: w) `div` 8
+        mkParts idx = [idx - n + 1 .. idx - 1] <> [idx + 1 .. idx + wn - 1]
+        parts = L.nub $ concatMap mkParts (keys mIoStreams)
      in (addr `elem` parts)
 
 ioPortWordCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
@@ -196,18 +199,18 @@ ioPortByteCollision IoMem{mIoStreams} addr =
 instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
-            Just _ -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
+            Just _ -> Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
             Nothing -> case readInstruction mIoCells idx of
                 Left err -> Left err
                 Right instr
                     | ioPortInstructionCollision io idx instr ->
-                        Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
+                        Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
                     | otherwise -> Right instr
 
-    readWord io idx | ioPortWordCollision io idx = Left $ "memory[" <> show idx <> "]: can't read word from input port"
+    readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
     readWord io@IoMem{mIoStreams, mIoCells} idx = do
         case mIoStreams !? idx of
-            Just ([], _) -> Left $ "memory[" <> show idx <> "]: input is depleted"
+            Just ([], _) -> Left $ "iomemory[" <> show idx <> "]: input is depleted"
             Just (i : is, os) -> do
                 let io' = io{mIoStreams = insert idx (is, os) mIoStreams}
                 Right (io', i)
@@ -215,7 +218,7 @@ instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (Io
                 (mIoCells', w) <- readWord mIoCells idx
                 return (io{mIoCells = mIoCells'}, w)
 
-    writeWord io idx _word | ioPortWordCollision io idx = Left $ "memory[" <> show idx <> "]: can't write word to input port"
+    writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't write word to input port"
     writeWord io idx word =
         case mIoStreams io !? idx of
             Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
@@ -225,7 +228,7 @@ instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (Io
 
     writeByte io idx _byte
         | ioPortByteCollision io idx =
-            Left $ "memory[" <> show idx <> "]: can't write byte to input port"
+            Left $ "iomemory[" <> show idx <> "]: can't write byte to input port"
     writeByte io idx byte =
         case mIoStreams io !? idx of
             Just (is, os) -> Right io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
