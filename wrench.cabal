@@ -5,7 +5,7 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.2.11
+version:        0.0.2.12
 description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
