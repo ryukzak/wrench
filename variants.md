@@ -639,7 +639,7 @@ def reverse_string_pstr(s):
     - Initial buffer values -- `_`.
 
     Python example args:
-        s (str): The input Pascal string.
+        s (str): The string with \n as end of the input.
 
     Returns:
         tuple: A tuple containing the reversed string and an empty string.
