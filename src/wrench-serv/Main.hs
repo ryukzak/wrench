@@ -182,20 +182,27 @@ getReport conf@Config{cStoragePath} cookie guid = do
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
+    let formatCodeWithLineNumbers :: Text -> Text
+        formatCodeWithLineNumbers code =
+            let codeLines = T.lines code
+                liTags = map (\line -> "<li>" <> escapeHtml line <> "</li>") codeLines
+                olTag = "<ol class=\"code-list\" style=\"counter-reset: line 0;\">" <> T.concat liTags <> "</ol>"
+            in olTag
+
     let renderTemplate =
             foldl'
-                (\st (pat, new) -> replace pat (escapeHtml new) st)
+                (\st (pat, new) -> replace pat new st)
                 (replace "{{tracker}}" postHogTracker template)
-                [ ("{{name}}", nameContent)
-                , ("{{variant}}", variantContent)
-                , ("{{comment}}", commentContent)
-                , ("{{assembler_code}}", asmContent)
-                , ("{{yaml_content}}", configContent)
-                , ("{{status}}", status)
-                , ("{{result}}", logContent)
-                , ("{{test_cases_status}}", testCaseStatus)
-                , ("{{test_cases_result}}", testCaseResult)
-                , ("{{dump}}", dump)
+                [ ("{{name}}", escapeHtml nameContent)
+                , ("{{variant}}", escapeHtml variantContent)
+                , ("{{comment}}", escapeHtml commentContent)
+                , ("{{assembler_code}}", formatCodeWithLineNumbers asmContent)
+                , ("{{yaml_content}}", formatCodeWithLineNumbers configContent)
+                , ("{{status}}", escapeHtml status)
+                , ("{{result}}", escapeHtml logContent)
+                , ("{{test_cases_status}}", escapeHtml testCaseStatus)
+                , ("{{test_cases_result}}", escapeHtml testCaseResult)
+                , ("{{dump}}", escapeHtml dump)
                 ]
 
     track <- liftIO $ getTrack cookie
