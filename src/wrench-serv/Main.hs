@@ -185,9 +185,14 @@ getReport conf@Config{cStoragePath} cookie guid = do
     let formatCodeWithLineNumbers :: Text -> Text
         formatCodeWithLineNumbers code =
             let codeLines = T.lines code
-                liTags = map (\line -> "<li>" <> escapeHtml line <> "</li>") codeLines
-                olTag = "<ol class=\"code-list\" style=\"counter-reset: line 0;\">" <> T.concat liTags <> "</ol>"
-            in olTag
+                lineCount = length codeLines
+                -- Generate line numbers
+                lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1..lineCount]
+                -- Generate code lines
+                codeContent = T.concat $ map (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>") codeLines
+                -- Combine into container
+                container = "<div class=\"code-container\"><div class=\"line-numbers\">" <> lineNumbers <> "</div><div class=\"code-content\">" <> codeContent <> "</div></div>"
+            in container
 
     let renderTemplate =
             foldl'

@@ -5,14 +5,12 @@ export function setupCopyButton(buttonId, sourceElementId) {
   if (!button || !sourceElement) return
 
   button.addEventListener('click', async () => {
-    const codeList = sourceElement.querySelector('.code-list')
     let text
     
-    if (codeList) {
-      const lines = Array.from(codeList.querySelectorAll('li')).map(li => li.textContent)
+    const codeContent = sourceElement.querySelector('.code-content')
+    if (codeContent) {
+      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(line => line.textContent)
       text = lines.join('')
-    } else {
-      text = sourceElement.textContent
     }
     
     await navigator.clipboard.writeText(text)
