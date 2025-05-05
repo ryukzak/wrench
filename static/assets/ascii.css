@@ -143,22 +143,22 @@ select > option {
 }
 
 /* Fix for accordion headers when expanded */
-[aria-expanded="true"] {
+[aria-expanded='true'] {
   padding-left: 0 !important;
   margin-left: 0;
 }
 
-[aria-expanded="true"]::before {
+[aria-expanded='true']::before {
   content: '' !important;
   display: none !important;
 }
 
-[aria-expanded="true"]::after {
+[aria-expanded='true']::after {
   content: '' !important;
   display: none !important;
 }
 
 /* Align the header text with the code content */
-[aria-expanded="true"] span {
+[aria-expanded='true'] span {
   padding-left: 3.5em;
 }

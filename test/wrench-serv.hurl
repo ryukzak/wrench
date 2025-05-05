@@ -22,9 +22,11 @@ HTTP/1.1 200
 [Asserts]
 header "Set-Cookie" startsWith "track_id={{track_id}}"
 xpath "normalize-space(//head/title)" startsWith "Simulation Results"
-xpath "normalize-space(//pre[@id='simulation-config-text-element'])" contains "limit: 100, memory_size: 128"
+xpath "normalize-space(//div[@id='simulation-config-text-element']//div[@class='code-content'])" contains "limit: 100, memory_size: 128"
 xpath "normalize-space(//pre[@id='status-text-element'])" contains "ExitSuccess"
-xpath "normalize-space(//pre[@id='simulation-log-text-element'])" contains "# Executed Instruction Log 0: Halt @_start"
+xpath "normalize-space(//div[@id='simulation-log-text-element']//div[@class='code-content'])" contains "Executed Instruction"
+xpath "normalize-space(//div[@id='simulation-log-text-element']//div[@class='code-content'])" contains "Halt @_start"
 xpath "normalize-space(//pre[@id='test-cases-status-element'])" isEmpty
-xpath "normalize-space(//pre[@id='test_cases_result-text-element'])" isEmpty
-xpath "normalize-space(//pre[@id='dump-text-element'])" contains "_start --- mem[0..0]: Halt"
+xpath "normalize-space(//div[@id='test_cases_result-text-element']//div[@class='code-content'])" isEmpty
+xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "_start"
+xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "mem[0..0]: Halt"

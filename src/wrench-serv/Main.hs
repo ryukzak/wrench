@@ -29,10 +29,15 @@ formatCodeWithLineNumbers :: Text -> Text
 formatCodeWithLineNumbers code =
     let codeLines = T.lines code
         lineCount = length codeLines
-        lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1..lineCount]
+        lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
         codeContent = T.concat $ map (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>") codeLines
-        container = "<div class=\"code-container\"><div class=\"line-numbers\">" <> lineNumbers <> "</div><div class=\"code-content\">" <> codeContent <> "</div></div>"
-    in container
+        container =
+            "<div class=\"code-container\"><div class=\"line-numbers\">"
+                <> lineNumbers
+                <> "</div><div class=\"code-content\">"
+                <> codeContent
+                <> "</div></div>"
+     in container
 
 main :: IO ()
 main = do
@@ -201,7 +206,7 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 , ("{{status}}", escapeHtml status)
                 , ("{{test_cases_status}}", escapeHtml testCaseStatus)
                 ]
-    
+
     let renderTemplate =
             foldl'
                 (\st (pat, new) -> replace pat new st)
