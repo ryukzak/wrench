@@ -69,7 +69,7 @@ select {
   overflow-x: hidden;
 
   &::before {
-    content: '+--\00A0';
+    content: '+-----\00A0';
     white-space: nowrap;
   }
 
@@ -104,6 +104,9 @@ select > option {
   flex: 0 0 3em;
   min-width: 3em;
   user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   display: flex;
   flex-direction: column;
   color: var(--c-grey);
@@ -112,12 +115,17 @@ select > option {
   background-color: var(--c-dark-grey);
   z-index: 2;
   padding-left: 0.5em;
+  margin-right: 0;
 }
 
 .line-number {
-  padding-right: 0.5em;
+  padding-right: 1em;
   height: 1.2em;
   line-height: 1.2em;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .code-content {
@@ -132,4 +140,25 @@ select > option {
   height: 1.2em;
   line-height: 1.2em;
   min-height: 1.2em;
+}
+
+/* Fix for accordion headers when expanded */
+[aria-expanded="true"] {
+  padding-left: 0 !important;
+  margin-left: 0;
+}
+
+[aria-expanded="true"]::before {
+  content: '' !important;
+  display: none !important;
+}
+
+[aria-expanded="true"]::after {
+  content: '' !important;
+  display: none !important;
+}
+
+/* Align the header text with the code content */
+[aria-expanded="true"] span {
+  padding-left: 3.5em;
 }

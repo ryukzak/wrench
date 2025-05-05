@@ -170,7 +170,7 @@
               data-accordion="collapse"
               class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
               data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
-              data-active-classes="white bg-transparent"
+              data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-assembler"
@@ -179,7 +179,7 @@
                 aria-expanded="true"
                 aria-controls="accordion-collapse-body-assembler"
               >
-                <span class="select-none">assembler_code =</span>
+                <span class="select-none flex-1">assembler_code =</span>
               </h2>
               <div
                 id="accordion-collapse-body-assembler"
@@ -213,7 +213,7 @@
               data-accordion="collapse"
               class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
               data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
-              data-active-classes="white bg-transparent"
+              data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
             >
               <h2
                 id="accordion-collapse-heading-simulation-config"
@@ -222,7 +222,7 @@
                 aria-expanded="false"
                 aria-controls="accordion-collapse-body-simulation-config"
               >
-                <span class="select-none">simulation_config =</span>
+                <span class="select-none flex-1">simulation_config =</span>
               </h2>
               <div
                 id="accordion-collapse-body-simulation-config"
@@ -258,7 +258,7 @@
           data-accordion="collapse"
           class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
-          data-active-classes="white bg-transparent"
+          data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-simulation-log"
@@ -267,16 +267,15 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-simulation-log"
           >
-            <span class="select-none">simulation_log =</span>
+            <span class="select-none flex-1">simulation_log =</span>
           </h2>
           <div
             id="accordion-collapse-body-simulation-log"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-simulation-log"
           >
-            <pre id="simulation-log-text-element" class="pb-4 overflow-x-auto">
-{{result}}</pre
-            >
+            <div id="simulation-log-text-element" class="pb-4 overflow-x-auto">
+{{result}}</div>
           </div>
         </div>
         <div
@@ -300,7 +299,7 @@
           data-accordion="collapse"
           class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
-          data-active-classes="white bg-transparent"
+          data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-test-cases-result"
@@ -309,19 +308,18 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-test-cases-result"
           >
-            <span class="select-none">failed_test_case =</span>
+            <span class="select-none flex-1">failed_test_case =</span>
           </h2>
           <div
             id="accordion-collapse-body-test-cases-result"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-test-cases-result"
           >
-            <pre
+            <div
               id="test-cases-result-text-element"
-              class="pb-4 overflow-x-auto"
+              class="pb-4 rounded-lg overflow-x-auto"
             >
-{{test_cases_result}}</pre
-            >
+{{test_cases_result}}</div>
           </div>
         </div>
         <div
@@ -336,7 +334,7 @@
           data-accordion="collapse"
           class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
-          data-active-classes="white bg-transparent"
+          data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
           <h2
             id="accordion-collapse-heading-dump"
@@ -345,16 +343,15 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-dump"
           >
-            <span class="select-none">dump =</span>
+            <span class="select-none flex-1">dump =</span>
           </h2>
           <div
             id="accordion-collapse-body-dump"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-dump"
           >
-            <pre id="dump-text-element" class="pb-4 rounded-lg overflow-x-auto">
-{{dump}}</pre
-            >
+            <div id="dump-text-element" class="pb-4 rounded-lg overflow-x-auto">
+{{dump}}</div>
           </div>
         </div>
         <div
