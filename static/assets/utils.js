@@ -5,7 +5,16 @@ export function setupCopyButton(buttonId, sourceElementId) {
   if (!button || !sourceElement) return
 
   button.addEventListener('click', async () => {
-    const text = sourceElement.textContent
+    let text
+
+    const codeContent = sourceElement.querySelector('.code-content')
+    if (codeContent) {
+      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(
+        line => line.textContent,
+      )
+      text = lines.join('')
+    }
+
     await navigator.clipboard.writeText(text)
 
     let count = parseInt(button.dataset.copyCount || '0', 10)

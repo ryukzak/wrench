@@ -25,6 +25,20 @@ import WrenchServ.Config
 import WrenchServ.Simulation
 import WrenchServ.Statistics
 
+formatCodeWithLineNumbers :: Text -> Text
+formatCodeWithLineNumbers code =
+    let codeLines = T.lines code
+        lineCount = length codeLines
+        lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
+        codeContent = T.concat $ map (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>") codeLines
+        container =
+            "<div class=\"code-container\"><div class=\"line-numbers\">"
+                <> lineNumbers
+                <> "</div><div class=\"code-content\">"
+                <> codeContent
+                <> "</div></div>"
+     in container
+
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
@@ -182,20 +196,26 @@ getReport conf@Config{cStoragePath} cookie guid = do
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
+    let templateWithBasicContent =
+            foldl'
+                (\st (pat, new) -> replace pat new st)
+                (replace "{{tracker}}" postHogTracker template)
+                [ ("{{name}}", escapeHtml nameContent)
+                , ("{{variant}}", escapeHtml variantContent)
+                , ("{{comment}}", escapeHtml commentContent)
+                , ("{{status}}", escapeHtml status)
+                , ("{{test_cases_status}}", escapeHtml testCaseStatus)
+                ]
+
     let renderTemplate =
             foldl'
-                (\st (pat, new) -> replace pat (escapeHtml new) st)
-                (replace "{{tracker}}" postHogTracker template)
-                [ ("{{name}}", nameContent)
-                , ("{{variant}}", variantContent)
-                , ("{{comment}}", commentContent)
-                , ("{{assembler_code}}", asmContent)
-                , ("{{yaml_content}}", configContent)
-                , ("{{status}}", status)
-                , ("{{result}}", logContent)
-                , ("{{test_cases_status}}", testCaseStatus)
-                , ("{{test_cases_result}}", testCaseResult)
-                , ("{{dump}}", dump)
+                (\st (pat, new) -> replace pat new st)
+                templateWithBasicContent
+                [ ("{{assembler_code}}", formatCodeWithLineNumbers asmContent)
+                , ("{{yaml_content}}", formatCodeWithLineNumbers configContent)
+                , ("{{result}}", formatCodeWithLineNumbers logContent)
+                , ("{{test_cases_result}}", formatCodeWithLineNumbers testCaseResult)
+                , ("{{dump}}", formatCodeWithLineNumbers dump)
                 ]
 
     track <- liftIO $ getTrack cookie
