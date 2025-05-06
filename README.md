@@ -23,7 +23,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
         - [Assembly File](#assembly-file)
         - [Configuration File](#configuration-file)
             - [`limit`](#limit)
-            - [`memorySize`](#memorysize)
+            - [`memory_size`](#memory_size)
             - [`input_streams`](#input_streams)
             - [`reports`](#reports)
                 - [`name`](#name)
@@ -105,14 +105,14 @@ See [docs](/docs) for the specific assembly language for each ISA.
   limit: 40
   ```
 
-#### `memorySize`
+#### `memory_size`
 
 - **Type:** Integer
 - **Description:** Specifies the memory size.
 - **Example:**
 
   ```yaml
-  memorySize: 40
+  memory_size: 40
   ```
 
 #### `input_streams`
