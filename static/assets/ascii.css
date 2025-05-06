@@ -69,7 +69,7 @@ select {
   overflow-x: hidden;
 
   &::before {
-    content: '+-----\00A0';
+    content: '+----\00A0';
     white-space: nowrap;
   }
 
@@ -136,7 +136,7 @@ select > option {
 }
 
 .code-line {
-  padding-left: 0.5em;
+  padding-left: 0.75em;
   height: 1.2em;
   line-height: 1.2em;
   min-height: 1.2em;
