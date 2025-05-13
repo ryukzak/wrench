@@ -15,4 +15,5 @@ mem[25..29]: 	FetchP 4
 mem[30..30]: 	AStore
 mem[31..31]: 	Store
 mem[32..32]: 	Halt
+mem[33..999]: 	( 00 )
 ---

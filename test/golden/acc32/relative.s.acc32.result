@@ -3,4 +3,5 @@
 mem[0..4]: 	LoadAddr 305419896 	@_start
 mem[5..7]: 	Load 22136
 mem[8..8]: 	Halt
+mem[9..999]: 	( 00 )
 ---

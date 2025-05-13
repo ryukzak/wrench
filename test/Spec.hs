@@ -192,11 +192,13 @@ goldenTranslate' ::
     , MnemonicParser (isa Int32 (Ref Int32))
     , Show (isa Int32 Int32)
     ) =>
-    Isa -> FilePath -> TestTree
+    Isa
+    -> FilePath
+    -> TestTree
 goldenTranslate' isa fn =
     goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @isa @Int32 Nothing fn src of
+        case translate @isa @Int32 1000 fn src of
             Right (TranslatorResult dump labels) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->

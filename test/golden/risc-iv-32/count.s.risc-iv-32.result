@@ -28,4 +28,5 @@ mem[72..75]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}
 mem[76..79]: 	Bgt {rs1 = T2, rs2 = T5, k = 8}
 mem[80..83]: 	J {k = -16}
 mem[84..87]: 	Halt 	@end
+mem[88..999]: 	( 00 )
 ---

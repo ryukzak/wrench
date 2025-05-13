@@ -21,7 +21,7 @@ import Relude.Unsafe qualified as Unsafe
 import Wrench.Machine.Types
 import Wrench.Translator.Types
 
-prepareDump :: (ByteLength isa, MachineWord w) => Maybe Int -> [Section isa w w] -> Mem isa w
+prepareDump :: (ByteLength isa, MachineWord w) => Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
     let addSection cells offset dump =
             let dump' = zip [offset ..] cells
@@ -54,12 +54,16 @@ prepareDump memorySize sections =
                     )
                     (0, [])
                     sections
-        mSize = fromMaybe (maximum1 $ 0 :| keys fromSections) memorySize
-        placeholder = map (,Value 0) [0 .. mSize - 1]
-     in Mem
-            { memorySize = mSize
-            , memoryData = fromList (placeholder <> fromSections)
-            }
+        dumpSize = maximum1 $ 0 :| keys fromSections
+        placeholder = map (,Value 0) [0 .. memorySize - 1]
+     in if dumpSize > memorySize
+            then
+                error $ "error: can not fit translation results in memory, need: " <> show dumpSize <> " available: " <> show memorySize
+            else
+                Mem
+                    { memorySize
+                    , memoryData = fromList (placeholder <> fromSections)
+                    }
 
 isValue Value{} = True
 isValue _ = False

@@ -106,7 +106,10 @@ runWrench ::
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
-    Config -> Options -> [Char] -> IO ()
+    Config
+    -> Options
+    -> [Char]
+    -> IO ()
 runWrench conf@Config{} opts@Options{isa, onlyTranslation} src =
     case wrench @st conf opts src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
@@ -143,7 +146,7 @@ wrench ::
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
-    trResult@TranslatorResult{dump, labels} <- translate (Just cMemorySize) fn src
+    trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let ioDump =

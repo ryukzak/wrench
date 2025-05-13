@@ -50,4 +50,5 @@ mem[140..143]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
 mem[144..147]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beq_label
 mem[148..151]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bne_label
 mem[152..155]: 	Halt
+mem[156..999]: 	( 00 )
 ---

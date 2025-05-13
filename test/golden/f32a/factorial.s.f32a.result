@@ -92,4 +92,5 @@ mem[325..325]: 	Add
 mem[326..330]: 	Jump 242
 mem[331..331]: 	Drop 	@factorial_finish
 mem[332..332]: 	Return
+mem[333..999]: 	( 00 )
 ---

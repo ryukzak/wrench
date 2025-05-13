@@ -40,4 +40,5 @@ mem[112..115]: 	Addi {rd = T0, rs1 = T0, k = 4}
 mem[116..119]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[120..123]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[124..127]: 	Halt 	@exit
+mem[128..999]: 	( 00 )
 ---

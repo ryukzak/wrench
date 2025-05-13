@@ -77,4 +77,5 @@ mem[270..274]: 	Bgz 285
 mem[275..279]: 	LoadImm 255
 mem[280..284]: 	Blz 285
 mem[285..285]: 	Halt 	@jump_target
+mem[286..999]: 	( 00 )
 ---

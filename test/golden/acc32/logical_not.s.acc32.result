@@ -11,4 +11,5 @@ mem[17..17]: 	Not
 mem[18..20]: 	And 8
 mem[21..25]: 	StoreInd 4
 mem[26..26]: 	Halt
+mem[27..999]: 	( 00 )
 ---

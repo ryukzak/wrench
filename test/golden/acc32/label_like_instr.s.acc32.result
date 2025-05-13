@@ -3,4 +3,5 @@
 ---
 mem[0..4]: 	Jmp 5 	@_start
 mem[5..5]: 	Halt 	@halt
+mem[6..999]: 	( 00 )
 ---

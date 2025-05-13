@@ -32,4 +32,5 @@ mem[80..80]: 	Halt
 mem[81..85]: 	LoadAddr 20 	@y_case
 mem[86..90]: 	StoreInd 4
 mem[91..91]: 	Halt
+mem[92..999]: 	( 00 )
 ---

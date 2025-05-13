@@ -71,7 +71,7 @@ translate ::
     , MachineWord w
     , MnemonicParser (isa_ w (Ref w))
     ) =>
-    Maybe Int
+    Int
     -> FilePath
     -> String
     -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)

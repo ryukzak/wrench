@@ -9,4 +9,5 @@ mem[15..19]: 	Jump 22
 mem[20..20]: 	Add 	@next_call
 mem[21..21]: 	Return
 mem[22..22]: 	Halt 	@halt_jmp
+mem[23..999]: 	( 00 )
 ---

@@ -39,4 +39,5 @@ mem[94..94]: 	Halt
 mem[95..99]: 	LoadImm (-858993460) 	@factorial_overflow
 mem[100..104]: 	StoreInd 4
 mem[105..105]: 	Halt
+mem[106..999]: 	( 00 )
 ---

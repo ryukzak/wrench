@@ -18,4 +18,5 @@ mem[53..56]: 	Sb {rs2 = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[57..60]: 	Addi {rd = T1, rs1 = T1, k = 1}
 mem[61..64]: 	J {k = -20}
 mem[65..68]: 	Halt 	@end
+mem[69..999]: 	( 00 )
 ---

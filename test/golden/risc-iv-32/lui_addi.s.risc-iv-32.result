@@ -5,4 +5,5 @@ mem[4..7]: 	Addi {rd = T1, rs1 = T1, k = 1656}
 mem[8..11]: 	Lui {rd = T2, k = 74565}
 mem[12..15]: 	Addi {rd = T2, rs1 = T2, k = 1656}
 mem[16..19]: 	Halt
+mem[20..999]: 	( 00 )
 ---

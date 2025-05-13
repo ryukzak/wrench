@@ -26,4 +26,5 @@ mem[55..55]: 	AStore
 mem[56..56]: 	Store
 mem[57..57]: 	Store
 mem[58..58]: 	Halt
+mem[59..999]: 	( 00 )
 ---
