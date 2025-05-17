@@ -73,6 +73,8 @@ data Isa w l
     | Lsl {mode :: Mode, src, dst :: Argument w l}
     | Lsr {mode :: Mode, src, dst :: Argument w l}
     | Jmp {ref :: l}
+    | Bcc {ref :: l}
+    | Bcs {ref :: l}
     | Beq {ref :: l}
     | Bne {ref :: l}
     | Blt {ref :: l}
@@ -107,6 +109,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
             , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
             , branchCmd "jmp" Jmp reference
+            , branchCmd "bcc" Bcc reference
+            , branchCmd "bcs" Bcs reference
             , branchCmd "beq" Beq reference
             , branchCmd "bne" Bne reference
             , branchCmd "blt" Blt reference
@@ -178,13 +182,11 @@ comma = hspace >> void (string ",") >> hspace
 dataRegister = try $ do
     void (string "D")
     n <- oneOf ['0' .. '7']
-    -- lookAhead (comma <|> hspace1 <|> eol' ";")
     return $ DirectDataReg $ Unsafe.read ['D', n]
 
 addrRegister = try $ do
     void (string "A")
     n <- oneOf ['0' .. '7']
-    -- lookAhead (comma <|> hspace1 <|> eol' ";")
     return $ DirectAddrReg $ Unsafe.read ['A', n]
 
 indirectAddrRegister = try $ do
@@ -194,7 +196,6 @@ indirectAddrRegister = try $ do
     n <- oneOf ['0' .. '7']
     hspace
     void (string ")")
-    -- lookAhead (comma <|> hspace1 <|> eol' ";")
     return $ IndirectAddrReg $ Unsafe.read ['A', n]
 
 immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
@@ -205,6 +206,7 @@ instance DerefMnemonic (Isa w) w where
         let derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
             derefArg (IndirectAddrReg r) = IndirectAddrReg r
+            derefArg (IndirectWithIndexRegister offset r d) = IndirectWithIndexRegister offset r d
             derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
@@ -222,6 +224,8 @@ instance DerefMnemonic (Isa w) w where
                 Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
                 Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
                 Jmp{ref} -> Jmp (deref' f ref)
+                Bcc{ref} -> Bcc (deref' f ref)
+                Bcs{ref} -> Bcs (deref' f ref)
                 Beq{ref} -> Beq (deref' f ref)
                 Bne{ref} -> Bne (deref' f ref)
                 Blt{ref} -> Blt (deref' f ref)
@@ -354,6 +358,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
             Lsr{mode, src, dst} -> cmd2 mode src dst (flip lShiftR)
             Jmp{ref} -> branch ref True
+            Bcc{ref} -> get >>= branch ref . not . cFlag
+            Bcs{ref} -> get >>= branch ref . cFlag
             Beq{ref} -> get >>= branch ref . zFlag
             Bne{ref} -> get >>= branch ref . not . zFlag
             Blt{ref} -> get >>= branch ref . (\st -> nFlag st /= vFlag st)
