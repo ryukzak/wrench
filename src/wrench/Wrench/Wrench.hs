@@ -4,7 +4,7 @@ module Wrench.Wrench (
     Options (..),
     Result (..),
     prettyLabels,
-    wrenchIO,
+    runWrenchIO,
     wrench,
     Isa (..),
 ) where
@@ -72,8 +72,8 @@ prettyLabels rLabels =
         $ map (\(l, w) -> show w <> ":\t" <> l)
         $ sortOn snd (toPairs rLabels)
 
-wrenchIO :: Options -> IO ()
-wrenchIO opts@Options{input, configFile, isa, verbose} = do
+runWrenchIO :: Options -> IO ()
+runWrenchIO opts@Options{input, configFile, isa, verbose} = do
     when verbose $ pPrint opts
     conf@Config{cLimit, cMemorySize} <- case configFile of
         Just fn -> either (error . toText) id <$> readConfig fn
@@ -87,12 +87,12 @@ wrenchIO opts@Options{input, configFile, isa, verbose} = do
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv -> runWrench @(RiscIvState Int32) conf opts src
-        Just F32a -> runWrench @(F32aState Int32) conf opts src
-        Just Acc32 -> runWrench @(Acc32State Int32) conf opts src
+        Just RiscIv -> wrenchIO @(RiscIvState Int32) conf opts src
+        Just F32a -> wrenchIO @(F32aState Int32) conf opts src
+        Just Acc32 -> wrenchIO @(Acc32State Int32) conf opts src
         Nothing -> error $ "unknown isa:" <> toText isa
 
-runWrench ::
+wrenchIO ::
     forall st isa_ w isa1 isa2.
     ( ByteLength isa1
     , ByteLength isa2
@@ -110,7 +110,7 @@ runWrench ::
     -> Options
     -> [Char]
     -> IO ()
-runWrench conf@Config{} opts@Options{isa, onlyTranslation} src =
+wrenchIO conf@Config{} opts@Options{isa, onlyTranslation} src =
     case wrench @st conf opts src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation

@@ -20,7 +20,7 @@ import Options.Applicative (
  )
 import Relude
 import Wrench.Misc (wrenchVersion)
-import Wrench.Wrench (Options (..), wrenchIO)
+import Wrench.Wrench (Options (..), runWrenchIO)
 
 options :: Parser Options
 options =
@@ -57,7 +57,7 @@ options =
             )
 
 main :: IO ()
-main = wrenchIO =<< execParser opts
+main = runWrenchIO =<< execParser opts
     where
         opts =
             info
