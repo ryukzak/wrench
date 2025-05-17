@@ -20,7 +20,7 @@ import Options.Applicative (
  )
 import Relude
 import Wrench.Misc (wrenchVersion)
-import Wrench.Wrench (Options (..), wrenchIO)
+import Wrench.Wrench (Options (..), runWrenchIO)
 
 options :: Parser Options
 options =
@@ -35,7 +35,7 @@ options =
                 <> showDefault
                 <> metavar "ISA"
                 <> value "risc-iv-32"
-                <> help "ISA (risc-iv-32, f32a, acc32)"
+                <> help "ISA (risc-iv-32, f32a, acc32, m68k)"
             )
         <*> optional
             ( strOption
@@ -57,7 +57,7 @@ options =
             )
 
 main :: IO ()
-main = wrenchIO =<< execParser opts
+main = runWrenchIO =<< execParser opts
     where
         opts =
             info

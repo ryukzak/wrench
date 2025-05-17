@@ -5,7 +5,7 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.2.12
+version:        0.0.2.13
 description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
@@ -28,6 +28,7 @@ library
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
@@ -97,6 +98,7 @@ executable wrench
       Wrench.Config
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
+      Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Machine
       Wrench.Machine.Memory
