@@ -25,9 +25,9 @@ import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
 data Mode
-    = -- | 32-bit mode
-      Long
-    deriving (Show)
+    = Long
+    -- -- | Byte
+    deriving (Show, Eq)
 
 data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Generic, Hashable, Read, Show)
@@ -44,9 +44,11 @@ instance (Default w) => Default (HashMap AddrReg w) where
 data Argument w l
     = DirectDataReg DataReg
     | DirectAddrReg AddrReg
-    | IndirectAddrReg AddrReg
-    | IndirectWithIndexRegister Int AddrReg DataReg
-    | Immediate l
+    | IndirectAddrReg Int AddrReg
+    | -- | IndirectAddrRegPostIncrement AddrReg
+      -- | IndirectAddrRegPreDecrement AddrReg
+      -- | IndirectWithIndexRegister Int AddrReg DataReg
+      Immediate l
     deriving (Show)
 
 -- Address with post-increment, e.g. (A0)+
@@ -196,7 +198,7 @@ indirectAddrRegister = try $ do
     n <- oneOf ['0' .. '7']
     hspace
     void (string ")")
-    return $ IndirectAddrReg $ Unsafe.read ['A', n]
+    return $ IndirectAddrReg 0 $ Unsafe.read ['A', n]
 
 immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
 immidiate = Immediate <$> reference
@@ -205,8 +207,8 @@ instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         let derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
-            derefArg (IndirectAddrReg r) = IndirectAddrReg r
-            derefArg (IndirectWithIndexRegister offset r d) = IndirectWithIndexRegister offset r d
+            derefArg (IndirectAddrReg offset r) = IndirectAddrReg offset r
+            -- derefArg (IndirectWithIndexRegister offset r d) = IndirectWithIndexRegister offset r d
             derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
@@ -304,9 +306,9 @@ fetch :: (MachineWord w) => Mode -> Argument w w -> State (MachineState (IoMem (
 fetch _ (DirectDataReg r) = do
     State{dr} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
-fetch _ (IndirectAddrReg r) = do
+fetch _ (IndirectAddrReg offset r) = do
     st@State{ar, mem} <- get
-    let addr = maybe (error $ "Invalid register: " <> show r) fromEnum (ar !? r)
+    let addr = maybe (error $ "Invalid register: " <> show r) ((+ offset) . fromEnum) (ar !? r)
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -315,19 +317,17 @@ fetch _ (IndirectAddrReg r) = do
             raiseInternalError $ "memory access error: " <> err
             return def
 fetch _ (Immediate v) = return v
-fetch _ arg = raiseInternalError ("can't fetch argument from: " <> show arg) >> return def
 
 store :: (MachineWord w) => Mode -> Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
 store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
 store _ (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
-store _ (IndirectAddrReg r) v = do
+store _ (IndirectAddrReg offset r) v = do
     st@State{ar, mem} <- get
-    let addr = maybe (error "Invalid register") fromEnum (ar !? r)
+    let addr = maybe (error "Invalid register") ((+ offset) . fromEnum) (ar !? (r))
     case writeWord mem addr v of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
-store _ arg _ = raiseInternalError $ "can't store result in: " <> show arg
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
