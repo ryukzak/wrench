@@ -2,6 +2,8 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
+-- NOTE: http://wpage.unina.it/rcanonic/didattica/ce1/docs/68000.pdf
+
 module Wrench.Isa.M68k (
     Isa (..),
     M68kState,
@@ -43,8 +45,15 @@ data Argument w l
     = DirectDataReg DataReg
     | DirectAddrReg AddrReg
     | IndirectAddrReg AddrReg
+    | IndirectWithIndexRegister Int AddrReg DataReg
     | Immediate l
     deriving (Show)
+
+-- Address with post-increment, e.g. (A0)+
+-- Address with pre-decrement, e.g. −(A0)
+-- Address with a 16-bit signed offset, e.g. 16(A0)
+-- Register indirect with index register & 8-bit signed offset e.g. 8(A0,D0) or 8(A0,A1)
+-- Note that for (A0)+ and −(A0), the actual increment or decrement value is dependent on the operand size: a byte access adjusts the address register by 1, a word by 2, and a long by 4.
 
 -- | The 'Isa' type represents the instruction set architecture for the M68k machine.
 -- Each constructor corresponds to a specific instruction.
