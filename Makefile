@@ -90,6 +90,7 @@ test-examples: build
 
 	stack exec wrench -- --isa m68k       example/m68k/not.s                -c example/m68k/not-true.yaml
 	stack exec wrench -- --isa m68k       example/m68k/get-put-char.s       -c example/m68k/get-put-char-87.yaml
+	stack exec wrench -- --isa m68k       example/m68k/hello.s              -c example/m68k/hello.yaml
 
 test-serv: build generate-variants
 	stack exec wrench-serv &
