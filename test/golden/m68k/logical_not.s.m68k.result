@@ -14,4 +14,5 @@ mem[32..35]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A1}
 mem[36..39]: 	MoveA {mode = Long, src = IndirectAddrReg A1, dst = DirectAddrReg A1}
 mem[40..43]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg A1}
 mem[44..47]: 	Halt
+mem[48..999]: 	( 00 )
 ---
