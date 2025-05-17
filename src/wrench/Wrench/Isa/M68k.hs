@@ -81,6 +81,8 @@ data Isa w l
     | Bge {ref :: l}
     | Bmi {ref :: l}
     | Bpl {ref :: l}
+    | Bvc {ref :: l}
+    | Bvs {ref :: l}
     | Halt
     deriving (Show)
 
@@ -113,6 +115,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , branchCmd "bge" Bge reference
             , branchCmd "bmi" Bmi reference
             , branchCmd "bpl" Bpl reference
+            , branchCmd "bvc" Bvc reference
+            , branchCmd "bvs" Bvs reference
             , cmd0args "halt" Halt
             ]
         where
@@ -226,6 +230,8 @@ instance DerefMnemonic (Isa w) w where
                 Bge{ref} -> Bge (deref' f ref)
                 Bmi{ref} -> Bmi (deref' f ref)
                 Bpl{ref} -> Bpl (deref' f ref)
+                Bvc{ref} -> Bvc (deref' f ref)
+                Bvs{ref} -> Bvs (deref' f ref)
                 Halt -> Halt
 
 instance ByteLength (Isa w l) where
@@ -308,7 +314,7 @@ fetch _ (Immediate v) = return v
 fetch _ arg = raiseInternalError ("can't fetch argument from: " <> show arg) >> return def
 
 store :: (MachineWord w) => Mode -> Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
-store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr}
+store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
 store _ (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
 store _ (IndirectAddrReg r) v = do
     st@State{ar, mem} <- get
@@ -356,6 +362,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Bge{ref} -> get >>= branch ref . (\st -> nFlag st == vFlag st)
             Bmi{ref} -> get >>= branch ref . nFlag
             Bpl{ref} -> get >>= branch ref . not . nFlag
+            Bvc{ref} -> get >>= branch ref . not . vFlag
+            Bvs{ref} -> get >>= branch ref . vFlag
             Halt -> modify $ \st -> st{stopped = True}
         where
             branch addr True = setPc $ fromEnum addr

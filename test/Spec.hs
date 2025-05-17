@@ -151,10 +151,16 @@ tests =
             "M68k"
             [ testGroup
                 "Translator"
-                [goldenTranslate M68k "test/golden/m68k/logical_not.s"]
+                [ goldenTranslate M68k "test/golden/m68k/factorial.s"
+                , goldenTranslate M68k "test/golden/m68k/get_put_char.s"
+                , goldenTranslate M68k "test/golden/m68k/hello.s"
+                , goldenTranslate M68k "test/golden/m68k/logical_not.s"
+                ]
             , testGroup
                 "Generated tests"
-                [ generatedTest M68k "get_put_char" 12
+                [ generatedTest M68k "factorial" 11
+                , generatedTest M68k "get_put_char" 12
+                , generatedTest M68k "hello" 1
                 , generatedTest M68k "logical_not" 2
                 ]
             ]
