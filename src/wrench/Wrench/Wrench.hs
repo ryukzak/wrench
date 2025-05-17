@@ -89,10 +89,10 @@ runWrenchIO opts@Options{input, configFile, isa, verbose} = do
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv -> runWrench @(RiscIvState Int32) conf opts src
-        Just F32a -> runWrench @(F32aState Int32) conf opts src
-        Just Acc32 -> runWrench @(Acc32State Int32) conf opts src
-        Just M68k -> runWrench @(M68kState Int32) conf opts src
+        Just RiscIv -> wrenchIO @(RiscIvState Int32) conf opts src
+        Just F32a -> wrenchIO @(F32aState Int32) conf opts src
+        Just Acc32 -> wrenchIO @(Acc32State Int32) conf opts src
+        Just M68k -> wrenchIO @(M68kState Int32) conf opts src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::
