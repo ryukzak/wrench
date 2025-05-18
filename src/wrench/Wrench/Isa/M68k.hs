@@ -27,7 +27,7 @@ import Wrench.Translator.Types
 data Mode
     = Long
     -- -- | Byte
-    deriving (Show, Eq)
+    deriving (Eq, Show)
 
 data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Generic, Hashable, Read, Show)
@@ -323,7 +323,7 @@ store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, z
 store _ (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
 store _ (IndirectAddrReg offset r) v = do
     st@State{ar, mem} <- get
-    let addr = maybe (error "Invalid register") ((+ offset) . fromEnum) (ar !? (r))
+    let addr = maybe (error "Invalid register") ((+ offset) . fromEnum) (ar !? r)
     case writeWord mem addr v of
         Right mem' -> do
             put st{mem = mem'}
