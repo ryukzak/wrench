@@ -4,6 +4,7 @@ import Relude
 import System.FilePath
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Golden (goldenVsString)
+import Test.Tasty.HUnit
 import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
@@ -66,7 +67,10 @@ tests =
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"
-                    , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5_fail_assert.yaml"
+                    , goldenSimulateFail
+                        RiscIv
+                        "test/golden/risc-iv-32/factorial.s"
+                        "test/golden/risc-iv-32/factorial_input_5_fail_assert.yaml"
                     , goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_7.yaml"
                     ]
                 , testGroup
@@ -97,10 +101,10 @@ tests =
                 , goldenTranslate F32a "test/golden/f32a/jmp_and_call.s"
                 ]
             , testGroup
-                "F32a"
+                "Simulator"
                 [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_27_4.yaml"
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_3_2.yaml"
-                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_2_3.yaml"
+                , goldenSimulateFail F32a "test/golden/f32a/div.s" "test/golden/f32a/div_2_3.yaml"
                 , goldenSimulate F32a "test/golden/f32a/carry.s" "test/golden/f32a/carry.yaml"
                 , goldenSimulate F32a "test/golden/f32a/factorial.s" "test/golden/f32a/factorial.yaml"
                 , goldenSimulate F32a "test/golden/f32a/jmp_and_call.s" "test/golden/f32a/jmp_and_call.yaml"
@@ -205,18 +209,39 @@ goldenTranslate' isa fn =
                 error $ "Translation failed: " <> show err
 
 goldenSimulate :: Isa -> FilePath -> FilePath -> TestTree
-goldenSimulate isa =
+goldenSimulate = goldenSimulate' False
+
+goldenSimulateFail :: Isa -> FilePath -> FilePath -> TestTree
+goldenSimulateFail = goldenSimulate' True
+
+goldenSimulate' :: Bool -> Isa -> FilePath -> FilePath -> TestTree
+goldenSimulate' shouldFail isa =
     case isa of
-        RiscIv -> goldenSimulate' (wrench @(RiscIvState Int32)) ".risc-iv-32.result"
-        F32a -> goldenSimulate' (wrench @(F32aState Int32)) ".f32a.result"
-        Acc32 -> goldenSimulate' (wrench @(Acc32State Int32)) ".acc32.result"
+        RiscIv -> goldenSimulateInner (wrench @(RiscIvState Int32)) ".risc-iv-32.result" shouldFail
+        F32a -> goldenSimulateInner (wrench @(F32aState Int32)) ".f32a.result" shouldFail
+        Acc32 -> goldenSimulateInner (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
     where
-        goldenSimulate' wr ext fn confFn =
-            let resultFn = dropExtension confFn <> ext
-             in goldenVsString (fn2name confFn) resultFn $ do
-                    let wrench' = wr
+        goldenSimulateInner wrench' ext shouldFail' fn confFn =
+            let testName = "Test case: " <> fn2name confFn
+                goldenPath = dropExtension confFn <> ext
+                action = do
                     src <- decodeUtf8 <$> readFileBS fn
                     conf <- either (error . toText) id <$> readConfig confFn
-                    return $ encodeUtf8 $ case wrench' conf def{input = fn} src of
+                    return $ wrench' conf def{input = fn} src
+                stringAction = do
+                    result <- action
+                    return $ encodeUtf8 $ case result of
                         Right Result{rTrace} -> rTrace
                         Left e -> "error: " <> e
+             in testGroup
+                    testName
+                    [ testCase "Check simulation report" $ do
+                        result <- action
+                        assertBool "Simulation report received" $ isRight result
+                        case result of
+                            Right Result{rSuccess}
+                                | shouldFail' -> assertBool "Simulation report success" $ not rSuccess
+                                | otherwise -> assertBool "Simulation report success" rSuccess
+                            Left _ -> return ()
+                    , goldenVsString "golden check" goldenPath stringAction
+                    ]
