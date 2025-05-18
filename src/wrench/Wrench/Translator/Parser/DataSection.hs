@@ -5,7 +5,7 @@ module Wrench.Translator.Parser.DataSection (
 import Data.List (singleton)
 import Relude
 import Relude.Unsafe (read)
-import Text.Megaparsec (choice, manyTill, sepBy)
+import Text.Megaparsec (choice, manyTill, sepBy, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Text.Megaparsec.Char.Lexer (charLiteral)
 import Wrench.Translator.Parser.Misc
@@ -40,7 +40,7 @@ dataValue cstart = do
             , string ".word" >> return (DWord . map read)
             ]
     hspace1
-    values <- sepBy value (string "," >> hspace)
+    values <- sepBy value (try (hspace >> string "," >> hspace))
     eol' cstart
     return $ wrapper $ concat values
     where

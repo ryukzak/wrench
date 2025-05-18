@@ -1,0 +1,18 @@
+0:	input_addr
+4:	output_addr
+8:	_start
+---
+mem[0..3]: 	80 00 00 00	@"input_addr"
+mem[4..7]: 	84 00 00 00	@"output_addr"
+mem[8..11]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0} 	@_start
+mem[12..15]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectAddrReg A0}
+mem[16..19]: 	Move {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectDataReg D0}
+mem[20..23]: 	Not {mode = Long, dst = DirectDataReg D0}
+mem[24..27]: 	Move {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+mem[28..31]: 	And {mode = Long, src = DirectDataReg D1, dst = DirectDataReg D0}
+mem[32..35]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A1}
+mem[36..39]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A1, dst = DirectAddrReg A1}
+mem[40..43]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A1}
+mem[44..47]: 	Halt
+mem[48..999]: 	( 00 )
+---
