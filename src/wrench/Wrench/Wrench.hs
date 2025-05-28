@@ -17,6 +17,7 @@ import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.F32a (F32aState)
+import Wrench.Isa.M68k (M68kState)
 import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Machine
 import Wrench.Machine.Memory
@@ -52,7 +53,7 @@ instance Default Options where
             , maxStateLogLimit = 10000
             }
 
-data Isa = RiscIv | F32a | Acc32
+data Isa = RiscIv | F32a | Acc32 | M68k
     deriving (Show)
 
 instance Read Isa where
@@ -60,6 +61,7 @@ instance Read Isa where
     readsPrec _ "risc-iv" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
+    readsPrec _ "m68k" = [(M68k, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -94,6 +96,7 @@ runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, m
         Just RiscIv -> wrenchIO @(RiscIvState Int32) opts conf src
         Just F32a -> wrenchIO @(F32aState Int32) opts conf src
         Just Acc32 -> wrenchIO @(Acc32State Int32) opts conf src
+        Just M68k -> wrenchIO @(M68kState Int32) opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::

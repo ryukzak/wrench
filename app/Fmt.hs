@@ -102,6 +102,7 @@ process Options{isa, inplace, check} fileName = do
             Just RiscIv -> formatFile def content
             Just F32a -> formatFile f32aFmt content
             Just Acc32 -> formatFile acc32Fmt content
+            Just M68k -> formatFile def content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"

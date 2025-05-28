@@ -1,5 +1,5 @@
 .PHONY : test build format format-check format-asm-check format-asm-fix \
-         format-fix lint lint-fix clean build-image-local server-run \
+         format lint lint-fix clean build-image-local server-run \
          test-examples generate-variants update-golden fix readme-fix \
          builder-image edge-image release-image
 
@@ -20,7 +20,7 @@ HS_SRC_DIR = .
 
 export VERSION_SUFFIX ?= DEV
 
-all: format-fix lint-fix test test-serv
+all: format lint-fix test test-serv
 
 build:
 	stack build --copy-bins
@@ -88,6 +88,11 @@ test-examples: build
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml
 
+	stack exec wrench -- --isa m68k       example/m68k/not.s                -c example/m68k/not-true.yaml
+	stack exec wrench -- --isa m68k       example/m68k/get-put-char.s       -c example/m68k/get-put-char-87.yaml
+	stack exec wrench -- --isa m68k       example/m68k/hello.s              -c example/m68k/hello.yaml
+	stack exec wrench -- --isa m68k       example/m68k/factorial.s          -c example/m68k/factorial-5.yaml
+
 test-serv: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl
@@ -107,27 +112,29 @@ update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 
-fix: lint-fix format-fix update-golden readme-fix
+fix: lint-fix format update-golden readme-fix
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 readme-fix:
 	markdownlint . -c .markdownlint.yaml --fix
 
-format-fix: format-asm-fix
+format: format-asm-fix readme-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
 	yamlfmt package.yaml example test .github/workflows
 
-format-asm-fix:
+format-asm-fix: build
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
-	stack exec wrench-fmt -- --inplace --isa f32a -v example/f32a/*.s test/golden/f32a/*.s
-	stack exec wrench-fmt -- --inplace --isa acc32 -v example/acc32/*.s test/golden/acc32/*.s
+	stack exec wrench-fmt -- --inplace --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
+	stack exec wrench-fmt -- --inplace --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
+	stack exec wrench-fmt -- --inplace --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 
 format-asm-check: build
-	stack exec wrench-fmt -- --check --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
-	stack exec wrench-fmt -- --check --isa f32a -v example/f32a/*.s test/golden/f32a/*.s
-	stack exec wrench-fmt -- --check --isa acc32 -v example/acc32/*.s test/golden/acc32/*.s
+	stack exec wrench-fmt -- --check   --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
+	stack exec wrench-fmt -- --check   --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
+	stack exec wrench-fmt -- --check   --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
+	stack exec wrench-fmt -- --check   --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 
 format-check:
 	fourmolu -m check $(HS_SRC_DIR)

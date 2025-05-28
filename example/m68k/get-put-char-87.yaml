@@ -1,0 +1,23 @@
+name: Get Put Char 87
+limit: 1000
+memory_size: 0x1000
+input_streams:
+  0x80: [87]
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label}
+  - name: Result
+    slice: last
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      numio[0x80]: {io:0x80:sym}
+      numio[0x84]: {io:0x84:sym}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [87]
+      numio[0x80]: "" >>> ""
+      numio[0x84]: "" >>> "W"
