@@ -42,6 +42,7 @@ initialState pc regs instr =
                                 ]
                         , memorySize = 4
                         }
+                , mIoKeys = []
                 , mIoStreams = def
                 }
         , regs = regs

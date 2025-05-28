@@ -113,6 +113,7 @@ tests =
         iomem =
             IoMem
                 { mIoStreams = fromList [(4, ([1, 2, 3], [0, 9, 8]))]
+                , mIoKeys = [4]
                 , mIoCells =
                     Mem
                         { memorySize = 12
@@ -127,6 +128,8 @@ tests =
                         [ (4, ([1, 2, 3], [0, 9, 8]))
                         , (14, ([1, 2, 3], [0, 9, 8]))
                         ]
+                , mIoKeys =
+                    [4, 14]
                 , mIoCells =
                     Mem
                         { memorySize = 19

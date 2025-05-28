@@ -13,7 +13,6 @@ module Wrench.Machine.Memory (
 
 import Data.Bits (FiniteBits, finiteBitSize)
 import Data.Default (Default, def)
-import Data.List qualified as L
 import Numeric (showHex)
 import Relude
 import Relude.Extra
@@ -179,25 +178,22 @@ instance
 
 ioPortInstructionCollision ::
     forall w isa. (ByteLength isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
-ioPortInstructionCollision IoMem{mIoStreams} addr instr =
-    let n = byteLength instr
+ioPortInstructionCollision IoMem{mIoKeys} addr instr =
+    let !n = byteLength instr
         wn = finiteBitSize (def :: w) `div` 8
-        mkParts idx = [idx - n + 1 .. idx - 1] <> [idx + 1 .. idx + wn - 1]
-        parts = L.nub $ concatMap mkParts (keys mIoStreams)
-     in (addr `elem` parts)
+        !result = any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) mIoKeys
+     in result
 
 ioPortWordCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortWordCollision IoMem{mIoStreams} addr =
+ioPortWordCollision IoMem{mIoKeys} addr =
     let n = finiteBitSize (def :: w) `div` 8
-        mkParts idx = [idx - n + 1 .. idx - 1] <> [idx + 1 .. idx + n - 1]
-        parts = concatMap mkParts (keys mIoStreams)
-     in (addr `elem` parts)
+     in any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + n - 1)) mIoKeys
 
 ioPortByteCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortByteCollision IoMem{mIoStreams} addr =
+ioPortByteCollision IoMem{mIoKeys} addr =
     let n = finiteBitSize (def :: w) `div` 8
         mkParts idx = [idx + 1 .. idx + n - 1]
-        parts = concatMap mkParts (keys mIoStreams)
+        parts = concatMap mkParts mIoKeys
      in (addr `elem` parts)
 
 instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where

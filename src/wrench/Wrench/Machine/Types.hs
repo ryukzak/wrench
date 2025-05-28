@@ -158,6 +158,7 @@ data Mem isa w = Mem
 data IoMem isa w = IoMem
     { mIoStreams :: IntMap ([w], [w])
     , mIoCells :: Mem isa w
+    , mIoKeys :: [Int]
     }
     deriving (Eq, Show)
 

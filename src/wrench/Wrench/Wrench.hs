@@ -153,10 +153,12 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
-    let ioDump =
+    let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cInputStreamsFlat
+        ioDump =
             IoMem
-                { mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cInputStreamsFlat
+                { mIoStreams
                 , mIoCells = dump
+                , mIoKeys = keys mIoStreams
                 }
         st :: st = initState (fromEnum pc) ioDump
 
