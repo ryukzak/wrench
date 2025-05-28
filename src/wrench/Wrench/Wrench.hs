@@ -61,7 +61,7 @@ data Result mem w = Result
 -- Purpose: limit limits in wrench-serv.
 
 maxLimit :: Int
-maxLimit = 600000
+maxLimit = 8000000
 
 maxMemorySize :: Int
 maxMemorySize = 8192
