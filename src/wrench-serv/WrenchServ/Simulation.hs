@@ -75,10 +75,10 @@ data SimulationResult = SimulationResult
     deriving (Generic, Show)
 
 spitDump :: Config -> SimulationTask -> IO ()
-spitDump Config{cStoragePath, cWrenchPath, cWrenchArgs} SimulationTask{stIsa, stAsmFn, stGuid} = do
-    let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-S"]
-    (_exitCode, stdoutDump, _stderrDump) <- readProcessWithExitCode cWrenchPath args ""
-    writeFile (dumpFn cStoragePath stGuid) stdoutDump
+spitDump Config{cStoragePath, cWrenchPath, cWrenchArgs} SimulationTask{stIsa, stAsmFn, stGuid, stConfFn} = do
+    let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-c", stConfFn, "-S"]
+    (_exitCode, stdoutDump, stderrDump) <- readProcessWithExitCode cWrenchPath args ""
+    writeFileText (dumpFn cStoragePath stGuid) $ unlines $ map toText [stdoutDump, stderrDump]
 
 doSimulation :: Config -> SimulationTask -> IO SimulationResult
 doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, stAsmFn, stConfFn} = do
