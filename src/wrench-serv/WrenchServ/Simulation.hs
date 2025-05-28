@@ -5,6 +5,7 @@ module WrenchServ.Simulation (
     doSimulation,
     spitDump,
     spitSimulationRequest,
+    dumpFn,
 ) where
 
 import Data.Text qualified as T
@@ -28,7 +29,7 @@ data SimulationRequest = SimulationRequest
     }
     deriving (FromForm, Generic, Show)
 
-nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn :: FilePath -> UUID -> FilePath
+nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn, dumpFn :: FilePath -> UUID -> FilePath
 nameFn path guid = path <> "/" <> show guid <> "/name.txt"
 commentFn path guid = path <> "/" <> show guid <> "/comment.txt"
 variantFn path guid = path <> "/" <> show guid <> "/variant.txt"
@@ -36,6 +37,7 @@ isaFn path guid = path <> "/" <> show guid <> "/isa.txt"
 configFn path guid = path <> "/" <> show guid <> "/config.yaml"
 asmFn path guid = path <> "/" <> show guid <> "/source.s"
 wrenchVersionFn path guid = path <> "/" <> show guid <> "/wrench-version.txt"
+dumpFn path guid = path <> "/" <> show guid <> "/dump.txt"
 
 spitSimulationRequest :: FilePath -> UUID -> SimulationRequest -> IO ()
 spitSimulationRequest cStoragePath guid SimulationRequest{name, asm, config, comment, variant, isa} = do
@@ -75,9 +77,8 @@ data SimulationResult = SimulationResult
 spitDump :: Config -> SimulationTask -> IO ()
 spitDump Config{cStoragePath, cWrenchPath, cWrenchArgs} SimulationTask{stIsa, stAsmFn, stGuid} = do
     let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-S"]
-        dumpFn = cStoragePath <> "/" <> show stGuid <> "/dump.log"
     (_exitCode, stdoutDump, _stderrDump) <- readProcessWithExitCode cWrenchPath args ""
-    writeFile dumpFn stdoutDump
+    writeFile (dumpFn cStoragePath stGuid) stdoutDump
 
 doSimulation :: Config -> SimulationTask -> IO SimulationResult
 doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, stAsmFn, stConfFn} = do

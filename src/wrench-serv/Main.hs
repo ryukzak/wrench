@@ -192,7 +192,7 @@ getReport conf@Config{cStoragePath} cookie guid = do
         if exist
             then decodeUtf8 <$> readFileBS (dir <> "/wrench-version.txt")
             else return "< 0.2.11"
-    dump <- liftIO (fromMaybe "TOO OLD WRENCH" <$> maybeReadFile (dir <> "/dump.log"))
+    dump <- liftIO (fromMaybe "DUMP NOT AVAILABLE" <$> maybeReadFile (dumpFn cStoragePath guid))
 
     template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
