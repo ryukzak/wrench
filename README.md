@@ -74,6 +74,8 @@ This service will be used to send laboratory works to check.
 ```shell
 $ wrench --help
 Usage: wrench INPUT [--isa ISA] [-c|--conf CONF] [-S] [-v|--verbose]
+              [--instruction-limit LIMIT] [--memory-limit SIZE]
+              [--state-log-limit LIMIT]
 
   App for laboratory course of computer architecture.
 
@@ -83,11 +85,16 @@ Available options:
   -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   -v,--verbose             Verbose output
+  --instruction-limit LIMIT
+                           Maximum number of instructions to execute
+                           (default: 8000000)
+  --memory-limit SIZE      Maximum memory size in bytes (default: 8192)
+  --state-log-limit LIMIT  Maximum number of state records to log (default: 10000)
   -h,--help                Show this help text
   --version                Show version information
 ```
 
-The `wrench` app requires an input assembler file and a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation.
+The `wrench` app requires an input assembler file and optionally a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation. Alternatively, you can specify execution limits directly via command-line arguments.
 
 ### Assembly File
 
@@ -99,6 +106,7 @@ See [docs](/docs) for the specific assembly language for each ISA.
 
 - **Type:** Integer
 - **Description:** Specifies the maximum number of instructions the simulation can execute. If the simulation exceeds this limit, it will be terminated.
+- **CLI Override:** `--instruction-limit LIMIT` limit this configuration option.
 - **Example:**
 
   ```yaml
@@ -108,7 +116,8 @@ See [docs](/docs) for the specific assembly language for each ISA.
 #### `memory_size`
 
 - **Type:** Integer
-- **Description:** Specifies the memory size.
+- **Description:** Specifies the memory size in bytes.
+- **CLI Override:** `--memory-limit SIZE` limit this configuration option.
 - **Example:**
 
   ```yaml
@@ -221,6 +230,18 @@ To execute the simulation and see reports:
 
 ```shell
 stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml
+```
+
+You can also run the simulation without a configuration file by specifying limits directly:
+
+```shell
+stack exec wrench -- example/risc-iv-32/factorial.s --instruction-limit 100 --memory-limit 1024
+```
+
+To see all available command-line options:
+
+```shell
+stack exec wrench -- --help
 ```
 
 For other results see [./test/golden](./test/golden) directory.

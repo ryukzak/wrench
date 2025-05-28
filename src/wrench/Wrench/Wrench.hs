@@ -33,11 +33,24 @@ data Options = Options
     , configFile :: Maybe FilePath
     , onlyTranslation :: Bool
     , verbose :: Bool
+    , maxInstructionLimit :: Int
+    , maxMemoryLimit :: Int
+    , maxStateLogLimit :: Int
     }
     deriving (Show)
 
 instance Default Options where
-    def = Options "" "risc-iv-32" Nothing False False
+    def =
+        Options
+            { input = ""
+            , isa = "risc-iv-32"
+            , configFile = Nothing
+            , onlyTranslation = False
+            , verbose = False
+            , maxInstructionLimit = 8000000
+            , maxMemoryLimit = 8192
+            , maxStateLogLimit = 10000
+            }
 
 data Isa = RiscIv | F32a | Acc32
     deriving (Show)
@@ -57,15 +70,6 @@ data Result mem w = Result
     }
     deriving (Show)
 
--- TODO: Remove hardcoded limits for limits. Get them from CLI.
--- Purpose: limit limits in wrench-serv.
-
-maxLimit :: Int
-maxLimit = 8000000
-
-maxMemorySize :: Int
-maxMemorySize = 8192
-
 prettyLabels :: (MachineWord w) => HashMap String w -> String
 prettyLabels rLabels =
     intercalate "\n"
@@ -73,23 +77,32 @@ prettyLabels rLabels =
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
-runWrenchIO opts@Options{input, configFile, isa, verbose} = do
+runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
-    conf@Config{cLimit, cMemorySize} <- case configFile of
+    conf <- case configFile of
         Just fn -> either (error . toText) id <$> readConfig fn
         Nothing -> return def
 
+    -- Apply CLI overrides only when no config file is present
+    -- This preserves the expected behavior for tests
+    let conf' =
+            if isNothing configFile
+                then conf{cLimit = maxInstructionLimit, cMemorySize = maxMemoryLimit}
+                else conf
+        finalLimit = cLimit conf'
+        finalMemSize = cMemorySize conf'
+
     when verbose $ do
-        pPrint conf
+        pPrint conf'
         putStrLn "---"
-    when (cLimit > maxLimit) $ error "limit too high"
-    when (cMemorySize > maxMemorySize) $ error "memory size too high"
+    when (finalLimit > maxInstructionLimit) $ error "limit too high"
+    when (finalMemSize > maxMemoryLimit) $ error "memory size too high"
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv -> wrenchIO @(RiscIvState Int32) conf opts src
-        Just F32a -> wrenchIO @(F32aState Int32) conf opts src
-        Just Acc32 -> wrenchIO @(Acc32State Int32) conf opts src
+        Just RiscIv -> wrenchIO @(RiscIvState Int32) conf' opts src
+        Just F32a -> wrenchIO @(F32aState Int32) conf' opts src
+        Just Acc32 -> wrenchIO @(Acc32State Int32) conf' opts src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::
@@ -145,7 +158,7 @@ wrench ::
     -> Options
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose} src = do
+wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose, maxStateLogLimit} src = do
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
@@ -155,10 +168,8 @@ wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = 
                 , mIoCells = dump
                 }
         st :: st = initState (fromEnum pc) ioDump
-        -- TODO: Add config field for stateRecordLimits
-        stateRecordLimits = 10000
 
-    traceLog <- powerOn cLimit stateRecordLimits labels st
+    traceLog <- powerOn cLimit maxStateLogLimit labels st
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports

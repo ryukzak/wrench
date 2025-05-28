@@ -1,7 +1,9 @@
 module Main (main) where
 
+import Data.Default
 import Options.Applicative (
     Parser,
+    auto,
     execParser,
     fullDesc,
     help,
@@ -9,6 +11,7 @@ import Options.Applicative (
     info,
     long,
     metavar,
+    option,
     progDesc,
     short,
     showDefault,
@@ -54,6 +57,30 @@ options =
             ( long "verbose"
                 <> short 'v'
                 <> help "Verbose output"
+            )
+        <*> option
+            auto
+            ( long "instruction-limit"
+                <> metavar "LIMIT"
+                <> help ("Maximum number of instructions to execute (default: " <> show (maxInstructionLimit def) <> ")")
+                <> value (maxInstructionLimit def)
+                <> showDefault
+            )
+        <*> option
+            auto
+            ( long "memory-limit"
+                <> metavar "SIZE"
+                <> help ("Maximum memory size in bytes (default: " <> show (maxMemoryLimit def) <> ")")
+                <> value (maxMemoryLimit def)
+                <> showDefault
+            )
+        <*> option
+            auto
+            ( long "state-log-limit"
+                <> metavar "LIMIT"
+                <> help ("Maximum number of state records to log (default: " <> show (maxStateLogLimit def) <> ")")
+                <> value (maxStateLogLimit def)
+                <> showDefault
             )
 
 main :: IO ()
