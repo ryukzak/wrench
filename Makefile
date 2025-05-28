@@ -93,6 +93,13 @@ test-serv: build generate-variants
 	hurl --retry 3 --no-output test/wrench-serv.hurl
 	pkill -f wrench-serv
 
+test-perf:
+	stack build --ghc-options -O2 :wrench
+	time stack exec wrench -- --isa f32a test/performance/program.s -c test/performance/conf.yaml
+
+test-perf-prof:
+	stack run --profile wrench -- +RTS -p -RTS --isa f32a test/performance/program.s -c test/performance/conf.yaml
+
 generate-variants:
 	script/variants.py
 
