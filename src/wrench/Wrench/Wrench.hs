@@ -79,30 +79,21 @@ prettyLabels rLabels =
 runWrenchIO :: Options -> IO ()
 runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
-    conf <- case configFile of
+    conf@Config{cLimit, cMemorySize} <- case configFile of
         Just fn -> either (error . toText) id <$> readConfig fn
         Nothing -> return def
 
-    -- Apply CLI overrides only when no config file is present
-    -- This preserves the expected behavior for tests
-    let conf' =
-            if isNothing configFile
-                then conf{cLimit = maxInstructionLimit, cMemorySize = maxMemoryLimit}
-                else conf
-        finalLimit = cLimit conf'
-        finalMemSize = cMemorySize conf'
-
     when verbose $ do
-        pPrint conf'
+        pPrint conf
         putStrLn "---"
-    when (finalLimit > maxInstructionLimit) $ error "limit too high"
-    when (finalMemSize > maxMemoryLimit) $ error "memory size too high"
+    when (cLimit > maxInstructionLimit) $ error "limit too high"
+    when (cMemorySize > maxMemoryLimit) $ error "memory size too high"
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv -> wrenchIO @(RiscIvState Int32) conf' opts src
-        Just F32a -> wrenchIO @(F32aState Int32) conf' opts src
-        Just Acc32 -> wrenchIO @(Acc32State Int32) conf' opts src
+        Just RiscIv -> wrenchIO @(RiscIvState Int32) opts conf src
+        Just F32a -> wrenchIO @(F32aState Int32) opts conf src
+        Just Acc32 -> wrenchIO @(Acc32State Int32) opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::
@@ -119,12 +110,12 @@ wrenchIO ::
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
-    Config
-    -> Options
+    Options
+    -> Config
     -> [Char]
     -> IO ()
-wrenchIO conf@Config{} opts@Options{isa, onlyTranslation} src =
-    case wrench @st conf opts src of
+wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
+    case wrench @st opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
                 then translationResult rLabels rDump
@@ -154,11 +145,11 @@ wrench ::
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
-    Config
-    -> Options
+    Options
+    -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} Options{input = fn, verbose, maxStateLogLimit} src = do
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cInputStreamsFlat, cReports} src = do
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")

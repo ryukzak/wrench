@@ -227,7 +227,7 @@ goldenSimulate' shouldFail isa =
                 action = do
                     src <- decodeUtf8 <$> readFileBS fn
                     conf <- either (error . toText) id <$> readConfig confFn
-                    return $ wrench' conf def{input = fn} src
+                    return $ wrench' def{input = fn} conf src
                 stringAction = do
                     result <- action
                     return $ encodeUtf8 $ case result of
