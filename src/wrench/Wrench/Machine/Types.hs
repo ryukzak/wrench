@@ -3,6 +3,7 @@ module Wrench.Machine.Types (
     Machine (..),
     Mem (..),
     IoMem (..),
+    mkIoMem,
     Cell (..),
     InitState (..),
     StateInterspector (..),
@@ -24,6 +25,7 @@ module Wrench.Machine.Types (
 import Data.Bits
 import Data.Default (Default)
 import Relude
+import Relude.Extra (keys)
 
 -- * State
 
@@ -161,6 +163,14 @@ data IoMem isa w = IoMem
     , mIoKeys :: [Int]
     }
     deriving (Eq, Show)
+
+mkIoMem :: IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem streams cells =
+    IoMem
+        { mIoStreams = streams
+        , mIoCells = cells
+        , mIoKeys = keys streams
+        }
 
 data Cell isa w
     = Instruction isa

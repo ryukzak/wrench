@@ -111,49 +111,44 @@ tests =
     where
         iomem :: IoMem Isa Int32
         iomem =
-            IoMem
-                { mIoStreams = fromList [(4, ([1, 2, 3], [0, 9, 8]))]
-                , mIoKeys = [4]
-                , mIoCells =
-                    Mem
-                        { memorySize = 12
-                        , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
-                        }
-                }
+            mkIoMem
+                (fromList [(4, ([1, 2, 3], [0, 9, 8]))])
+                ( Mem
+                    { memorySize = 12
+                    , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
+                    }
+                )
         piomem :: IoMem Isa Int32
         piomem =
-            IoMem
-                { mIoStreams =
-                    fromList
-                        [ (4, ([1, 2, 3], [0, 9, 8]))
-                        , (14, ([1, 2, 3], [0, 9, 8]))
-                        ]
-                , mIoKeys =
-                    [4, 14]
-                , mIoCells =
-                    Mem
-                        { memorySize = 19
-                        , memoryData =
-                            fromList
-                                [ (0, Instruction (Isa 2))
-                                , (1, InstructionPart)
-                                , (2, Instruction (Isa 2))
-                                , (3, InstructionPart)
-                                , (4, Instruction (Isa 2)) -- io
-                                , (5, InstructionPart) -- io
-                                , (6, Instruction (Isa 3)) -- io
-                                , (7, InstructionPart) -- io
-                                , (8, InstructionPart)
-                                , (9, Instruction (Isa 1))
-                                , (10, Instruction (Isa 5))
-                                , (11, InstructionPart)
-                                , (12, InstructionPart)
-                                , (13, InstructionPart)
-                                , (14, InstructionPart) -- io
-                                , (15, Instruction (Isa 1)) -- io
-                                , (16, Instruction (Isa 1)) -- io
-                                , (17, Instruction (Isa 1)) -- io
-                                , (18, Instruction (Isa 1))
-                                ]
-                        }
-                }
+            mkIoMem
+                ( fromList
+                    [ (4, ([1, 2, 3], [0, 9, 8]))
+                    , (14, ([1, 2, 3], [0, 9, 8]))
+                    ]
+                )
+                ( Mem
+                    { memorySize = 19
+                    , memoryData =
+                        fromList
+                            [ (0, Instruction (Isa 2))
+                            , (1, InstructionPart)
+                            , (2, Instruction (Isa 2))
+                            , (3, InstructionPart)
+                            , (4, Instruction (Isa 2)) -- io
+                            , (5, InstructionPart) -- io
+                            , (6, Instruction (Isa 3)) -- io
+                            , (7, InstructionPart) -- io
+                            , (8, InstructionPart)
+                            , (9, Instruction (Isa 1))
+                            , (10, Instruction (Isa 5))
+                            , (11, InstructionPart)
+                            , (12, InstructionPart)
+                            , (13, InstructionPart)
+                            , (14, InstructionPart) -- io
+                            , (15, Instruction (Isa 1)) -- io
+                            , (16, Instruction (Isa 1)) -- io
+                            , (17, Instruction (Isa 1)) -- io
+                            , (18, Instruction (Isa 1))
+                            ]
+                    }
+                )

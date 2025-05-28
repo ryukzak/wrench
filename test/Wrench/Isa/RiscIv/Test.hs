@@ -30,21 +30,19 @@ initialState pc regs instr =
     State
         { pc = pc
         , mem =
-            IoMem
-                { mIoCells =
-                    Mem
-                        { memoryData =
-                            fromList
-                                [ (pc, Instruction instr)
-                                , (pc + 1, InstructionPart)
-                                , (pc + 2, InstructionPart)
-                                , (pc + 3, InstructionPart)
-                                ]
-                        , memorySize = 4
-                        }
-                , mIoKeys = []
-                , mIoStreams = def
-                }
+            mkIoMem
+                def
+                ( Mem
+                    { memoryData =
+                        fromList
+                            [ (pc, Instruction instr)
+                            , (pc + 1, InstructionPart)
+                            , (pc + 2, InstructionPart)
+                            , (pc + 3, InstructionPart)
+                            ]
+                    , memorySize = 4
+                    }
+                )
         , regs = regs
         , stopped = False
         , internalError = Nothing
