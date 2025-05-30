@@ -106,10 +106,10 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "sub" Sub src dst
             , cmd2args "mul" Mul src dst
             , cmd2args "div" Div src dst
-            , cmd2args "asl" Asl (dataRegister <|> immidiate) dst
-            , cmd2args "asr" Asr (dataRegister <|> immidiate) dst
-            , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
-            , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
+            , cmd2args "asl" Asl (dataRegister <|> immediate) dst
+            , cmd2args "asr" Asr (dataRegister <|> immediate) dst
+            , cmd2args "lsl" Lsl (dataRegister <|> immediate) dst
+            , cmd2args "lsr" Lsr (dataRegister <|> immediate) dst
             , branchCmd "jmp" Jmp reference
             , branchCmd "bcc" Bcc reference
             , branchCmd "bcs" Bcs reference
@@ -126,7 +126,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd0args "halt" Halt
             ]
         where
-            src = dataRegister <|> indirectAddrRegister <|> immidiate
+            src = dataRegister <|> indirectAddrRegister <|> immediate
             dst = dataRegister <|> indirectAddrRegister
 
 cmd0args :: String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
@@ -200,8 +200,8 @@ indirectAddrRegister = try $ do
     void (string ")")
     return $ IndirectAddrReg 0 $ Unsafe.read ['A', n]
 
-immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
-immidiate = Immediate <$> reference
+immediate :: (MachineWord w) => Parser (Argument w (Ref w))
+immediate = Immediate <$> reference
 
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
