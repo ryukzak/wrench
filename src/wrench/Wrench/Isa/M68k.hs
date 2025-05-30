@@ -356,8 +356,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Div{mode, src, dst} -> cmd2 mode src dst div
             Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL d (fromEnum s))
             Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR d (fromEnum s))
-            Lsl{mode, src, dst} -> cmd2 mode src dst (lShiftL)
-            Lsr{mode, src, dst} -> cmd2 mode src dst (lShiftR)
+            Lsl{mode, src, dst} -> cmd2 mode src dst lShiftL
+            Lsr{mode, src, dst} -> cmd2 mode src dst lShiftR
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
