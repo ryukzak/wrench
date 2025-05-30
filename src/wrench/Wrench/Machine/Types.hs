@@ -23,7 +23,7 @@ module Wrench.Machine.Types (
 ) where
 
 import Data.Bits
-import Data.Default (Default)
+import Data.Default (Default, def)
 import Relude
 import Relude.Extra (keys)
 
@@ -161,15 +161,18 @@ data IoMem isa w = IoMem
     { mIoStreams :: IntMap ([w], [w])
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
+    , mIoByteToWord :: IntMap Int
     }
     deriving (Eq, Show)
 
-mkIoMem :: IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem :: forall w isa. (ByteLength w, Default w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
 mkIoMem streams cells =
     IoMem
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
+        , mIoByteToWord =
+            fromList $ concatMap (\i -> map (,i) [i .. i + byteLength (def :: w) - 1]) (keys streams)
         }
 
 data Cell isa w

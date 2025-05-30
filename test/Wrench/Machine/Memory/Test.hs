@@ -65,11 +65,18 @@ tests =
             Left "iomemory[1]: can't read word from input port" @=? readWord iomem 1
             Left "iomemory[2]: can't read word from input port" @=? readWord iomem 2
             Left "iomemory[3]: can't read word from input port" @=? readWord iomem 3
-            Right 1 @=? (snd <$> readWord iomem 4)
+            Right 0x04030201 @=? (snd <$> readWord iomem 4)
             Left "iomemory[5]: can't read word from input port" @=? readWord iomem 5
             Left "iomemory[6]: can't read word from input port" @=? readWord iomem 6
             Left "iomemory[7]: can't read word from input port" @=? readWord iomem 7
             Right 0x0B0A0908 @=? (snd <$> readWord iomem 8)
+        , testCase "readByte around IO port" $ do
+            Right 3 @=? (snd <$> readByte iomem 3)
+            Right 1 @=? (snd <$> readByte iomem 4)
+            Right 2 @=? (snd <$> readByte iomem 5)
+            Right 3 @=? (snd <$> readByte iomem 6)
+            Right 4 @=? (snd <$> readByte iomem 7)
+            Right 8 @=? (snd <$> readByte iomem 8)
         , testCase "writeByte around IO port" $ do
             True @=? isRight (writeByte iomem 3 def)
             True @=? isRight (writeByte iomem 4 def)
@@ -112,7 +119,7 @@ tests =
         iomem :: IoMem Isa Int32
         iomem =
             mkIoMem
-                (fromList [(4, ([1, 2, 3], [0, 9, 8]))])
+                (fromList [(4, ([0x04030201, 2, 3], [0, 9, 8]))])
                 ( Mem
                     { memorySize = 12
                     , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
