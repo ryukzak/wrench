@@ -155,7 +155,7 @@ tests =
                 , goldenTranslate M68k "test/golden/m68k/get_put_char.s"
                 , goldenTranslate M68k "test/golden/m68k/hello.s"
                 , goldenTranslate M68k "test/golden/m68k/logical_not.s"
-                , goldenTranslate M68k "test/golden/m68k/shift_commands.s" 
+                , goldenTranslate M68k "test/golden/m68k/shift_commands.s"
                 ]
             , testGroup
                 "Generated tests"
