@@ -158,12 +158,15 @@ tests =
                 , goldenTranslate M68k "test/golden/m68k/shift_commands.s"
                 ]
             , testGroup
+                "Simulator"
+                [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"
+                ]
+            , testGroup
                 "Generated tests"
                 [ generatedTest M68k "factorial" 11
                 , generatedTest M68k "get_put_char" 12
                 , generatedTest M68k "hello" 1
                 , generatedTest M68k "logical_not" 2
-                , generatedTest M68k "shift_commands" 1
                 ]
             ]
         ]
