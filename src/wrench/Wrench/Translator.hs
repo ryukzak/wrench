@@ -29,17 +29,17 @@ data St w
     deriving (Show)
 
 evaluateLabels ::
-    (ByteLength isa, MachineWord w) =>
+    (ByteSize isa, MachineWord w) =>
     [Section isa w String]
     -> Either String (HashMap String w)
 evaluateLabels sections =
     let processCode st'@St{sOffset, sLabels} token =
             case token of
-                Mnemonic m -> st'{sOffset = sOffset + toEnum (byteLength m)}
+                Mnemonic m -> st'{sOffset = sOffset + toEnum (byteSize m)}
                 Label l -> st'{sLabels = (l, sOffset) : sLabels}
         processData st'@St{sOffset, sLabels} DataToken{dtLabel, dtValue} =
             st'
-                { sOffset = sOffset + toEnum (byteLength dtValue)
+                { sOffset = sOffset + toEnum (byteSize dtValue)
                 , sLabels = (dtLabel, sOffset) : sLabels
                 }
         offsetError org offset = error $ ".org directive set " <> show org <> " but we already at " <> show offset
@@ -65,8 +65,8 @@ evaluateLabels sections =
 
 translate ::
     forall isa_ w.
-    ( ByteLength (isa_ w (Ref w))
-    , ByteLength (isa_ w w)
+    ( ByteSize (isa_ w (Ref w))
+    , ByteSize (isa_ w w)
     , DerefMnemonic (isa_ w) w
     , MachineWord w
     , MnemonicParser (isa_ w (Ref w))

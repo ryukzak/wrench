@@ -190,18 +190,18 @@ instance DerefMnemonic (Isa w) w where
             Over -> Over
             Halt -> Halt
 
-instance ByteLength (Isa w l) where
+instance ByteSize (Isa w l) where
     -- NOTE: in f18a multiple instructions can be fitted in one machine word.
     -- Here we simplify it: args -- is just a muchine word. Opcode -- one byte.
-    byteLength (Lit _) = 5
-    byteLength (Call _) = 5
-    byteLength (Jump _) = 5
-    byteLength (Next _) = 5
-    byteLength (If _) = 5
-    byteLength (MinusIf _) = 5
-    byteLength (FetchP _) = 5
-    byteLength (StoreP _) = 5
-    byteLength _ = 1
+    byteSize (Lit _) = 5
+    byteSize (Call _) = 5
+    byteSize (Jump _) = 5
+    byteSize (Next _) = 5
+    byteSize (If _) = 5
+    byteSize (MinusIf _) = 5
+    byteSize (FetchP _) = 5
+    byteSize (StoreP _) = 5
+    byteSize _ = 1
 
 type F32aState w = MachineState (IoMem (Isa w w) w) w
 
@@ -243,7 +243,7 @@ getP = get <&> (fromEnum . p)
 nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextP = do
     instructionFetch >>= \case
-        Right (p, instruction) -> setP (p + byteLength instruction)
+        Right (p, instruction) -> setP (p + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()

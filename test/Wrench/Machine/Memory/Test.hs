@@ -11,8 +11,8 @@ import Wrench.Machine.Types
 
 newtype Isa = Isa Int deriving (Eq, Show)
 
-instance ByteLength Isa where
-    byteLength (Isa n) = n
+instance ByteSize Isa where
+    byteSize (Isa n) = n
 
 tests :: TestTree
 tests =

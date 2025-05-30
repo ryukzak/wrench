@@ -240,8 +240,8 @@ instance DerefMnemonic (Isa w) w where
                 Bvs{ref} -> Bvs (deref' f ref)
                 Halt -> Halt
 
-instance ByteLength (Isa w l) where
-    byteLength _ = 4 -- Simplified assumption: all instructions are 2 bytes.
+instance ByteSize (Isa w l) where
+    byteSize _ = 4 -- Simplified assumption: all instructions are 2 bytes.
 
 type M68kState w = MachineState (IoMem (Isa w w) w) w
 
@@ -262,7 +262,7 @@ setPc addr = modify $ \st -> st{pc = addr}
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     instructionFetch >>= \case
-        Right (pc, instruction) -> setPc (pc + byteLength instruction)
+        Right (pc, instruction) -> setPc (pc + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()

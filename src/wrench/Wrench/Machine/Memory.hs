@@ -20,7 +20,7 @@ import Relude.Unsafe qualified as Unsafe
 import Wrench.Machine.Types
 import Wrench.Translator.Types
 
-prepareDump :: (ByteLength isa, MachineWord w) => Int -> [Section isa w w] -> Mem isa w
+prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> Mem isa w
 prepareDump memorySize sections =
     let addSection cells offset dump =
             let dump' = zip [offset ..] cells
@@ -29,7 +29,7 @@ prepareDump memorySize sections =
             concatMap
                 ( \case
                     Mnemonic m ->
-                        Instruction m : replicate (byteLength m - 1) InstructionPart
+                        Instruction m : replicate (byteSize m - 1) InstructionPart
                     _other -> []
                 )
         processData =
@@ -72,7 +72,7 @@ sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) a
 
 prettyDump ::
     forall w isa.
-    (ByteLength isa, MachineWord w, Show isa) =>
+    (ByteSize isa, MachineWord w, Show isa) =>
     HashMap String w
     -> IntMap (Cell isa w)
     -> String
@@ -86,7 +86,7 @@ prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
              in place <> ": \t" <> show i <> label
         pretty [] = []
         pretty ((offset, Instruction i) : cs) =
-            let n = byteLength i
+            let n = byteSize i
                 cs' = drop (n - 1) cs
              in instruction offset n i : pretty cs'
         pretty ((offset, InstructionPart) : cs) = (show offset <> ": \tInstructionPart") : pretty cs
@@ -126,7 +126,7 @@ class Memory m isa w | m -> isa w where
     dumpCells :: m -> IntMap (Cell isa w)
 
 instance
-    (ByteLength isa, MachineWord w) =>
+    (ByteSize isa, MachineWord w) =>
     Memory (Mem isa w) isa w
     where
     readInstruction Mem{memoryData} idx =
@@ -137,7 +137,7 @@ instance
                         Just InstructionPart -> True
                         _ -> False
                     )
-                    [idx + 1 .. idx + byteLength i - 1] ->
+                    [idx + 1 .. idx + byteSize i - 1] ->
                     Right i
                 | otherwise -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
             Just InstructionPart -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
@@ -151,14 +151,14 @@ instance
             Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
 
     readWord mem idx =
-        let idxs = [idx .. idx + byteLengthT @w - 1]
+        let idxs = [idx .. idx + byteSizeT @w - 1]
             values = map (fmap snd . readByte mem) idxs
          in case lefts values of
                 [] -> Right (mem, wordCombine $ rights values)
                 errs -> Left $ unlines errs
 
     writeWord Mem{memorySize} idx _
-        | idx < 0 || memorySize < idx + byteLengthT @w =
+        | idx < 0 || memorySize < idx + byteSizeT @w =
             Left $ "memory[" <> show idx <> "]: out of memory for word access"
     writeWord mem idx word =
         let updates = zip [idx ..] (wordSplit word)
@@ -173,9 +173,9 @@ instance
     dumpCells Mem{memoryData} = memoryData
 
 ioPortInstructionCollision ::
-    forall w isa. (ByteLength isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
+    forall w isa. (ByteSize isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
 ioPortInstructionCollision IoMem{mIoKeys} addr instr =
-    let !n = byteLength instr
+    let !n = byteSize instr
         wn = finiteBitSize (def :: w) `div` 8
         !result = any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) mIoKeys
      in result
@@ -192,7 +192,7 @@ ioPortByteCollision IoMem{mIoKeys} addr =
         parts = concatMap mkParts mIoKeys
      in (addr `elem` parts)
 
-instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
+instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
             Just _ -> Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
