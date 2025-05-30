@@ -354,10 +354,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Sub{mode, src, dst} -> cmd2Ext mode src dst subExt
             Mul{mode, src, dst} -> cmd2Ext mode src dst mulExt
             Div{mode, src, dst} -> cmd2 mode src dst div
-            Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL s (fromEnum d))
-            Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR s (fromEnum d))
-            Lsl{mode, src, dst} -> cmd2 mode src dst (flip lShiftL)
-            Lsr{mode, src, dst} -> cmd2 mode src dst (flip lShiftR)
+            Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL d (fromEnum s))
+            Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR d (fromEnum s))
+            Lsl{mode, src, dst} -> cmd2 mode src dst (lShiftL)
+            Lsr{mode, src, dst} -> cmd2 mode src dst (lShiftR)
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
