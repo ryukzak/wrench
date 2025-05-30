@@ -158,7 +158,7 @@ tests =
                 ]
             , testGroup
                 "M68k"
-                [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.s"
+                [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"
                 ]
             , testGroup
                 "Generated tests"
