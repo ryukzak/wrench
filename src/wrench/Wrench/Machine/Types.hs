@@ -10,8 +10,8 @@ module Wrench.Machine.Types (
     MachineWord,
     FromSign (..),
     RegisterId,
-    ByteLength (..),
-    ByteLengthT (..),
+    ByteSize (..),
+    ByteSizeT (..),
     WordParts (..),
     signBitAnd,
     Ext (..),
@@ -24,7 +24,7 @@ module Wrench.Machine.Types (
 ) where
 
 import Data.Bits
-import Data.Default (Default)
+import Data.Default (Default, def)
 import Relude
 import Relude.Extra (keys)
 
@@ -33,8 +33,8 @@ import Relude.Extra (keys)
 type MachineWord w =
     ( Bits w
     , FiniteBits w
-    , ByteLength w
-    , ByteLengthT w
+    , ByteSize w
+    , ByteSizeT w
     , Default w
     , Enum w
     , FromSign w
@@ -121,23 +121,23 @@ mulExt x y =
         carry = (fromIntegral x * fromIntegral y) > (maxBound :: Word)
      in Ext{value = result, overflow, carry}
 
-class ByteLength t where
-    byteLength :: t -> Int
+class ByteSize t where
+    byteSize :: t -> Int
 
-class ByteLengthT t where
-    byteLengthT :: Int
+instance ByteSize Word32 where
+    byteSize _ = 4
 
-instance ByteLength Word32 where
-    byteLength _ = 4
+instance ByteSize Int8 where
+    byteSize _ = 1
 
-instance ByteLengthT Word32 where
-    byteLengthT = 4
+instance ByteSize Int32 where
+    byteSize _ = 4
 
-instance ByteLength Int32 where
-    byteLength _ = 4
+class ByteSizeT t where
+    byteSizeT :: Int
 
-instance ByteLengthT Int32 where
-    byteLengthT = 4
+instance (ByteSize t, Default t) => ByteSizeT t where
+    byteSizeT = byteSize (def :: t)
 
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> st
@@ -176,14 +176,14 @@ data IoMem isa w = IoMem
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteLengthT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
 mkIoMem streams cells =
     IoMem
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
         , mIoByteToWord =
-            fromList $ concatMap (\i -> map (,i) [i .. i + byteLengthT @w - 1]) (keys streams)
+            fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }
 
 data Cell isa w

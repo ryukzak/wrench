@@ -8,7 +8,7 @@ module Wrench.Translator.Types (
     CodeToken (..),
     DataToken (..),
     DataValue (..),
-    ByteLength (..),
+    ByteSize (..),
     MachineWord,
     markupOffsets,
     markupSectionOffsets,
@@ -36,13 +36,13 @@ data Section isa w l
         }
     deriving (Show)
 
-instance (ByteLength isa, ByteLengthT w) => ByteLength (Section isa w l) where
-    byteLength Code{codeTokens} = sum $ map byteLength codeTokens
-    byteLength Data{dataTokens} = sum $ map byteLength dataTokens
+instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
+    byteSize Code{codeTokens} = sum $ map byteSize codeTokens
+    byteSize Data{dataTokens} = sum $ map byteSize dataTokens
 
 derefSection ::
     forall isa w.
-    (ByteLength (isa (Ref w)), DerefMnemonic isa w, MachineWord w) =>
+    (ByteSize (isa (Ref w)), DerefMnemonic isa w, MachineWord w) =>
     (String -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w String
@@ -73,24 +73,24 @@ derefSection f _offset dt@Data{dataTokens} =
                 dataTokens
         }
 
-markupOffsets :: (ByteLength t, MachineWord w) => w -> [t] -> [(w, t)]
+markupOffsets :: (ByteSize t, MachineWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
-markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteLength m)) ms
+markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteSize m)) ms
 
-markupSectionOffsets :: (ByteLength isa, MachineWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
+markupSectionOffsets :: (ByteSize isa, MachineWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
 markupSectionOffsets _offset [] = []
 markupSectionOffsets offset (s : ss) =
     let offset' = Prelude.maybe offset toEnum (org s)
-     in (offset', s) : markupSectionOffsets (offset' + toEnum (byteLength s)) ss
+     in (offset', s) : markupSectionOffsets (offset' + toEnum (byteSize s)) ss
 
 data CodeToken isa l
     = Label l
     | Mnemonic isa
     deriving (Show)
 
-instance (ByteLength isa) => ByteLength (CodeToken isa l) where
-    byteLength (Mnemonic m) = byteLength m
-    byteLength _ = 0
+instance (ByteSize isa) => ByteSize (CodeToken isa l) where
+    byteSize (Mnemonic m) = byteSize m
+    byteSize _ = 0
 
 data Ref w
     = Ref (w -> w) String
@@ -110,14 +110,14 @@ data DataToken w l = DataToken
     }
     deriving (Show)
 
-instance (ByteLengthT w) => ByteLength (DataToken w l) where
-    byteLength DataToken{dtValue} = byteLength dtValue
+instance (ByteSizeT w) => ByteSize (DataToken w l) where
+    byteSize DataToken{dtValue} = byteSize dtValue
 
 data DataValue w
     = DByte [Word8]
     | DWord [w]
     deriving (Show)
 
-instance (ByteLengthT w) => ByteLength (DataValue w) where
-    byteLength (DByte xs) = length xs
-    byteLength (DWord xs) = byteLengthT @w * length xs
+instance (ByteSizeT w) => ByteSize (DataValue w) where
+    byteSize (DByte xs) = length xs
+    byteSize (DWord xs) = byteSizeT @w * length xs

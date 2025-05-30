@@ -172,26 +172,26 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
 
-instance ByteLength (Isa w l) where
-    byteLength LoadImm{} = 5
-    byteLength LoadAddr{} = 5
-    byteLength LoadInd{} = 5
-    byteLength StoreAddr{} = 5
-    byteLength StoreInd{} = 5
-    byteLength Beqz{} = 5
-    byteLength Bnez{} = 5
-    byteLength Bgz{} = 5
-    byteLength Blz{} = 5
-    byteLength Bvs{} = 5
-    byteLength Bvc{} = 5
-    byteLength Bcs{} = 5
-    byteLength Bcc{} = 5
-    byteLength Jmp{} = 5
-    byteLength Not = 1
-    byteLength Clv = 1
-    byteLength Clc = 1
-    byteLength Halt = 1
-    byteLength _ = 3
+instance ByteSize (Isa w l) where
+    byteSize LoadImm{} = 5
+    byteSize LoadAddr{} = 5
+    byteSize LoadInd{} = 5
+    byteSize StoreAddr{} = 5
+    byteSize StoreInd{} = 5
+    byteSize Beqz{} = 5
+    byteSize Bnez{} = 5
+    byteSize Bgz{} = 5
+    byteSize Blz{} = 5
+    byteSize Bvs{} = 5
+    byteSize Bvc{} = 5
+    byteSize Bcs{} = 5
+    byteSize Bcc{} = 5
+    byteSize Jmp{} = 5
+    byteSize Not = 1
+    byteSize Clv = 1
+    byteSize Clc = 1
+    byteSize Halt = 1
+    byteSize _ = 3
 
 type Acc32State w = MachineState (IoMem (Isa w w) w) w
 
@@ -230,7 +230,7 @@ setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     instructionFetch >>= \case
-        Right (pc, instruction) -> setPc (pc + byteLength instruction)
+        Right (pc, instruction) -> setPc (pc + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()

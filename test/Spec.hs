@@ -216,8 +216,8 @@ goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
-    ( ByteLength (isa Int32 (Ref Int32))
-    , ByteLength (isa Int32 Int32)
+    ( ByteSize (isa Int32 (Ref Int32))
+    , ByteSize (isa Int32 Int32)
     , DerefMnemonic (isa Int32) Int32
     , MnemonicParser (isa Int32 (Ref Int32))
     , Show (isa Int32 Int32)

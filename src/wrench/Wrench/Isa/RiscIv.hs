@@ -21,7 +21,7 @@ import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types (
-    ByteLengthT (..),
+    ByteSizeT (..),
     InitState (..),
     IoMem (..),
     Machine (..),
@@ -304,8 +304,8 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
                 Halt -> Halt
 
-instance ByteLength (Isa w l) where
-    byteLength _ = 4
+instance ByteSize (Isa w l) where
+    byteSize _ = 4
 
 comma = hspace >> string "," >> hspace
 
@@ -341,10 +341,10 @@ data MachineState mem w = State
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-nextPc :: forall w. (ByteLengthT w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: forall w. (ByteSizeT w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
-    setPc (pc + byteLengthT @w)
+    setPc (pc + byteSizeT @w)
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -438,7 +438,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     fromIntegral
                     ( \(r1 :: Integer) r2 ->
                         let x = r1 * r2
-                            shift = 8 * byteLengthT @w
+                            shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
             Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id div

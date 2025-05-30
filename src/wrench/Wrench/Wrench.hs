@@ -101,8 +101,8 @@ runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, m
 
 wrenchIO ::
     forall st isa_ w isa1 isa2.
-    ( ByteLength isa1
-    , ByteLength isa2
+    ( ByteSize isa1
+    , ByteSize isa2
     , DerefMnemonic (isa_ w) w
     , InitState (IoMem isa2 w) st
     , Machine st isa2 w
@@ -137,8 +137,8 @@ wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
 
 wrench ::
     forall st isa_ w isa1 isa2.
-    ( ByteLength isa1
-    , ByteLength isa2
+    ( ByteSize isa1
+    , ByteSize isa2
     , DerefMnemonic (isa_ w) w
     , InitState (IoMem isa2 w) st
     , Machine st isa2 w

@@ -119,8 +119,11 @@ prepareStateView line TranslatorResult{labels} st =
     toString $ substituteBrackets (reprState labels st) line
 
 defaultView ::
-    (ByteLength isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
-    HashMap String w -> st -> Text -> Maybe Text
+    (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
+    HashMap String w
+    -> st
+    -> Text
+    -> Maybe Text
 defaultView labels st "pc:label" =
     Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
         (l, _a) : _ -> "@" <> toText l
@@ -136,7 +139,7 @@ defaultView labels st v =
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
-viewMemory :: (ByteLength isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
+viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
 viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
