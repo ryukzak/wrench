@@ -18,7 +18,6 @@ module Wrench.Translator.Types (
     derefSection,
 ) where
 
-import Data.Default (Default, def)
 import Relude
 import Wrench.Machine.Types
 import Prelude qualified
@@ -37,7 +36,7 @@ data Section isa w l
         }
     deriving (Show)
 
-instance (ByteLength isa, ByteLength w, Default w) => ByteLength (Section isa w l) where
+instance (ByteLength isa, ByteLengthT w) => ByteLength (Section isa w l) where
     byteLength Code{codeTokens} = sum $ map byteLength codeTokens
     byteLength Data{dataTokens} = sum $ map byteLength dataTokens
 
@@ -111,7 +110,7 @@ data DataToken w l = DataToken
     }
     deriving (Show)
 
-instance (ByteLength w, Default w) => ByteLength (DataToken w l) where
+instance (ByteLengthT w) => ByteLength (DataToken w l) where
     byteLength DataToken{dtValue} = byteLength dtValue
 
 data DataValue w
@@ -119,6 +118,6 @@ data DataValue w
     | DWord [w]
     deriving (Show)
 
-instance (ByteLength w, Default w) => ByteLength (DataValue w) where
+instance (ByteLengthT w) => ByteLength (DataValue w) where
     byteLength (DByte xs) = length xs
-    byteLength (DWord xs) = byteLength (def :: w) * length xs
+    byteLength (DWord xs) = byteLengthT @w * length xs
