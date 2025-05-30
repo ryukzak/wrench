@@ -2,7 +2,7 @@ name: assert lsl, lsr, asl, asr commands([5, 512, 8, 20]) == [10, 256, 16, 10]
 limit: 2000
 memory_size: 0x1000
 input_streams:
-  0x80: [5, 512, 8, 20]
+  0x80: [5,512,8,20]
   0x84: []
 reports:
   - name: Check results
@@ -14,4 +14,4 @@ reports:
       numio[0x84]: {io:0x84:dec}
     assert: |
       numio[0x80]: [] >>> []
-      numio[0x84]: [] >>> [10, 256, 16, 10]
+      numio[0x84]: [] >>> [10,256,16,10]
