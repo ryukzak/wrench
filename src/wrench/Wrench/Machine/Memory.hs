@@ -120,6 +120,7 @@ word32ToHex w =
 class Memory m isa w | m -> isa w where
     readInstruction :: m -> Int -> Either Text isa
     readWord :: m -> Int -> Either Text (m, w)
+    readByte :: m -> Int -> Either Text (m, Word8)
     writeWord :: m -> Int -> w -> Either Text m
     writeByte :: m -> Int -> Word8 -> Either Text m
     dumpCells :: m -> IntMap (Cell isa w)
@@ -143,18 +144,18 @@ instance
             Just (Value _) -> Left $ "memory[" <> show idx <> "]: can't read instruction from data cell"
             Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
 
-    readWord mem@Mem{memoryData} idx =
+    readByte mem@Mem{memoryData} idx =
+        case memoryData !? idx of
+            Just (Value v) -> Right (mem, v)
+            Just _ -> Left $ "memory[" <> show idx <> "]: can't read byte from instruction cell"
+            Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
+
+    readWord mem idx =
         let idxs = [idx .. idx + byteLength (def :: w) - 1]
-            values = map getValue idxs
+            values = map (fmap snd . readByte mem) idxs
          in case lefts values of
                 [] -> Right (mem, wordCombine $ rights values)
                 errs -> Left $ unlines errs
-        where
-            getValue i =
-                case memoryData !? i of
-                    Just (Value v) -> Right v
-                    Just _ -> Left $ "memory[" <> show i <> "]: can't read data from instruction cell"
-                    Nothing -> Left $ "memory[" <> show i <> "]: out of memory"
 
     writeWord Mem{memorySize} idx _
         | memorySize
@@ -163,10 +164,9 @@ instance
             || idx
             < 0 =
             Left $ "memory[" <> show idx <> "]: out of memory for word access"
-    writeWord mem@Mem{memoryData} idx word =
+    writeWord mem idx word =
         let updates = zip [idx ..] (wordSplit word)
-            memoryData' = foldl' (\m (i, x) -> insert i (Value x) m) memoryData updates
-         in Right $ mem{memoryData = memoryData'}
+         in foldlM (\m (i, x) -> writeByte m i x) mem updates
 
     writeByte Mem{memorySize} idx _
         | memorySize <= idx || idx < 0 = Left $ "memory[" <> show idx <> "]: out of memory"
@@ -206,6 +206,14 @@ instance (ByteLength isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (Io
                     | ioPortInstructionCollision io idx instr ->
                         Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
                     | otherwise -> Right instr
+
+    readByte io@IoMem{mIoByteToWord} idx
+        | Just wordIdx <- mIoByteToWord !? idx = do
+            (io', word) <- readWord io wordIdx
+            return (io', wordSplit word Unsafe.!! (idx - wordIdx))
+    readByte io@IoMem{mIoCells} idx = do
+        (mIoCells', v) <- readByte mIoCells idx
+        return (io{mIoCells = mIoCells'}, v)
 
     readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
     readWord io@IoMem{mIoStreams, mIoCells} idx = do
