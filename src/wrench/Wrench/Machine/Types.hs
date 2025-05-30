@@ -11,6 +11,7 @@ module Wrench.Machine.Types (
     FromSign (..),
     RegisterId,
     ByteLength (..),
+    ByteLengthT (..),
     WordParts (..),
     signBitAnd,
     Ext (..),
@@ -23,7 +24,7 @@ module Wrench.Machine.Types (
 ) where
 
 import Data.Bits
-import Data.Default (Default, def)
+import Data.Default (Default)
 import Relude
 import Relude.Extra (keys)
 
@@ -33,6 +34,7 @@ type MachineWord w =
     ( Bits w
     , FiniteBits w
     , ByteLength w
+    , ByteLengthT w
     , Default w
     , Enum w
     , FromSign w
@@ -122,11 +124,20 @@ mulExt x y =
 class ByteLength t where
     byteLength :: t -> Int
 
+class ByteLengthT t where
+    byteLengthT :: Int
+
 instance ByteLength Word32 where
     byteLength _ = 4
 
+instance ByteLengthT Word32 where
+    byteLengthT = 4
+
 instance ByteLength Int32 where
     byteLength _ = 4
+
+instance ByteLengthT Int32 where
+    byteLengthT = 4
 
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> st
@@ -165,14 +176,14 @@ data IoMem isa w = IoMem
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteLength w, Default w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem :: forall w isa. (ByteLengthT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
 mkIoMem streams cells =
     IoMem
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
         , mIoByteToWord =
-            fromList $ concatMap (\i -> map (,i) [i .. i + byteLength (def :: w) - 1]) (keys streams)
+            fromList $ concatMap (\i -> map (,i) [i .. i + byteLengthT @w - 1]) (keys streams)
         }
 
 data Cell isa w

@@ -151,25 +151,21 @@ instance
             Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
 
     readWord mem idx =
-        let idxs = [idx .. idx + byteLength (def :: w) - 1]
+        let idxs = [idx .. idx + byteLengthT @w - 1]
             values = map (fmap snd . readByte mem) idxs
          in case lefts values of
                 [] -> Right (mem, wordCombine $ rights values)
                 errs -> Left $ unlines errs
 
     writeWord Mem{memorySize} idx _
-        | memorySize
-            < idx
-            + byteLength (def :: w)
-            || idx
-            < 0 =
+        | idx < 0 || memorySize < idx + byteLengthT @w =
             Left $ "memory[" <> show idx <> "]: out of memory for word access"
     writeWord mem idx word =
         let updates = zip [idx ..] (wordSplit word)
          in foldlM (\m (i, x) -> writeByte m i x) mem updates
 
     writeByte Mem{memorySize} idx _
-        | memorySize <= idx || idx < 0 = Left $ "memory[" <> show idx <> "]: out of memory"
+        | idx < 0 || memorySize <= idx = Left $ "memory[" <> show idx <> "]: out of memory"
     writeByte mem@Mem{memoryData} idx byte =
         let memoryData' = insert idx (Value byte) memoryData
          in Right $ mem{memoryData = memoryData'}
