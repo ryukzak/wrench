@@ -26,8 +26,12 @@ import Wrench.Translator.Types
 
 data Mode
     = Long
-    -- -- | Byte
+    | Byte
     deriving (Eq, Show)
+
+longMode = void (string ".l") >> return Long
+
+byteMode = void (string ".b") >> return Byte
 
 data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Generic, Hashable, Read, Show)
@@ -96,20 +100,20 @@ instance CommentStart (Isa w l) where
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic =
         choice
-            [ cmd2args "move" Move src dst
-            , cmd2args "movea" MoveA src addrRegister
-            , cmd1args "not" Not dst
-            , cmd2args "and" And src dst
-            , cmd2args "or" Or src dst
-            , cmd2args "xor" Xor src dst
-            , cmd2args "add" Add src dst
-            , cmd2args "sub" Sub src dst
-            , cmd2args "mul" Mul src dst
-            , cmd2args "div" Div src dst
-            , cmd2args "asl" Asl (dataRegister <|> immidiate) dst
-            , cmd2args "asr" Asr (dataRegister <|> immidiate) dst
-            , cmd2args "lsl" Lsl (dataRegister <|> immidiate) dst
-            , cmd2args "lsr" Lsr (dataRegister <|> immidiate) dst
+            [ cmd2args "move" Move (longMode <|> byteMode) src dst
+            , cmd2args "movea" MoveA longMode src addrRegister
+            , cmd1args "not" Not (longMode <|> byteMode) dst
+            , cmd2args "and" And (longMode <|> byteMode) src dst
+            , cmd2args "or" Or (longMode <|> byteMode) src dst
+            , cmd2args "xor" Xor (longMode <|> byteMode) src dst
+            , cmd2args "add" Add (longMode <|> byteMode) src dst
+            , cmd2args "sub" Sub (longMode <|> byteMode) src dst
+            , cmd2args "mul" Mul (longMode <|> byteMode) src dst
+            , cmd2args "div" Div (longMode <|> byteMode) src dst
+            , cmd2args "asl" Asl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
+            , cmd2args "asr" Asr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
+            , cmd2args "lsl" Lsl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
+            , cmd2args "lsr" Lsr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
             , branchCmd "jmp" Jmp reference
             , branchCmd "bcc" Bcc reference
             , branchCmd "bcs" Bcs reference
@@ -138,12 +142,13 @@ cmd0args mnemonic constructor = try $ do
 cmd1args ::
     String
     -> (Mode -> a -> Isa w (Ref w))
+    -> Parser Mode
     -> Parser a
     -> Parser (Isa w (Ref w))
-cmd1args mnemonic constructor dstP = try $ do
+cmd1args mnemonic constructor modeP dstP = try $ do
     m <- do
         void $ string mnemonic
-        m <- cmdMode
+        m <- modeP
         hspace1
         return m
     a <- dstP
@@ -153,13 +158,14 @@ cmd1args mnemonic constructor dstP = try $ do
 cmd2args ::
     String
     -> (Mode -> a -> b -> Isa w (Ref w))
+    -> Parser Mode
     -> Parser a
     -> Parser b
     -> Parser (Isa w (Ref w))
-cmd2args mnemonic constructor srcP dstP = do
+cmd2args mnemonic constructor modeP srcP dstP = do
     m <- try $ do
         void $ string mnemonic
-        m <- cmdMode
+        m <- modeP
         hspace1
         return m
     a <- srcP
@@ -175,8 +181,6 @@ branchCmd mnemonic constructor ref = do
     a <- ref
     eol' ";"
     return $ constructor a
-
-cmdMode = void (string ".l") >> return Long
 
 comma :: Parser ()
 comma = hspace >> void (string ",") >> hspace
@@ -301,13 +305,14 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-fetch :: (MachineWord w) => Mode -> Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
-fetch _ (DirectDataReg r) = do
-    State{dr} <- get
-    return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
-fetch _ (IndirectAddrReg offset r) = do
-    st@State{ar, mem} <- get
-    let addr = maybe (error $ "Invalid register: " <> show r) ((+ offset) . fromEnum) (ar !? r)
+indirectAddr offset r = do
+    State{ar} <- get
+    case ar !? r of
+        Just addr -> return $ offset + fromEnum addr
+        Nothing -> error $ "Invalid register: " <> show r
+
+readMemoryWord addr = do
+    st@State{mem} <- get
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -315,20 +320,70 @@ fetch _ (IndirectAddrReg offset r) = do
         Left err -> do
             raiseInternalError $ "memory access error: " <> err
             return def
-fetch _ (Immediate v) = return v
-fetch _ (DirectAddrReg _) = error "not implemented"
 
-store :: (MachineWord w) => Mode -> Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
-store _ (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
-store _ (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
-store _ (IndirectAddrReg offset r) v = do
-    st@State{ar, mem} <- get
-    let addr = maybe (error "Invalid register") ((+ offset) . fromEnum) (ar !? r)
-    case writeWord mem addr v of
+writeMemoryWord addr w = do
+    st@State{mem} <- get
+    case writeWord mem addr w of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
-store _ (Immediate _) _ = error "impossible to store into immediate destination"
+
+fetchWord :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
+fetchWord (DirectDataReg r) = do
+    State{dr} <- get
+    return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
+fetchWord (IndirectAddrReg offset r) = do
+    addr <- indirectAddr offset r
+    readMemoryWord addr
+fetchWord (Immediate v) = return v
+fetchWord arg = error $ "can not fetch word: " <> show arg
+
+storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
+storeWord (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
+storeWord (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
+storeWord (IndirectAddrReg offset r) v = do
+    addr <- indirectAddr offset r
+    writeMemoryWord addr v
+storeWord arg _ = error $ "can not store word: " <> show arg
+
+readMemoryByte addr = do
+    st@State{mem} <- get
+    case readByte mem addr of
+        Right (mem', b) -> do
+            put st{mem = mem'}
+            return $ toSign b
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
+
+writeMemoryByte addr b = do
+    st@State{mem} <- get
+    case writeByte mem addr (fromSign b) of
+        Right mem' -> do
+            put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+
+fetchByte :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) Int8
+fetchByte (DirectDataReg r) = do
+    State{dr} <- get
+    return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dr !? r)
+fetchByte (IndirectAddrReg offset r) = do
+    addr <- indirectAddr offset r
+    readMemoryByte addr
+fetchByte (Immediate v) = return $ fromInteger $ toInteger v
+fetchByte arg = error $ "can not fetch byte: " <> show arg
+
+storeByte :: forall w. (MachineWord w) => Argument w w -> Int8 -> State (MachineState (IoMem (Isa w w) w) w) ()
+storeByte (DirectDataReg r) v = do
+    st@State{dr} <- get
+    let w = fromMaybe (error $ "invalid register: " <> show r) $ dr !? r
+        w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
+    put st{dr = insert r w' dr, zFlag = v == 0, nFlag = v < 0}
+storeByte (IndirectAddrReg offset r) v = do
+    addr <- indirectAddr offset r
+    writeMemoryByte addr v
+storeByte (Immediate _) _ = error "impossible to store into immediate destination"
+storeByte arg _ = error $ "can not store byte: " <> show arg
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch =
@@ -344,20 +399,34 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
     instructionStep = do
         (_pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         case instruction of
-            Move{mode, src, dst} -> cmd1 mode src dst id
-            MoveA{mode, src, dst} -> cmd1 mode src dst id
-            Not{mode, dst} -> cmd1 mode dst dst complement
-            And{mode, src, dst} -> cmd2 mode src dst (.&.)
-            Or{mode, src, dst} -> cmd2 mode src dst (.|.)
-            Xor{mode, src, dst} -> cmd2 mode src dst xor
-            Add{mode, src, dst} -> cmd2Ext mode src dst addExt
-            Sub{mode, src, dst} -> cmd2Ext mode src dst subExt
-            Mul{mode, src, dst} -> cmd2Ext mode src dst mulExt
-            Div{mode, src, dst} -> cmd2 mode src dst div
-            Asl{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftL d (fromEnum s))
-            Asr{mode, src, dst} -> cmd2 mode src dst (\d s -> shiftR d (fromEnum s))
-            Lsl{mode, src, dst} -> cmd2 mode src dst lShiftL
-            Lsr{mode, src, dst} -> cmd2 mode src dst lShiftR
+            Move{mode = Long, src, dst} -> wordCmd1 src dst id
+            Move{mode = Byte, src, dst} -> byteCmd1 src dst id
+            MoveA{mode = Long, src, dst} -> wordCmd1 src dst id
+            MoveA{mode = Byte} -> error "not implemented"
+            Not{mode = Long, dst} -> wordCmd1 dst dst complement
+            Not{mode = Byte, dst} -> byteCmd1 dst dst complement
+            And{mode = Long, src, dst} -> wordCmd2 src dst (.&.)
+            And{mode = Byte, src, dst} -> byteCmd2 src dst (.&.)
+            Or{mode = Long, src, dst} -> wordCmd2 src dst (.|.)
+            Or{mode = Byte, src, dst} -> byteCmd2 src dst (.|.)
+            Xor{mode = Long, src, dst} -> wordCmd2 src dst xor
+            Xor{mode = Byte, src, dst} -> byteCmd2 src dst xor
+            Add{mode = Long, src, dst} -> wordCmd2Ext src dst addExt
+            Add{mode = Byte, src, dst} -> byteCmd2Ext src dst addExt
+            Sub{mode = Long, src, dst} -> wordCmd2Ext src dst subExt
+            Sub{mode = Byte, src, dst} -> byteCmd2Ext src dst subExt
+            Mul{mode = Long, src, dst} -> wordCmd2Ext src dst mulExt
+            Mul{mode = Byte, src, dst} -> byteCmd2Ext src dst mulExt
+            Div{mode = Long, src, dst} -> wordCmd2 src dst div
+            Div{mode = Byte, src, dst} -> byteCmd2 src dst div
+            Asl{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftL d (fromEnum s))
+            Asl{mode = Byte, src, dst} -> byteCmd2 src dst (\d s -> shiftL d (fromEnum s))
+            Asr{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftR d (fromEnum s))
+            Asr{mode = Byte, src, dst} -> byteCmd2 src dst (\d s -> shiftR d (fromEnum s))
+            Lsl{mode = Long, src, dst} -> wordCmd2 src dst lShiftL
+            Lsl{mode = Byte, src, dst} -> byteCmd2 src dst lShiftL
+            Lsr{mode = Long, src, dst} -> wordCmd2 src dst lShiftR
+            Lsr{mode = Byte, src, dst} -> byteCmd2 src dst lShiftR
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
@@ -375,22 +444,42 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         where
             branch addr True = setPc $ fromEnum addr
             branch _addr False = nextPc
-            cmd1 mode src dst f = do
-                a <- fetch mode src
-                let result = f a
-                store mode dst result
+            wordCmd1 src dst f = do
+                a <- fetchWord src
+                storeWord dst $ f a
                 nextPc
-            cmd2 mode src dst f = do
-                a <- fetch mode dst
-                b <- fetch mode src
-                let result = f a b
-                store mode dst result
+            wordCmd2 src dst f = do
+                a <- fetchWord dst
+                b <- fetchWord src
+                storeWord dst $ f a b
                 nextPc
-            cmd2Ext mode src dst f = do
-                a <- fetch mode dst
-                b <- fetch mode src
+            wordCmd2Ext src dst f = do
+                a <- fetchWord dst
+                b <- fetchWord src
                 let Ext{value, carry, overflow} = f a b
-                store mode dst value
+                storeWord dst value
+                modify $ \st ->
+                    st
+                        { nFlag = value < 0
+                        , zFlag = value == 0
+                        , vFlag = overflow
+                        , cFlag = carry
+                        }
+                nextPc
+            byteCmd1 src dst f = do
+                a <- fetchByte src
+                storeByte dst $ f a
+                nextPc
+            byteCmd2 src dst f = do
+                a <- fetchByte dst
+                b <- fetchByte src
+                storeByte dst $ f a b
+                nextPc
+            byteCmd2Ext src dst f = do
+                a <- fetchByte dst
+                b <- fetchByte src
+                let Ext{value, carry, overflow} = f a b
+                storeByte dst value
                 modify $ \st ->
                     st
                         { nFlag = value < 0

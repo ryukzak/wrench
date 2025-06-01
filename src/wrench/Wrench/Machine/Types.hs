@@ -59,6 +59,11 @@ class (Bits (Unsign w), Bounded (Unsign w), Integral (Unsign w), Show (Unsign w)
     fromSign :: w -> Unsign w
     toSign :: Unsign w -> w
 
+instance FromSign Int8 where
+    type Unsign Int8 = Word8
+    fromSign = fromIntegral
+    toSign = fromIntegral
+
 instance FromSign Int32 where
     type Unsign Int32 = Word32
     fromSign = fromIntegral
@@ -84,6 +89,12 @@ instance WordParts Int32 where
             .|. fromIntegral byte3
     wordCombine _ = error "not applicable"
 
+    byteToWord = fromIntegral
+
+instance WordParts Int8 where
+    wordSplit b = [fromInteger $ toInteger b]
+    wordCombine [b] = fromInteger $ toInteger b
+    wordCombine _ = error "not applicable"
     byteToWord = fromIntegral
 
 signBitAnd :: (MachineWord w) => w -> w -> w
