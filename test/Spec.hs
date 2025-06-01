@@ -160,6 +160,7 @@ tests =
             , testGroup
                 "Simulator"
                 [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"
+                , goldenSimulate M68k "test/golden/m68k/hello-byte.s" "test/golden/m68k/hello.yaml"
                 ]
             , testGroup
                 "Generated tests"
