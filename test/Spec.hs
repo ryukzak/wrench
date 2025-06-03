@@ -14,6 +14,7 @@ import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
 import Wrench.Isa.M68k (M68kState)
 import Wrench.Isa.M68k qualified as M68k
+import Wrench.Isa.M68k.Test qualified
 import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
@@ -157,6 +158,7 @@ tests =
                 , goldenTranslate M68k "test/golden/m68k/logical_not.s"
                 , goldenTranslate M68k "test/golden/m68k/shift_commands.s"
                 ]
+            , Wrench.Isa.M68k.Test.tests
             , testGroup
                 "Simulator"
                 [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"

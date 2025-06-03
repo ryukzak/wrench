@@ -308,6 +308,7 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Wrench.Isa.M68k.Test
       Wrench.Isa.RiscIv.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
