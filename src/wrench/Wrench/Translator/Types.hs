@@ -96,6 +96,11 @@ data Ref w
     = Ref (w -> w) String
     | ValueR (w -> w) w
 
+instance (Eq w) => Eq (Ref w) where
+    (Ref _ l) == (Ref _ l') = l == l'
+    (ValueR _ x) == (ValueR _ x') = x == x'
+    _ == _ = False
+
 instance (Show w) => Show (Ref w) where
     show (Ref _ l) = l
     show (ValueR f x) = show $ f x

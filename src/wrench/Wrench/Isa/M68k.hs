@@ -6,7 +6,13 @@
 
 module Wrench.Isa.M68k (
     Isa (..),
+    Argument (..),
+    Mode (..),
     M68kState,
+    MachineState (..),
+    DataReg (..),
+    dataRegisters,
+    AddrReg (..),
 ) where
 
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
@@ -36,8 +42,11 @@ byteMode = void (string ".b") >> return Byte
 data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Generic, Hashable, Read, Show)
 
+dataRegisters :: [DataReg]
+dataRegisters = [D0, D1, D2, D3, D4, D5, D6, D7]
+
 instance (Default w) => Default (HashMap DataReg w) where
-    def = fromList $ map (,def) [D0, D1, D2, D3, D4, D5, D6, D7]
+    def = fromList $ map (,def) dataRegisters
 
 data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
     deriving (Eq, Generic, Hashable, Read, Show)
@@ -45,21 +54,19 @@ data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
 instance (Default w) => Default (HashMap AddrReg w) where
     def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
 
+-- | Note that for (A0)+ and −(A0), the actual increment or decrement value is dependent on the operand size: a byte access adjusts the address register by 1, a word by 2, and a long by 4.
 data Argument w l
     = DirectDataReg DataReg
     | DirectAddrReg AddrReg
-    | IndirectAddrReg Int AddrReg
-    | -- | IndirectAddrRegPostIncrement AddrReg
-      -- | IndirectAddrRegPreDecrement AddrReg
-      -- | IndirectWithIndexRegister Int AddrReg DataReg
-      Immediate l
-    deriving (Show)
-
--- Address with post-increment, e.g. (A0)+
--- Address with pre-decrement, e.g. −(A0)
--- Address with a 16-bit signed offset, e.g. 16(A0)
--- Register indirect with index register & 8-bit signed offset e.g. 8(A0,D0) or 8(A0,A1)
--- Note that for (A0)+ and −(A0), the actual increment or decrement value is dependent on the operand size: a byte access adjusts the address register by 1, a word by 2, and a long by 4.
+    | -- | Address with a 16-bit signed offset, e.g. 16(A0)
+      -- TODO: Register indirect with index register & 8-bit signed offset e.g. 8(A0,D0) or 8(A0,A1)
+      IndirectAddrReg Int AddrReg -- (Maybe DataReg)
+    | -- | Address with pre-decrement, e.g. −(A0)
+      IndirectAddrRegPreDecrement AddrReg
+    | -- | Address with post-increment, e.g. (A0)+
+      IndirectAddrRegPostIncrement AddrReg
+    | Immediate l
+    deriving (Eq, Show)
 
 -- | The 'Isa' type represents the instruction set architecture for the M68k machine.
 -- Each constructor corresponds to a specific instruction.
@@ -92,7 +99,7 @@ data Isa w l
     | Bvc {ref :: l}
     | Bvs {ref :: l}
     | Halt
-    deriving (Show)
+    deriving (Eq, Show)
 
 instance CommentStart (Isa w l) where
     commentStart = ";"
@@ -130,8 +137,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd0args "halt" Halt
             ]
         where
-            src = dataRegister <|> indirectAddrRegister <|> immidiate
-            dst = dataRegister <|> indirectAddrRegister
+            src = dataRegister <|> allIndirectAddr <|> immidiate
+            dst = dataRegister <|> allIndirectAddr
 
 cmd0args :: String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
 cmd0args mnemonic constructor = try $ do
@@ -204,6 +211,26 @@ indirectAddrRegister = try $ do
     void (string ")")
     return $ IndirectAddrReg 0 $ Unsafe.read ['A', n]
 
+indirectAddrRegPreDecrement = try $ do
+    void (string "-(")
+    hspace
+    void (string "A")
+    n <- oneOf ['0' .. '7']
+    hspace
+    void (string ")")
+    return $ IndirectAddrRegPreDecrement $ Unsafe.read ['A', n]
+
+indirectAddrRegPostIncrement = try $ do
+    void (string "(")
+    hspace
+    void (string "A")
+    n <- oneOf ['0' .. '7']
+    hspace
+    void (string ")+")
+    return $ IndirectAddrRegPostIncrement $ Unsafe.read ['A', n]
+
+allIndirectAddr = indirectAddrRegPreDecrement <|> indirectAddrRegPostIncrement <|> indirectAddrRegister
+
 immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
 immidiate = Immediate <$> reference
 
@@ -212,7 +239,8 @@ instance DerefMnemonic (Isa w) w where
         let derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
             derefArg (IndirectAddrReg offset r) = IndirectAddrReg offset r
-            -- derefArg (IndirectWithIndexRegister offset r d) = IndirectWithIndexRegister offset r d
+            derefArg (IndirectAddrRegPreDecrement r) = IndirectAddrRegPreDecrement r
+            derefArg (IndirectAddrRegPostIncrement r) = IndirectAddrRegPostIncrement r
             derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
@@ -305,10 +333,10 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-indirectAddr offset r = do
+indirectAddr f r = do
     State{ar} <- get
     case ar !? r of
-        Just addr -> return $ offset + fromEnum addr
+        Just addr -> return $ f $ fromEnum addr
         Nothing -> error $ "Invalid register: " <> show r
 
 readMemoryWord addr = do
@@ -333,8 +361,17 @@ fetchWord (DirectDataReg r) = do
     State{dr} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
 fetchWord (IndirectAddrReg offset r) = do
-    addr <- indirectAddr offset r
+    addr <- indirectAddr (+ offset) r
     readMemoryWord addr
+fetchWord (IndirectAddrRegPreDecrement r) = do
+    addr <- indirectAddr (\a -> a - 4) r
+    storeWord (DirectAddrReg r) $ toEnum addr
+    readMemoryWord addr
+fetchWord (IndirectAddrRegPostIncrement r) = do
+    addr <- indirectAddr id r
+    w <- readMemoryWord addr
+    storeWord (DirectAddrReg r) $ toEnum (addr + 4)
+    return w
 fetchWord (Immediate v) = return v
 fetchWord arg = error $ "can not fetch word: " <> show arg
 
@@ -342,7 +379,15 @@ storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem 
 storeWord (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
 storeWord (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
 storeWord (IndirectAddrReg offset r) v = do
-    addr <- indirectAddr offset r
+    addr <- indirectAddr (+ offset) r
+    writeMemoryWord addr v
+storeWord (IndirectAddrRegPreDecrement r) v = do
+    addr <- indirectAddr (\a -> a - 4) r
+    storeWord (DirectAddrReg r) $ toEnum addr
+    writeMemoryWord addr v
+storeWord (IndirectAddrRegPostIncrement r) v = do
+    addr <- indirectAddr id r
+    storeWord (DirectAddrReg r) $ toEnum (addr + 4)
     writeMemoryWord addr v
 storeWord arg _ = error $ "can not store word: " <> show arg
 
@@ -368,8 +413,17 @@ fetchByte (DirectDataReg r) = do
     State{dr} <- get
     return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dr !? r)
 fetchByte (IndirectAddrReg offset r) = do
-    addr <- indirectAddr offset r
+    addr <- indirectAddr (+ offset) r
     readMemoryByte addr
+fetchByte (IndirectAddrRegPreDecrement r) = do
+    addr <- indirectAddr (subtract 1) r
+    storeWord (DirectAddrReg r) $ toEnum addr
+    readMemoryByte addr
+fetchByte (IndirectAddrRegPostIncrement r) = do
+    addr <- indirectAddr id r
+    b <- readMemoryByte addr
+    storeWord (DirectAddrReg r) $ toEnum (addr + 1)
+    return b
 fetchByte (Immediate v) = return $ fromInteger $ toInteger v
 fetchByte arg = error $ "can not fetch byte: " <> show arg
 
@@ -380,7 +434,15 @@ storeByte (DirectDataReg r) v = do
         w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
     put st{dr = insert r w' dr, zFlag = v == 0, nFlag = v < 0}
 storeByte (IndirectAddrReg offset r) v = do
-    addr <- indirectAddr offset r
+    addr <- indirectAddr (+ offset) r
+    writeMemoryByte addr v
+storeByte (IndirectAddrRegPreDecrement r) v = do
+    addr <- indirectAddr (subtract 1) r
+    storeWord (DirectAddrReg r) $ toEnum addr
+    writeMemoryByte addr v
+storeByte (IndirectAddrRegPostIncrement r) v = do
+    addr <- indirectAddr id r
+    storeWord (DirectAddrReg r) $ toEnum (addr + 1)
     writeMemoryByte addr v
 storeByte (Immediate _) _ = error "impossible to store into immediate destination"
 storeByte arg _ = error $ "can not store byte: " <> show arg
