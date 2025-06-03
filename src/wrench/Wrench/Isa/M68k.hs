@@ -396,8 +396,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         return (pc, instruction)
                 )
 
-    instructionStep = do
-        (_pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
+    instructionExecute _pc instruction = do
         case instruction of
             Move{mode = Long, src, dst} -> wordCmd1 src dst id
             Move{mode = Byte, src, dst} -> byteCmd1 src dst id

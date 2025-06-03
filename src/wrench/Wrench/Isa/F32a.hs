@@ -352,8 +352,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         instruction <- readInstruction ram p
                         return (p, instruction)
                 )
-    instructionStep = do
-        (_pc, instruction) :: (Int, Isa w w) <- either (error . ("Can't fetch instruction." <>)) id <$> instructionFetch
+    instructionExecute _pc instruction =
         case instruction of
             Lit l -> do
                 dataPush l
