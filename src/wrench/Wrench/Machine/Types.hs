@@ -163,6 +163,10 @@ class StateInterspector st m isa w | st -> m isa w where
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
+    instructionStep = do
+        (pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
+        instructionExecute pc instruction
+    instructionExecute :: Int -> isa -> State st ()
 
 halted :: Text
 halted = "halted"

@@ -419,8 +419,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         return (pc, instruction)
                 )
 
-    instructionStep = do
-        ((_pc, instruction) :: (Int, Isa w w)) <- either (error . ("internal error: " <>)) id <$> instructionFetch
+    instructionExecute _pc instruction =
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1

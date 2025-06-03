@@ -286,9 +286,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         instruction <- readInstruction ram pc
                         Right (pc, instruction)
                 )
-    instructionStep = do
-        (tmp :: Either Text (Int, Isa w w)) <- instructionFetch
-        let (pc, instruction) = either (error . ("can't fetch instruction: " <>)) id tmp
+    instructionExecute pc instruction =
         case instruction of
             LoadImm a -> setAcc a >> nextPc
             LoadAddr a -> do
