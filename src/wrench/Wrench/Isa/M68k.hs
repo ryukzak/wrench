@@ -272,8 +272,43 @@ instance DerefMnemonic (Isa w) w where
                 Bvs{ref} -> Bvs (deref' f ref)
                 Halt -> Halt
 
-instance ByteSize (Isa w l) where
-    byteSize _ = 4 -- Simplified assumption: all instructions are 2 bytes.
+instance (ByteSizeT w) => ByteSize (Argument w l) where
+    byteSize (DirectDataReg _) = 0
+    byteSize (DirectAddrReg _) = 0
+    byteSize (IndirectAddrReg _ _) = 2
+    byteSize (IndirectAddrRegPreDecrement _) = 0
+    byteSize (IndirectAddrRegPostIncrement _) = 0
+    byteSize (Immediate _) = byteSizeT @w
+
+instance (ByteSizeT w) => ByteSize (Isa w l) where
+    byteSize (Move _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (MoveA _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Not _ dst) = 2 + byteSize dst
+    byteSize (And _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Or _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Xor _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Add _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Sub _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Mul _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Div _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Asl _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Asr _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Lsl _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Lsr _ src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Jmp _) = 6
+    byteSize (Bcc _) = 6
+    byteSize (Bcs _) = 6
+    byteSize (Beq _) = 6
+    byteSize (Bne _) = 6
+    byteSize (Blt _) = 6
+    byteSize (Bgt _) = 6
+    byteSize (Ble _) = 6
+    byteSize (Bge _) = 6
+    byteSize (Bmi _) = 6
+    byteSize (Bpl _) = 6
+    byteSize (Bvc _) = 6
+    byteSize (Bvs _) = 6
+    byteSize Halt = 2
 
 type M68kState w = MachineState (IoMem (Isa w w) w) w
 

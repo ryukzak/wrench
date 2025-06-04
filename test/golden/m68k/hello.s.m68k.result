@@ -1,21 +1,21 @@
 0:	hello
 17:	output_addr
 256:	_start
-272:	loop
+278:	loop
 ---
 mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"hello"
 mem[17..255]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
-mem[256..259]: 	MoveA {mode = Long, src = Immediate 17, dst = DirectAddrReg A1} 	@_start
-mem[260..263]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A1, dst = DirectAddrReg A1}
-mem[264..267]: 	Move {mode = Long, src = Immediate 0, dst = DirectDataReg D0}
-mem[268..271]: 	Move {mode = Long, src = Immediate 14, dst = DirectDataReg D1}
-mem[272..275]: 	MoveA {mode = Long, src = DirectDataReg D0, dst = DirectAddrReg A0} 	@loop
-mem[276..279]: 	Move {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectDataReg D2}
-mem[280..283]: 	And {mode = Long, src = Immediate 255, dst = DirectDataReg D2}
-mem[284..287]: 	Move {mode = Long, src = DirectDataReg D2, dst = IndirectAddrReg 0 A1}
-mem[288..291]: 	Add {mode = Long, src = Immediate 1, dst = DirectDataReg D0}
-mem[292..295]: 	Add {mode = Long, src = Immediate (-1), dst = DirectDataReg D1}
-mem[296..299]: 	Bne {ref = 272}
-mem[300..303]: 	Halt
-mem[304..999]: 	( 00 )
+mem[256..261]: 	MoveA {mode = Long, src = Immediate 17, dst = DirectAddrReg A1} 	@_start
+mem[262..265]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A1, dst = DirectAddrReg A1}
+mem[266..271]: 	Move {mode = Long, src = Immediate 0, dst = DirectDataReg D0}
+mem[272..277]: 	Move {mode = Long, src = Immediate 14, dst = DirectDataReg D1}
+mem[278..279]: 	MoveA {mode = Long, src = DirectDataReg D0, dst = DirectAddrReg A0} 	@loop
+mem[280..283]: 	Move {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectDataReg D2}
+mem[284..289]: 	And {mode = Long, src = Immediate 255, dst = DirectDataReg D2}
+mem[290..293]: 	Move {mode = Long, src = DirectDataReg D2, dst = IndirectAddrReg 0 A1}
+mem[294..299]: 	Add {mode = Long, src = Immediate 1, dst = DirectDataReg D0}
+mem[300..305]: 	Add {mode = Long, src = Immediate (-1), dst = DirectDataReg D1}
+mem[306..311]: 	Bne {ref = 278}
+mem[312..313]: 	Halt
+mem[314..999]: 	( 00 )
 ---
