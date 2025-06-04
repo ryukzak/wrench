@@ -279,8 +279,8 @@ type M68kState w = MachineState (IoMem (Isa w w) w) w
 
 data MachineState mem w = State
     { pc :: Int
-    , dr :: HashMap DataReg w
-    , ar :: HashMap AddrReg w
+    , dataRegs :: HashMap DataReg w
+    , addrRegs :: HashMap AddrReg w
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -304,8 +304,8 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
     initState pc dump =
         State
             { pc
-            , dr = def
-            , ar = def
+            , dataRegs = def
+            , addrRegs = def
             , mem = dump
             , stopped = False
             , internalError = Nothing
@@ -321,21 +321,21 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{ar, dr} v =
+    reprState labels st@State{addrRegs, dataRegs} v =
         case T.splitOn ":" v of
             [r] -> reprState labels st (r <> ":dec")
             [r, f]
                 | Just r' <- readMaybe (toString r)
-                , Just r'' <- dr !? r' ->
+                , Just r'' <- dataRegs !? r' ->
                     viewRegister f r''
                 | Just r' <- readMaybe (toString r)
-                , Just r'' <- ar !? r' ->
+                , Just r'' <- addrRegs !? r' ->
                     viewRegister f r''
             _ -> errorView v
 
 indirectAddr f r = do
-    State{ar} <- get
-    case ar !? r of
+    State{addrRegs} <- get
+    case addrRegs !? r of
         Just addr -> return $ f $ fromEnum addr
         Nothing -> error $ "Invalid register: " <> show r
 
@@ -358,8 +358,8 @@ writeMemoryWord addr w = do
 
 fetchWord :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
 fetchWord (DirectDataReg r) = do
-    State{dr} <- get
-    return $ fromMaybe (error $ "invalid register: " <> show r) (dr !? r)
+    State{dataRegs} <- get
+    return $ fromMaybe (error $ "invalid register: " <> show r) (dataRegs !? r)
 fetchWord (IndirectAddrReg offset r) = do
     addr <- indirectAddr (+ offset) r
     readMemoryWord addr
@@ -376,8 +376,8 @@ fetchWord (Immediate v) = return v
 fetchWord arg = error $ "can not fetch word: " <> show arg
 
 storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
-storeWord (DirectDataReg r) v = modify $ \st@State{dr} -> st{dr = insert r v dr, zFlag = v == 0, nFlag = v < 0}
-storeWord (DirectAddrReg r) v = modify $ \st@State{ar} -> st{ar = insert r v ar}
+storeWord (DirectDataReg r) v = modify $ \st@State{dataRegs} -> st{dataRegs = insert r v dataRegs, zFlag = v == 0, nFlag = v < 0}
+storeWord (DirectAddrReg r) v = modify $ \st@State{addrRegs} -> st{addrRegs = insert r v addrRegs}
 storeWord (IndirectAddrReg offset r) v = do
     addr <- indirectAddr (+ offset) r
     writeMemoryWord addr v
@@ -410,8 +410,8 @@ writeMemoryByte addr b = do
 
 fetchByte :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) Int8
 fetchByte (DirectDataReg r) = do
-    State{dr} <- get
-    return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dr !? r)
+    State{dataRegs} <- get
+    return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dataRegs !? r)
 fetchByte (IndirectAddrReg offset r) = do
     addr <- indirectAddr (+ offset) r
     readMemoryByte addr
@@ -429,10 +429,10 @@ fetchByte arg = error $ "can not fetch byte: " <> show arg
 
 storeByte :: forall w. (MachineWord w) => Argument w w -> Int8 -> State (MachineState (IoMem (Isa w w) w) w) ()
 storeByte (DirectDataReg r) v = do
-    st@State{dr} <- get
-    let w = fromMaybe (error $ "invalid register: " <> show r) $ dr !? r
+    st@State{dataRegs} <- get
+    let w = fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
         w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
-    put st{dr = insert r w' dr, zFlag = v == 0, nFlag = v < 0}
+    put st{dataRegs = insert r w' dataRegs, zFlag = v == 0, nFlag = v < 0}
 storeByte (IndirectAddrReg offset r) v = do
     addr <- indirectAddr (+ offset) r
     writeMemoryByte addr v
