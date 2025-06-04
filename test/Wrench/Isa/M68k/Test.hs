@@ -20,8 +20,8 @@ tests =
         [ testCase "movea.l D0, A0" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
             translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
-            let res = simulate "move.l 12, D0" st0
-             in (dataRegs res !? D0) @?= Just 12
+            translate "move.l 8(A2), D0" @?= Right (Move Long (IndirectAddrReg 8 A2) (DirectDataReg D0))
+            translate "move.l -8(A2), D0" @?= Right (Move Long (IndirectAddrReg (-8) A2) (DirectDataReg D0))
         , testCase "Read byte from memory by address register" $ do
             let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -42,6 +42,16 @@ tests =
              in do
                     (dataRegs !? D0) @?= Just 6
                     (addrRegs !? A2) @?= Just 7
+            let State{dataRegs, addrRegs, mem} = simulate "move.b 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 8
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [6, 7, 8, 9] @?= [6, 7, 8, 9]
+            let State{dataRegs, addrRegs, mem} = simulate "move.b -2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 4
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [3, 4, 5, 6] @?= [3, 4, 5, 6]
         , testCase "Write byte from memory by address register" $ do
             let State{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -65,6 +75,16 @@ tests =
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 7
                     readMemBytes mem [5, 6, 7] @?= [5, 2, 7]
+            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D2) @?= Just 2
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [6, 7, 8, 9] @?= [6, 7, 2, 9]
+            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D2) @?= Just 2
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [2, 3, 4, 5, 6] @?= [2, 3, 2, 5, 6]
         , testCase "Read word from memory by address register" $ do
             let State{dataRegs, addrRegs, mem} = simulate "move.l (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -81,6 +101,16 @@ tests =
                     (dataRegs !? D0) @?= Just 0x09080706
                     (addrRegs !? A2) @?= Just 10
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 6, 7, 8, 9, 10]
+            let State{dataRegs, addrRegs, mem} = simulate "move.l 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0x0B0A0908
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [10, 11, 12, 13, 14, 15] @?= [0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
+            let State{dataRegs, addrRegs, mem} = simulate "move.l -4(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0x05040302
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [1, 2, 3, 4, 5, 6] @?= [1, 2, 3, 4, 5, 6]
         , testCase "Write word to memory by address register" $ do
             let State{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -102,6 +132,16 @@ tests =
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 10
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 0x02, 0x00, 0x00, 0x00, 10]
+            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D2) @?= Just 2
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [7, 8, 9, 10, 11, 12] @?= [7, 0x02, 0x00, 0x00, 0x00, 12]
+            let State{dataRegs, addrRegs, mem} = simulate "move.l D3, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+             in do
+                    (dataRegs !? D3) @?= Just 3
+                    (addrRegs !? A2) @?= Just 6
+                    readMemBytes mem [3, 4, 5, 6, 7, 8] @?= [3, 0x03, 0x00, 0x00, 0x00, 8]
         ]
     where
         mem0 = Mem 32 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 31]

@@ -203,13 +203,14 @@ addrRegister = try $ do
     return $ DirectAddrReg $ Unsafe.read ['A', n]
 
 indirectAddrRegister = try $ do
+    offset <- readMaybe <$> choice [hexNum, num]
     void (string "(")
     hspace
     void (string "A")
     n <- oneOf ['0' .. '7']
     hspace
     void (string ")")
-    return $ IndirectAddrReg 0 $ Unsafe.read ['A', n]
+    return $ IndirectAddrReg (fromMaybe 0 offset) $ Unsafe.read ['A', n]
 
 indirectAddrRegPreDecrement = try $ do
     void (string "-(")
