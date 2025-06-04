@@ -6,21 +6,21 @@
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..13]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A6} 	@_start
-mem[14..17]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectAddrReg A6}
+mem[14..17]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectAddrReg A6}
 mem[18..23]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A7}
-mem[24..27]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7, dst = DirectAddrReg A7}
-mem[28..31]: 	Move {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectDataReg D5}
+mem[24..27]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
+mem[28..31]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D5}
 mem[32..37]: 	Lsl {mode = Long, src = Immediate 1, dst = DirectDataReg D5}
-mem[38..41]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7}
-mem[42..45]: 	Move {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectDataReg D5}
+mem[38..41]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7 Nothing}
+mem[42..45]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D5}
 mem[46..51]: 	Lsr {mode = Long, src = Immediate 1, dst = DirectDataReg D5}
-mem[52..55]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7}
-mem[56..59]: 	Move {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectDataReg D5}
+mem[52..55]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7 Nothing}
+mem[56..59]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D5}
 mem[60..65]: 	Asl {mode = Long, src = Immediate 1, dst = DirectDataReg D5}
-mem[66..69]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7}
-mem[70..73]: 	Move {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectDataReg D5}
+mem[66..69]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7 Nothing}
+mem[70..73]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D5}
 mem[74..79]: 	Asr {mode = Long, src = Immediate 1, dst = DirectDataReg D5}
-mem[80..83]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7}
+mem[80..83]: 	Move {mode = Long, src = DirectDataReg D5, dst = IndirectAddrReg 0 A7 Nothing}
 mem[84..85]: 	Halt 	@end
 mem[86..999]: 	( 00 )
 ---

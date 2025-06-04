@@ -11,23 +11,23 @@ mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	cc cc cc cc	@"cccccccc"
 mem[12..15]: 	ff ff ff ff	@"ffffffff"
 mem[16..21]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0} 	@_start
-mem[22..25]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectAddrReg A0}
+mem[22..25]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectAddrReg A0}
 mem[26..31]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A7}
-mem[32..35]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7, dst = DirectAddrReg A7}
-mem[36..39]: 	Move {mode = Long, src = IndirectAddrReg 0 A0, dst = DirectDataReg D0}
+mem[32..35]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
+mem[36..39]: 	Move {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectDataReg D0}
 mem[40..41]: 	Move {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 mem[42..47]: 	Sub {mode = Long, src = Immediate 88, dst = DirectDataReg D1}
 mem[48..53]: 	Beq {ref = 74}
 mem[54..55]: 	Move {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 mem[56..61]: 	Sub {mode = Long, src = Immediate 89, dst = DirectDataReg D1}
 mem[62..67]: 	Beq {ref = 86}
-mem[68..71]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7}
+mem[68..71]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing}
 mem[72..73]: 	Halt
 mem[74..79]: 	Move {mode = Long, src = Immediate (-1), dst = DirectDataReg D0} 	@x_case
-mem[80..83]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7}
+mem[80..83]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing}
 mem[84..85]: 	Halt
 mem[86..91]: 	Move {mode = Long, src = Immediate (-858993460), dst = DirectDataReg D0} 	@y_case
-mem[92..95]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7}
+mem[92..95]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing}
 mem[96..97]: 	Halt
 mem[98..999]: 	( 00 )
 ---

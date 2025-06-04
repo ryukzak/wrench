@@ -10,6 +10,7 @@ module Wrench.Isa.M68k (
     Mode (..),
     M68kState,
     MachineState (..),
+    IndexRegister (..),
     DataReg (..),
     dataRegisters,
     AddrReg (..),
@@ -54,13 +55,16 @@ data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
 instance (Default w) => Default (HashMap AddrReg w) where
     def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
 
+data IndexRegister = AddrIndex AddrReg | DataIndex DataReg
+    deriving (Eq, Show)
+
 -- | Note that for (A0)+ and −(A0), the actual increment or decrement value is dependent on the operand size: a byte access adjusts the address register by 1, a word by 2, and a long by 4.
 data Argument w l
     = DirectDataReg DataReg
     | DirectAddrReg AddrReg
     | -- | Address with a 16-bit signed offset, e.g. 16(A0)
       -- TODO: Register indirect with index register & 8-bit signed offset e.g. 8(A0,D0) or 8(A0,A1)
-      IndirectAddrReg Int AddrReg -- (Maybe DataReg)
+      IndirectAddrReg Int AddrReg (Maybe IndexRegister)
     | -- | Address with pre-decrement, e.g. −(A0)
       IndirectAddrRegPreDecrement AddrReg
     | -- | Address with post-increment, e.g. (A0)+
@@ -192,15 +196,19 @@ branchCmd mnemonic constructor ref = do
 comma :: Parser ()
 comma = hspace >> void (string ",") >> hspace
 
-dataRegister = try $ do
+dataRegister' = try $ do
     void (string "D")
     n <- oneOf ['0' .. '7']
-    return $ DirectDataReg $ Unsafe.read ['D', n]
+    return $ Unsafe.read ['D', n]
 
-addrRegister = try $ do
+dataRegister = DirectDataReg <$> dataRegister'
+
+addrRegister' = try $ do
     void (string "A")
     n <- oneOf ['0' .. '7']
-    return $ DirectAddrReg $ Unsafe.read ['A', n]
+    return $ Unsafe.read ['A', n]
+
+addrRegister = DirectAddrReg <$> addrRegister'
 
 indirectAddrRegister = try $ do
     offset <- readMaybe <$> choice [hexNum, num]
@@ -209,8 +217,12 @@ indirectAddrRegister = try $ do
     void (string "A")
     n <- oneOf ['0' .. '7']
     hspace
+    index <- optional $ do
+        void (string ",")
+        hspace
+        choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
     void (string ")")
-    return $ IndirectAddrReg (fromMaybe 0 offset) $ Unsafe.read ['A', n]
+    return $ IndirectAddrReg (fromMaybe 0 offset) (Unsafe.read ['A', n]) index
 
 indirectAddrRegPreDecrement = try $ do
     void (string "-(")
@@ -239,7 +251,7 @@ instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i =
         let derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
-            derefArg (IndirectAddrReg offset r) = IndirectAddrReg offset r
+            derefArg (IndirectAddrReg offset r index) = IndirectAddrReg offset r index
             derefArg (IndirectAddrRegPreDecrement r) = IndirectAddrRegPreDecrement r
             derefArg (IndirectAddrRegPostIncrement r) = IndirectAddrRegPostIncrement r
             derefArg (Immediate l) = Immediate $ deref' f l
@@ -276,7 +288,7 @@ instance DerefMnemonic (Isa w) w where
 instance (ByteSizeT w) => ByteSize (Argument w l) where
     byteSize (DirectDataReg _) = 0
     byteSize (DirectAddrReg _) = 0
-    byteSize (IndirectAddrReg _ _) = 2
+    byteSize (IndirectAddrReg{}) = 2
     byteSize (IndirectAddrRegPreDecrement _) = 0
     byteSize (IndirectAddrRegPostIncrement _) = 0
     byteSize (Immediate _) = byteSizeT @w
@@ -369,10 +381,14 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-indirectAddr f r = do
-    State{addrRegs} <- get
+indirectAddr f r index = do
+    State{addrRegs, dataRegs} <- get
+    let offset = fromEnum $ case index of
+            Just (DataIndex r) -> fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
+            Just (AddrIndex r) -> fromMaybe (error $ "invalid register: " <> show r) $ addrRegs !? r
+            Nothing -> 0
     case addrRegs !? r of
-        Just addr -> return $ f $ fromEnum addr
+        Just addr -> return $ offset + f (fromEnum addr)
         Nothing -> error $ "Invalid register: " <> show r
 
 readMemoryWord addr = do
@@ -396,15 +412,15 @@ fetchWord :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa 
 fetchWord (DirectDataReg r) = do
     State{dataRegs} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (dataRegs !? r)
-fetchWord (IndirectAddrReg offset r) = do
-    addr <- indirectAddr (+ offset) r
+fetchWord (IndirectAddrReg offset r index) = do
+    addr <- indirectAddr (+ offset) r index
     readMemoryWord addr
 fetchWord (IndirectAddrRegPreDecrement r) = do
-    addr <- indirectAddr (\a -> a - 4) r
+    addr <- indirectAddr (\a -> a - 4) r Nothing
     storeWord (DirectAddrReg r) $ toEnum addr
     readMemoryWord addr
 fetchWord (IndirectAddrRegPostIncrement r) = do
-    addr <- indirectAddr id r
+    addr <- indirectAddr id r Nothing
     w <- readMemoryWord addr
     storeWord (DirectAddrReg r) $ toEnum (addr + 4)
     return w
@@ -414,15 +430,15 @@ fetchWord arg = error $ "can not fetch word: " <> show arg
 storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
 storeWord (DirectDataReg r) v = modify $ \st@State{dataRegs} -> st{dataRegs = insert r v dataRegs, zFlag = v == 0, nFlag = v < 0}
 storeWord (DirectAddrReg r) v = modify $ \st@State{addrRegs} -> st{addrRegs = insert r v addrRegs}
-storeWord (IndirectAddrReg offset r) v = do
-    addr <- indirectAddr (+ offset) r
+storeWord (IndirectAddrReg offset r index) v = do
+    addr <- indirectAddr (+ offset) r index
     writeMemoryWord addr v
 storeWord (IndirectAddrRegPreDecrement r) v = do
-    addr <- indirectAddr (\a -> a - 4) r
+    addr <- indirectAddr (\a -> a - 4) r Nothing
     storeWord (DirectAddrReg r) $ toEnum addr
     writeMemoryWord addr v
 storeWord (IndirectAddrRegPostIncrement r) v = do
-    addr <- indirectAddr id r
+    addr <- indirectAddr id r Nothing
     storeWord (DirectAddrReg r) $ toEnum (addr + 4)
     writeMemoryWord addr v
 storeWord arg _ = error $ "can not store word: " <> show arg
@@ -448,15 +464,15 @@ fetchByte :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa 
 fetchByte (DirectDataReg r) = do
     State{dataRegs} <- get
     return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dataRegs !? r)
-fetchByte (IndirectAddrReg offset r) = do
-    addr <- indirectAddr (+ offset) r
+fetchByte (IndirectAddrReg offset r index) = do
+    addr <- indirectAddr (+ offset) r index
     readMemoryByte addr
 fetchByte (IndirectAddrRegPreDecrement r) = do
-    addr <- indirectAddr (subtract 1) r
+    addr <- indirectAddr (subtract 1) r Nothing
     storeWord (DirectAddrReg r) $ toEnum addr
     readMemoryByte addr
 fetchByte (IndirectAddrRegPostIncrement r) = do
-    addr <- indirectAddr id r
+    addr <- indirectAddr id r Nothing
     b <- readMemoryByte addr
     storeWord (DirectAddrReg r) $ toEnum (addr + 1)
     return b
@@ -469,15 +485,15 @@ storeByte (DirectDataReg r) v = do
     let w = fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
         w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
     put st{dataRegs = insert r w' dataRegs, zFlag = v == 0, nFlag = v < 0}
-storeByte (IndirectAddrReg offset r) v = do
-    addr <- indirectAddr (+ offset) r
+storeByte (IndirectAddrReg offset r index) v = do
+    addr <- indirectAddr (+ offset) r index
     writeMemoryByte addr v
 storeByte (IndirectAddrRegPreDecrement r) v = do
-    addr <- indirectAddr (subtract 1) r
+    addr <- indirectAddr (subtract 1) r Nothing
     storeWord (DirectAddrReg r) $ toEnum addr
     writeMemoryByte addr v
 storeByte (IndirectAddrRegPostIncrement r) v = do
-    addr <- indirectAddr id r
+    addr <- indirectAddr id r Nothing
     storeWord (DirectAddrReg r) $ toEnum (addr + 1)
     writeMemoryByte addr v
 storeByte (Immediate _) _ = error "impossible to store into immediate destination"

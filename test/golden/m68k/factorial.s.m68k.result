@@ -10,10 +10,10 @@
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..13]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A6} 	@_start
-mem[14..17]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectAddrReg A6}
+mem[14..17]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectAddrReg A6}
 mem[18..23]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A7}
-mem[24..27]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7, dst = DirectAddrReg A7}
-mem[28..31]: 	Move {mode = Long, src = IndirectAddrReg 0 A6, dst = DirectDataReg D0}
+mem[24..27]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
+mem[28..31]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D0}
 mem[32..37]: 	Beq {ref = 72}
 mem[38..43]: 	Ble {ref = 84}
 mem[44..45]: 	Move {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
@@ -28,7 +28,7 @@ mem[84..89]: 	Move {mode = Long, src = Immediate (-1), dst = DirectDataReg D0} 	
 mem[90..95]: 	Jmp {ref = 108}
 mem[96..101]: 	Move {mode = Long, src = Immediate (-858993460), dst = DirectDataReg D0} 	@factorial_overflow
 mem[102..107]: 	Jmp {ref = 108}
-mem[108..111]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7} 	@factorial_end
+mem[108..111]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing} 	@factorial_end
 mem[112..113]: 	Halt
 mem[114..999]: 	( 00 )
 ---

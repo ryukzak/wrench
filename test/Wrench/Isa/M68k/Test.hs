@@ -17,11 +17,15 @@ tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "movea.l D0, A0" $ do
+        [ testCase "Translator" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
             translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
-            translate "move.l 8(A2), D0" @?= Right (Move Long (IndirectAddrReg 8 A2) (DirectDataReg D0))
-            translate "move.l -8(A2), D0" @?= Right (Move Long (IndirectAddrReg (-8) A2) (DirectDataReg D0))
+            translate "move.l 8(A2), D0" @?= Right (Move Long (IndirectAddrReg 8 A2 Nothing) (DirectDataReg D0))
+            translate "move.l -8(A2), D0" @?= Right (Move Long (IndirectAddrReg (-8) A2 Nothing) (DirectDataReg D0))
+            translate "move.l -8(A2,D1), D0"
+                @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ DataIndex D1)) (DirectDataReg D0))
+            translate "move.l -8(A2,A1), D0"
+                @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ AddrIndex A1)) (DirectDataReg D0))
         , testCase "Read byte from memory by address register" $ do
             let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -142,6 +146,65 @@ tests =
                     (dataRegs !? D3) @?= Just 3
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [3, 4, 5, 6, 7, 8] @?= [3, 0x03, 0x00, 0x00, 0x00, 8]
+        , testCase "Read with index register addressing" $ do
+            let State{dataRegs, addrRegs, mem} =
+                    simulate
+                        "move.b 2(A2,D1), D0"
+                        st0
+                            { addrRegs = insert A2 6 addrRegs0
+                            , dataRegs = insert D1 3 dataRegs0
+                            }
+             in do
+                    (addrRegs !? A2) @?= Just 6
+                    (dataRegs !? D1) @?= Just 3
+                    (dataRegs !? D0) @?= Just 11
+                    readMemBytes mem [10, 11, 12] @?= [10, 11, 12]
+            let State{dataRegs, addrRegs, mem} =
+                    simulate
+                        "move.b 2(A2,A1), D0"
+                        st0{addrRegs = insert A2 6 $ insert A1 3 addrRegs0}
+             in do
+                    (addrRegs !? A2) @?= Just 6
+                    (addrRegs !? A1) @?= Just 3
+                    (dataRegs !? D0) @?= Just 11
+                    readMemBytes mem [10, 11, 12] @?= [10, 11, 12]
+            let State{dataRegs, addrRegs, mem} =
+                    simulate
+                        "move.l 4(A2,D1), D0"
+                        st0
+                            { addrRegs = insert A2 10 addrRegs0
+                            , dataRegs = insert D1 2 dataRegs0
+                            }
+             in do
+                    (addrRegs !? A2) @?= Just 10
+                    (dataRegs !? D1) @?= Just 2
+                    (dataRegs !? D0) @?= Just 0x13121110
+                    readMemBytes mem [15, 16, 17, 18, 19, 20] @?= [15, 0x10, 0x11, 0x12, 0x13, 20]
+        , testCase "Write with index register addressing" $ do
+            let State{dataRegs, addrRegs, mem} =
+                    simulate
+                        "move.b D0, 2(A2,D1)"
+                        st0
+                            { addrRegs = insert A2 6 addrRegs0
+                            , dataRegs = insert D1 3 $ insert D0 0x99 dataRegs0
+                            }
+             in do
+                    (dataRegs !? D0) @?= Just 0x99
+                    (addrRegs !? A2) @?= Just 6
+                    (dataRegs !? D1) @?= Just 3
+                    readMemBytes mem [10, 11, 12] @?= [10, 0x99, 12]
+            let State{dataRegs, addrRegs, mem} =
+                    simulate
+                        "move.l D0, 4(A2,A1)"
+                        st0
+                            { addrRegs = insert A2 10 $ insert A1 2 addrRegs0
+                            , dataRegs = insert D0 0x7BCDEF12 dataRegs0
+                            }
+             in do
+                    (dataRegs !? D0) @?= Just 0x7BCDEF12
+                    (addrRegs !? A2) @?= Just 10
+                    (addrRegs !? A1) @?= Just 2
+                    readMemBytes mem [15, 16, 17, 18, 19, 20] @?= [15, 0x12, 0xEF, 0xCD, 0x7B, 20]
         ]
     where
         mem0 = Mem 32 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 31]
