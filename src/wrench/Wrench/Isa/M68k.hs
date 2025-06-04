@@ -369,9 +369,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{addrRegs, dataRegs} v =
+    reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
         case T.splitOn ":" v of
             [r] -> reprState labels st (r <> ":dec")
+            ["SR", "bin"] -> view nFlag <> view zFlag <> view vFlag <> view cFlag
+                where
+                    view True = "1"
+                    view False = "0"
             [r, f]
                 | Just r' <- readMaybe (toString r)
                 , Just r'' <- dataRegs !? r' ->

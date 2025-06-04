@@ -7,7 +7,7 @@ reports:
   - name: step-by-step
     slice: all
     view: |
-      {D0} {D1}
+      {D0} {D1} {SR:bin}
       {pc}:	{instruction}	{pc:label}
   - name: result
     slice: last
