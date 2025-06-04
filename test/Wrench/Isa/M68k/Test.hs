@@ -17,7 +17,24 @@ tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "Translator" $ do
+        [ testCase "Byte arithmetic operations" $ do
+            let State{dataRegs} = simulate "add.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
+             in (dataRegs !? D0) @?= Just 7
+            let State{dataRegs, zFlag} = simulate "add.b D1, D0" st0{dataRegs = insert D1 0xFF $ insert D0 1 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0
+                    zFlag @?= True
+            let State{dataRegs} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 2 $ insert D0 7 dataRegs0}
+             in (dataRegs !? D0) @?= Just 5
+            let State{dataRegs, nFlag} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just (-5)
+                    nFlag @?= True
+            let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
+             in (dataRegs !? D0) @?= Just 12
+            let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
+             in (dataRegs !? D0) @?= Just 100
+        , testCase "Translator" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
             translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
             translate "move.l 8(A2), D0" @?= Right (Move Long (IndirectAddrReg 8 A2 Nothing) (DirectDataReg D0))
