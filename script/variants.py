@@ -237,3 +237,9 @@ if __name__ == "__main__":
     generate_wrench_variant_test_cases("variants")
 
     generate_variants(375, "variants.csv")
+
+    # all variants in one column
+    # categories = get_categories(TEST_CASES)
+    # vars = inf_shuffle(list(itertools.chain(categories["String Manipulation"], categories["Bitwise Operations"], categories["Mathematics"])))
+    # for _ in range(375):
+    #     print(next(vars))
