@@ -93,6 +93,7 @@ test-examples: build
 	stack exec wrench -- --isa m68k       example/m68k/hello.s              -c example/m68k/hello.yaml
 	stack exec wrench -- --isa m68k       example/m68k/hello-byte.s         -c example/m68k/hello.yaml
 	stack exec wrench -- --isa m68k       example/m68k/factorial.s          -c example/m68k/factorial-5.yaml
+	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive.s -c example/m68k/factorial-5.yaml
 
 test-serv: build generate-variants
 	stack exec wrench-serv &

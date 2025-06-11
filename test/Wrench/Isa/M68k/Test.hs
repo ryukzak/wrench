@@ -74,6 +74,8 @@ tests =
             translate "cmp.l D1, D0" @?= Right (Cmp Long (DirectDataReg D1) (DirectDataReg D0))
             translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ ValueR id 10) (DirectDataReg D0))
             translate "cmp.l (A1), D0" @?= Right (Cmp Long (IndirectAddrReg 0 A1 Nothing) (DirectDataReg D0))
+            translate "jsr 0x20" @?= Right (Jsr (ValueR id 0x20))
+            translate "rts" @?= Right Rts
         , testCase "Read byte from memory by address register" $ do
             let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -253,6 +255,21 @@ tests =
                     (addrRegs !? A2) @?= Just 10
                     (addrRegs !? A1) @?= Just 2
                     readMemBytes mem [15, 16, 17, 18, 19, 20] @?= [15, 0x12, 0xEF, 0xCD, 0x7B, 20]
+        , testCase "JSR and RTS operations" $ do
+            let State{pc, addrRegs} = simulate "jsr 0x20" st0{addrRegs = insert A7 0x100 addrRegs0}
+             in do
+                    pc @?= 0x20
+                    (addrRegs !? A7) @?= Just 0xFC
+
+            let State{pc, addrRegs} =
+                    simulate
+                        "rts"
+                        st0
+                            { addrRegs = insert A7 0x0F addrRegs0
+                            }
+             in do
+                    pc @?= 0x1211100F
+                    (addrRegs !? A7) @?= Just 0x13
         ]
     where
         mem0 = Mem 32 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 31]

@@ -1,5 +1,5 @@
 limit: 200
-memory_size: 0x90
+memory_size: 0x200
 input_streams:
   0x80: [5]
   0x84: []
@@ -7,8 +7,7 @@ reports:
   - name: step-by-step
     slice: all
     view: |
-      {D0} {D1} {SR:bin}
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{D0} {A7} {instruction}	{pc:label}
   - name: result
     slice: last
     view: |

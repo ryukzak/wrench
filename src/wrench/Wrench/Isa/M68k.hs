@@ -103,6 +103,8 @@ data Isa w l
     | Bpl {ref :: l}
     | Bvc {ref :: l}
     | Bvs {ref :: l}
+    | Jsr {ref :: l}
+    | Rts
     | Halt
     deriving (Eq, Show)
 
@@ -140,6 +142,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , branchCmd "bpl" Bpl reference
             , branchCmd "bvc" Bvc reference
             , branchCmd "bvs" Bvs reference
+            , branchCmd "jsr" Jsr reference
+            , cmd0args "rts" Rts
             , cmd0args "halt" Halt
             ]
         where
@@ -286,6 +290,8 @@ instance DerefMnemonic (Isa w) w where
                 Bpl{ref} -> Bpl (deref' f ref)
                 Bvc{ref} -> Bvc (deref' f ref)
                 Bvs{ref} -> Bvs (deref' f ref)
+                Jsr{ref} -> Jsr (deref' f ref)
+                Rts -> Rts
                 Halt -> Halt
 
 instance (ByteSizeT w) => ByteSize (Argument w l) where
@@ -325,6 +331,8 @@ instance (ByteSizeT w) => ByteSize (Isa w l) where
     byteSize (Bpl _) = 6
     byteSize (Bvc _) = 6
     byteSize (Bvs _) = 6
+    byteSize (Jsr _) = 6
+    byteSize Rts = 2
     byteSize Halt = 2
 
 type M68kState w = MachineState (IoMem (Isa w w) w) w
@@ -342,6 +350,9 @@ data MachineState mem w = State
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
+
+getPc :: State (MachineState (IoMem (Isa w w) w) w) Int
+getPc = get >>= \st -> return $ pc st
 
 nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
@@ -585,6 +596,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Bpl{ref} -> get >>= branch ref . not . nFlag
             Bvc{ref} -> get >>= branch ref . not . vFlag
             Bvs{ref} -> get >>= branch ref . vFlag
+            Jsr{ref} -> do
+                nextPc
+                pc <- getPc
+                storeWord (IndirectAddrRegPreDecrement A7) $ toEnum pc
+                setPc $ fromEnum ref
+            Rts -> do
+                pc <- fetchWord (IndirectAddrRegPostIncrement A7)
+                setPc $ fromEnum pc
             Halt -> modify $ \st -> st{stopped = True}
         where
             branch addr True = setPc $ fromEnum addr
