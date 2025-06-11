@@ -34,6 +34,34 @@ tests =
              in (dataRegs !? D0) @?= Just 12
             let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
              in (dataRegs !? D0) @?= Just 100
+        , testCase "Compare operations" $ do
+            let State{dataRegs, zFlag, nFlag} =
+                    simulate "cmp.l D1, D0" st0{dataRegs = insert D1 5 $ insert D0 5 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 5
+                    (dataRegs !? D1) @?= Just 5
+                    zFlag @?= True
+                    nFlag @?= False
+            let State{dataRegs, zFlag, nFlag} =
+                    simulate "cmp.l D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 5
+                    (dataRegs !? D1) @?= Just 10
+                    zFlag @?= False
+                    nFlag @?= True
+            let State{dataRegs, zFlag, nFlag} =
+                    simulate "cmp.l D1, D0" st0{dataRegs = insert D1 3 $ insert D0 5 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 5
+                    (dataRegs !? D1) @?= Just 3
+                    zFlag @?= False
+                    nFlag @?= False
+            let State{dataRegs, zFlag} =
+                    simulate "cmp.b D1, D0" st0{dataRegs = insert D1 0x100 $ insert D0 0 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0
+                    (dataRegs !? D1) @?= Just 0x100
+                    zFlag @?= True
         , testCase "Translator" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
             translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
@@ -43,6 +71,9 @@ tests =
                 @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ DataIndex D1)) (DirectDataReg D0))
             translate "move.l -8(A2,A1), D0"
                 @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ AddrIndex A1)) (DirectDataReg D0))
+            translate "cmp.l D1, D0" @?= Right (Cmp Long (DirectDataReg D1) (DirectDataReg D0))
+            translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ ValueR id 10) (DirectDataReg D0))
+            translate "cmp.l (A1), D0" @?= Right (Cmp Long (IndirectAddrReg 0 A1 Nothing) (DirectDataReg D0))
         , testCase "Read byte from memory by address register" $ do
             let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -247,7 +278,9 @@ simulate ::
     , isa ~ isa' w w
     , w ~ Int32
     ) =>
-    String -> st (IoMem isa w) w -> st (IoMem isa w) w
+    String
+    -> st (IoMem isa w) w
+    -> st (IoMem isa w) w
 simulate code st =
     let instr = either (error . show) (derefMnemonic (error "labels not defined") def) (translate code)
      in execState (instructionExecute 0 instr) st

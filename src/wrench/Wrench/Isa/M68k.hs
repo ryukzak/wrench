@@ -85,6 +85,7 @@ data Isa w l
     | Sub {mode :: Mode, src, dst :: Argument w l}
     | Mul {mode :: Mode, src, dst :: Argument w l}
     | Div {mode :: Mode, src, dst :: Argument w l}
+    | Cmp {mode :: Mode, src, dst :: Argument w l}
     | Asl {mode :: Mode, src, dst :: Argument w l}
     | Asr {mode :: Mode, src, dst :: Argument w l}
     | Lsl {mode :: Mode, src, dst :: Argument w l}
@@ -121,6 +122,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "sub" Sub (longMode <|> byteMode) src dst
             , cmd2args "mul" Mul (longMode <|> byteMode) src dst
             , cmd2args "div" Div (longMode <|> byteMode) src dst
+            , cmd2args "cmp" Cmp (longMode <|> byteMode) src dst
             , cmd2args "asl" Asl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
             , cmd2args "asr" Asr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
             , cmd2args "lsl" Lsl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
@@ -266,6 +268,7 @@ instance DerefMnemonic (Isa w) w where
                 Sub{mode, src, dst} -> Sub mode (derefArg src) (derefArg dst)
                 Mul{mode, src, dst} -> Mul mode (derefArg src) (derefArg dst)
                 Div{mode, src, dst} -> Div mode (derefArg src) (derefArg dst)
+                Cmp{mode, src, dst} -> Cmp mode (derefArg src) (derefArg dst)
                 Asl{mode, src, dst} -> Asl mode (derefArg src) (derefArg dst)
                 Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
                 Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
@@ -304,6 +307,7 @@ instance (ByteSizeT w) => ByteSize (Isa w l) where
     byteSize (Sub _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Mul _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Div _mode src dst) = 2 + byteSize src + byteSize dst
+    byteSize (Cmp _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Asl _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Asr _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Lsl _mode src dst) = 2 + byteSize src + byteSize dst
@@ -536,6 +540,30 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Mul{mode = Byte, src, dst} -> byteCmd2Ext src dst mulExt
             Div{mode = Long, src, dst} -> wordCmd2 src dst div
             Div{mode = Byte, src, dst} -> byteCmd2 src dst div
+            Cmp{mode = Long, src, dst} -> do
+                a <- fetchWord dst
+                b <- fetchWord src
+                let Ext{value, overflow, carry} = subExt a b
+                modify $ \st ->
+                    st
+                        { nFlag = value < 0
+                        , zFlag = value == 0
+                        , vFlag = overflow
+                        , cFlag = carry
+                        }
+                nextPc
+            Cmp{mode = Byte, src, dst} -> do
+                a <- fetchByte dst
+                b <- fetchByte src
+                let Ext{value, overflow, carry} = subExt a b
+                modify $ \st ->
+                    st
+                        { nFlag = value < 0
+                        , zFlag = value == 0
+                        , vFlag = overflow
+                        , cFlag = carry
+                        }
+                nextPc
             Asl{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftL d (fromEnum s))
             Asl{mode = Byte, src, dst} -> byteCmd2 src dst (\d s -> shiftL d (fromEnum s))
             Asr{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftR d (fromEnum s))
