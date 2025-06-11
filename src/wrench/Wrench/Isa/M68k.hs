@@ -105,6 +105,8 @@ data Isa w l
     | Bvs {ref :: l}
     | Jsr {ref :: l}
     | Rts
+    | Link {addrReg :: AddrReg, offset :: Int}
+    | Unlk {addrReg :: AddrReg}
     | Halt
     deriving (Eq, Show)
 
@@ -144,6 +146,20 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , branchCmd "bvs" Bvs reference
             , branchCmd "jsr" Jsr reference
             , cmd0args "rts" Rts
+            , try $ do
+                void $ string "link"
+                hspace1
+                addrReg <- addrRegister'
+                hspace >> comma >> hspace
+                offset <- readMaybe <$> choice [hexNum, num]
+                eol' ";"
+                return $ Link addrReg (fromMaybe 0 offset)
+            , try $ do
+                void $ string "unlk"
+                hspace1
+                addrReg <- addrRegister'
+                eol' ";"
+                return $ Unlk addrReg
             , cmd0args "halt" Halt
             ]
         where
@@ -292,6 +308,8 @@ instance DerefMnemonic (Isa w) w where
                 Bvs{ref} -> Bvs (deref' f ref)
                 Jsr{ref} -> Jsr (deref' f ref)
                 Rts -> Rts
+                Link{addrReg, offset} -> Link addrReg offset
+                Unlk{addrReg} -> Unlk addrReg
                 Halt -> Halt
 
 instance (ByteSizeT w) => ByteSize (Argument w l) where
@@ -333,6 +351,8 @@ instance (ByteSizeT w) => ByteSize (Isa w l) where
     byteSize (Bvs _) = 6
     byteSize (Jsr _) = 6
     byteSize Rts = 2
+    byteSize Link{} = 2 + 2
+    byteSize Unlk{} = 2
     byteSize Halt = 2
 
 type M68kState w = MachineState (IoMem (Isa w w) w) w
@@ -431,6 +451,9 @@ fetchWord :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa 
 fetchWord (DirectDataReg r) = do
     State{dataRegs} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (dataRegs !? r)
+fetchWord (DirectAddrReg r) = do
+    State{addrRegs} <- get
+    return $ fromMaybe (error $ "invalid register: " <> show r) (addrRegs !? r)
 fetchWord (IndirectAddrReg offset r index) = do
     addr <- indirectAddr (+ offset) r index
     readMemoryWord addr
@@ -444,7 +467,6 @@ fetchWord (IndirectAddrRegPostIncrement r) = do
     storeWord (DirectAddrReg r) $ toEnum (addr + 4)
     return w
 fetchWord (Immediate v) = return v
-fetchWord arg = error $ "can not fetch word: " <> show arg
 
 storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
 storeWord (DirectDataReg r) v = modify $ \st@State{dataRegs} -> st{dataRegs = insert r v dataRegs, zFlag = v == 0, nFlag = v < 0}
@@ -604,6 +626,23 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Rts -> do
                 pc <- fetchWord (IndirectAddrRegPostIncrement A7)
                 setPc $ fromEnum pc
+            Link{addrReg, offset} -> do
+                fp <- fetchWord (DirectAddrReg addrReg)
+                storeWord (IndirectAddrRegPreDecrement A7) fp
+
+                sp <- fetchWord (DirectAddrReg A7)
+                storeWord (DirectAddrReg addrReg) sp
+                storeWord (DirectAddrReg A7) (sp - toEnum offset)
+
+                nextPc
+            Unlk{addrReg} -> do
+                sp <- fetchWord (DirectAddrReg addrReg)
+                storeWord (DirectAddrReg A7) sp
+
+                fp <- fetchWord (IndirectAddrRegPostIncrement A7)
+                storeWord (DirectAddrReg addrReg) fp
+
+                nextPc
             Halt -> modify $ \st -> st{stopped = True}
         where
             branch addr True = setPc $ fromEnum addr

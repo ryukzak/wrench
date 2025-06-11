@@ -270,12 +270,40 @@ tests =
              in do
                     pc @?= 0x1211100F
                     (addrRegs !? A7) @?= Just 0x13
+        , testCase "LINK and UNLK operations" $ do
+            let State{addrRegs, mem} =
+                    simulate
+                        "link A6, -8"
+                        st0
+                            { addrRegs = insert A6 0x20 $ insert A7 0x10 addrRegs0
+                            }
+             in do
+                    (addrRegs !? A6) @?= Just 0x0C
+                    (addrRegs !? A7) @?= Just 0x14
+                    fmap snd (readWord mem 0x1C) @?= Right 0x1F1E1D1C
+                    fmap snd (readWord mem 0x0C) @?= Right 0x00000020
+            let State{addrRegs, mem} =
+                    simulate
+                        "unlk A6"
+                        st0
+                            { addrRegs = insert A6 0x0C $ insert A7 0x14 addrRegs0
+                            , mem =
+                                either error id $ do
+                                    mem1 <- writeWord mem0 0x1C 0x1F1E1D1C
+                                    writeWord mem1 0x0C 0x00000020
+                            }
+             in do
+                    (addrRegs !? A6) @?= Just 0x20
+                    (addrRegs !? A7) @?= Just 0x10
+                    fmap snd (readWord mem 0x1C) @?= Right 0x1F1E1D1C
+                    fmap snd (readWord mem 0x10) @?= Right 0x13121110
+                    fmap snd (readWord mem 0x20) @?= Right 0x23222120
         ]
     where
-        mem0 = Mem 32 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 31]
+        memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
         st0 :: M68kState Int32
-        st0@State{addrRegs = addrRegs0, dataRegs = dataRegs0} =
-            (initState 32 $ mkIoMem (fromList []) mem0)
+        st0@State{addrRegs = addrRegs0, dataRegs = dataRegs0, mem = mem0} =
+            (initState 256 $ mkIoMem (fromList []) memInit)
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
 
