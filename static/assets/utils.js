@@ -67,3 +67,49 @@ export function setupThemeToggle(buttonId) {
 
   button.addEventListener('click', updateTheme)
 }
+
+export function getIsaFlag(text) {
+  const regex = /--isa\s+(\S+)/
+  const match = text.match(regex)
+  return match ? match[1] : null
+}
+
+export function setupHideCommentsButton(buttonId, sourceElementId, isa) {
+  const button = document.getElementById(buttonId)
+  const sourceElement = document.getElementById(sourceElementId)
+
+  if (!button || !sourceElement) return
+
+  button.addEventListener('click', () => {
+    const comment_delimiter = isa === 'f32a' ? '\\' : ';'
+    const codeContent = sourceElement.querySelector('.code-content')
+
+    if (!codeContent) return
+
+    const lines = codeContent.querySelectorAll('.code-line')
+    const isCurrentlyHidden = button.getAttribute('data-hidden') === 'true'
+
+    if (isCurrentlyHidden) {
+      // Show comments: restore original content
+      lines.forEach(line => {
+        const original = line.getAttribute('data-original')
+        if (original !== null) {
+          line.textContent = original
+          line.removeAttribute('data-original')
+        }
+      })
+      button.setAttribute('data-hidden', 'false')
+      button.textContent = "[hide_comments]"
+    } else {
+      // Hide comments: store original and truncate at delimiter
+      lines.forEach(line => {
+        const currentText = line.textContent
+        line.setAttribute('data-original', currentText)
+        const codePart = currentText.split(comment_delimiter)[0]
+        line.textContent = codePart
+      })
+      button.setAttribute('data-hidden', 'true')
+      button.textContent = "[show_comments]"
+    }
+  })
+}
