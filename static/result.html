@@ -84,17 +84,17 @@
         })
 
         setupThemeToggle('invert-theme-button')
+
+        const isa = getIsaFlag(
+          document.getElementById('status-text-element').textContent,
+        )
+
+        setupHideCommentsButton(
+          'hide-comments-button',
+          'assembler-code-text-element',
+          isa,
+        )
       })
-
-      const isa = getIsaFlag(
-        document.getElementById('status-text-element').textContent,
-      )
-
-      setupHideCommentsButton(
-        'hide-comments-button',
-        'assembler-code-text-element',
-        isa,
-      )
     </script>
     <div class="mt-4 mb-6 w-full text-center">
       <a
