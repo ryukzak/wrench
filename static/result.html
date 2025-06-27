@@ -35,6 +35,8 @@
         setupCopyButton,
         handleEmptyContent,
         setupThemeToggle,
+        getIsaFlag,
+        setupHideCommentsButton,
       } from '/assets/utils.js'
 
       document.addEventListener('DOMContentLoaded', () => {
@@ -82,6 +84,16 @@
         })
 
         setupThemeToggle('invert-theme-button')
+
+        const isa = getIsaFlag(
+          document.getElementById('status-text-element').textContent,
+        )
+
+        setupHideCommentsButton(
+          'hide-comments-button',
+          'assembler-code-text-element',
+          isa,
+        )
       })
     </script>
     <div class="mt-4 mb-6 w-full text-center">
@@ -128,12 +140,12 @@
           <div>
             <!-- prettier-ignore -->
             <p class="text-[var(--c-grey)] text-left">
-              /* variant: {{variant}} */
-            </p>
+            /* variant: {{variant}} */
+          </p>
             <!-- prettier-ignore -->
             <p class="mb-6 text-[var(--c-grey)] text-left">
-              /* author: {{name}} */
-            </p>
+            /* author: {{name}} */
+          </p>
           </div>
           <div>
             <h2
@@ -159,6 +171,12 @@
             >
               <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <button
+                id="hide-comments-button"
+                class="place-self-end hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
+              >
+                [hide_comments]
+              </button>
+              <button
                 id="copy-assembler-code-button"
                 class="place-self-end hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
               >
@@ -179,7 +197,7 @@
                 aria-expanded="true"
                 aria-controls="accordion-collapse-body-assembler"
               >
-                <span class="select-none flex-1">assembler_code =</span>
+                <span class="flex-1 select-none">assembler_code =</span>
               </h2>
               <div
                 id="accordion-collapse-body-assembler"
@@ -222,7 +240,7 @@
                 aria-expanded="false"
                 aria-controls="accordion-collapse-body-simulation-config"
               >
-                <span class="select-none flex-1">simulation_config =</span>
+                <span class="flex-1 select-none">simulation_config =</span>
               </h2>
               <div
                 id="accordion-collapse-body-simulation-config"
@@ -267,7 +285,7 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-simulation-log"
           >
-            <span class="select-none flex-1">simulation_log =</span>
+            <span class="flex-1 select-none">simulation_log =</span>
           </h2>
           <div
             id="accordion-collapse-body-simulation-log"
@@ -309,7 +327,7 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-test-cases-result"
           >
-            <span class="select-none flex-1">failed_test_case =</span>
+            <span class="flex-1 select-none">failed_test_case =</span>
           </h2>
           <div
             id="accordion-collapse-body-test-cases-result"
@@ -345,7 +363,7 @@
             aria-expanded="false"
             aria-controls="accordion-collapse-body-dump"
           >
-            <span class="select-none flex-1">dump =</span>
+            <span class="flex-1 select-none">dump =</span>
           </h2>
           <div
             id="accordion-collapse-body-dump"
