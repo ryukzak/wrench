@@ -55,10 +55,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 ### Via Docker Image
 
 ```shell
-docker run -it --rm \
-  --mount type=bind,source=/path/to/local/uploads,target=/app/data \
-  ryukzak/wrench:latest \
-  wrench --isa acc32 /path/to/source.s -c /path/to/config.yaml
+docker run -it --rm ryukzak/wrench:latest wrench --help
 ```
 
 ### Use it as a Service
