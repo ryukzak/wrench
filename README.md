@@ -55,7 +55,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 ### Via Docker Image
 
 ```shell
-docker run -it --rm ryukzak/wrench:latest --help
+docker run -it -p 8080:8080 ryukzak/wrench:latest
 ```
 
 ### Use it as a Service
