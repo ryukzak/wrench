@@ -1,0 +1,5 @@
+# Markdown rules
+
+- After changes in `*.md` files run `make markdown-fix`.
+- Tables in `*.md` files should be formatted (column alignment).
+- Use 4 spaces for indentation in `*.md` files.
