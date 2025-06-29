@@ -1,7 +1,7 @@
 name: assert factorial(0) == 1
 limit: 2000
 memory_size: 0x1000
-input_streams:
+memory_mapped_io:
   0x80: [0]
   0x84: []
 reports:

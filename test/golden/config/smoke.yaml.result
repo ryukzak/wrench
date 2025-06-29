@@ -1,7 +1,7 @@
 Config
     { cLimit = 900
     , cMemorySize = 144
-    , cInputStreams = Just
+    , cMemoryMappedIo = Just
         ( fromList
             [
                 ( "99"
@@ -20,7 +20,7 @@ Config
                 )
             ]
         )
-    , cInputStreamsFlat = Just
+    , cMemoryMappedIoFlat = Just
         ( fromList
             [
                 ( 99

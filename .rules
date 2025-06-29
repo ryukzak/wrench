@@ -3,3 +3,8 @@
 - After changes in `*.md` files run `make markdown-fix`.
 - Tables in `*.md` files should be formatted (column alignment).
 - Use 4 spaces for indentation in `*.md` files.
+
+# Haskell rules
+
+- After changes in `*.hs` files run `make test`, `make lint-fix`, and `make format`.
+- If you have a problem with golden tests, run `make golden-fix` (but check their change relevance).

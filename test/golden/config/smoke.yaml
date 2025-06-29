@@ -1,6 +1,6 @@
 limit: 900
 memory_size: 0x90
-input_streams:
+memory_mapped_io:
   99: [1, 2, 3, "hello"]
 reports:
   - name: foo

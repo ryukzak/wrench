@@ -1,7 +1,7 @@
 name: factorial-4
 limit: 500
 memory_size: 0x120
-input_streams:
+memory_mapped_io:
   0x80: [4]
   0x84: []
 reports:

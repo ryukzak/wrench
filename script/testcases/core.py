@@ -98,7 +98,7 @@ class Words2Words:
             f"{f.__name__} actual: {f(*self.xs)}, expect: {self.ys}"
         )
 
-    def yaml_input_streams(self):
+    def yaml_memory_mapped_io(self):
         return "\n".join(
             [
                 f"  0x80: {self.xs}",
@@ -182,7 +182,7 @@ class String2String:
             f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
         )
 
-    def yaml_input_streams(self):
+    def yaml_memory_mapped_io(self):
         return "\n".join(
             [
                 f"  0x80: {yaml_symbol_nums(self.input, ', ')}",
