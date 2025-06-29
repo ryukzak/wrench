@@ -37,7 +37,6 @@ options =
                 <> help "ISA"
                 <> showDefault
                 <> metavar "ISA"
-                <> value "risc-iv-32"
                 <> help "ISA (risc-iv-32, f32a, acc32, m68k)"
             )
         <*> optional
@@ -62,7 +61,7 @@ options =
             auto
             ( long "instruction-limit"
                 <> metavar "LIMIT"
-                <> help ("Maximum number of instructions to execute (default: " <> show (maxInstructionLimit def) <> ")")
+                <> help "Maximum number of instructions to execute"
                 <> value (maxInstructionLimit def)
                 <> showDefault
             )
@@ -70,7 +69,7 @@ options =
             auto
             ( long "memory-limit"
                 <> metavar "SIZE"
-                <> help ("Maximum memory size in bytes (default: " <> show (maxMemoryLimit def) <> ")")
+                <> help "Maximum memory size in bytes"
                 <> value (maxMemoryLimit def)
                 <> showDefault
             )
@@ -78,7 +77,7 @@ options =
             auto
             ( long "state-log-limit"
                 <> metavar "LIMIT"
-                <> help ("Maximum number of state records to log (default: " <> show (maxStateLogLimit def) <> ")")
+                <> help "Maximum number of state records to log"
                 <> value (maxStateLogLimit def)
                 <> showDefault
             )
