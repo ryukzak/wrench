@@ -1,14 +1,28 @@
-# RiscIv Instruction Set Architecture (ISA) Documentation
+# RISC-IV Instruction Set Architecture (ISA) Documentation
 
-The RiscIv ISA is a simple register-based instruction set inspired by the RISC-V architecture. This documentation provides an overview of the instructions available in the RiscIv ISA, their syntax, and their semantics.
+The RISC-IV ISA is a simple register-based instruction set inspired by the RISC-V architecture. This documentation provides an overview of the instructions available in the RISC-IV ISA, their syntax, and their semantics.
 
-Comments in RiscIv assembly code are denoted by the `;` character.
+## Architecture Overview
+
+The RISC-IV architecture is a 32-bit RISC (Reduced Instruction Set Computer) architecture inspired by the RISC-V specification. It features:
+
+- 32 general-purpose registers (including one hardwired zero register)
+- Fixed-length 4-byte instructions
+- Load-store architecture (memory access only through specific instructions)
+- Simple addressing modes
+- Memory-mapped I/O
+- Support for function calls and returns through jump-and-link instructions
+- Arithmetic, logical, and control flow operations
+
+This architecture provides a clean, orthogonal instruction set that exemplifies RISC design principles, making it excellent for educational purposes while still being powerful enough for practical applications.
+
+Comments in RISC-IV assembly code are denoted by the `;` character.
 
 Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf)
 
 ## Immediate Value Relocation Directives
 
-The RiscIv assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats:
+The RISC-IV assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats:
 
 - **%hi(symbol)**
     - **Description:** Used to extract the upper 20 bits of a 32-bit address or immediate value

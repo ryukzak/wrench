@@ -2,6 +2,17 @@
 
 The Acc32 ISA is a simple accumulator-based instruction set designed for educational purposes. This documentation provides an overview of the instructions available in the Acc32 ISA, their syntax, and their semantics.
 
+## Architecture Overview
+
+The Acc32 architecture is a 32-bit accumulator-based architecture. It features:
+
+- A single general-purpose accumulator register (Acc)
+- Two status flags: overflow (V) and carry (C)
+- Memory-mapped I/O
+- Simple instruction set focused on accumulator operations
+
+This architecture is excellent for beginners to understand the basics of computer architecture without the complexity of multiple registers.
+
 Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## ISA Specific State Views
