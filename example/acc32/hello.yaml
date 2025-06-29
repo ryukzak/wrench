@@ -1,7 +1,7 @@
 name: hello
 limit: 400
 memory_size: 0x1000
-input_streams:
+memory_mapped_io:
   0x80: []
   0x84: []
 reports:

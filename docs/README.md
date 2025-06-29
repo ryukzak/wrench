@@ -19,7 +19,7 @@ Wrench is an educational project designed to explore different types of processo
         - [Configuration Options](#configuration-options)
             - [`limit`](#limit)
             - [`memory_size`](#memory_size)
-            - [`input_streams`](#input_streams)
+            - [`memory_mapped_io`](#memory_mapped_io)
             - [`reports`](#reports)
                 - [`name`](#name)
                 - [`slice`](#slice)
@@ -179,7 +179,7 @@ limit: 1000            # Maximum instructions to execute
 memory_size: 8192      # Memory size in bytes
 
 # I/O configuration
-input_streams:
+memory_mapped_io:
   0x80: [5, 6, 7]      # Input values at address 0x80
   0x84: []             # Output-only port at address 0x84
 
@@ -222,14 +222,14 @@ reports:
   memory_size: 40
   ```
 
-#### `input_streams`
+#### `memory_mapped_io`
 
 - **Type:** Map of decimal or hexadecimal addresses to lists of inputs
 - **Description:** Defines the memory-mapped IO streams for the simulation. Each key is a memory address, and the value is a list of inputs that should be fed into the simulation at that address. To define an output port only, leave the list empty.
 - **Example:**
 
   ```yaml
-  input_streams:
+  memory_mapped_io:
     0x80: [5]  # Input port at address 0x80 with value 5
     132: []    # Output-only port at address 132 (decimal)
   ```

@@ -1,7 +1,7 @@
 name: assert get_put_char('Y') == ([-858993460], '')
 limit: 2000
 memory_size: 0x1000
-input_streams:
+memory_mapped_io:
   0x80: [89]
   0x84: []
 reports:

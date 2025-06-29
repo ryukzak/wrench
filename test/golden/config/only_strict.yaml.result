@@ -1,8 +1,8 @@
 Config
     { cLimit = 900
     , cMemorySize = 144
-    , cInputStreams = Nothing
-    , cInputStreamsFlat = Nothing
+    , cMemoryMappedIo = Nothing
+    , cMemoryMappedIoFlat = Nothing
     , cReports = Just
         [ ReportConf
             { rcName = Just "Executed Instruction Log"
