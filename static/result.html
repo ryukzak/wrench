@@ -166,22 +166,22 @@
           </div>
 
           <div>
-            <div
-              class="flex flex-row justify-between items-center mt-6 mb-4 pr-6"
-            >
+            <div class="flex justify-between items-center mt-6 mb-4 pr-6">
               <span class="text-[var(--c-grey)]">/* assembler_code */</span>
-              <button
-                id="hide-comments-button"
-                class="place-self-end hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
-              >
-                [hide_comments]
-              </button>
-              <button
-                id="copy-assembler-code-button"
-                class="place-self-end hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
-              >
-                [copy]
-              </button>
+              <div class="flex gap-2">
+                <button
+                  id="hide-comments-button"
+                  class="hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
+                >
+                  [hide_comments]
+                </button>
+                <button
+                  id="copy-assembler-code-button"
+                  class="hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
+                >
+                  [copy]
+                </button>
+              </div>
             </div>
             <div
               id="accordion-collapse-assembler"
