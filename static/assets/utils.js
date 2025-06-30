@@ -68,84 +68,98 @@ export function setupThemeToggle(buttonId) {
   button.addEventListener('click', updateTheme)
 }
 
-export function getIsaFlag(text) {
-  const regex = /--isa\s+(\S+)/
-  const match = text.match(regex)
-  return match ? match[1] : null
+export function findIsaFlag(text) {
+  const flagPattern = /--isa\s+(\S+)/
+  const foundFlag = text.match(flagPattern)
+  return foundFlag ? foundFlag[1] : null
 }
-export function setupHideCommentsButton(buttonId, sourceElementId, isa) {
-  const button = document.getElementById(buttonId)
-  const sourceElement = document.getElementById(sourceElementId)
 
-  if (!button || !sourceElement) return
+function removeComments(code, commentStarter) {
+  if (!commentStarter) return code
 
-  function removeComments(text, delimiter) {
-    if (!delimiter) return text
+  let insideString = false
+  let cleanedCode = ''
+  let currentPosition = 0
 
-    let inString = null // Tracks quote type: null, '"', or "'"
-    let output = ''
+  while (currentPosition < code.length) {
+    const currentCharacter = code[currentPosition]
 
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i]
-
-      // Handle string literals
-      if (inString) {
-        if (char === '\\' && i + 1 < text.length) {
-          // Preserve escape sequences
-          output += char + text[++i]
-        } else if (char === inString) {
-          // End of string
-          inString = null
-          output += char
-        } else {
-          output += char
-        }
+    if (insideString) {
+      // Handle escape characters in strings
+      if (currentCharacter === '\\') {
+        cleanedCode += currentCharacter + code[++currentPosition]
       }
-      // Check for comment delimiter outside strings
-      else if (text.startsWith(delimiter, i)) {
-        return output // Return text before comment
+      // Check for string ending
+      else if (currentCharacter === insideString) {
+        insideString = false
+        cleanedCode += currentCharacter
       }
-      // Check for string starters
-      else if (char === '"' || char === "'") {
-        inString = char
-        output += char
-      }
-      // Regular character outside string
+      // Regular character inside string
       else {
-        output += char
+        cleanedCode += currentCharacter
       }
     }
-    return output
+    // Check for comment starter
+    else if (code.startsWith(commentStarter, currentPosition)) {
+      return cleanedCode
+    }
+    // Check for new string starting
+    else if (currentCharacter === '"' || currentCharacter === "'") {
+      insideString = currentCharacter
+      cleanedCode += currentCharacter
+    }
+    // Regular code character
+    else {
+      cleanedCode += currentCharacter
+    }
+
+    currentPosition++
   }
 
-  button.addEventListener('click', () => {
-    const comment_delimiter = isa === 'f32a' ? '\\' : ';'
-    const codeContent = sourceElement.querySelector('.code-content')
-    if (!codeContent) return
+  return cleanedCode
+}
 
-    const lines = codeContent.querySelectorAll('.code-line')
-    const isCurrentlyHidden = button.getAttribute('data-hidden') === 'true'
+// Shows original code with comments
+function restoreComments(codeLines) {
+  codeLines.forEach(line => {
+    const originalText = line.getAttribute('data-original-text')
+    if (originalText !== null) {
+      line.textContent = originalText
+      line.removeAttribute('data-original-text')
+    }
+  })
+}
 
-    if (isCurrentlyHidden) {
-      // Show comments: restore original content
-      lines.forEach(line => {
-        const original = line.getAttribute('data-original')
-        if (original !== null) {
-          line.textContent = original
-          line.removeAttribute('data-original')
-        }
-      })
-      button.setAttribute('data-hidden', 'false')
-      button.textContent = '[hide_comments]'
+// Hides comments in code
+function hideComments(codeLines, commentStarter) {
+  codeLines.forEach(line => {
+    const originalText = line.textContent
+    line.setAttribute('data-original-text', originalText)
+    line.textContent = removeComments(originalText, commentStarter)
+  })
+}
+
+export function setupHideCommentsButton(buttonId, containerId, isaType) {
+  const toggleButton = document.getElementById(buttonId)
+  const codeContainer = document.getElementById(containerId)
+
+  if (!toggleButton || !codeContainer) return
+
+  // Determine comment symbol based on ISA type
+  const commentSymbol = isaType === 'f32a' ? '\\' : ';'
+
+  toggleButton.addEventListener('click', () => {
+    const codeLines = codeContainer.querySelectorAll('.code-line')
+    const commentsAreHidden = toggleButton.dataset.hidden === 'true'
+
+    if (commentsAreHidden) {
+      restoreComments(codeLines)
+      toggleButton.dataset.hidden = 'false'
+      toggleButton.textContent = '[hide_comments]'
     } else {
-      // Hide comments using safe removal
-      lines.forEach(line => {
-        const currentText = line.textContent
-        line.setAttribute('data-original', currentText)
-        line.textContent = removeComments(currentText, comment_delimiter)
-      })
-      button.setAttribute('data-hidden', 'true')
-      button.textContent = '[show_comments]'
+      hideComments(codeLines, commentSymbol)
+      toggleButton.dataset.hidden = 'true'
+      toggleButton.textContent = '[show_comments]'
     }
   })
 }
