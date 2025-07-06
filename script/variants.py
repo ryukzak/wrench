@@ -17,7 +17,7 @@ import testcases.examples  # noqa: F401
 import testcases.mathematics  # noqa: F401
 import testcases.bitwise  # noqa: F401
 import testcases.string  # noqa: F401
-
+import testcases.complex # noqa: F401
 
 def python_assert_string(name, params, results):
     if "word" in params and len(params) == 1:
