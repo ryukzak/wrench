@@ -74,46 +74,40 @@ export function findIsaFlag(text) {
   return foundFlag ? foundFlag[1] : null
 }
 
-function removeComments(code, commentStarter) {
+export function removeComments(code, commentStarter) {
   if (!commentStarter) return code
 
   let insideString = false
   let cleanedCode = ''
-  let currentPosition = 0
 
-  while (currentPosition < code.length) {
+  for (
+    let currentPosition = 0;
+    currentPosition < code.length;
+    currentPosition++
+  ) {
     const currentCharacter = code[currentPosition]
 
-    if (insideString) {
-      // Handle escape characters in strings
-      if (currentCharacter === '\\') {
-        cleanedCode += currentCharacter + code[++currentPosition]
-      }
-      // Check for string ending
-      else if (currentCharacter === insideString) {
-        insideString = false
-        cleanedCode += currentCharacter
-      }
-      // Regular character inside string
-      else {
-        cleanedCode += currentCharacter
-      }
-    }
     // Check for comment starter
-    else if (code.startsWith(commentStarter, currentPosition)) {
+    if (!insideString && code.startsWith(commentStarter, currentPosition)) {
       return cleanedCode
     }
+
+    cleanedCode += currentCharacter
+
     // Check for new string starting
-    else if (currentCharacter === '"' || currentCharacter === "'") {
+    if (!insideString && ["'", '"'].includes(currentCharacter)) {
       insideString = currentCharacter
-      cleanedCode += currentCharacter
-    }
-    // Regular code character
-    else {
-      cleanedCode += currentCharacter
+      continue
     }
 
-    currentPosition++
+    // Check for string ending and quotes escape
+    if (
+      currentCharacter === insideString &&
+      code[currentPosition - 1] !== '\\'
+    ) {
+      insideString = false
+      continue
+    }
   }
 
   return cleanedCode
