@@ -113,20 +113,27 @@ export function removeComments(code, commentStarter) {
   return cleanedCode
 }
 
-function hideComments(codeLines, linesNumbers, commentStarter) {
-  codeLines.forEach((line, index) => {
+function hideComments(codeLines, commentStarter) {
+  codeLines.forEach((line) => {
     const originalText = line.textContent
-    const newText = removeComments(originalText, commentStarter)
+    line.textContent = removeComments(originalText, commentStarter)
+  })
+}
 
-    const isLineNotEmpty = line.textContent.trim() !== ''
-    const isLineAFullComment = newText.trim() === ''
+function hideConsecutiveEmptyLines(codeLines, linesNumbers) {
+  let consecutiveEmptyLineCount = 0
 
-    if (isLineNotEmpty && isLineAFullComment) {
+  codeLines.forEach((line, index) => {
+    if (line.textContent.trim() === '') {
+      consecutiveEmptyLineCount++
+    } else {
+      consecutiveEmptyLineCount = 0
+    }
+
+    if (consecutiveEmptyLineCount > 1) {
       line.classList.add('hidden')
       linesNumbers[index].classList.add('hidden')
     }
-
-    line.textContent = newText
   })
 }
 
@@ -148,7 +155,8 @@ export function setupHideCommentsButton(buttonId, containerId, isaType) {
     if (commentsAreHidden) {
       location.reload()
     } else {
-      hideComments(codeLines, linesNumbers, commentSymbol)
+      hideComments(codeLines, commentSymbol)
+      hideConsecutiveEmptyLines(codeLines, linesNumbers)
       toggleButton.dataset.hidden = 'true'
       toggleButton.textContent = '[show_comments]'
     }
