@@ -113,21 +113,39 @@ export function removeComments(code, commentStarter) {
   return cleanedCode
 }
 
-function restoreComments(codeLines) {
+function restoreComments(codeLines, linesNumbers) {
   codeLines.forEach(line => {
     const originalText = line.getAttribute('data-original-text')
+
     if (originalText !== null) {
       line.textContent = originalText
       line.removeAttribute('data-original-text')
     }
+
+    line.classList.remove('hidden')
+  })
+
+  linesNumbers.forEach(number => {
+    number.classList.remove('hidden')
   })
 }
 
-function hideComments(codeLines, commentStarter) {
-  codeLines.forEach(line => {
+function hideComments(codeLines, linesNumbers, commentStarter) {
+  codeLines.forEach((line, index) => {
     const originalText = line.textContent
     line.setAttribute('data-original-text', originalText)
-    line.textContent = removeComments(originalText, commentStarter)
+
+    const newText = removeComments(originalText, commentStarter)
+
+    const isLineNotEmpty = line.textContent.trim() !== ''
+    const isLineAFullComment = newText.trim() === ''
+
+    if (isLineNotEmpty && isLineAFullComment) {
+      line.classList.add('hidden')
+      linesNumbers[index].classList.add('hidden')
+    }
+
+    line.textContent = newText
   })
 }
 
@@ -142,14 +160,16 @@ export function setupHideCommentsButton(buttonId, containerId, isaType) {
 
   toggleButton.addEventListener('click', () => {
     const codeLines = codeContainer.querySelectorAll('.code-line')
+    const linesNumbers = codeContainer.querySelectorAll('.line-number')
+
     const commentsAreHidden = toggleButton.dataset.hidden === 'true'
 
     if (commentsAreHidden) {
-      restoreComments(codeLines)
+      restoreComments(codeLines, linesNumbers)
       toggleButton.dataset.hidden = 'false'
       toggleButton.textContent = '[hide_comments]'
     } else {
-      hideComments(codeLines, commentSymbol)
+      hideComments(codeLines, linesNumbers, commentSymbol)
       toggleButton.dataset.hidden = 'true'
       toggleButton.textContent = '[show_comments]'
     }
