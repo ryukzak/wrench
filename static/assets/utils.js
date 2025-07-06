@@ -113,28 +113,9 @@ export function removeComments(code, commentStarter) {
   return cleanedCode
 }
 
-function restoreComments(codeLines, linesNumbers) {
-  codeLines.forEach(line => {
-    const originalText = line.getAttribute('data-original-text')
-
-    if (originalText !== null) {
-      line.textContent = originalText
-      line.removeAttribute('data-original-text')
-    }
-
-    line.classList.remove('hidden')
-  })
-
-  linesNumbers.forEach(number => {
-    number.classList.remove('hidden')
-  })
-}
-
 function hideComments(codeLines, linesNumbers, commentStarter) {
   codeLines.forEach((line, index) => {
     const originalText = line.textContent
-    line.setAttribute('data-original-text', originalText)
-
     const newText = removeComments(originalText, commentStarter)
 
     const isLineNotEmpty = line.textContent.trim() !== ''
@@ -165,9 +146,7 @@ export function setupHideCommentsButton(buttonId, containerId, isaType) {
     const commentsAreHidden = toggleButton.dataset.hidden === 'true'
 
     if (commentsAreHidden) {
-      restoreComments(codeLines, linesNumbers)
-      toggleButton.dataset.hidden = 'false'
-      toggleButton.textContent = '[hide_comments]'
+      location.reload()
     } else {
       hideComments(codeLines, linesNumbers, commentSymbol)
       toggleButton.dataset.hidden = 'true'
