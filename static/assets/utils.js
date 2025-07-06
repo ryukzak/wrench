@@ -119,7 +119,6 @@ function removeComments(code, commentStarter) {
   return cleanedCode
 }
 
-// Shows original code with comments
 function restoreComments(codeLines) {
   codeLines.forEach(line => {
     const originalText = line.getAttribute('data-original-text')
@@ -130,7 +129,6 @@ function restoreComments(codeLines) {
   })
 }
 
-// Hides comments in code
 function hideComments(codeLines, commentStarter) {
   codeLines.forEach(line => {
     const originalText = line.textContent
