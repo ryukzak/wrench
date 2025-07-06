@@ -17,6 +17,7 @@ import testcases.examples  # noqa: F401
 import testcases.mathematics  # noqa: F401
 import testcases.bitwise  # noqa: F401
 import testcases.string  # noqa: F401
+import testcases.complex  # noqa: F401
 
 
 def python_assert_string(name, params, results):
@@ -189,9 +190,10 @@ def inf_shuffle(xs):
 
 
 def fun_shuffle(xs):
-    xs = list(xs)
+    a, b, c, d = xs
+    xs = [a, b, c]
     random.shuffle(xs)
-    return xs
+    return xs + [d]
 
 
 def gen_variants(cases):
@@ -200,6 +202,7 @@ def gen_variants(cases):
         inf_shuffle(categories["String Manipulation"]),
         inf_shuffle(categories["Bitwise Operations"]),
         inf_shuffle(categories["Mathematics"]),
+        inf_shuffle(categories["Complex Tasks"]),
     ):
         yield fun_shuffle(e)
 
@@ -207,16 +210,16 @@ def gen_variants(cases):
 def generate_variants(n, fn):
     variants = [next(gen_variants(TEST_CASES)) for _ in range(n)]
     distribution = {}
-    for a, b, c in variants:
-        distribution[(a, b, c)] = distribution.get((a, b, c), 0) + 1
+    for a, b, c, d in variants:
+        distribution[(a, b, c, d)] = distribution.get((a, b, c, d), 0) + 1
     grouped_by_rep = {}
     for k, v in distribution.items():
         grouped_by_rep[v] = grouped_by_rep.get(v, 0) + 1
     print("Generate random variants to csv file:", grouped_by_rep)
     with open(fn, "w") as f:
-        f.write("acc32,f32a,risc-iv-32\n")
-        for a, b, c in variants:
-            f.write(f"{a},{b},{c}\n")
+        f.write("acc32,f32a,risc-iv-32,m68k\n")
+        for a, b, c, d in variants:
+            f.write(f"{a},{b},{c},{d}\n")
 
 
 if __name__ == "__main__":
