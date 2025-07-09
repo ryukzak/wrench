@@ -114,7 +114,7 @@ export function removeComments(code, commentStarter) {
 }
 
 function hideComments(codeLines, commentStarter) {
-  codeLines.forEach((line) => {
+  codeLines.forEach(line => {
     const originalText = line.textContent
     line.textContent = removeComments(originalText, commentStarter)
   })
