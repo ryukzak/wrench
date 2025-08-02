@@ -5,11 +5,8 @@ from testcases.core import (
     Words2Words,
     TEST_CASES,
     read_line,
-    pbuf,
-    cbuf,
     cstr,
 )
-import itertools
 import base64
 
 ###########################################################

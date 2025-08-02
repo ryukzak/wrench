@@ -1,7 +1,7 @@
 .PHONY : test build format format-check format-asm-check format-asm \
          format lint lint-fix clean build-image-local server-run \
          test-examples generate-variants update-golden fix markdown-fix \
-         builder-image edge-image release-image
+         builder-image edge-image release-image format-python lint-python lint-fix-python
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
@@ -122,7 +122,7 @@ fix: lint-fix format update-golden markdown-fix
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 markdown-fix:
-	markdownlint . -c .markdownlint.yaml --fix
+	markdownlint . .rules -c .markdownlint.yaml --fix
 
 format: format-asm-fix markdown-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
@@ -152,6 +152,15 @@ lint-fix:
 lint:
 	hlint $(HS_SRC_DIR)
 	ruff check script
+
+format-python:
+	ruff format script
+
+lint-python:
+	ruff check script
+
+lint-fix-python:
+	ruff check script --fix
 
 clean:
 	stack clean
