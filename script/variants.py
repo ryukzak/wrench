@@ -138,8 +138,8 @@ def generate_wrench_test_cases(conf_name, case):
     return f"""name: {conf_name}
 limit: {case.limit}
 memory_size: 0x1000
-input_streams:
-{case.yaml_input_streams()}
+memory_mapped_io:
+{case.yaml_memory_mapped_io()}
 reports:
   - name: Check results
     slice: last

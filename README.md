@@ -10,8 +10,6 @@ This is an educational project designed to explore different types of processor 
 
 Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237)
 
-<!-- TODO: rename input_streams into io_streams -->
-
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 

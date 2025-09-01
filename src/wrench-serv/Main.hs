@@ -53,7 +53,7 @@ app conf = serve (Proxy :: Proxy API) (server conf)
 type API =
     "submit-form" :> GetForm
         :<|> "submit" :> SubmitForm
-        :<|> "result" :> GetReport
+        :<|> "report" :> GetReport
         :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" Text] NoContent)
 
@@ -166,8 +166,10 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
                         else Nothing
                 }
     liftIO $ trackEvent conf event
+    let locationHeader = ("Location", "/report/" <> show guid)
+        cookieHeader = ("Set-Cookie", encodeUtf8 $ trackCookie track)
     throwError
-        $ err301{errHeaders = [("Location", "/result/" <> show guid), ("Set-Cookie", encodeUtf8 $ trackCookie track)]}
+        $ err301{errHeaders = [locationHeader, cookieHeader]}
 
 type GetReport =
     Header "Cookie" Text

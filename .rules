@@ -38,6 +38,8 @@ This ensures:
 
 ### Haskell Development Workflow
 
+- If you have a problem with golden tests, run `make golden-fix` (but check their change relevance).
+
 After making changes to Haskell code:
 
 ```bash
@@ -45,6 +47,10 @@ make format lint-fix test
 ```
 
 ### Markdown Documentation Workflow
+
+- After changes in `*.md` files run `make markdown-fix`.
+- Tables in `*.md` files should be formatted (column alignment).
+- Use 4 spaces for indentation in `*.md` files.
 
 After making changes to `*.md` or `.rules` files:
 
