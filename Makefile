@@ -1,7 +1,7 @@
-.PHONY : test build format format-check format-asm-check format-asm-fix \
+.PHONY : test build format format-check format-asm-check format-asm \
          format lint lint-fix clean build-image-local server-run \
          test-examples generate-variants update-golden fix markdown-fix \
-         builder-image edge-image release-image
+         builder-image edge-image release-image format-python lint-python lint-fix-python
 
 VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
@@ -24,6 +24,9 @@ all: format lint-fix test test-serv
 
 build:
 	stack build --copy-bins
+
+build-fmt:
+	stack build --copy-bins :wrench-fmt
 
 run-server: build generate-variants
 	stack exec wrench-serv
@@ -119,7 +122,7 @@ fix: lint-fix format update-golden markdown-fix
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 markdown-fix:
-	markdownlint . -c .markdownlint.yaml --fix
+	markdownlint . .rules -c .markdownlint.yaml --fix
 
 format: format-asm-fix markdown-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
@@ -127,13 +130,13 @@ format: format-asm-fix markdown-fix
 	prettier -w static/
 	yamlfmt package.yaml example test .github/workflows
 
-format-asm-fix: build
+format-asm: build-fmt
 	stack exec wrench-fmt -- --inplace --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
 	stack exec wrench-fmt -- --inplace --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
 	stack exec wrench-fmt -- --inplace --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --inplace --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 
-format-asm-check: build
+format-asm-check: build-fmt
 	stack exec wrench-fmt -- --check   --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
 	stack exec wrench-fmt -- --check   --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
 	stack exec wrench-fmt -- --check   --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
@@ -149,6 +152,15 @@ lint-fix:
 lint:
 	hlint $(HS_SRC_DIR)
 	ruff check script
+
+format-python:
+	ruff format script
+
+lint-python:
+	ruff check script
+
+lint-fix-python:
+	ruff check script --fix
 
 clean:
 	stack clean

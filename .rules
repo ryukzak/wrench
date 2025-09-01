@@ -1,5 +1,61 @@
-# Markdown rules
+# Rules for AI Agents Working on Wrench Project
 
-- After changes in `*.md` files run `make markdown-fix`.
-- Tables in `*.md` files should be formatted (column alignment).
-- Use 4 spaces for indentation in `*.md` files.
+## Overview
+
+Wrench is an educational computer architecture simulation tool written in Haskell with Python scripts for test generation. This document outlines development workflows, code standards, and best practices for AI agents working on the project.
+
+## Project Structure
+
+```text
+wrench/
+├── src/                   # Haskell source code
+├── script/                # Python scripts and test generation
+│   ├── testcases/         # Test case definitions by category
+│   └── variants.py        # Main variant generation script
+├── variants/              # Auto-generated test variants
+├── docs/                  # Documentation (Markdown)
+├── example/               # Example assembly programs
+├── test/                  # Haskell test suite
+├── static/                # Web UI assets
+└── variants.md            # Auto-generated variant documentation
+```
+
+## Development Workflows
+
+### Python Development Workflow
+
+After making **any** changes to Python scripts in the `script/` directory:
+
+```bash
+make generate-variants format-python lint-fix-python
+```
+
+This ensures:
+
+1. `generate-variants` - Regenerates variant test cases and documentation
+2. `format-python` - Formats Python code using ruff
+3. `lint-fix-python` - Fixes linting issues automatically
+
+### Haskell Development Workflow
+
+After making changes to Haskell code:
+
+```bash
+make format lint-fix test
+```
+
+### Markdown Documentation Workflow
+
+After making changes to `*.md` or `.rules` files:
+
+```bash
+make markdown-fix
+```
+
+### Complete Development Cycle
+
+For comprehensive changes affecting multiple file types:
+
+```bash
+make fix  # Runs: lint-fix format update-golden markdown-fix
+```
