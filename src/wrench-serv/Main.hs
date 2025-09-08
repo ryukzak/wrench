@@ -239,15 +239,15 @@ redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]
 
 sortFiles :: [FilePath] -> [FilePath]
 sortFiles = sortBy compareFiles
-  where
-    compareFiles a b =
-      let nameA = takeBaseName a
-          nameB = takeBaseName b
-      in case (reads nameA :: [(Int,String)], reads nameB :: [(Int,String)]) of
-           ([(nA, "")], [(nB, "")]) -> compare nA nB
-           ([(_, "")], _)          -> LT
-           (_, [(_, "")])          -> GT
-           _                       -> compare nameA nameB
+    where
+        compareFiles a b =
+            let nameA = takeBaseName a
+                nameB = takeBaseName b
+             in case (reads nameA :: [(Int, String)], reads nameB :: [(Int, String)]) of
+                    ([(nA, "")], [(nB, "")]) -> compare nA nB
+                    ([(_, "")], _) -> LT
+                    (_, [(_, "")]) -> GT
+                    _ -> compare nameA nameB
 
 listTextCases :: FilePath -> IO [FilePath]
 listTextCases path = do
