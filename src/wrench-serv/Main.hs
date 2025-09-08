@@ -19,7 +19,7 @@ import Servant
 import Servant.HTML.Lucid (HTML)
 import System.Directory (doesFileExist, listDirectory)
 import System.Exit (ExitCode (ExitSuccess))
-import System.FilePath (takeFileName, (</>))
+import System.FilePath (takeBaseName, takeFileName, (</>))
 import Wrench.Misc (wrenchVersion)
 import WrenchServ.Config
 import WrenchServ.Simulation
@@ -237,11 +237,23 @@ getReport conf@Config{cStoragePath} cookie guid = do
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
 
+sortFiles :: [FilePath] -> [FilePath]
+sortFiles = sortBy compareFiles
+  where
+    compareFiles a b =
+      let nameA = takeBaseName a
+          nameB = takeBaseName b
+      in case (reads nameA :: [(Int,String)], reads nameB :: [(Int,String)]) of
+           ([(nA, "")], [(nB, "")]) -> compare nA nB
+           ([(_, "")], _)          -> LT
+           (_, [(_, "")])          -> GT
+           _                       -> compare nameA nameB
+
 listTextCases :: FilePath -> IO [FilePath]
 listTextCases path = do
     contents <- listDirectory path
     files <- filterM doesFileExist (map (path </>) contents)
-    return $ sort $ filter (isSuffixOf ".yaml" . toText) $ map takeFileName files
+    return $ sortFiles $ filter (isSuffixOf ".yaml" . toText) $ map takeFileName files
 
 maybeReadFile :: FilePath -> IO (Maybe Text)
 maybeReadFile path = do
