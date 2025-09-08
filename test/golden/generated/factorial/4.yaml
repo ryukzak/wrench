@@ -1,4 +1,4 @@
-name: assert factorial(7) == 5040
+name: "assert factorial(7) == 5040"
 limit: 2000
 memory_size: 0x1000
 memory_mapped_io:

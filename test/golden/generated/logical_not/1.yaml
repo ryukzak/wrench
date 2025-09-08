@@ -1,4 +1,4 @@
-name: assert logical_not(True) == False
+name: "assert logical_not(True) == False"
 limit: 2000
 memory_size: 0x1000
 memory_mapped_io:

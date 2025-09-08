@@ -1,4 +1,4 @@
-name: assert get_put_char('\0\n') == ('\0', '\n')
+name: "assert get_put_char('\0\n') == ('\0', '\n')"
 limit: 2000
 memory_size: 0x1000
 memory_mapped_io:

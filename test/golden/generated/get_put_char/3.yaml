@@ -1,4 +1,4 @@
-name: assert get_put_char('C') == ('C', '')
+name: "assert get_put_char('C') == ('C', '')"
 limit: 2000
 memory_size: 0x1000
 memory_mapped_io:

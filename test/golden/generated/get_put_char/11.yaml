@@ -1,4 +1,4 @@
-name: assert get_put_char('XZ') == ([-1], 'Z')
+name: "assert get_put_char('XZ') == ([-1], 'Z')"
 limit: 2000
 memory_size: 0x1000
 memory_mapped_io:
