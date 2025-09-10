@@ -124,7 +124,7 @@ fix: lint-fix format update-golden markdown-fix
 markdown-fix:
 	markdownlint . .rules -c .markdownlint.yaml --fix
 
-format: format-asm-fix markdown-fix
+format: format-asm markdown-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
 	prettier -w static/
