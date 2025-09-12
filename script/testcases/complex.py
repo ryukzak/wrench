@@ -1138,6 +1138,7 @@ TEST_CASES["text_word_counter"] = TestCase(
             "x y z x y z x y z x y z x y z x y z x y z x y z\n",
             "8 8 8",
             "",
+            limit=5000,
         ),
         String2String(
             "a b c d e f g h i j k l m\n",
