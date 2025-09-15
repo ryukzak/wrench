@@ -549,8 +549,17 @@ def format_string(input):
                 integers.append(parsed_int)
                 line_idx += 1
             except ValueError:
-                # Calculate remaining input from the failed line
-                remaining = "\n".join(lines[line_idx:])
+                # Check if the line is empty (missing input) or invalid
+                if lines[line_idx] == "":
+                    # Empty line - consume it and return what's after
+                    remaining = (
+                        "\n".join(lines[line_idx + 1 :])
+                        if line_idx + 1 < len(lines)
+                        else ""
+                    )
+                else:
+                    # Non-empty invalid line - include it in remaining
+                    remaining = "\n".join(lines[line_idx:])
                 return [-1], remaining
 
         # Format the string
