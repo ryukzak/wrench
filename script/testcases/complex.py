@@ -1294,7 +1294,7 @@ TEST_CASES["format_string"] = TestCase(
             "123\n",
         ),
         String2String(
-            "Missing int %d\n",
+            "Missing int %d\n\n",
             [-1],
             "",
         ),
