@@ -800,11 +800,13 @@ TEST_CASES["rle_decompress"] = TestCase(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 15 + "\n",
             "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddd",
             "",
+            limit=4000,
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 16 + "\n",
             [overflow_error_value],
             "\n",
+            limit=4000,
         ),
     ],
     is_variant=True,
