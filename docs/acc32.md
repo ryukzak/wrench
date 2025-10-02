@@ -52,6 +52,11 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Description:** Store the accumulator value into a specific address.
     - **Operation:** `mem[<address>] <- acc`
 
+- **Load Acc**
+    - **Syntax:** `load_acc`
+    - **Description:** Load a value from an address in acc into the accumulator.
+    - **Operation:** `acc <- mem[acc]`
+
 - **Load Indirect**
     - **Syntax:** `load_ind <address>`
     - **Description:** Load a value from an indirect address into the accumulator.

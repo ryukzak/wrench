@@ -7,7 +7,7 @@
 37:	const_FF
 41:	_start
 59:	while
-104:	end
+103:	end
 ---
 mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
 mem[17..20]: 	00 00 00 00	@"i"
@@ -20,17 +20,18 @@ mem[41..45]: 	LoadImm 0 	@_start
 mem[46..50]: 	StoreAddr 21
 mem[51..55]: 	LoadAddr 29
 mem[56..58]: 	Store (-39)
-mem[59..63]: 	Beqz 104 	@while
-mem[64..68]: 	LoadInd 21
-mem[69..71]: 	And 37
-mem[72..76]: 	StoreInd 25
-mem[77..81]: 	LoadAddr 21
-mem[82..84]: 	Add 33
-mem[85..89]: 	StoreAddr 21
-mem[90..92]: 	Load (-73)
-mem[93..95]: 	Sub 33
-mem[96..98]: 	Store (-79)
-mem[99..103]: 	Jmp 59
-mem[104..104]: 	Halt 	@end
-mem[105..999]: 	( 00 )
+mem[59..63]: 	Beqz 103 	@while
+mem[64..66]: 	Load (-43)
+mem[67..67]: 	LoadAcc
+mem[68..70]: 	And 37
+mem[71..75]: 	StoreInd 25
+mem[76..80]: 	LoadAddr 21
+mem[81..83]: 	Add 33
+mem[84..88]: 	StoreAddr 21
+mem[89..91]: 	Load (-72)
+mem[92..94]: 	Sub 33
+mem[95..97]: 	Store (-78)
+mem[98..102]: 	Jmp 59
+mem[103..103]: 	Halt 	@end
+mem[104..999]: 	( 00 )
 ---

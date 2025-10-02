@@ -13,7 +13,6 @@ const_FF:        .word  0xFF
     .text
 
 _start:
-
     load_imm     buf
     store_addr   ptr                         ; ptr <- buf
 
@@ -23,7 +22,8 @@ _start:
 while:
     beqz         end                         ; while (i != 0) {
 
-    load_ind     ptr
+    load         ptr
+    load_acc
     and          const_FF
     store_ind    output_addr                 ;     *output_addr = *ptr & 0xFF
 

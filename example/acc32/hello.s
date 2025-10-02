@@ -22,7 +22,8 @@ _start:
 while:
     beqz         end                         ; while (i != 0) {
 
-    load_ind     ptr
+    load         ptr
+    load_acc
     and          const_FF
     store_ind    output_addr                 ;     *output_addr <- *ptr & const_FF
 

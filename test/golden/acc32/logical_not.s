@@ -8,7 +8,8 @@ const_1:         .word  0x01
     .text
 
 _start:
-    load_ind     input_addr                  ; acc <- m[input_addr]
+    load         input_addr
+    load_acc
     not                                      ; acc <- ~acc
     and          const_1
     store_ind    output_addr                 ; m[output_addr] <- acc

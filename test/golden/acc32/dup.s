@@ -7,7 +7,8 @@ output_addr:     .word  0x84
 
 _start:
 
-    load_ind     input_addr
+    load         input_addr
+    load_acc
     store_ind    output_addr
     store_ind    output_addr
     halt

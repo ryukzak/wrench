@@ -9,7 +9,8 @@ const_1:         .word  0x01               ; Constant 1
     .text
 
 _start:
-    load_ind     input_addr                  ; acc = mem[mem[input_addr]]
+    load         input_addr
+    load_acc
     store        n                           ; mem[n] = acc
 
     ble          not_in_domain

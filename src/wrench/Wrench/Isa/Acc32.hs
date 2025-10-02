@@ -31,6 +31,8 @@ data Isa w l
       Load l
     | -- | Syntax: @load_ind <address>@ Load a value from an indirect address into the accumulator.
       LoadInd l
+    | -- | Syntax: @load_acc@ Load a value from an address in acc into the accumulator.
+      LoadAcc
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
     | -- | Syntax: @store <offset>@ Store the accumulator value into a relative address.
@@ -90,6 +92,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             [ LoadImm <$> cmdMnemonic1 "load_imm" reference
             , LoadAddr <$> cmdMnemonic1 "load_addr" reference
             , LoadInd <$> cmdMnemonic1 "load_ind" reference
+            , cmdMnemonic0 "load_acc" >> return LoadAcc
             , Load <$> cmdMnemonic1 "load" reference16
             , StoreAddr <$> cmdMnemonic1 "store_addr" reference
             , StoreInd <$> cmdMnemonic1 "store_ind" reference
@@ -145,6 +148,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 LoadAddr l -> LoadAddr (deref' f l)
                 Load l -> Load (deref' relF l)
                 LoadInd l -> LoadInd (deref' f l)
+                LoadAcc -> LoadAcc
                 StoreAddr l -> StoreAddr (deref' f l)
                 Store l -> Store (deref' relF l)
                 StoreInd l -> StoreInd (deref' f l)
@@ -176,6 +180,7 @@ instance ByteSize (Isa w l) where
     byteSize LoadImm{} = 5
     byteSize LoadAddr{} = 5
     byteSize LoadInd{} = 5
+    byteSize LoadAcc{} = 1
     byteSize StoreAddr{} = 5
     byteSize StoreInd{} = 5
     byteSize Beqz{} = 5
@@ -299,6 +304,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 value <- getWord $ fromEnum addr
                 setAcc value
                 nextPc
+            LoadAcc -> getAcc >>= getWord . fromEnum >>= setAcc >> nextPc
             StoreAddr a -> getAcc >>= setWord (fromEnum a) >> nextPc
             StoreInd a -> do
                 addr <- getWord $ fromEnum a

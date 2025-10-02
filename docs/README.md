@@ -66,7 +66,7 @@ Comments are used to add explanatory notes to your code. The comment character m
 Everything after the comment character on the same line is ignored by the assembler:
 
 ```assembly
-    load_ind input_addr       ; This is a comment explaining the instruction
+    load_addr input_addr      ; This is a comment explaining the instruction
 ```
 
 ### Labels
