@@ -27,7 +27,7 @@ _start:
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Load indirect
-    load_ind     input_addr                  ; acc <- mem[mem[input_addr]]
+    load     input_addr                  ; acc <- mem[mem[input_addr]]
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Store to address
