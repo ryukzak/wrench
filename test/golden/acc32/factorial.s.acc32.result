@@ -4,40 +4,41 @@
 12:	result
 16:	const_1
 20:	_start
-33:	factorial_begin
-42:	factorial_while
-75:	factorial_end
-84:	not_in_domain
-95:	factorial_overflow
+32:	factorial_begin
+41:	factorial_while
+74:	factorial_end
+83:	not_in_domain
+94:	factorial_overflow
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	00 00 00 00	@"n"
 mem[12..15]: 	01 00 00 00	@"result"
 mem[16..19]: 	01 00 00 00	@"const_1"
-mem[20..24]: 	LoadInd 0 	@_start
-mem[25..27]: 	Store (-17)
-mem[28..32]: 	Blz 84
-mem[33..35]: 	Load (-17) 	@factorial_begin
-mem[36..38]: 	Store (-24)
-mem[39..41]: 	Load (-31)
-mem[42..46]: 	Beqz 75 	@factorial_while
-mem[47..49]: 	Load (-35)
-mem[50..52]: 	Mul 8
-mem[53..57]: 	Bvs 95
-mem[58..60]: 	Store (-46)
-mem[61..63]: 	Load (-53)
-mem[64..66]: 	Sub 16
-mem[67..69]: 	Store (-59)
-mem[70..74]: 	Jmp 42
-mem[75..77]: 	Load (-63) 	@factorial_end
-mem[78..82]: 	StoreInd 4
-mem[83..83]: 	Halt
-mem[84..88]: 	LoadImm (-1) 	@not_in_domain
-mem[89..93]: 	StoreInd 4
-mem[94..94]: 	Halt
-mem[95..99]: 	LoadImm (-858993460) 	@factorial_overflow
-mem[100..104]: 	StoreInd 4
-mem[105..105]: 	Halt
-mem[106..999]: 	( 00 )
+mem[20..22]: 	Load (-20) 	@_start
+mem[23..23]: 	LoadAcc
+mem[24..26]: 	Store (-16)
+mem[27..31]: 	Blz 83
+mem[32..34]: 	Load (-16) 	@factorial_begin
+mem[35..37]: 	Store (-23)
+mem[38..40]: 	Load (-30)
+mem[41..45]: 	Beqz 74 	@factorial_while
+mem[46..48]: 	Load (-34)
+mem[49..51]: 	Mul 8
+mem[52..56]: 	Bvs 94
+mem[57..59]: 	Store (-45)
+mem[60..62]: 	Load (-52)
+mem[63..65]: 	Sub 16
+mem[66..68]: 	Store (-58)
+mem[69..73]: 	Jmp 41
+mem[74..76]: 	Load (-62) 	@factorial_end
+mem[77..81]: 	StoreInd 4
+mem[82..82]: 	Halt
+mem[83..87]: 	LoadImm (-1) 	@not_in_domain
+mem[88..92]: 	StoreInd 4
+mem[93..93]: 	Halt
+mem[94..98]: 	LoadImm (-858993460) 	@factorial_overflow
+mem[99..103]: 	StoreInd 4
+mem[104..104]: 	Halt
+mem[105..999]: 	( 00 )
 ---

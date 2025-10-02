@@ -13,7 +13,8 @@ ffffffff:        .word  0xffffffff
 
 _start:
 
-    load_ind     input_addr
+    load         input_addr
+    load_acc
 
 
     ; if 'x' is the input, then acc = 0xffffffff

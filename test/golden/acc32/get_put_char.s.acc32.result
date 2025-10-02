@@ -6,8 +6,8 @@
 20:	cccccccc
 24:	ffffffff
 28:	_start
-70:	x_case
-81:	y_case
+69:	x_case
+80:	y_case
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -16,21 +16,22 @@ mem[12..15]: 	58 00 00 00	@"x"
 mem[16..19]: 	59 00 00 00	@"y"
 mem[20..23]: 	cc cc cc cc	@"cccccccc"
 mem[24..27]: 	ff ff ff ff	@"ffffffff"
-mem[28..32]: 	LoadInd 0 	@_start
-mem[33..37]: 	StoreAddr 8
-mem[38..40]: 	Sub 12
-mem[41..45]: 	Beqz 70
-mem[46..50]: 	LoadAddr 8
-mem[51..53]: 	Sub 16
-mem[54..58]: 	Beqz 81
-mem[59..63]: 	LoadAddr 8
-mem[64..68]: 	StoreInd 4
-mem[69..69]: 	Halt
-mem[70..74]: 	LoadAddr 24 	@x_case
-mem[75..79]: 	StoreInd 4
-mem[80..80]: 	Halt
-mem[81..85]: 	LoadAddr 20 	@y_case
-mem[86..90]: 	StoreInd 4
-mem[91..91]: 	Halt
-mem[92..999]: 	( 00 )
+mem[28..30]: 	Load (-28) 	@_start
+mem[31..31]: 	LoadAcc
+mem[32..36]: 	StoreAddr 8
+mem[37..39]: 	Sub 12
+mem[40..44]: 	Beqz 69
+mem[45..49]: 	LoadAddr 8
+mem[50..52]: 	Sub 16
+mem[53..57]: 	Beqz 80
+mem[58..62]: 	LoadAddr 8
+mem[63..67]: 	StoreInd 4
+mem[68..68]: 	Halt
+mem[69..73]: 	LoadAddr 24 	@x_case
+mem[74..78]: 	StoreInd 4
+mem[79..79]: 	Halt
+mem[80..84]: 	LoadAddr 20 	@y_case
+mem[85..89]: 	StoreInd 4
+mem[90..90]: 	Halt
+mem[91..999]: 	( 00 )
 ---

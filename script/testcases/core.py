@@ -48,7 +48,7 @@ def yaml_symbol_nums(s, sep=","):
 def yaml_symbols_innr(s):
     if isinstance(s, int):
         return "\\0" if s == 0 else "?"
-    replaces ={"\\x00": "\\0", "\\x0A": "\\n"}
+    replaces = {"\\x00": "\\0", "\\x0A": "\\n"}
 
     s = repr(s).strip("'")
     for k, v in replaces.items():

@@ -6,10 +6,11 @@
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
 mem[8..11]: 	01 00 00 00	@"const_1"
-mem[12..16]: 	LoadInd 0 	@_start
-mem[17..17]: 	Not
-mem[18..20]: 	And 8
-mem[21..25]: 	StoreInd 4
-mem[26..26]: 	Halt
-mem[27..999]: 	( 00 )
+mem[12..14]: 	Load (-12) 	@_start
+mem[15..15]: 	LoadAcc
+mem[16..16]: 	Not
+mem[17..19]: 	And 8
+mem[20..24]: 	StoreInd 4
+mem[25..25]: 	Halt
+mem[26..999]: 	( 00 )
 ---
