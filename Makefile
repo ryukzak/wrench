@@ -118,7 +118,7 @@ update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 
-fix: lint-fix format update-golden markdown-fix
+fix: lint-fix format update-golden test test-examples
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 markdown-fix:
