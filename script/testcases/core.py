@@ -47,12 +47,16 @@ def yaml_symbol_nums(s, sep=","):
 
 def yaml_symbols_innr(s):
     if isinstance(s, int):
-        return "?"
-    s = repr(s).strip("'").replace("\\x00", "\\0").replace("\\x0A", "\\n")
-    for code in [repr(chr(i)).strip("'") for i in range(32)]:
-        if code == "\\n":
+        return "\\0" if s == 0 else "?"
+    replaces ={"\\x00": "\\0", "\\x0A": "\\n"}
+
+    s = repr(s).strip("'")
+    for k, v in replaces.items():
+        s = s.replace(k, v)
+    for sym in [repr(chr(i)).strip("'") for i in range(32)]:
+        if sym == "\\n":
             continue
-        s = s.replace(code, "?")
+        s = s.replace(sym, "?")
     return s
 
 
