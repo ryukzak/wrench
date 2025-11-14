@@ -17,6 +17,8 @@ import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import System.IO.Unsafe (unsafePerformIO)
+import System.Random (randomRIO)
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
@@ -413,17 +415,23 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 )
 
     instructionExecute _pc Isa{memOp, alu1, alu2, ctrlOp} = do
-        -- Execute memory op
-        execMem memOp
-        -- Execute ALU1
-        execAlu alu1
-        -- Execute ALU2
-        execAlu alu2
-        -- Execute control op, which may set PC
+        -- Randomly shuffle execution order of slots
+        let ops = [execMem memOp, execAlu alu1, execAlu alu2]
+        let shuffledOps = unsafePerformIO $ shuffleList ops
+        -- Execute operations in random order
+        forM_ shuffledOps id
+        -- Execute control op, which may set PC (always executed last)
         branched <- execCtrl ctrlOp
         -- If no branch taken, advance PC
         unless branched nextPc
         where
+            shuffleList :: [a] -> IO [a]
+            shuffleList [] = return []
+            shuffleList xs = do
+                idx <- randomRIO (0, length xs - 1)
+                let (before, item:after) = splitAt idx xs
+                rest <- shuffleList (before ++ after)
+                return (item : rest)
             execMem NopM = return ()
             execMem (Lw lwRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
