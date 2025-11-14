@@ -79,6 +79,7 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
+      - random
       - wrench
 
   wrench-serv:
