@@ -3,6 +3,7 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
+-- | Inspired by VLIWIv architectures and RISC-V simplifications
 module Wrench.Isa.VliwIv (
     Isa (..),
     MachineState (..),
@@ -35,76 +36,46 @@ import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWit
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
--- * ISA
+-- * Registers
 
 data Register
-    = Zero
-    | Ra
-    | Sp
-    | Gp
-    | Tp
-    | T0
-    | T1
-    | T2
-    | S0Fp
-    | S1
-    | A0
-    | A1
-    | A2
-    | A3
-    | A4
-    | A5
-    | A6
-    | A7
-    | S2
-    | S3
-    | S4
-    | S5
-    | S6
-    | S7
-    | S8
-    | S9
-    | S10
-    | S11
-    | T3
-    | T4
-    | T5
-    | T6
+    = X0  -- Zero
+    | X1  -- Ra
+    | X2  -- Sp
+    | X3  -- Gp
+    | X4  -- Tp
+    | X5  -- T0
+    | X6  -- T1
+    | X7  -- T2
+    | X8  -- S0Fp
+    | X9  -- S1
+    | X10 -- A0
+    | X11 -- A1
+    | X12 -- A2
+    | X13 -- A3
+    | X14 -- A4
+    | X15 -- A5
+    | X16 -- A6
+    | X17 -- A7
+    | X18 -- S2
+    | X19 -- S3
+    | X20 -- S4
+    | X21 -- S5
+    | X22 -- S6
+    | X23 -- S7
+    | X24 -- S8
+    | X25 -- S9
+    | X26 -- S10
+    | X27 -- S11
+    | X28 -- T3
+    | X29 -- T4
+    | X30 -- T5
+    | X31 -- T6
     deriving (Eq, Generic, Read, Show)
 
 allRegisters =
-    [ Zero
-    , Ra
-    , Sp
-    , Gp
-    , Tp
-    , T0
-    , T1
-    , T2
-    , S0Fp
-    , S1
-    , A0
-    , A1
-    , A2
-    , A3
-    , A4
-    , A5
-    , A6
-    , A7
-    , S2
-    , S3
-    , S4
-    , S5
-    , S6
-    , S7
-    , S8
-    , S9
-    , S10
-    , S11
-    , T3
-    , T4
-    , T5
-    , T6
+    [ X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15,
+      X16, X17, X18, X19, X20, X21, X22, X23, X24, X25, X26, X27, X28, X29, X30, X31
     ]
 
 instance Hashable Register
@@ -112,107 +83,98 @@ instance Hashable Register
 instance (Default w) => Default (HashMap Register w) where
     def = fromList $ map (,def) allRegisters
 
-data Isa w l
-    = -- | Add immediate: rd = rs1 + k
-      Addi {rd, rs1 :: Register, k :: l}
-    | -- | Add: rd = rs1 + rs2
-      Add {rd, rs1, rs2 :: Register}
-    | -- | Subtract: rd = rs1 - rs2
-      Sub {rd, rs1, rs2 :: Register}
-    | -- | Multiply: rd = rs1 * rs2
-      Mul {rd, rs1, rs2 :: Register}
-    | -- | Multiply high: rd = (rs1 * rs2) >> (word size)
-      Mulh {rd, rs1, rs2 :: Register}
-    | -- | Divide: rd = rs1 / rs2
-      Div {rd, rs1, rs2 :: Register}
-    | -- | Remainder: rd = rs1 % rs2
-      Rem {rd, rs1, rs2 :: Register}
-    | -- | Logical shift left: rd = rs1 << rs2 (5 bit)
-      Sll {rd, rs1, rs2 :: Register}
-    | -- | Logical shift right: rd = rs1 >> rs2 (5 bit)
-      Srl {rd, rs1, rs2 :: Register}
-    | -- | Arithmetic shift right: rd = rs1 >> rs2 (5 bit)
-      Sra {rd, rs1, rs2 :: Register}
-    | -- | Bitwise AND: rd = rs1 & rs2
-      And {rd, rs1, rs2 :: Register}
-    | -- | Bitwise OR: rd = rs1 | rs2
-      Or {rd, rs1, rs2 :: Register}
-    | -- | Bitwise XOR: rd = rs1 ^ rs2
-      Xor {rd, rs1, rs2 :: Register}
-    | -- | Move: rd = rs
-      Mv {rd, rs :: Register}
-    | -- | Store word: M[offsetRs1] = rs2
-      Sw {rs2 :: Register, offsetRs1 :: MemRef w}
-    | -- | Store byte: M[offsetRs1] = rs2 (lower 8 bits)
-      Sb {rs2 :: Register, offsetRs1 :: MemRef w}
-    | -- | Load upper immediate: rd = k << 12
-      Lui {rd :: Register, k :: l}
-    | -- | Load word: rd = M[offsetRs1]
-      Lw {rd :: Register, offsetRs1 :: MemRef w}
-    | -- | Jump: PC = PC + k
-      J {k :: l}
-    | -- | Jump and Link: rd = PC + 4, PC += k
-      Jal {rd :: Register, k :: l}
-    | -- | Jump register: PC = rs
-      Jr {rs :: Register}
-    | -- | Branch if equal to zero: if rs1 == 0 then PC += k
-      Beqz {rs1 :: Register, k :: l}
-    | -- | Branch if not equal to zero: if rs1 /= 0 then PC += k
-      Bnez {rs1 :: Register, k :: l}
-    | -- | Branch if greater than: if rs1 > rs2 then PC += k
-      Bgt {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if less than or equal: if rs1 <= rs2 then PC += k
-      Ble {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if greater than (unsigned): if rs1 > rs2 then PC += k
-      Bgtu {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if less than or equal (unsigned): if rs1 <= rs2 then PC += k
-      Bleu {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if equal: if rs1 == rs2 then PC += k
-      Beq {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if not equal: if rs1 /= rs2 then PC += k
-      Bne {rs1, rs2 :: Register, k :: l}
-    | -- | Halt the machine
-      Halt
+-- * Slot Operations
+
+data MemoryOp w l
+    = Lw {lwRd :: Register, lwOffsetRs1 :: MemRef w}
+    | Sw {swRs2 :: Register, swOffsetRs1 :: MemRef w}
+    | Sb {sbRs2 :: Register, sbOffsetRs1 :: MemRef w}
+    | NopM
     deriving (Show)
 
--- * Parser
+data AluOp w l
+    = Addi {addiRd, addiRs1 :: Register, addiK :: l}
+    | Add {addRd, addRs1, addRs2 :: Register}
+    | Sub {subRd, subRs1, subRs2 :: Register}
+    | Mul {mulRd, mulRs1, mulRs2 :: Register}
+    | Mulh {mulhRd, mulhRs1, mulhRs2 :: Register}
+    | Div {divRd, divRs1, divRs2 :: Register}
+    | Rem {remRd, remRs1, remRs2 :: Register}
+    | Sll {sllRd, sllRs1, sllRs2 :: Register}
+    | Srl {srlRd, srlRs1, srlRs2 :: Register}
+    | Sra {sraRd, sraRs1, sraRs2 :: Register}
+    | And {andRd, andRs1, andRs2 :: Register}
+    | Or {orRd, orRs1, orRs2 :: Register}
+    | Xor {xorRd, xorRs1, xorRs2 :: Register}
+    | Slti {sltiRd, sltiRs1 :: Register, sltiK :: l}
+    | Lui {luiRd :: Register, luiK :: l}
+    | Mv {mvRd, mvRs :: Register}
+    | NopA
+    deriving (Show)
+
+data ControlOp w l
+    = J {jK :: l}
+    | Jal {jalRd :: Register, jalK :: l}
+    | Jr {jrRs :: Register}
+    | Beqz {beqzRs1 :: Register, beqzK :: l}
+    | Bnez {bnezRs1 :: Register, bnezK :: l}
+    | Bgt {bgtRs1, bgtRs2 :: Register, bgtK :: l}
+    | Ble {bleRs1, bleRs2 :: Register, bleK :: l}
+    | Bgtu {bgtuRs1, bgtuRs2 :: Register, bgtuK :: l}
+    | Bleu {bleuRs1, bleuRs2 :: Register, bleuK :: l}
+    | Beq {beqRs1, beqRs2 :: Register, beqK :: l}
+    | Bne {bneRs1, bneRs2 :: Register, bneK :: l}
+    | Blt {bltRs1, bltRs2 :: Register, bltK :: l}
+    | Halt
+    | NopC
+    deriving (Show)
+
+-- * ISA Bundle
+
+data Isa w l = Isa
+    { memOp :: MemoryOp w l
+    , alu1 :: AluOp w l
+    , alu2 :: AluOp w l
+    , ctrlOp :: ControlOp w l
+    } deriving (Show)
+
+-- * Parser Helpers
 
 register :: Parser Register
 register =
     choice
-        [ string "zero" >> return Zero
-        , string "ra" >> return Ra
-        , string "sp" >> return Sp
-        , string "gp" >> return Gp
-        , string "tp" >> return Tp
-        , string "t0" >> return T0
-        , string "t1" >> return T1
-        , string "t2" >> return T2
-        , string "s0" >> return S0Fp
-        , string "fp" >> return S0Fp
-        , string "s1" >> return S1
-        , string "a0" >> return A0
-        , string "a1" >> return A1
-        , string "a2" >> return A2
-        , string "a3" >> return A3
-        , string "a4" >> return A4
-        , string "a5" >> return A5
-        , string "a6" >> return A6
-        , string "a7" >> return A7
-        , string "s2" >> return S2
-        , string "s3" >> return S3
-        , string "s4" >> return S4
-        , string "s5" >> return S5
-        , string "s6" >> return S6
-        , string "s7" >> return S7
-        , string "s8" >> return S8
-        , string "s9" >> return S9
-        , string "s10" >> return S10
-        , string "s11" >> return S11
-        , string "t3" >> return T3
-        , string "t4" >> return T4
-        , string "t5" >> return T5
-        , string "t6" >> return T6
+        [ string "x0" >> return X0
+        , string "x1" >> return X1
+        , string "x2" >> return X2
+        , string "x3" >> return X3
+        , string "x4" >> return X4
+        , string "x5" >> return X5
+        , string "x6" >> return X6
+        , string "x7" >> return X7
+        , string "x8" >> return X8
+        , string "x9" >> return X9
+        , string "x10" >> return X10
+        , string "x11" >> return X11
+        , string "x12" >> return X12
+        , string "x13" >> return X13
+        , string "x14" >> return X14
+        , string "x15" >> return X15
+        , string "x16" >> return X16
+        , string "x17" >> return X17
+        , string "x18" >> return X18
+        , string "x19" >> return X19
+        , string "x20" >> return X20
+        , string "x21" >> return X21
+        , string "x22" >> return X22
+        , string "x23" >> return X23
+        , string "x24" >> return X24
+        , string "x25" >> return X25
+        , string "x26" >> return X26
+        , string "x27" >> return X27
+        , string "x28" >> return X28
+        , string "x29" >> return X29
+        , string "x30" >> return X30
+        , string "x31" >> return X31
         ]
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
@@ -230,81 +192,113 @@ memRef = choice [regWithOffset, register <&> MemRef 0]
 instance CommentStart (Isa _a _b) where
     commentStart = ";"
 
+parseMemOp :: (MachineWord w) => Parser (MemoryOp w (Ref w))
+parseMemOp = choice
+    [ cmd2args "lw" Lw register memRef
+    , cmd2args "sw" Sw register memRef
+    , cmd2args "sb" Sb register memRef
+    , string "nop" >> return NopM
+    ]
+
+parseAluOp :: (MachineWord w) => Parser (AluOp w (Ref w))
+parseAluOp = choice
+    [ cmd3args "addi" Addi register register referenceWithDirective
+    , cmd3args "add" Add register register register
+    , cmd3args "sub" Sub register register register
+    , cmd3args "mul" Mul register register register
+    , cmd3args "mulh" Mulh register register register
+    , cmd3args "div" Div register register register
+    , cmd3args "rem" Rem register register register
+    , cmd3args "sll" Sll register register register
+    , cmd3args "srl" Srl register register register
+    , cmd3args "sra" Sra register register register
+    , cmd3args "and" And register register register
+    , cmd3args "or" Or register register register
+    , cmd3args "xor" Xor register register register
+    , cmd3args "slti" Slti register register referenceWithDirective
+    , cmd2args "lui" Lui register referenceWithDirective
+    , cmd2args "mv" Mv register register
+    , string "nop" >> return NopA
+    ]
+
+parseCtrlOp :: (MachineWord w) => Parser (ControlOp w (Ref w))
+parseCtrlOp = choice
+    [ cmd1args "j" J reference
+    , cmd2args "jal" Jal register reference
+    , cmd1args "jr" Jr register
+    , cmd2args "beqz" Beqz register reference
+    , cmd2args "bnez" Bnez register reference
+    , cmd3args "bgt" Bgt register register reference
+    , cmd3args "ble" Ble register register reference
+    , cmd3args "bgtu" Bgtu register register reference
+    , cmd3args "bleu" Bleu register register reference
+    , cmd3args "beq" Beq register register reference
+    , cmd3args "bne" Bne register register reference
+    , cmd3args "blt" Blt register register reference
+    , string "halt" >> return Halt
+    , string "nop" >> return NopC
+    ]
+
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
-    mnemonic =
-        hspace *> cmd <* eol' (commentStart @(Isa _ _))
-        where
-            cmd =
-                choice
-                    [ cmd3args "addi" Addi register register referenceWithDirective
-                    , cmd3args "add" Add register register register
-                    , cmd3args "sub" Sub register register register
-                    , cmd3args "mul" Mul register register register
-                    , cmd3args "mulh" Mulh register register register
-                    , cmd3args "div" Div register register register
-                    , cmd3args "rem" Rem register register register
-                    , cmd3args "sll" Sll register register register
-                    , cmd3args "srl" Srl register register register
-                    , cmd3args "sra" Sra register register register
-                    , cmd3args "and" And register register register
-                    , cmd3args "or" Or register register register
-                    , cmd3args "xor" Xor register register register
-                    , cmd2args "mv" Mv register register
-                    , cmd2args "sw" Sw register memRef
-                    , cmd2args "sb" Sb register memRef
-                    , cmd2args "lui" Lui register referenceWithDirective
-                    , cmd2args "lw" Lw register memRef
-                    , cmd1args "j" J reference
-                    , cmd2args "jal" Jal register reference
-                    , cmd1args "jr" Jr register
-                    , cmd2args "beqz" Beqz register reference
-                    , cmd2args "bnez" Bnez register reference
-                    , cmd3args "bgt" Bgt register register reference
-                    , cmd3args "ble" Ble register register reference
-                    , cmd3args "bgtu" Bgtu register register reference
-                    , cmd3args "bleu" Bleu register register reference
-                    , cmd3args "beq" Beq register register reference
-                    , cmd3args "bne" Bne register register reference
-                    , string "halt" >> return Halt
-                    ]
+    mnemonic = do
+        hspace
+        memOp <- parseMemOp
+        hspace >> string "|" >> hspace
+        alu1 <- parseAluOp
+        hspace >> string "|" >> hspace
+        alu2 <- parseAluOp
+        hspace >> string "|" >> hspace
+        ctrlOp <- parseCtrlOp
+        eol' (commentStart @(Isa _ _))
+        return Isa{memOp, alu1, alu2, ctrlOp}
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
-    derefMnemonic f offset i =
-        let relF = fmap (\x -> x - offset) . f
-         in case i of
-                J{k} -> J $ deref' relF k
-                Jal{rd, k} -> Jal rd $ deref' relF k
-                Jr{rs} -> Jr{rs}
-                Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
-                Add{rd, rs1, rs2} -> Add{rd, rs1, rs2}
-                Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
-                Mul{rd, rs1, rs2} -> Mul{rd, rs1, rs2}
-                Mulh{rd, rs1, rs2} -> Mulh{rd, rs1, rs2}
-                Div{rd, rs1, rs2} -> Div{rd, rs1, rs2}
-                Rem{rd, rs1, rs2} -> Rem{rd, rs1, rs2}
-                Sll{rd, rs1, rs2} -> Sll{rd, rs1, rs2}
-                Srl{rd, rs1, rs2} -> Srl{rd, rs1, rs2}
-                Sra{rd, rs1, rs2} -> Sra{rd, rs1, rs2}
-                And{rd, rs1, rs2} -> And{rd, rs1, rs2}
-                Or{rd, rs1, rs2} -> Or{rd, rs1, rs2}
-                Xor{rd, rs1, rs2} -> Xor{rd, rs1, rs2}
-                Mv{rd, rs} -> Mv{rd, rs}
-                Sw{rs2, offsetRs1} -> Sw{rs2, offsetRs1}
-                Sb{rs2, offsetRs1} -> Sb{rs2, offsetRs1}
-                Lui{rd, k} -> Lui{rd, k = deref' f k}
-                Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
-                Beqz{rs1, k} -> Beqz rs1 $ deref' relF k
-                Bnez{rs1, k} -> Bnez rs1 $ deref' relF k
-                Bgt{rs1, rs2, k} -> Bgt rs1 rs2 $ deref' relF k
-                Ble{rs1, rs2, k} -> Ble rs1 rs2 $ deref' relF k
-                Bgtu{rs1, rs2, k} -> Bgtu rs1 rs2 $ deref' relF k
-                Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ deref' relF k
-                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ deref' relF k
-                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
-                Halt -> Halt
+    derefMnemonic f offset i@Isa{memOp, alu1, alu2, ctrlOp} =
+        i { memOp = derefMem f offset memOp
+          , alu1 = derefAlu f offset alu1
+          , alu2 = derefAlu f offset alu2
+          , ctrlOp = derefCtrl f offset ctrlOp
+          }
+        where
+            relF = fmap (\x -> x - offset) . f
+            derefMem _ _ NopM = NopM
+            derefMem _ _ (Lw lwRd lwOffsetRs1) = Lw lwRd lwOffsetRs1
+            derefMem _ _ (Sw swRs2 swOffsetRs1) = Sw swRs2 swOffsetRs1
+            derefMem _ _ (Sb sbRs2 sbOffsetRs1) = Sb sbRs2 sbOffsetRs1
+            derefAlu f _ (Addi addiRd addiRs1 addiK) = Addi addiRd addiRs1 $ deref' f addiK
+            derefAlu f _ (Slti sltiRd sltiRs1 sltiK) = Slti sltiRd sltiRs1 $ deref' f sltiK
+            derefAlu f _ (Lui luiRd luiK) = Lui luiRd $ deref' f luiK
+            derefAlu _ _ (Add addRd addRs1 addRs2) = Add addRd addRs1 addRs2
+            derefAlu _ _ (Sub subRd subRs1 subRs2) = Sub subRd subRs1 subRs2
+            derefAlu _ _ (Mul mulRd mulRs1 mulRs2) = Mul mulRd mulRs1 mulRs2
+            derefAlu _ _ (Mulh mulhRd mulhRs1 mulhRs2) = Mulh mulhRd mulhRs1 mulhRs2
+            derefAlu _ _ (Div divRd divRs1 divRs2) = Div divRd divRs1 divRs2
+            derefAlu _ _ (Rem remRd remRs1 remRs2) = Rem remRd remRs1 remRs2
+            derefAlu _ _ (Sll sllRd sllRs1 sllRs2) = Sll sllRd sllRs1 sllRs2
+            derefAlu _ _ (Srl srlRd srlRs1 srlRs2) = Srl srlRd srlRs1 srlRs2
+            derefAlu _ _ (Sra sraRd sraRs1 sraRs2) = Sra sraRd sraRs1 sraRs2
+            derefAlu _ _ (And andRd andRs1 andRs2) = And andRd andRs1 andRs2
+            derefAlu _ _ (Or orRd orRs1 orRs2) = Or orRd orRs1 orRs2
+            derefAlu _ _ (Xor xorRd xorRs1 xorRs2) = Xor xorRd xorRs1 xorRs2
+            derefAlu _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
+            derefAlu _ _ NopA = NopA
+            derefCtrl _ _ (J jK) = J $ deref' relF jK
+            derefCtrl _ _ (Jal jalRd jalK) = Jal jalRd $ deref' relF jalK
+            derefCtrl _ _ (Jr jrRs) = Jr jrRs
+            derefCtrl _ _ (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ deref' relF beqzK
+            derefCtrl _ _ (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ deref' relF bnezK
+            derefCtrl _ _ (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ deref' relF bgtK
+            derefCtrl _ _ (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ deref' relF bleK
+            derefCtrl _ _ (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ deref' relF bgtuK
+            derefCtrl _ _ (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ deref' relF bleuK
+            derefCtrl _ _ (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ deref' relF beqK
+            derefCtrl _ _ (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ deref' relF bneK
+            derefCtrl _ _ (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ deref' relF bltK
+            derefCtrl _ _ Halt = Halt
+            derefCtrl _ _ NopC = NopC
 
 instance ByteSize (Isa w l) where
-    byteSize _ = 4
+    byteSize _ = 16
 
 comma = hspace >> string "," >> hspace
 
@@ -343,7 +337,7 @@ setPc addr = modify $ \st -> st{pc = addr}
 nextPc :: forall w. (ByteSizeT w) => State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
-    setPc (pc + byteSizeT @w)
+    setPc (pc + 16)  -- Bundle size 16 bytes
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -418,20 +412,44 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         return (pc, instruction)
                 )
 
-    instructionExecute _pc instruction =
-        case instruction of
-            Addi{rd, rs1, k} -> do
-                rs1' <- getReg rs1
-                setReg rd (rs1' + (k `signBitAnd` 0x00000FFF))
-                nextPc
-            Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
-            Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)
-            Mul{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (*)
-            Mulh{rd, rs1, rs2} ->
-                rOperation
-                    rs1
-                    rs2
-                    rd
+    instructionExecute _pc Isa{memOp, alu1, alu2, ctrlOp} = do
+        -- Execute memory op
+        execMem memOp
+        -- Execute ALU1
+        execAlu alu1
+        -- Execute ALU2
+        execAlu alu2
+        -- Execute control op, which may set PC
+        branched <- execCtrl ctrlOp
+        -- If no branch taken, advance PC
+        unless branched nextPc
+        where
+            execMem NopM = return ()
+            execMem (Lw lwRd (MemRef mrOffset mrReg)) = do
+                rs1' <- getReg mrReg
+                w <- getWord $ fromEnum (mrOffset + rs1')
+                setReg lwRd w
+            execMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
+                rs2' <- getReg swRs2
+                mrReg' <- getReg mrReg
+                setWord (fromEnum (mrReg' + mrOffset)) rs2'
+            execMem (Sb sbRs2 (MemRef mrOffset mrReg)) = do
+                rs2' <- getReg sbRs2
+                mrReg' <- getReg mrReg
+                setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
+
+            execAlu NopA = return ()
+            execAlu (Addi addiRd addiRs1 addiK) = do
+                rs1' <- getReg addiRs1
+                setReg addiRd (rs1' + (addiK `signBitAnd` 0x00000FFF))
+            execAlu (Add addRd addRs1 addRs2) = aluOp addRd addRs1 addRs2 id id (+)
+            execAlu (Sub subRd subRs1 subRs2) = aluOp subRd subRs1 subRs2 id id (-)
+            execAlu (Mul mulRd mulRs1 mulRs2) = aluOp mulRd mulRs1 mulRs2 id id (*)
+            execAlu (Mulh mulhRd mulhRs1 mulhRs2) =
+                aluOp
+                    mulhRd
+                    mulhRs1
+                    mulhRs2
                     fromIntegral
                     fromIntegral
                     ( \(r1 :: Integer) r2 ->
@@ -439,102 +457,77 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                             shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
-            Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id div
-            Rem{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id rem
-            Sll{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
-            Srl{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id lShiftR
-            Sra{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
-            And{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (.&.)
-            Or{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (.|.)
-            Xor{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id xor
-            Mv{rd, rs} -> do
-                rs' <- getReg rs
-                setReg rd rs'
-                nextPc
-            Sw{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
-                rs2' <- getReg rs2
-                mrReg' <- getReg mrReg
-                setWord (fromEnum (mrReg' + mrOffset)) rs2'
-                nextPc
-            Sb{rs2, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
-                rs2' <- getReg rs2
-                mrReg' <- getReg mrReg
-                setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
-                nextPc
-            Lui{rd, k} -> do
-                setReg rd ((k .&. 0x000FFFFF) `shiftL` 12)
-                nextPc
-            Lw{rd, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
-                rs1' <- getReg mrReg
-                w <- getWord $ fromEnum (mrOffset + rs1')
-                setReg rd w
-                nextPc
-            J{k} -> do
-                State{pc} <- get
-                setPc (pc + fromEnum k)
-            Jal{rd, k} -> do
-                State{pc} <- get
-                setReg rd (toEnum pc + 4)
-                setPc (pc + fromEnum k)
-            Jr{rs} -> getReg rs >>= setPc . fromEnum
-            Beqz{rs1, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                if rs1' == 0
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Bnez{rs1, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                if rs1' /= 0
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Bgt{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
-                if rs1' > rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Ble{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
-                if rs1' <= rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Bgtu{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- fromSign <$> getReg rs1
-                rs2' <- fromSign <$> getReg rs2
-                if rs1' > rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Bleu{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- fromSign <$> getReg rs1
-                rs2' <- fromSign <$> getReg rs2
-                if rs1' <= rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Beq{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
-                if rs1' == rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Bne{rs1, rs2, k} -> do
-                State{pc} <- get
-                rs1' <- getReg rs1
-                rs2' <- getReg rs2
-                if rs1' /= rs2'
-                    then setPc (pc + fromEnum k)
-                    else nextPc
-            Halt -> modify $ \st -> st{stopped = True}
-        where
-            rOperation rs1 rs2 rd f1 f2 fd = do
+            execAlu (Div divRd divRs1 divRs2) = aluOp divRd divRs1 divRs2 id id div
+            execAlu (Rem remRd remRs1 remRs2) = aluOp remRd remRs1 remRs2 id id rem
+            execAlu (Sll sllRd sllRs1 sllRs2) = aluOp sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
+            execAlu (Srl srlRd srlRs1 srlRs2) = aluOp srlRd srlRs1 srlRs2 id id lShiftR
+            execAlu (Sra sraRd sraRs1 sraRs2) = aluOp sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
+            execAlu (And andRd andRs1 andRs2) = aluOp andRd andRs1 andRs2 id id (.&.)
+            execAlu (Or orRd orRs1 orRs2) = aluOp orRd orRs1 orRs2 id id (.|.)
+            execAlu (Xor xorRd xorRs1 xorRs2) = aluOp xorRd xorRs1 xorRs2 id id xor
+            execAlu (Slti sltiRd sltiRs1 sltiK) = do
+                rs1' <- getReg sltiRs1
+                setReg sltiRd (if rs1' < sltiK then 1 else 0)
+            execAlu (Lui luiRd luiK) = setReg luiRd ((luiK .&. 0x000FFFFF) `shiftL` 12)
+            execAlu (Mv mvRd mvRs) = getReg mvRs >>= setReg mvRd
+
+            aluOp rd rs1 rs2 f1 f2 fd = do
                 r1 <- f1 <$> getReg rs1
                 r2 <- f2 <$> getReg rs2
                 setReg rd (fd r1 r2)
-                nextPc
+
+            execCtrl NopC = return False
+            execCtrl (J jK) = do
+                State{pc} <- get
+                setPc (pc + fromEnum jK)
+                return True
+            execCtrl (Jal jalRd jalK) = do
+                State{pc} <- get
+                setReg jalRd (toEnum pc + 16)
+                setPc (pc + fromEnum jalK)
+                return True
+            execCtrl (Jr jrRs) = do
+                rs' <- getReg jrRs
+                setPc (fromEnum rs')
+                return True
+            execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 beqzK (== 0)
+            execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 bnezK (/= 0)
+            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 bgtK (>)
+            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 bleK (<=)
+            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 bgtuK (>)
+            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 bleuK (<=)
+            execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 beqK (==)
+            execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 bneK (/=)
+            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 bltK (<)
+            execCtrl Halt = do
+                modify $ \st -> st{stopped = True}
+                return True
+
+            branchIf rs1 k cond = do
+                State{pc} <- get
+                rs1' <- getReg rs1
+                if cond rs1'
+                    then do
+                        setPc (pc + fromEnum k)
+                        return True
+                    else return False
+
+            branchIf2 rs1 rs2 k cond = do
+                State{pc} <- get
+                rs1' <- getReg rs1
+                rs2' <- getReg rs2
+                if cond rs1' rs2'
+                    then do
+                        setPc (pc + fromEnum k)
+                        return True
+                    else return False
+
+            branchIf2u rs1 rs2 k cond = do
+                State{pc} <- get
+                rs1' <- fromSign <$> getReg rs1
+                rs2' <- fromSign <$> getReg rs2
+                if cond rs1' rs2'
+                    then do
+                        setPc (pc + fromEnum k)
+                        return True
+                    else return False
