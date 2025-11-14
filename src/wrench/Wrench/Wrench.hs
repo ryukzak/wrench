@@ -19,6 +19,7 @@ import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.M68k (M68kState)
 import Wrench.Isa.RiscIv (RiscIvState)
+import Wrench.Isa.VliwIv (VliwIvState)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -53,10 +54,11 @@ instance Default Options where
             , maxStateLogLimit = 10000
             }
 
-data Isa = RiscIv | F32a | Acc32 | M68k
+data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k
     deriving (Show)
 
 instance Read Isa where
+    readsPrec _ "vliw-iv" = [(VliwIv, "")]
     readsPrec _ "risc-iv-32" = [(RiscIv, "")]
     readsPrec _ "risc-iv" = [(RiscIv, "")]
     readsPrec _ "f32a" = [(F32a, "")]
@@ -94,6 +96,7 @@ runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, m
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
         Just RiscIv -> wrenchIO @(RiscIvState Int32) opts conf src
+        Just VliwIv -> wrenchIO @(VliwIvState Int32) opts conf src
         Just F32a -> wrenchIO @(F32aState Int32) opts conf src
         Just Acc32 -> wrenchIO @(Acc32State Int32) opts conf src
         Just M68k -> wrenchIO @(M68kState Int32) opts conf src
