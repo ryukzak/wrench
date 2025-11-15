@@ -1,0 +1,12 @@
+name: "Test parallel execution semantics"
+limit: 1000
+memory_size: 0x1000
+reports:
+  - name: Check parallel execution
+    slice: all
+    view: |
+      X3: {X3:dec}
+      X4: {X4:dec}
+      X5: {X5:dec}
+      X6: {X6:dec}
+      ---
