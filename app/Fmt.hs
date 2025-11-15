@@ -29,7 +29,7 @@ options =
         <*> strOption
             ( long "isa"
                 <> metavar "ISA"
-                <> help "Instruction set architecture (acc32, f32a, risc-iv-32)"
+                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k)"
             )
         <*> switch
             ( long "inplace"
@@ -70,6 +70,8 @@ data FmtConfig = FmtConfig
     , textCommandTokenWidths :: [Int]
     , textCommandWidth :: Int
     , commentStart :: Text
+    , isVliw :: Bool
+    , vliwSlotWidths :: [Int]
     }
 
 instance Default FmtConfig where
@@ -82,6 +84,8 @@ instance Default FmtConfig where
             , textCommandTokenWidths = [8, 0, 0, 0, 0, 0, 0]
             , textCommandWidth = 40
             , commentStart = ";"
+            , isVliw = False
+            , vliwSlotWidths = []
             }
 
 f32aFmt :: FmtConfig
@@ -95,6 +99,14 @@ f32aFmt =
 acc32Fmt :: FmtConfig
 acc32Fmt = def{textCommandTokenWidths = [12, 8, 8, 8, 8, 8, 8]}
 
+vliwIvFmt :: FmtConfig
+vliwIvFmt = 
+    def
+        { commentStart = ";"
+        , isVliw = True
+        , vliwSlotWidths = [15, 34, 34, 0]  -- Memory | ALU1 | ALU2 | Control (last slot no padding)
+        }
+
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
     content <- decodeUtf8 <$> readFileBS fileName
@@ -103,6 +115,7 @@ process Options{isa, inplace, check} fileName = do
             Just F32a -> formatFile f32aFmt content
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
+            Just VliwIv -> formatFile vliwIvFmt content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -135,7 +148,10 @@ formatLines :: FmtConfig -> [[Text]] -> [Text]
 formatLines fmt tokenss =
     let (source, comments) = unzip $ map (splitComment fmt) tokenss
         statements = formatLines' OutOfSection source
-        source' = map (pprint fmt) statements
+        -- Calculate VLIW slot widths if needed
+        slotWidths = if isVliw fmt then calculateVliwSlotWidths statements else vliwSlotWidths fmt
+        fmt' = fmt{vliwSlotWidths = slotWidths}
+        source' = map (pprint fmt') statements
         comments' =
             zipWith
                 ( \s c ->
@@ -150,6 +166,22 @@ formatLines fmt tokenss =
                 statements
                 comments
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+calculateVliwSlotWidths :: [Statement] -> [Int]
+calculateVliwSlotWidths statements =
+    let textLines = [tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t:_) -> not (T.isSuffixOf ":" t); _ -> True]
+        slotsList = map splitByPipe textLines
+        numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
+        maxWidths = [foldl' max 0 (0 : [T.length (unwords slot) | slots <- slotsList, idx < length slots, let slot = slots Unsafe.!! idx]) | idx <- [0 .. numSlots - 1]]
+     in maxWidths
+    where
+        splitByPipe :: [Text] -> [[Text]]
+        splitByPipe [] = []
+        splitByPipe tokens =
+            let (slot, rest) = break (== "|") tokens
+             in slot : case rest of
+                    [] -> []
+                    (_ : rest') -> splitByPipe rest'
 
 splitComment :: FmtConfig -> [Text] -> ([Text], Text)
 splitComment FmtConfig{} [] = ([], "")
@@ -178,6 +210,8 @@ pprint
         , textCommandIndent
         , textCommandTokenWidths
         , textCommandWidth
+        , isVliw
+        , vliwSlotWidths
         } = inner
         where
             inner (OutOfSection tokens) = "    " <> unwords tokens
@@ -191,14 +225,34 @@ pprint
             inner (TextLine []) = ""
             inner (TextLine (l : rest))
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
+            inner (TextLine tokens)
+                | isVliw = T.replicate textCommandIndent " " <> formatVliwLine vliwSlotWidths tokens
             inner (TextLine tokens) =
                 let cmdTokens = zipWith width textCommandTokenWidths tokens
                     cmd = width textCommandWidth $ unwords cmdTokens
                  in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
+            
+            formatVliwLine :: [Int] -> [Text] -> Text
+            formatVliwLine widths tokens =
+                let slots = splitByPipe tokens
+                    formattedSlots = zipWith formatSlot widths slots
+                 in T.intercalate " | " formattedSlots
+            
+            splitByPipe :: [Text] -> [[Text]]
+            splitByPipe [] = []
+            splitByPipe tokens =
+                let (slot, rest) = break (== "|") tokens
+                 in slot : case rest of
+                        [] -> []
+                        (_ : rest') -> splitByPipe rest'
+            
+            formatSlot :: Int -> [Text] -> Text
+            formatSlot w [] = T.replicate w " "
+            formatSlot w ts = width w (unwords ts)
 
 tokenize :: FmtConfig -> Text -> [Text]
-tokenize FmtConfig{commentStart} content = inner $ T.strip content
+tokenize FmtConfig{commentStart, isVliw} content = inner $ T.strip content
     where
         inner "" = []
         inner txt
@@ -206,10 +260,11 @@ tokenize FmtConfig{commentStart} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
+            | isVliw && T.isPrefixOf "|" txt = "|" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliw && c == '|')
                     )
                     txt =
                 token : inner (T.strip rest)
