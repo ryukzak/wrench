@@ -146,15 +146,6 @@ register :: Parser Register
 register =
     choice
         [ string "x0" >> return X0
-        , string "x1" >> return X1
-        , string "x2" >> return X2
-        , string "x3" >> return X3
-        , string "x4" >> return X4
-        , string "x5" >> return X5
-        , string "x6" >> return X6
-        , string "x7" >> return X7
-        , string "x8" >> return X8
-        , string "x9" >> return X9
         , string "x10" >> return X10
         , string "x11" >> return X11
         , string "x12" >> return X12
@@ -165,6 +156,7 @@ register =
         , string "x17" >> return X17
         , string "x18" >> return X18
         , string "x19" >> return X19
+        , string "x1" >> return X1
         , string "x20" >> return X20
         , string "x21" >> return X21
         , string "x22" >> return X22
@@ -175,8 +167,16 @@ register =
         , string "x27" >> return X27
         , string "x28" >> return X28
         , string "x29" >> return X29
+        , string "x2" >> return X2
         , string "x30" >> return X30
         , string "x31" >> return X31
+        , string "x3" >> return X3
+        , string "x4" >> return X4
+        , string "x5" >> return X5
+        , string "x6" >> return X6
+        , string "x7" >> return X7
+        , string "x8" >> return X8
+        , string "x9" >> return X9
         ]
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
