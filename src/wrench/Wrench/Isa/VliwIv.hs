@@ -336,7 +336,7 @@ data MachineState mem w = State
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-nextPc :: forall w. (ByteSizeT w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: forall w. State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
     setPc (pc + 16)  -- Bundle size 16 bytes
@@ -415,46 +415,64 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 )
 
     instructionExecute _pc Isa{memOp, alu1, alu2, ctrlOp} = do
-        -- Randomly shuffle execution order of slots
-        let ops = [execMem memOp, execAlu alu1, execAlu alu2]
-        let shuffledOps = unsafePerformIO $ shuffleList ops
-        -- Execute operations in random order
-        forM_ shuffledOps id
-        -- Execute control op, which may set PC (always executed last)
+        -- Phase 1: Read all source operands and compute results (without modifying state)
+        memResult <- computeMem memOp
+        alu1Result <- computeAlu alu1
+        alu2Result <- computeAlu alu2
+        
+        -- Phase 2: Apply all register writes simultaneously in random order
+        let results = [applyMemResult memResult, applyAluResult alu1Result, applyAluResult alu2Result]
+        let shuffledResults = unsafePerformIO $ shuffleList results
+        forM_ shuffledResults id
+        
+        -- Phase 3: Execute control operation (always last, may branch)
         branched <- execCtrl ctrlOp
+        
         -- If no branch taken, advance PC
         unless branched nextPc
         where
             shuffleList :: [a] -> IO [a]
             shuffleList [] = return []
+            shuffleList [x] = return [x]
             shuffleList xs = do
                 idx <- randomRIO (0, length xs - 1)
                 let (before, item:after) = splitAt idx xs
                 rest <- shuffleList (before ++ after)
                 return (item : rest)
-            execMem NopM = return ()
-            execMem (Lw lwRd (MemRef mrOffset mrReg)) = do
+            -- Compute memory operation result without applying it
+            computeMem :: MemoryOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
+            computeMem NopM = return Nothing
+            computeMem (Lw lwRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
                 w <- getWord $ fromEnum (mrOffset + rs1')
-                setReg lwRd w
-            execMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
+                return $ Just (lwRd, w)
+            computeMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg swRs2
                 mrReg' <- getReg mrReg
                 setWord (fromEnum (mrReg' + mrOffset)) rs2'
-            execMem (Sb sbRs2 (MemRef mrOffset mrReg)) = do
+                return Nothing
+            computeMem (Sb sbRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg sbRs2
                 mrReg' <- getReg mrReg
                 setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
+                return Nothing
 
-            execAlu NopA = return ()
-            execAlu (Addi addiRd addiRs1 addiK) = do
+            -- Apply memory operation result
+            applyMemResult :: Maybe (Register, w) -> State (MachineState (IoMem (Isa w w) w) w) ()
+            applyMemResult Nothing = return ()
+            applyMemResult (Just (reg, val)) = setReg reg val
+
+            -- Compute ALU operation result without applying it
+            computeAlu :: AluOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
+            computeAlu NopA = return Nothing
+            computeAlu (Addi addiRd addiRs1 addiK) = do
                 rs1' <- getReg addiRs1
-                setReg addiRd (rs1' + (addiK `signBitAnd` 0x00000FFF))
-            execAlu (Add addRd addRs1 addRs2) = aluOp addRd addRs1 addRs2 id id (+)
-            execAlu (Sub subRd subRs1 subRs2) = aluOp subRd subRs1 subRs2 id id (-)
-            execAlu (Mul mulRd mulRs1 mulRs2) = aluOp mulRd mulRs1 mulRs2 id id (*)
-            execAlu (Mulh mulhRd mulhRs1 mulhRs2) =
-                aluOp
+                return $ Just (addiRd, rs1' + (addiK `signBitAnd` 0x00000FFF))
+            computeAlu (Add addRd addRs1 addRs2) = aluOpCompute addRd addRs1 addRs2 id id (+)
+            computeAlu (Sub subRd subRs1 subRs2) = aluOpCompute subRd subRs1 subRs2 id id (-)
+            computeAlu (Mul mulRd mulRs1 mulRs2) = aluOpCompute mulRd mulRs1 mulRs2 id id (*)
+            computeAlu (Mulh mulhRd mulhRs1 mulhRs2) =
+                aluOpCompute
                     mulhRd
                     mulhRs1
                     mulhRs2
@@ -465,24 +483,32 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                             shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
-            execAlu (Div divRd divRs1 divRs2) = aluOp divRd divRs1 divRs2 id id div
-            execAlu (Rem remRd remRs1 remRs2) = aluOp remRd remRs1 remRs2 id id rem
-            execAlu (Sll sllRd sllRs1 sllRs2) = aluOp sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
-            execAlu (Srl srlRd srlRs1 srlRs2) = aluOp srlRd srlRs1 srlRs2 id id lShiftR
-            execAlu (Sra sraRd sraRs1 sraRs2) = aluOp sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
-            execAlu (And andRd andRs1 andRs2) = aluOp andRd andRs1 andRs2 id id (.&.)
-            execAlu (Or orRd orRs1 orRs2) = aluOp orRd orRs1 orRs2 id id (.|.)
-            execAlu (Xor xorRd xorRs1 xorRs2) = aluOp xorRd xorRs1 xorRs2 id id xor
-            execAlu (Slti sltiRd sltiRs1 sltiK) = do
+            computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id div
+            computeAlu (Rem remRd remRs1 remRs2) = aluOpCompute remRd remRs1 remRs2 id id rem
+            computeAlu (Sll sllRd sllRs1 sllRs2) = aluOpCompute sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
+            computeAlu (Srl srlRd srlRs1 srlRs2) = aluOpCompute srlRd srlRs1 srlRs2 id id lShiftR
+            computeAlu (Sra sraRd sraRs1 sraRs2) = aluOpCompute sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
+            computeAlu (And andRd andRs1 andRs2) = aluOpCompute andRd andRs1 andRs2 id id (.&.)
+            computeAlu (Or orRd orRs1 orRs2) = aluOpCompute orRd orRs1 orRs2 id id (.|.)
+            computeAlu (Xor xorRd xorRs1 xorRs2) = aluOpCompute xorRd xorRs1 xorRs2 id id xor
+            computeAlu (Slti sltiRd sltiRs1 sltiK) = do
                 rs1' <- getReg sltiRs1
-                setReg sltiRd (if rs1' < sltiK then 1 else 0)
-            execAlu (Lui luiRd luiK) = setReg luiRd ((luiK .&. 0x000FFFFF) `shiftL` 12)
-            execAlu (Mv mvRd mvRs) = getReg mvRs >>= setReg mvRd
+                return $ Just (sltiRd, if rs1' < sltiK then 1 else 0)
+            computeAlu (Lui luiRd luiK) = return $ Just (luiRd, (luiK .&. 0x000FFFFF) `shiftL` 12)
+            computeAlu (Mv mvRd mvRs) = do
+                val <- getReg mvRs
+                return $ Just (mvRd, val)
 
-            aluOp rd rs1 rs2 f1 f2 fd = do
+            -- Apply ALU operation result
+            applyAluResult :: Maybe (Register, w) -> State (MachineState (IoMem (Isa w w) w) w) ()
+            applyAluResult Nothing = return ()
+            applyAluResult (Just (reg, val)) = setReg reg val
+
+            -- Helper for ALU operations with two source registers
+            aluOpCompute rd rs1 rs2 f1 f2 fd = do
                 r1 <- f1 <$> getReg rs1
                 r2 <- f2 <$> getReg rs2
-                setReg rd (fd r1 r2)
+                return $ Just (rd, fd r1 r2)
 
             execCtrl NopC = return False
             execCtrl (J jK) = do
