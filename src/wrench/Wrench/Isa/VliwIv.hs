@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
--- | Inspired by VLIWIv architectures and RISC-V simplifications
+-- | Inspired by VLIW architectures and RISC-V
 module Wrench.Isa.VliwIv (
     Isa (..),
     MachineState (..),
@@ -41,16 +41,16 @@ import Wrench.Translator.Types
 -- * Registers
 
 data Register
-    = X0  -- Zero
-    | X1  -- Ra
-    | X2  -- Sp
-    | X3  -- Gp
-    | X4  -- Tp
-    | X5  -- T0
-    | X6  -- T1
-    | X7  -- T2
-    | X8  -- S0Fp
-    | X9  -- S1
+    = X0 -- Zero
+    | X1 -- Ra
+    | X2 -- Sp
+    | X3 -- Gp
+    | X4 -- Tp
+    | X5 -- T0
+    | X6 -- T1
+    | X7 -- T2
+    | X8 -- S0Fp
+    | X9 -- S1
     | X10 -- A0
     | X11 -- A1
     | X12 -- A2
@@ -76,8 +76,38 @@ data Register
     deriving (Eq, Generic, Read, Show)
 
 allRegisters =
-    [ X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15,
-      X16, X17, X18, X19, X20, X21, X22, X23, X24, X25, X26, X27, X28, X29, X30, X31
+    [ X0
+    , X1
+    , X2
+    , X3
+    , X4
+    , X5
+    , X6
+    , X7
+    , X8
+    , X9
+    , X10
+    , X11
+    , X12
+    , X13
+    , X14
+    , X15
+    , X16
+    , X17
+    , X18
+    , X19
+    , X20
+    , X21
+    , X22
+    , X23
+    , X24
+    , X25
+    , X26
+    , X27
+    , X28
+    , X29
+    , X30
+    , X31
     ]
 
 instance Hashable Register
@@ -138,7 +168,8 @@ data Isa w l = Isa
     , alu1 :: AluOp w l
     , alu2 :: AluOp w l
     , ctrlOp :: ControlOp w l
-    } deriving (Show)
+    }
+    deriving (Show)
 
 -- * Parser Helpers
 
@@ -195,51 +226,54 @@ instance CommentStart (Isa _a _b) where
     commentStart = ";"
 
 parseMemOp :: (MachineWord w) => Parser (MemoryOp w (Ref w))
-parseMemOp = choice
-    [ cmd2args "lw" Lw register memRef
-    , cmd2args "sw" Sw register memRef
-    , cmd2args "sb" Sb register memRef
-    , string "nop" >> return NopM
-    ]
+parseMemOp =
+    choice
+        [ cmd2args "lw" Lw register memRef
+        , cmd2args "sw" Sw register memRef
+        , cmd2args "sb" Sb register memRef
+        , string "nop" >> return NopM
+        ]
 
 parseAluOp :: (MachineWord w) => Parser (AluOp w (Ref w))
-parseAluOp = choice
-    [ cmd3args "addi" Addi register register referenceWithDirective
-    , cmd3args "add" Add register register register
-    , cmd3args "sub" Sub register register register
-    , cmd3args "mul" Mul register register register
-    , cmd3args "mulh" Mulh register register register
-    , cmd3args "div" Div register register register
-    , cmd3args "rem" Rem register register register
-    , cmd3args "sll" Sll register register register
-    , cmd3args "srl" Srl register register register
-    , cmd3args "sra" Sra register register register
-    , cmd3args "and" And register register register
-    , cmd3args "or" Or register register register
-    , cmd3args "xor" Xor register register register
-    , cmd3args "slti" Slti register register referenceWithDirective
-    , cmd2args "lui" Lui register referenceWithDirective
-    , cmd2args "mv" Mv register register
-    , string "nop" >> return NopA
-    ]
+parseAluOp =
+    choice
+        [ cmd3args "addi" Addi register register referenceWithDirective
+        , cmd3args "add" Add register register register
+        , cmd3args "sub" Sub register register register
+        , cmd3args "mul" Mul register register register
+        , cmd3args "mulh" Mulh register register register
+        , cmd3args "div" Div register register register
+        , cmd3args "rem" Rem register register register
+        , cmd3args "sll" Sll register register register
+        , cmd3args "srl" Srl register register register
+        , cmd3args "sra" Sra register register register
+        , cmd3args "and" And register register register
+        , cmd3args "or" Or register register register
+        , cmd3args "xor" Xor register register register
+        , cmd3args "slti" Slti register register referenceWithDirective
+        , cmd2args "lui" Lui register referenceWithDirective
+        , cmd2args "mv" Mv register register
+        , string "nop" >> return NopA
+        ]
 
 parseCtrlOp :: (MachineWord w) => Parser (ControlOp w (Ref w))
-parseCtrlOp = choice
-    [ cmd1args "j" J reference
-    , cmd2args "jal" Jal register reference
-    , cmd1args "jr" Jr register
-    , cmd2args "beqz" Beqz register reference
-    , cmd2args "bnez" Bnez register reference
-    , cmd3args "bgt" Bgt register register reference
-    , cmd3args "ble" Ble register register reference
-    , cmd3args "bgtu" Bgtu register register reference
-    , cmd3args "bleu" Bleu register register reference
-    , cmd3args "beq" Beq register register reference
-    , cmd3args "bne" Bne register register reference
-    , cmd3args "blt" Blt register register reference
-    , string "halt" >> return Halt
-    , string "nop" >> return NopC
-    ]
+parseCtrlOp =
+    choice
+        [ cmd1args "j" J reference
+        , cmd2args "jal" Jal register reference
+        , cmd1args "jr" Jr register
+        , cmd2args "beqz" Beqz register reference
+        , cmd2args "bnez" Bnez register reference
+        , cmd3args "bgt" Bgt register register reference
+        , cmd3args "ble" Ble register register reference
+        , cmd3args "bgtu" Bgtu register register reference
+        , cmd3args "bleu" Bleu register register reference
+        , cmd3args "beq" Beq register register reference
+        , cmd3args "bne" Bne register register reference
+        , cmd3args "blt" Blt register register reference
+        , string "halt" >> return Halt
+        , string "nop" >> return NopC
+        ]
 
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic = do
@@ -256,11 +290,12 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i@Isa{memOp, alu1, alu2, ctrlOp} =
-        i { memOp = derefMem f offset memOp
-          , alu1 = derefAlu f offset alu1
-          , alu2 = derefAlu f offset alu2
-          , ctrlOp = derefCtrl f offset ctrlOp
-          }
+        i
+            { memOp = derefMem f offset memOp
+            , alu1 = derefAlu f offset alu1
+            , alu2 = derefAlu f offset alu2
+            , ctrlOp = derefCtrl f offset ctrlOp
+            }
         where
             relF = fmap (\x -> x - offset) . f
             derefMem _ _ NopM = NopM
@@ -339,7 +374,7 @@ setPc addr = modify $ \st -> st{pc = addr}
 nextPc :: forall w. State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
-    setPc (pc + 16)  -- Bundle size 16 bytes
+    setPc (pc + 16) -- Bundle size 16 bytes
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -419,15 +454,15 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         memResult <- computeMem memOp
         alu1Result <- computeAlu alu1
         alu2Result <- computeAlu alu2
-        
+
         -- Phase 2: Apply all register writes simultaneously in random order
         let results = [applyMemResult memResult, applyAluResult alu1Result, applyAluResult alu2Result]
         let shuffledResults = unsafePerformIO $ shuffleList results
         forM_ shuffledResults id
-        
+
         -- Phase 3: Execute control operation (always last, may branch)
         branched <- execCtrl ctrlOp
-        
+
         -- If no branch taken, advance PC
         unless branched nextPc
         where
@@ -436,7 +471,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             shuffleList [x] = return [x]
             shuffleList xs = do
                 idx <- randomRIO (0, length xs - 1)
-                let (before, item:after) = splitAt idx xs
+                let (before, item : after) = splitAt idx xs
                 rest <- shuffleList (before ++ after)
                 return (item : rest)
             -- Compute memory operation result without applying it

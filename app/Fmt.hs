@@ -100,11 +100,11 @@ acc32Fmt :: FmtConfig
 acc32Fmt = def{textCommandTokenWidths = [12, 8, 8, 8, 8, 8, 8]}
 
 vliwIvFmt :: FmtConfig
-vliwIvFmt = 
+vliwIvFmt =
     def
         { commentStart = ";"
         , isVliw = True
-        , vliwSlotWidths = [15, 34, 34, 0]  -- Memory | ALU1 | ALU2 | Control (last slot no padding)
+        , vliwSlotWidths = [15, 34, 34, 0] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -169,10 +169,14 @@ formatLines fmt tokenss =
 
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
-    let textLines = [tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t:_) -> not (T.isSuffixOf ":" t); _ -> True]
+    let textLines =
+            [tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t : _) -> not (T.isSuffixOf ":" t); _ -> True]
         slotsList = map splitByPipe textLines
         numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
-        maxWidths = [foldl' max 0 (0 : [T.length (unwords slot) | slots <- slotsList, idx < length slots, let slot = slots Unsafe.!! idx]) | idx <- [0 .. numSlots - 1]]
+        maxWidths =
+            [ foldl' max 0 (0 : [T.length (unwords slot) | slots <- slotsList, idx < length slots, let slot = slots Unsafe.!! idx])
+            | idx <- [0 .. numSlots - 1]
+            ]
      in maxWidths
     where
         splitByPipe :: [Text] -> [[Text]]
@@ -232,13 +236,13 @@ pprint
                     cmd = width textCommandWidth $ unwords cmdTokens
                  in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
-            
+
             formatVliwLine :: [Int] -> [Text] -> Text
             formatVliwLine widths tokens =
                 let slots = splitByPipe tokens
                     formattedSlots = zipWith formatSlot widths slots
                  in T.intercalate " | " formattedSlots
-            
+
             splitByPipe :: [Text] -> [[Text]]
             splitByPipe [] = []
             splitByPipe tokens =
@@ -246,7 +250,7 @@ pprint
                  in slot : case rest of
                         [] -> []
                         (_ : rest') -> splitByPipe rest'
-            
+
             formatSlot :: Int -> [Text] -> Text
             formatSlot w [] = T.replicate w " "
             formatSlot w ts = width w (unwords ts)
