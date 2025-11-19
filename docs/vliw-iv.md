@@ -233,4 +233,4 @@ lw rd, offset(rs1) | add rd, rs1, rs2 | addi rd, rs1, k | beq rs1, rs2, k
 
 - `<reg>:dec`, `<reg>:hex` -- View the value of a specific register in decimal or hexadecimal format.
 
-Available registers: `x0` (Zero), `x1` (Ra), `x2` (Sp), `x3` (Gp), `x4` (Tp), `x5` (T0), `x6` (T1), `x7` (T2), `x8` (S0Fp), `x9` (S1), `x10` (A0), `x11` (A1), `x12` (A2), `x13` (A3), `x14` (A4), `x15` (A5), `x16` (A6), `x17` (A7), `x18` (S2), `x19` (S3), `x20` (S4), `x21` (S5), `x22` (S6), `x23` (S7), `x24` (S8), `x25` (S9), `x26` (S10), `x27` (S11), `x28` (T3), `x29` (T4), `x30` (T5), `x31` (T6).
+Available registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `S1`, `A0`, `A1`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `S2`, `S3`, `S4`, `S5`, `S6`, `S7`, `S8`, `S9`, `S10`, `S11`, `T3`, `T4`, `T5`, `T6`.

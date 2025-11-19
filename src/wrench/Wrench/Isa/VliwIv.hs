@@ -41,73 +41,73 @@ import Wrench.Translator.Types
 -- * Registers
 
 data Register
-    = X0 -- Zero
-    | X1 -- Ra
-    | X2 -- Sp
-    | X3 -- Gp
-    | X4 -- Tp
-    | X5 -- T0
-    | X6 -- T1
-    | X7 -- T2
-    | X8 -- S0Fp
-    | X9 -- S1
-    | X10 -- A0
-    | X11 -- A1
-    | X12 -- A2
-    | X13 -- A3
-    | X14 -- A4
-    | X15 -- A5
-    | X16 -- A6
-    | X17 -- A7
-    | X18 -- S2
-    | X19 -- S3
-    | X20 -- S4
-    | X21 -- S5
-    | X22 -- S6
-    | X23 -- S7
-    | X24 -- S8
-    | X25 -- S9
-    | X26 -- S10
-    | X27 -- S11
-    | X28 -- T3
-    | X29 -- T4
-    | X30 -- T5
-    | X31 -- T6
+    = Zero
+    | Ra
+    | Sp
+    | Gp
+    | Tp
+    | T0
+    | T1
+    | T2
+    | S0Fp
+    | S1
+    | A0
+    | A1
+    | A2
+    | A3
+    | A4
+    | A5
+    | A6
+    | A7
+    | S2
+    | S3
+    | S4
+    | S5
+    | S6
+    | S7
+    | S8
+    | S9
+    | S10
+    | S11
+    | T3
+    | T4
+    | T5
+    | T6
     deriving (Eq, Generic, Read, Show)
 
 allRegisters =
-    [ X0
-    , X1
-    , X2
-    , X3
-    , X4
-    , X5
-    , X6
-    , X7
-    , X8
-    , X9
-    , X10
-    , X11
-    , X12
-    , X13
-    , X14
-    , X15
-    , X16
-    , X17
-    , X18
-    , X19
-    , X20
-    , X21
-    , X22
-    , X23
-    , X24
-    , X25
-    , X26
-    , X27
-    , X28
-    , X29
-    , X30
-    , X31
+    [ Zero
+    , Ra
+    , Sp
+    , Gp
+    , Tp
+    , T0
+    , T1
+    , T2
+    , S0Fp
+    , S1
+    , A0
+    , A1
+    , A2
+    , A3
+    , A4
+    , A5
+    , A6
+    , A7
+    , S2
+    , S3
+    , S4
+    , S5
+    , S6
+    , S7
+    , S8
+    , S9
+    , S10
+    , S11
+    , T3
+    , T4
+    , T5
+    , T6
     ]
 
 instance Hashable Register
@@ -176,38 +176,38 @@ data Isa w l = Isa
 register :: Parser Register
 register =
     choice
-        [ string "x0" >> return X0
-        , string "x10" >> return X10
-        , string "x11" >> return X11
-        , string "x12" >> return X12
-        , string "x13" >> return X13
-        , string "x14" >> return X14
-        , string "x15" >> return X15
-        , string "x16" >> return X16
-        , string "x17" >> return X17
-        , string "x18" >> return X18
-        , string "x19" >> return X19
-        , string "x1" >> return X1
-        , string "x20" >> return X20
-        , string "x21" >> return X21
-        , string "x22" >> return X22
-        , string "x23" >> return X23
-        , string "x24" >> return X24
-        , string "x25" >> return X25
-        , string "x26" >> return X26
-        , string "x27" >> return X27
-        , string "x28" >> return X28
-        , string "x29" >> return X29
-        , string "x2" >> return X2
-        , string "x30" >> return X30
-        , string "x31" >> return X31
-        , string "x3" >> return X3
-        , string "x4" >> return X4
-        , string "x5" >> return X5
-        , string "x6" >> return X6
-        , string "x7" >> return X7
-        , string "x8" >> return X8
-        , string "x9" >> return X9
+        [ string "zero" >> return Zero
+        , string "a0" >> return A0
+        , string "a1" >> return A1
+        , string "a2" >> return A2
+        , string "a3" >> return A3
+        , string "a4" >> return A4
+        , string "a5" >> return A5
+        , string "a6" >> return A6
+        , string "a7" >> return A7
+        , string "s2" >> return S2
+        , string "s3" >> return S3
+        , string "ra" >> return Ra
+        , string "s4" >> return S4
+        , string "s5" >> return S5
+        , string "s6" >> return S6
+        , string "s7" >> return S7
+        , string "s8" >> return S8
+        , string "s9" >> return S9
+        , string "s10" >> return S10
+        , string "s11" >> return S11
+        , string "t3" >> return T3
+        , string "t4" >> return T4
+        , string "sp" >> return Sp
+        , string "t5" >> return T5
+        , string "t6" >> return T6
+        , string "gp" >> return Gp
+        , string "tp" >> return Tp
+        , string "t0" >> return T0
+        , string "t1" >> return T1
+        , string "t2" >> return T2
+        , string "s0fp" >> return S0Fp
+        , string "s1" >> return S1
         ]
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)

@@ -5,8 +5,10 @@ reports:
   - name: Check parallel execution
     slice: all
     view: |
-      X3: {X3:dec}
-      X4: {X4:dec}
-      X5: {X5:dec}
-      X6: {X6:dec}
+      T0: {T0:dec}
+      T1: {T1:dec}
+      T2: {T2:dec}
+      T3: {T3:dec}
+      T4: {T4:dec}
+      T5: {T5:dec}
       ---

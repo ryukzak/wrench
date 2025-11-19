@@ -5,13 +5,13 @@ output_addr:     .word  0x84
     .text
     .org 0x100
 _start:
-    nop          | lui x1, %hi(output_addr)      | nop             | nop
-    nop          | addi x1, x1, %lo(output_addr) | nop             | nop
-    lw x1, 0(x1) | addi x2, x2, buf              | addi x3, x0, 12 | nop
+    nop          | lui t0, %hi(output_addr)      | nop               | nop
+    nop          | addi t0, t0, %lo(output_addr) | nop               | nop
+    lw t0, 0(t0) | addi t1, t1, buf              | addi t3, zero, 12 | nop
 
 while:
-    lw x4, 0(x2) | addi x5, x3, -1               | nop             | beqz x3, end
-    sb x4, 0(x1) | mv x3, x5                     | addi x2, x2, 1  | j while
+    lw t2, 0(t1) | addi t4, t3, -1               | nop               | beqz t3, end
+    sb t2, 0(t0) | mv t3, t4                     | addi t1, t1, 1    | j while
 
 end:
-    nop          | nop                           | nop             | halt
+    nop          | nop                           | nop               | halt
