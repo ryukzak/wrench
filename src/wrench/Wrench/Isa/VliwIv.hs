@@ -165,8 +165,8 @@ data ControlOp w l
 
 data Isa w l = Isa
     { memOp :: MemoryOp w l
-    , alu1 :: AluOp w l
-    , alu2 :: AluOp w l
+    , alu1Op :: AluOp w l
+    , alu2Op :: AluOp w l
     , ctrlOp :: ControlOp w l
     }
     deriving (Show)
@@ -280,20 +280,20 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         hspace
         memOp <- parseMemOp
         hspace >> string "|" >> hspace
-        alu1 <- parseAluOp
+        alu1Op <- parseAluOp
         hspace >> string "|" >> hspace
-        alu2 <- parseAluOp
+        alu2Op <- parseAluOp
         hspace >> string "|" >> hspace
         ctrlOp <- parseCtrlOp
         eol' (commentStart @(Isa _ _))
-        return Isa{memOp, alu1, alu2, ctrlOp}
+        return Isa{memOp, alu1Op, alu2Op, ctrlOp}
 
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
-    derefMnemonic f offset i@Isa{memOp, alu1, alu2, ctrlOp} =
+    derefMnemonic f offset i@Isa{memOp, alu1Op, alu2Op, ctrlOp} =
         i
             { memOp = derefMem f offset memOp
-            , alu1 = derefAlu f offset alu1
-            , alu2 = derefAlu f offset alu2
+            , alu1Op = derefAlu f offset alu1Op
+            , alu2Op = derefAlu f offset alu2Op
             , ctrlOp = derefCtrl f offset ctrlOp
             }
         where
@@ -449,14 +449,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         return (pc, instruction)
                 )
 
-    instructionExecute _pc Isa{memOp, alu1, alu2, ctrlOp} = do
+    instructionExecute _pc Isa{memOp, alu1Op, alu2Op, ctrlOp} = do
         -- Phase 1: Read all source operands and compute results (without modifying state)
         memResult <- computeMem memOp
-        alu1Result <- computeAlu alu1
-        alu2Result <- computeAlu alu2
+        alu1OpResult <- computeAlu alu1Op
+        alu2OpResult <- computeAlu alu2Op
 
         -- Phase 2: Apply all register writes simultaneously in random order
-        let results = [applyMemResult memResult, applyAluResult alu1Result, applyAluResult alu2Result]
+        let results = [applyMemResult memResult, applyAluResult alu1OpResult, applyAluResult alu2OpResult]
         let shuffledResults = unsafePerformIO $ shuffleList results
         forM_ shuffledResults id
 
