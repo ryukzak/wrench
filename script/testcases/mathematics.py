@@ -1,4 +1,5 @@
 from testcases.core import (
+    CharSequence2Word,
     TestCase,
     Word2Word,
     Words2Words,
@@ -344,12 +345,81 @@ TEST_CASES["sum_word_pstream"] = TestCase(
         Words2Words([2, 48, 18, 0, 12], [0, 66], rest=[0, 12]),
         Words2Words([2, 48, 18, 12], [0, 66], rest=[12]),
         Words2Words([2, 0x7FFF_FFFF, 1, 0], [0, 0x8000_0000], rest=[0]),
-        Words2Words([3, 0x7FFF_FFFF, 1, 0x7FFF_FFFF, 0], [0, 0xFFFF_FFFF], rest=[0]),
+        Words2Words(
+            [3, 0x7FFF_FFFF, 1, 0x7FFF_FFFF, 0], [0, 0xFFFF_FFFF], rest=[0]
+        ),
         Words2Words([4, 0x7FFF_FFFF, 1, 0x7FFF_FFFF, 1, 0], [1, 0], rest=[0]),
         Words2Words([4, 0x7FFF_FFFF, 1, 0x7FFF_FFFF, 2, 0], [1, 1], rest=[0]),
         Words2Words([2, 1, -1], [0, 0]),
     ],
     reference=sum_word_pstream,
+    reference_cases=[],
+    is_variant=True,
+    category="Mathematics",
+)
+
+###########################################################
+
+
+def fnv32_1_hash(xs):
+    """Input: stream of chars forming c string style (end with 0)
+
+    Need to calculate FNV-1 32 bit hash of input string
+    More info: https://ru.wikipedia.org/wiki/FNV
+    """
+    it = 0
+    fnv32_prime = 0x01000193
+    hash_value = 0x811C9DC5
+    while ord(xs[it]) > 0:
+        hash_value = (hash_value * fnv32_prime) & 0xFFFFFFFF
+        hash_value ^= ord(xs[it])
+        it += 1
+
+    return hash_value
+
+
+TEST_CASES["fnv32_1_hash"] = TestCase(
+    simple=fnv32_1_hash,
+    cases=[
+        CharSequence2Word("a\0", 0x050C5D7E),
+        CharSequence2Word("abc\0", 0x439C2F4B),
+        CharSequence2Word("Computers are awesome!\0", 0xE97BD97F),
+    ],
+    reference=fnv32_1_hash,
+    reference_cases=[],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def fnv32_1a_hash(xs):
+    """Input: stream of chars forming c string style (end with 0)
+
+    Need to calculate FNV-1A 32 bit hash of input string
+    More info: https://ru.wikipedia.org/wiki/FNV
+    """
+    it = 0
+    fnv32_prime = 0x01000193
+    hash_value = 0x811C9DC5
+    while ord(xs[it]) > 0:
+        hash_value ^= ord(xs[it])
+        hash_value = (hash_value * fnv32_prime) & 0xFFFFFFFF
+        it += 1
+
+    return hash_value
+
+
+TEST_CASES["fnv32_1a_hash"] = TestCase(
+    simple=fnv32_1a_hash,
+    cases=[
+        CharSequence2Word("a\0", 0xE40C292C),
+        CharSequence2Word("abc\0", 0x1A47E90B),
+        CharSequence2Word("Computers are awesome!\0", 0xFCEFE74B),
+    ],
+    reference=fnv32_1a_hash,
     reference_cases=[],
     is_variant=True,
     category="Mathematics",
