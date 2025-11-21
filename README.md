@@ -14,16 +14,16 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 **Table of Contents**
 
 - [Wrench](#wrench)
-  - [Documentation](#documentation)
-  - [How to Run](#how-to-run)
-    - [Build Locally](#build-locally)
-    - [Install from a Binary Release](#install-from-a-binary-release)
-    - [Via Docker Image](#via-docker-image)
-    - [Use it as a Service](#use-it-as-a-service)
-  - [Usage](#usage)
-  - [Examples](#examples)
-    - [Factorial Calculation Example (RISC-IV)](#factorial-calculation-example-risc-iv)
-    - [More Examples](#more-examples)
+    - [Documentation](#documentation)
+    - [How to Run](#how-to-run)
+        - [Build Locally](#build-locally)
+        - [Install from a Binary Release](#install-from-a-binary-release)
+        - [Via Docker Image](#via-docker-image)
+        - [Use it as a Service](#use-it-as-a-service)
+    - [Usage](#usage)
+    - [Examples](#examples)
+        - [Factorial Calculation Example (RISC-IV)](#factorial-calculation-example-risc-iv)
+        - [More Examples](#more-examples)
 
 <!-- markdown-toc end -->
 
