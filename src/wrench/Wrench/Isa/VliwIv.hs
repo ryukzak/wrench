@@ -288,51 +288,55 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         eol' (commentStart @(Isa _ _))
         return Isa{memOp, alu1Op, alu2Op, ctrlOp}
 
+instance DerefMnemonic (MemoryOp w) w where
+    derefMnemonic _ _ NopM = NopM
+    derefMnemonic _ _ (Lw lwRd lwOffsetRs1) = Lw lwRd lwOffsetRs1
+    derefMnemonic _ _ (Sw swRs2 swOffsetRs1) = Sw swRs2 swOffsetRs1
+    derefMnemonic _ _ (Sb sbRs2 sbOffsetRs1) = Sb sbRs2 sbOffsetRs1
+
+instance DerefMnemonic (AluOp w) w where
+    derefMnemonic f _ (Addi addiRd addiRs1 addiK) = Addi addiRd addiRs1 $ deref' f addiK
+    derefMnemonic f _ (Slti sltiRd sltiRs1 sltiK) = Slti sltiRd sltiRs1 $ deref' f sltiK
+    derefMnemonic f _ (Lui luiRd luiK) = Lui luiRd $ deref' f luiK
+    derefMnemonic _ _ (Add addRd addRs1 addRs2) = Add addRd addRs1 addRs2
+    derefMnemonic _ _ (Sub subRd subRs1 subRs2) = Sub subRd subRs1 subRs2
+    derefMnemonic _ _ (Mul mulRd mulRs1 mulRs2) = Mul mulRd mulRs1 mulRs2
+    derefMnemonic _ _ (Mulh mulhRd mulhRs1 mulhRs2) = Mulh mulhRd mulhRs1 mulhRs2
+    derefMnemonic _ _ (Div divRd divRs1 divRs2) = Div divRd divRs1 divRs2
+    derefMnemonic _ _ (Rem remRd remRs1 remRs2) = Rem remRd remRs1 remRs2
+    derefMnemonic _ _ (Sll sllRd sllRs1 sllRs2) = Sll sllRd sllRs1 sllRs2
+    derefMnemonic _ _ (Srl srlRd srlRs1 srlRs2) = Srl srlRd srlRs1 srlRs2
+    derefMnemonic _ _ (Sra sraRd sraRs1 sraRs2) = Sra sraRd sraRs1 sraRs2
+    derefMnemonic _ _ (And andRd andRs1 andRs2) = And andRd andRs1 andRs2
+    derefMnemonic _ _ (Or orRd orRs1 orRs2) = Or orRd orRs1 orRs2
+    derefMnemonic _ _ (Xor xorRd xorRs1 xorRs2) = Xor xorRd xorRs1 xorRs2
+    derefMnemonic _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
+    derefMnemonic _ _ NopA = NopA
+
+instance (MachineWord w) => DerefMnemonic (ControlOp w) w where
+    derefMnemonic f offset (J jK) = J $ deref' (fmap (\x -> x - offset) . f) jK
+    derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ deref' (fmap (\x -> x - offset) . f) jalK
+    derefMnemonic _ _ (Jr jrRs) = Jr jrRs
+    derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ deref' (fmap (\x -> x - offset) . f) beqzK
+    derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ deref' (fmap (\x -> x - offset) . f) bnezK
+    derefMnemonic f offset (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ deref' (fmap (\x -> x - offset) . f) bgtK
+    derefMnemonic f offset (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ deref' (fmap (\x -> x - offset) . f) bleK
+    derefMnemonic f offset (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ deref' (fmap (\x -> x - offset) . f) bgtuK
+    derefMnemonic f offset (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ deref' (fmap (\x -> x - offset) . f) bleuK
+    derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ deref' (fmap (\x -> x - offset) . f) beqK
+    derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ deref' (fmap (\x -> x - offset) . f) bneK
+    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ deref' (fmap (\x -> x - offset) . f) bltK
+    derefMnemonic _ _ Halt = Halt
+    derefMnemonic _ _ NopC = NopC
+
 instance (MachineWord w) => DerefMnemonic (Isa w) w where
     derefMnemonic f offset i@Isa{memOp, alu1Op, alu2Op, ctrlOp} =
         i
-            { memOp = derefMem f offset memOp
-            , alu1Op = derefAlu f offset alu1Op
-            , alu2Op = derefAlu f offset alu2Op
-            , ctrlOp = derefCtrl f offset ctrlOp
+            { memOp = derefMnemonic f offset memOp
+            , alu1Op = derefMnemonic f offset alu1Op
+            , alu2Op = derefMnemonic f offset alu2Op
+            , ctrlOp = derefMnemonic f offset ctrlOp
             }
-        where
-            relF = fmap (\x -> x - offset) . f
-            derefMem _ _ NopM = NopM
-            derefMem _ _ (Lw lwRd lwOffsetRs1) = Lw lwRd lwOffsetRs1
-            derefMem _ _ (Sw swRs2 swOffsetRs1) = Sw swRs2 swOffsetRs1
-            derefMem _ _ (Sb sbRs2 sbOffsetRs1) = Sb sbRs2 sbOffsetRs1
-            derefAlu f _ (Addi addiRd addiRs1 addiK) = Addi addiRd addiRs1 $ deref' f addiK
-            derefAlu f _ (Slti sltiRd sltiRs1 sltiK) = Slti sltiRd sltiRs1 $ deref' f sltiK
-            derefAlu f _ (Lui luiRd luiK) = Lui luiRd $ deref' f luiK
-            derefAlu _ _ (Add addRd addRs1 addRs2) = Add addRd addRs1 addRs2
-            derefAlu _ _ (Sub subRd subRs1 subRs2) = Sub subRd subRs1 subRs2
-            derefAlu _ _ (Mul mulRd mulRs1 mulRs2) = Mul mulRd mulRs1 mulRs2
-            derefAlu _ _ (Mulh mulhRd mulhRs1 mulhRs2) = Mulh mulhRd mulhRs1 mulhRs2
-            derefAlu _ _ (Div divRd divRs1 divRs2) = Div divRd divRs1 divRs2
-            derefAlu _ _ (Rem remRd remRs1 remRs2) = Rem remRd remRs1 remRs2
-            derefAlu _ _ (Sll sllRd sllRs1 sllRs2) = Sll sllRd sllRs1 sllRs2
-            derefAlu _ _ (Srl srlRd srlRs1 srlRs2) = Srl srlRd srlRs1 srlRs2
-            derefAlu _ _ (Sra sraRd sraRs1 sraRs2) = Sra sraRd sraRs1 sraRs2
-            derefAlu _ _ (And andRd andRs1 andRs2) = And andRd andRs1 andRs2
-            derefAlu _ _ (Or orRd orRs1 orRs2) = Or orRd orRs1 orRs2
-            derefAlu _ _ (Xor xorRd xorRs1 xorRs2) = Xor xorRd xorRs1 xorRs2
-            derefAlu _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
-            derefAlu _ _ NopA = NopA
-            derefCtrl _ _ (J jK) = J $ deref' relF jK
-            derefCtrl _ _ (Jal jalRd jalK) = Jal jalRd $ deref' relF jalK
-            derefCtrl _ _ (Jr jrRs) = Jr jrRs
-            derefCtrl _ _ (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ deref' relF beqzK
-            derefCtrl _ _ (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ deref' relF bnezK
-            derefCtrl _ _ (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ deref' relF bgtK
-            derefCtrl _ _ (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ deref' relF bleK
-            derefCtrl _ _ (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ deref' relF bgtuK
-            derefCtrl _ _ (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ deref' relF bleuK
-            derefCtrl _ _ (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ deref' relF beqK
-            derefCtrl _ _ (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ deref' relF bneK
-            derefCtrl _ _ (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ deref' relF bltK
-            derefCtrl _ _ Halt = Halt
-            derefCtrl _ _ NopC = NopC
 
 instance ByteSize (Isa w l) where
     byteSize _ = 11
