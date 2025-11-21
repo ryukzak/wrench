@@ -35,6 +35,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
     - [F32a](./docs/f32a.md) -- Stack-based 32-bit architecture
     - [M68k](./docs/m68k.md) -- Motorola 68000-inspired architecture
     - [RISC-IV](./docs/risc-iv.md) -- RISC-V-inspired 32-bit architecture
+    - [VLIW-IV](./docs/vliw-iv.md) -- RISC-V-inspired VLIW 32-bit architecture
 
 ## How to Run
 
