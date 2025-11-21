@@ -368,17 +368,17 @@ data MachineState mem w = State
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
-    , rng :: StdGen
+    , randoms :: [Int]
     }
     deriving (Show)
 
-getRng :: forall w. State (MachineState (IoMem (Isa w w) w) w) StdGen
-getRng = gets rng
+getRandoms :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) [Int]
+getRandoms n = do
+    State{randoms} <- get
+    let (taken, rest) = splitAt n randoms
+    modify $ \st -> st{randoms = rest}
+    return taken
 
-setRng :: forall w. StdGen -> State (MachineState (IoMem (Isa w w) w) w) ()
-setRng gen = modify $ \st -> st{rng = gen}
-
--- | Generate an infinite list of random integers in the given range
 randomInts :: (Int, Int) -> StdGen -> [Int]
 randomInts range gen = 
     let (val, gen') = uniformR range gen
@@ -437,7 +437,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , regs = def
             , stopped = False
             , internalError = Nothing
-            , rng = mkStdGen mSeed
+            , randoms = randomInts (0, maxBound) (mkStdGen mSeed)
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
@@ -488,22 +488,17 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             shuffleList [] = return []
             shuffleList [x] = return [x]
             shuffleList xs = do
-                gen <- getRng
-                let randoms = randomInts (0, length xs - 1) gen
-                let (shuffled, gen') = shuffle xs randoms gen
-                setRng gen'
-                return shuffled
+                indices <- getRandoms (length xs)
+                return $ shuffle xs (map (`mod` length xs) indices)
             
-            shuffle :: [a] -> [Int] -> StdGen -> ([a], StdGen)
-            shuffle [] _ gen = ([], gen)
-            shuffle [x] _ gen = ([x], gen)
-            shuffle xs (idx:rest) gen = 
+            shuffle :: [a] -> [Int] -> [a]
+            shuffle [] _ = []
+            shuffle [x] _ = [x]
+            shuffle xs (idx:rest) = 
                 case splitAt idx xs of
-                    (before, item : after) -> 
-                        let (shuffled, gen') = shuffle (before ++ after) rest gen
-                        in (item : shuffled, gen')
-                    _ -> (xs, gen)
-            shuffle xs [] gen = (xs, gen)
+                    (before, item : after) -> item : shuffle (before ++ after) rest
+                    _ -> xs
+            shuffle xs [] = xs
 
             -- Compute memory operation result without applying it
             computeMem :: MemoryOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
