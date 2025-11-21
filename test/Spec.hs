@@ -18,6 +18,9 @@ import Wrench.Isa.M68k.Test qualified
 import Wrench.Isa.RiscIv (RiscIvState)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
+import Wrench.Isa.VliwIv (VliwIvState)
+import Wrench.Isa.VliwIv qualified as VliwIv
+import Wrench.Isa.VliwIv.Test qualified
 import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
@@ -171,6 +174,10 @@ tests =
                 , generatedTest M68k "hello" 1
                 , generatedTest M68k "logical_not" 2
                 ]
+            ]
+        , testGroup
+            "VLIW-IV"
+            [ Wrench.Isa.VliwIv.Test.tests
             ]
         ]
 
