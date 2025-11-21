@@ -83,6 +83,8 @@ Variants:
     - [text_word_counter](#text_word_counter)
 - Mathematics
     - [count_divisors](#count_divisors)
+    - [determinant_3x3](#determinant_3x3)
+    - [djb2_hash](#djb2_hash)
     - [fibonacci](#fibonacci)
     - [fnv32_1_hash](#fnv32_1_hash)
     - [fnv32_1a_hash](#fnv32_1a_hash)
@@ -1056,6 +1058,59 @@ assert count_divisors(2) == 2
 assert count_divisors(4) == 3
 assert count_divisors(6) == 4
 assert count_divisors(10) == 4
+```
+
+### `determinant_3x3`
+
+```python
+def determinant_3x3(*xs):
+    """Input: 3x3 matrix in format a_10, a_20, a_30, a_11, ...
+
+    Need to calculate determinant of this matrix
+    """
+    result = (
+        xs[0] * xs[4] * xs[8]
+        + xs[1] * xs[5] * xs[6]
+        + xs[2] * xs[3] * xs[7]
+        - xs[0] * xs[5] * xs[7]
+        - xs[1] * xs[3] * xs[8]
+        - xs[2] * xs[4] * xs[6]
+    )
+
+    if result > 0xFFFFFFFF:
+        return [0xCCCCCCCC]
+
+    return [result]
+
+
+assert determinant_3x3([0, 0, 0, 0, 0, 0, 0, 0, 0]) == [0]
+assert determinant_3x3([1, 2, 3, 4, 5, 6, 7, 8, 9]) == [0]
+assert determinant_3x3([0, 0, 1, 0, 1, 0, 1, 0, 0]) == [-1]
+assert determinant_3x3([7, -5, 4, 32, 8, 3, 5, 2, 8]) == [1707]
+```
+
+### `djb2_hash`
+
+```python
+def djb2_hash(xs):
+    """Input: stream of chars forming c string style (end with 0)
+
+    Need to calculate DJB2 32 bit hash of input string
+    More info: https://theartincode.stanis.me/008-djb2/
+    """
+    it = 0
+    hash_value = 5381
+    while ord(xs[it]) > 0:
+        hash_value = (hash_value * 33 + ord(xs[it])) & 0xFFFFFFFF
+        it += 1
+
+    return hash_value
+
+
+assert djb2_hash('\0') == 5381
+assert djb2_hash('a\0') == 177670
+assert djb2_hash('abc\0') == 193485963
+assert djb2_hash('Computers are awesome!\0') == 2262080881
 ```
 
 ### `fibonacci`
