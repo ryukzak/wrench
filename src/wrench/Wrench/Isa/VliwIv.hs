@@ -335,7 +335,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             derefCtrl _ _ NopC = NopC
 
 instance ByteSize (Isa w l) where
-    byteSize _ = 16
+    byteSize _ = 11
 
 comma = hspace >> string "," >> hspace
 
@@ -374,7 +374,7 @@ setPc addr = modify $ \st -> st{pc = addr}
 nextPc :: forall w. State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
-    setPc (pc + 16) -- Bundle size 16 bytes
+    setPc (pc + 11) -- Bundle size 11 bytes
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -552,7 +552,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 return True
             execCtrl (Jal jalRd jalK) = do
                 State{pc} <- get
-                setReg jalRd (toEnum pc + 16)
+                setReg jalRd (toEnum pc + 11)
                 setPc (pc + fromEnum jalK)
                 return True
             execCtrl (Jr jrRs) = do

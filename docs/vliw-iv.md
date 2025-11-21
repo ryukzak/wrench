@@ -7,7 +7,7 @@ The VLIW ISA is a simple register-based instruction set inspired by VLIW (Very L
 The VLIW architecture is a 32-bit VLIW (Very Long Instruction Word) architecture inspired by RISC-V and classic VLIW designs. It features:
 
 - 32 general-purpose registers (including one hardwired zero register)
-- Fixed-length 16-byte (128-bit) instruction bundles, divided into 4 slots for parallel execution
+- Fixed-length 11-byte (90-bit) instruction bundles, divided into 4 slots for parallel execution
 - Load-store architecture (memory access only through specific instructions in dedicated slots)
 - Simple addressing modes
 - Memory-mapped I/O
@@ -44,7 +44,14 @@ addi a0, a0, %lo(address) ; Add lower 12 bits to a0
 
 ## Instructions
 
-Instruction size: 16 bytes (128-bit bundle).
+Instruction size: 11 bytes (90-bit bundle).
+
+```text
+[SLOT 0]   memory: 36 bits    <opcode:4><addr:32>
+[SLOT 1]   alu 1: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
+[SLOT 2]   alu 2: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
+[SLOT 3]   control: 14 bits   <opcode:4><offset | offset+register:10>
+```
 
 Each instruction is a bundle with 4 slots: Slot 0 (Memory), Slot 1 (ALU1), Slot 2 (ALU2), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `|` to separate slots:
 
@@ -169,7 +176,7 @@ lw rd, offset(rs1) | add rd, rs1, rs2 | addi rd, rs1, k | beq rs1, rs2, k
 - **Jump and Link**
     - **Syntax:** `jal <rd>, <k>`
     - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
-    - **Operation:** `rd <- pc + 16, pc <- pc + k`  // Adjusted for bundle size
+    - **Operation:** `rd <- pc + 11, pc <- pc + k`  // Adjusted for bundle size
 
 - **Jump Register**
     - **Syntax:** `jr <rs>`
