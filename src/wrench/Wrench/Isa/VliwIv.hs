@@ -380,9 +380,9 @@ getRandoms n = do
     return taken
 
 randomInts :: (Int, Int) -> StdGen -> [Int]
-randomInts range gen = 
+randomInts range gen =
     let (val, gen') = uniformR range gen
-    in val : randomInts range gen'
+     in val : randomInts range gen'
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -482,7 +482,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
 
         -- If no branch taken, advance PC
         unless branched nextPc
-
         where
             shuffleList :: [a] -> State (MachineState (IoMem (Isa w w) w) w) [a]
             shuffleList [] = return []
@@ -490,11 +489,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             shuffleList xs = do
                 indices <- getRandoms (length xs)
                 return $ shuffle xs (map (`mod` length xs) indices)
-            
+
             shuffle :: [a] -> [Int] -> [a]
             shuffle [] _ = []
             shuffle [x] _ = [x]
-            shuffle xs (idx:rest) = 
+            shuffle xs (idx : rest) =
                 case splitAt idx xs of
                     (before, item : after) -> item : shuffle (before ++ after) rest
                     _ -> xs

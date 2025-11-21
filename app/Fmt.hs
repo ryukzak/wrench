@@ -65,7 +65,7 @@ main = do
 data ArchStyle
     = StandardArch
     | VliwArch {vliwSlotWidths :: [Int]}
-    deriving (Show, Eq)
+    deriving (Eq, Show)
 
 data FmtConfig = FmtConfig
     { dataLabelWidth :: Int
@@ -174,7 +174,8 @@ formatLines fmt tokenss =
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
     let textLines =
-            [tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t : _) -> not (T.isSuffixOf ":" t); _ -> True]
+            [ tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t : _) -> not (T.isSuffixOf ":" t); _ -> True
+            ]
         slotsList = map splitByPipe textLines
         numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
         maxWidths =

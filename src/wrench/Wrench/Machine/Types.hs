@@ -202,7 +202,6 @@ mkIoMem streams cells (Just v) =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         , mSeed = v
         }
-
 mkIoMem streams cells _ = mkIoMem streams cells (Just 0)
 
 data Cell isa w
