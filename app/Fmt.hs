@@ -62,6 +62,11 @@ main = do
                     <> header "asm-formatter - a simple assembly file formatter"
                 )
 
+data ArchStyle
+    = StandardArch
+    | VliwArch {vliwSlotWidths :: [Int]}
+    deriving (Show, Eq)
+
 data FmtConfig = FmtConfig
     { dataLabelWidth :: Int
     , dataTypeWidth :: Int
@@ -70,8 +75,7 @@ data FmtConfig = FmtConfig
     , textCommandTokenWidths :: [Int]
     , textCommandWidth :: Int
     , commentStart :: Text
-    , isVliw :: Bool
-    , vliwSlotWidths :: [Int]
+    , archStyle :: ArchStyle
     }
 
 instance Default FmtConfig where
@@ -84,8 +88,7 @@ instance Default FmtConfig where
             , textCommandTokenWidths = [8, 0, 0, 0, 0, 0, 0]
             , textCommandWidth = 40
             , commentStart = ";"
-            , isVliw = False
-            , vliwSlotWidths = []
+            , archStyle = StandardArch
             }
 
 f32aFmt :: FmtConfig
@@ -103,8 +106,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , isVliw = True
-        , vliwSlotWidths = [15, 34, 34, 0] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
+        , archStyle = VliwArch [15, 34, 34, 0] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -149,8 +151,10 @@ formatLines fmt tokenss =
     let (source, comments) = unzip $ map (splitComment fmt) tokenss
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
-        slotWidths = if isVliw fmt then calculateVliwSlotWidths statements else vliwSlotWidths fmt
-        fmt' = fmt{vliwSlotWidths = slotWidths}
+        archStyle' = case archStyle fmt of
+            VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
+            StandardArch -> StandardArch
+        fmt' = fmt{archStyle = archStyle'}
         source' = map (pprint fmt') statements
         comments' =
             zipWith
@@ -214,8 +218,7 @@ pprint
         , textCommandIndent
         , textCommandTokenWidths
         , textCommandWidth
-        , isVliw
-        , vliwSlotWidths
+        , archStyle
         } = inner
         where
             inner (OutOfSection tokens) = "    " <> unwords tokens
@@ -229,12 +232,12 @@ pprint
             inner (TextLine []) = ""
             inner (TextLine (l : rest))
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
-            inner (TextLine tokens)
-                | isVliw = T.replicate textCommandIndent " " <> formatVliwLine vliwSlotWidths tokens
-            inner (TextLine tokens) =
-                let cmdTokens = zipWith width textCommandTokenWidths tokens
-                    cmd = width textCommandWidth $ unwords cmdTokens
-                 in T.replicate textCommandIndent " " <> cmd
+            inner (TextLine tokens) = case archStyle of
+                VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                StandardArch ->
+                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                        cmd = width textCommandWidth $ unwords cmdTokens
+                     in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
 
             formatVliwLine :: [Int] -> [Text] -> Text
@@ -256,7 +259,7 @@ pprint
             formatSlot w ts = width w (unwords ts)
 
 tokenize :: FmtConfig -> Text -> [Text]
-tokenize FmtConfig{commentStart, isVliw} content = inner $ T.strip content
+tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
     where
         inner "" = []
         inner txt
@@ -264,11 +267,14 @@ tokenize FmtConfig{commentStart, isVliw} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
-            | isVliw && T.isPrefixOf "|" txt = "|" : inner (T.strip $ T.drop 1 txt)
+            | isVliwArch && T.isPrefixOf "|" txt = "|" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliw && c == '|')
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '|')
                     )
                     txt =
                 token : inner (T.strip rest)
+        isVliwArch = case archStyle of
+            VliwArch _ -> True
+            StandardArch -> False
