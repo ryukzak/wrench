@@ -1,4 +1,5 @@
      ; Program to simulate different hazards that can arise
+     ; Try to adjust seed in config and see that value of T4 can change due to WAW hazard
     .text
 _start:
     ; Set t0 = 5, t1 = 3

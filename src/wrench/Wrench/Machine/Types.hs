@@ -188,18 +188,22 @@ data IoMem isa w = IoMem
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
     , mIoByteToWord :: IntMap Int
+    , mSeed :: Int
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
-mkIoMem streams cells =
+mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> Maybe Int -> IoMem isa w
+mkIoMem streams cells (Just v) =
     IoMem
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
+        , mSeed = v
         }
+
+mkIoMem streams cells _ = mkIoMem streams cells (Just 0)
 
 data Cell isa w
     = Instruction isa

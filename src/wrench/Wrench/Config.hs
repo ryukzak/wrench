@@ -37,6 +37,8 @@ data Config = Config
     -- ^ (generated) Flattened memory-mapped IO configuration, mapping addresses to pairs of input and output lists.
     , cReports :: Maybe [ReportConf]
     -- ^ Optional list of report configurations.
+    , cSeed :: Maybe Int
+    -- ^ Optional seed for random number generation.
     }
     deriving (Generic, Show)
 
@@ -56,6 +58,7 @@ instance Default Config where
                         , rcView = Just "{pc}: {instruction} {pc:label}\n"
                         }
                     ]
+            , cSeed = Nothing
             }
 
 instance Semigroup Config where
@@ -66,6 +69,7 @@ instance Semigroup Config where
             , cMemoryMappedIoFlat = cMemoryMappedIoFlat a <|> cMemoryMappedIoFlat b
             , cLimit = cLimit a
             , cReports = cReports a <|> cReports b
+            , cSeed = cSeed a <|> cSeed b
             }
 
 instance FromJSON Config where

@@ -17,8 +17,7 @@ import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import System.IO.Unsafe (unsafePerformIO)
-import System.Random (randomRIO)
+import System.Random (StdGen, mkStdGen, uniformR)
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
@@ -369,8 +368,21 @@ data MachineState mem w = State
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
+    , rng :: StdGen
     }
     deriving (Show)
+
+getRng :: forall w. State (MachineState (IoMem (Isa w w) w) w) StdGen
+getRng = gets rng
+
+setRng :: forall w. StdGen -> State (MachineState (IoMem (Isa w w) w) w) ()
+setRng gen = modify $ \st -> st{rng = gen}
+
+-- | Generate an infinite list of random integers in the given range
+randomInts :: (Int, Int) -> StdGen -> [Int]
+randomInts range gen = 
+    let (val, gen') = uniformR range gen
+    in val : randomInts range gen'
 
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -418,13 +430,14 @@ setByte addr byte = do
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump =
+    initState pc dump@IoMem{mSeed} =
         State
             { pc
             , mem = dump
             , regs = def
             , stopped = False
             , internalError = Nothing
+            , rng = mkStdGen mSeed
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
@@ -461,7 +474,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
 
         -- Phase 2: Apply all register writes simultaneously in random order
         let results = [applyMemResult memResult, applyAluResult alu1OpResult, applyAluResult alu2OpResult]
-        let shuffledResults = unsafePerformIO $ shuffleList results
+        shuffledResults <- shuffleList results
         forM_ shuffledResults id
 
         -- Phase 3: Execute control operation (always last, may branch)
@@ -469,15 +482,29 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
 
         -- If no branch taken, advance PC
         unless branched nextPc
+
         where
-            shuffleList :: [a] -> IO [a]
+            shuffleList :: [a] -> State (MachineState (IoMem (Isa w w) w) w) [a]
             shuffleList [] = return []
             shuffleList [x] = return [x]
             shuffleList xs = do
-                idx <- randomRIO (0, length xs - 1)
-                let (before, item : after) = splitAt idx xs
-                rest <- shuffleList (before ++ after)
-                return (item : rest)
+                gen <- getRng
+                let randoms = randomInts (0, length xs - 1) gen
+                let (shuffled, gen') = shuffle xs randoms gen
+                setRng gen'
+                return shuffled
+            
+            shuffle :: [a] -> [Int] -> StdGen -> ([a], StdGen)
+            shuffle [] _ gen = ([], gen)
+            shuffle [x] _ gen = ([x], gen)
+            shuffle xs (idx:rest) gen = 
+                case splitAt idx xs of
+                    (before, item : after) -> 
+                        let (shuffled, gen') = shuffle (before ++ after) rest gen
+                        in (item : shuffled, gen')
+                    _ -> (xs, gen)
+            shuffle xs [] gen = (xs, gen)
+
             -- Compute memory operation result without applying it
             computeMem :: MemoryOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
             computeMem NopM = return Nothing
