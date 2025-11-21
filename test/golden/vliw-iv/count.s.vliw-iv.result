@@ -1,0 +1,30 @@
+0:	acc
+4:	step
+8:	out_port
+12:	limit
+256:	_start
+388:	count
+421:	end
+---
+mem[0..3]: 	00 00 00 00	@"acc"
+mem[4..7]: 	02 00 00 00	@"step"
+mem[8..11]: 	58 00 00 00	@"out_port"
+mem[12..255]: 	15 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"limit"
+mem[256..266]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[267..277]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
+mem[278..288]: 	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[289..299]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+mem[300..310]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+mem[311..321]: 	Isa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[322..332]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T3, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+mem[333..343]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T3, addiRs1 = T3, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}
+mem[344..354]: 	Isa {memOp = Lw {lwRd = T4, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T3}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[355..365]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T6, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+mem[366..376]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T6, addiRs1 = T6, addiK = 12}, alu2Op = NopA, ctrlOp = NopC}
+mem[377..387]: 	Isa {memOp = Lw {lwRd = T5, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T6}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[388..398]: 	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC} 	@count
+mem[399..409]: 	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}
+mem[410..420]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}
+mem[421..431]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt} 	@end
+mem[432..999]: 	( 00 )
+---

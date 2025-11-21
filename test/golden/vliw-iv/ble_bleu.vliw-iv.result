@@ -1,0 +1,20 @@
+---
+# trace
+A0 0 A1 0
+0:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	@_start
+A0 -1 A1 0
+11:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A1, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	
+A0 -1 A1 -1
+22:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 55}}	
+A0 -1 A1 -1
+77:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = Zero, bleK = -44}}	@continue
+A0 -1 A1 -1
+33:	Isa {memOp = NopM, alu1Op = Sub {subRd = A0, subRs1 = Zero, subRs2 = A0}, alu2Op = NopA, ctrlOp = NopC}	@make_pos_a0
+A0 1 A1 -1
+44:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 33}}	
+A0 1 A1 -1
+77:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = Zero, bleK = -44}}	@continue
+A0 1 A1 -1
+88:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = A1, bleuRs2 = Zero, bleuK = -33}}	
+A0 1 A1 -1
+99:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}

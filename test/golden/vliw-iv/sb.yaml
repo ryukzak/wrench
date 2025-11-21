@@ -1,0 +1,19 @@
+name: "vliw sb instruction"
+limit: 2000
+memory_size: 0x1000
+memory_mapped_io:
+  0x80: []
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{pc:label} buf_ptr=t0={T0:hex} char=t1={T1:hex}
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    view: |
+      {memory:0:5}
+    assert: |
+      mem[0..5]: 	ff 32 33 34 ff 00

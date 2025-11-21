@@ -1,0 +1,9 @@
+0:	_start
+---
+mem[0..10]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T1, luiK = 74565}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[11..21]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 1656}, alu2Op = NopA, ctrlOp = NopC}
+mem[22..32]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 74565}, alu2Op = NopA, ctrlOp = NopC}
+mem[33..43]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = T2, addiK = 1656}, alu2Op = NopA, ctrlOp = NopC}
+mem[44..54]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+mem[55..999]: 	( 00 )
+---

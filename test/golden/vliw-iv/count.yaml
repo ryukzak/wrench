@@ -1,0 +1,16 @@
+limit: 200
+memory_size: 0x200
+memory_mapped_io:
+  88: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction}	{T0:hex} {T1:hex} {T2:hex} {T3:hex} {pc:label}
+  - name: Result
+    slice: last
+    view: |
+      {memory:4:7}
+      {io:88:dec}
+      {io:88:hex}
+      {io:88:sym}

@@ -1,0 +1,53 @@
+---
+# Step-by-step
+256:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000000 0x00000000 0x00000000 @_start
+267:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000000 0x00000000 0x00000000 
+278:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	0x00000004 0x00000000 0x00000000 0x00000000 
+289:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0x00000004 0x00000002 0x00000000 0x00000000 
+300:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000000 
+311:	Isa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000000 
+322:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T3, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000000 
+333:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T3, addiRs1 = T3, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000000 
+344:	Isa {memOp = Lw {lwRd = T4, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T3}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000008 
+355:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T6, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000008 
+366:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T6, addiRs1 = T6, addiK = 12}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000008 
+377:	Isa {memOp = Lw {lwRd = T5, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T6}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000000 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000002 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000002 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000002 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000004 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000004 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000004 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000006 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000006 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000006 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000008 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000008 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000008 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x0000000a 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x0000000a 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x0000000a 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x0000000c 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x0000000c 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x0000000c 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x0000000e 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x0000000e 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x0000000e 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000010 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000010 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000010 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000012 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000012 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000012 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000014 0x00000008 
+410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = -22}}	0x00000000 0x00000002 0x00000014 0x00000008 
+388:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000014 0x00000008 @count
+399:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 22}}	0x00000000 0x00000002 0x00000016 0x00000008 
+421:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	0x00000000 0x00000002 0x00000016 0x00000008 @end
+---
+# Result
+mem[4..7]: 	02 00 00 00
+[] >>> [2,4,6,8,10,12,14,16,18,20,22]
+[] >>> [0x00000002,0x00000004,0x00000006,0x00000008,0x0000000a,0x0000000c,0x0000000e,0x00000010,0x00000012,0x00000014,0x00000016]
+"" >>> "????\n??????"

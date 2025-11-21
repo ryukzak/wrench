@@ -1,0 +1,93 @@
+---
+# step-by-step
+[0, 0]       531@_start:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+[0, 0]       542:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+[0, 0]       553:	Isa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[0, 128]       564:	Isa {memOp = Lw {lwRd = A0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[5, 128]       575:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A1, addiRs1 = Zero, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+[5, 128]       586:	Isa {memOp = NopM, alu1Op = Lui {luiRd = Sp, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+[5, 128]       597:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = 1298}, alu2Op = NopA, ctrlOp = NopC}
+[5, 128]       608:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = -352}}
+[5, 128]       256@factorial:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[5, -1]       267:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 198}}
+[5, -1]       278:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[5, 1]       289:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 154}}
+[5, 1]       300:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = -8}, alu2Op = NopA, ctrlOp = NopC}
+[5, 1]       311:	Isa {memOp = Sw {swRs2 = Ra, swOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[5, 1]       322:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[5, 1]       333:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = A0, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[4, 1]       344:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = -88}}
+[4, 1]       256@factorial:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[4, -1]       267:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 198}}
+[4, -1]       278:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[4, 1]       289:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 154}}
+[4, 1]       300:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = -8}, alu2Op = NopA, ctrlOp = NopC}
+[4, 1]       311:	Isa {memOp = Sw {swRs2 = Ra, swOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[4, 1]       322:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[4, 1]       333:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = A0, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[3, 1]       344:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = -88}}
+[3, 1]       256@factorial:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[3, -1]       267:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 198}}
+[3, -1]       278:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[3, 1]       289:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 154}}
+[3, 1]       300:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = -8}, alu2Op = NopA, ctrlOp = NopC}
+[3, 1]       311:	Isa {memOp = Sw {swRs2 = Ra, swOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[3, 1]       322:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[3, 1]       333:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = A0, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       344:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = -88}}
+[2, 1]       256@factorial:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[2, -1]       267:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 198}}
+[2, -1]       278:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       289:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 154}}
+[2, 1]       300:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = -8}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       311:	Isa {memOp = Sw {swRs2 = Ra, swOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       322:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       333:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = A0, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       344:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = -88}}
+[1, 1]       256@factorial:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+[1, -1]       267:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 198}}
+[1, -1]       278:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       289:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = T0, bleK = 154}}
+[1, 1]       443@factorial_return_one:	Isa {memOp = NopM, alu1Op = Addi {addiRd = A0, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       454:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+[1, 1]       355:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       366:	Isa {memOp = Lw {lwRd = Ra, lwOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       377:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       388:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = A1, bgtRs2 = Zero, bgtK = 99}}
+[1, 1]       399:	Isa {memOp = NopM, alu1Op = Mulh {mulhRd = T3, mulhRs1 = A0, mulhRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[1, 1]       410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T3, bnezK = 77}}
+[1, 1]       421:	Isa {memOp = NopM, alu1Op = Mul {mulRd = A0, mulRs1 = A0, mulRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       432:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+[2, 1]       355:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       366:	Isa {memOp = Lw {lwRd = Ra, lwOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       377:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       388:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = A1, bgtRs2 = Zero, bgtK = 99}}
+[2, 1]       399:	Isa {memOp = NopM, alu1Op = Mulh {mulhRd = T3, mulhRs1 = A0, mulhRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[2, 1]       410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T3, bnezK = 77}}
+[2, 1]       421:	Isa {memOp = NopM, alu1Op = Mul {mulRd = A0, mulRs1 = A0, mulRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[6, 1]       432:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+[6, 1]       355:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[6, 1]       366:	Isa {memOp = Lw {lwRd = Ra, lwOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[6, 1]       377:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}
+[6, 1]       388:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = A1, bgtRs2 = Zero, bgtK = 99}}
+[6, 1]       399:	Isa {memOp = NopM, alu1Op = Mulh {mulhRd = T3, mulhRs1 = A0, mulhRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[6, 1]       410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T3, bnezK = 77}}
+[6, 1]       421:	Isa {memOp = NopM, alu1Op = Mul {mulRd = A0, mulRs1 = A0, mulRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[24, 1]       432:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+[24, 1]       355:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[24, 1]       366:	Isa {memOp = Lw {lwRd = Ra, lwOffsetRs1 = MemRef {mrOffset = 4, mrReg = Sp}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[24, 1]       377:	Isa {memOp = NopM, alu1Op = Addi {addiRd = Sp, addiRs1 = Sp, addiK = 8}, alu2Op = NopA, ctrlOp = NopC}
+[24, 1]       388:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = A1, bgtRs2 = Zero, bgtK = 99}}
+[24, 1]       399:	Isa {memOp = NopM, alu1Op = Mulh {mulhRd = T3, mulhRs1 = A0, mulhRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[24, 1]       410:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T3, bnezK = 77}}
+[24, 1]       421:	Isa {memOp = NopM, alu1Op = Mul {mulRd = A0, mulRs1 = A0, mulRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}
+[120, 1]       432:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+[120, 1]       619:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+[120, 0]       630:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
+[120, 4]       641:	Isa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[120, 132]       652:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+[120, 132]       663:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+---
+# result
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [120]

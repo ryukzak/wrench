@@ -1,0 +1,54 @@
+0:	input_addr
+4:	output_addr
+256:	_start
+553:	jump_label
+564:	beqz_label
+575:	bnez_label
+586:	bgt_label
+597:	ble_label
+608:	bgtu_label
+619:	bleu_label
+630:	beq_label
+641:	bne_label
+---
+mem[0..3]: 	80 00 00 00	@"input_addr"
+mem[4..255]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
+mem[256..266]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[267..277]: 	Isa {memOp = NopM, alu1Op = Add {addRd = T2, addRs1 = T1, addRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[278..288]: 	Isa {memOp = NopM, alu1Op = Sub {subRd = T3, subRs1 = T1, subRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[289..299]: 	Isa {memOp = NopM, alu1Op = Mul {mulRd = T4, mulRs1 = T1, mulRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[300..310]: 	Isa {memOp = NopM, alu1Op = Mulh {mulhRd = T5, mulhRs1 = T1, mulhRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[311..321]: 	Isa {memOp = NopM, alu1Op = Div {divRd = T6, divRs1 = T1, divRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[322..332]: 	Isa {memOp = NopM, alu1Op = Rem {remRd = T2, remRs1 = T1, remRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[333..343]: 	Isa {memOp = NopM, alu1Op = Sll {sllRd = T2, sllRs1 = T1, sllRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[344..354]: 	Isa {memOp = NopM, alu1Op = Srl {srlRd = T2, srlRs1 = T1, srlRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[355..365]: 	Isa {memOp = NopM, alu1Op = Sra {sraRd = T2, sraRs1 = T1, sraRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[366..376]: 	Isa {memOp = NopM, alu1Op = And {andRd = T2, andRs1 = T1, andRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[377..387]: 	Isa {memOp = NopM, alu1Op = Or {orRd = T2, orRs1 = T1, orRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[388..398]: 	Isa {memOp = NopM, alu1Op = Xor {xorRd = T2, xorRs1 = T1, xorRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[399..409]: 	Isa {memOp = NopM, alu1Op = Mv {mvRd = T2, mvRs = T1}, alu2Op = NopA, ctrlOp = NopC}
+mem[410..420]: 	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[421..431]: 	Isa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[432..442]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 4660}, alu2Op = NopA, ctrlOp = NopC}
+mem[443..453]: 	Isa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[454..464]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 99}}
+mem[465..475]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T1, beqzK = 99}}
+mem[476..486]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T1, bnezK = 99}}
+mem[487..497]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T1, bgtRs2 = T0, bgtK = 99}}
+mem[498..508]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = T1, bleRs2 = T0, bleK = 99}}
+mem[509..519]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgtu {bgtuRs1 = T1, bgtuRs2 = T0, bgtuK = 99}}
+mem[520..530]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = T1, bleuRs2 = T0, bleuK = 99}}
+mem[531..541]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beq {beqRs1 = T1, beqRs2 = T0, beqK = 99}}
+mem[542..552]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bne {bneRs1 = T1, bneRs2 = T0, bneK = 99}}
+mem[553..563]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@jump_label
+mem[564..574]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beqz_label
+mem[575..585]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bnez_label
+mem[586..596]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgt_label
+mem[597..607]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@ble_label
+mem[608..618]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgtu_label
+mem[619..629]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bleu_label
+mem[630..640]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beq_label
+mem[641..651]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bne_label
+mem[652..662]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+mem[663..999]: 	( 00 )
+---

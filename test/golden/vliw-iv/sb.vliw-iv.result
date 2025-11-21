@@ -1,0 +1,12 @@
+---
+# Step-by-step
+256:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	@_start buf_ptr=t0=0x00000000 char=t1=0x00000000
+267:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+278:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T1, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+289:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}	 buf_ptr=t0=0x00000000 char=t1=0x00000000
+300:	Isa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	 buf_ptr=t0=0x00000000 char=t1=0x00000004
+311:	Isa {memOp = Sb {sbRs2 = T1, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	 buf_ptr=t0=0x00000000 char=t1=0x000000ff
+322:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	 buf_ptr=t0=0x00000000 char=t1=0x000000ff
+---
+# Check results
+mem[0..5]: 	ff 32 33 34 ff 00

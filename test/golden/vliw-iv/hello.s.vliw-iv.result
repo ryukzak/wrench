@@ -1,0 +1,16 @@
+0:	buf
+17:	output_addr
+256:	_start
+289:	while
+311:	end
+---
+mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
+mem[17..255]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
+mem[256..266]: 	Isa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[267..277]: 	Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 17}, alu2Op = NopA, ctrlOp = NopC}
+mem[278..288]: 	Isa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 0}, alu2Op = Addi {addiRd = T3, addiRs1 = Zero, addiK = 14}, ctrlOp = NopC}
+mem[289..299]: 	Isa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}, alu1Op = Addi {addiRd = T4, addiRs1 = T3, addiK = -1}, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T3, beqzK = 22}} 	@while
+mem[300..310]: 	Isa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Mv {mvRd = T3, mvRs = T4}, alu2Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 1}, ctrlOp = J {jK = -11}}
+mem[311..321]: 	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt} 	@end
+mem[322..999]: 	( 00 )
+---

@@ -177,7 +177,51 @@ tests =
             ]
         , testGroup
             "VLIW-IV"
-            [ Wrench.Isa.VliwIv.Test.tests
+            [ testGroup
+                "Translator"
+                [ goldenTranslate VliwIv "test/golden/vliw-iv/count.s"
+                , goldenTranslate VliwIv "test/golden/vliw-iv/factorial.s"
+                , goldenTranslate VliwIv "test/golden/vliw-iv/hello.s"
+                , goldenTranslate VliwIv "test/golden/vliw-iv/all.s"
+                , goldenTranslate VliwIv "test/golden/vliw-iv/lui_addi.s"
+                ]
+            , Wrench.Isa.VliwIv.Test.tests
+            , testGroup
+                "Simulator"
+                [ goldenSimulate VliwIv "test/golden/vliw-iv/count.s" "test/golden/vliw-iv/count.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_87.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_abcd.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_null.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_nothing.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/ble_bleu.s" "test/golden/vliw-iv/ble_bleu.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/lui_addi.s" "test/golden/vliw-iv/lui_addi.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/sb.s" "test/golden/vliw-iv/sb.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/hello.s" "test/golden/vliw-iv/hello.yaml"
+                , testGroup
+                    "Factorial"
+                    [ goldenSimulate VliwIv "test/golden/vliw-iv/factorial.s" "test/golden/vliw-iv/factorial_input_5.yaml"
+                    , goldenSimulateFail
+                        VliwIv
+                        "test/golden/vliw-iv/factorial.s"
+                        "test/golden/vliw-iv/factorial_input_5_fail_assert.yaml"
+                    , goldenSimulate VliwIv "test/golden/vliw-iv/factorial.s" "test/golden/vliw-iv/factorial_input_7.yaml"
+                    ]
+                , testGroup
+                    "Factorial Rec"
+                    [ goldenSimulate
+                        VliwIv
+                        "test/golden/vliw-iv/factorial_rec.s"
+                        "test/golden/vliw-iv/factorial_rec_input_5.yaml"
+                    ]
+                , testGroup
+                    "Generated tests"
+                    [ generatedTest VliwIv "factorial" 11
+                    , generatedTest' VliwIv "factorial_rec" "factorial" 11
+                    , generatedTest VliwIv "get_put_char" 12
+                    , generatedTest VliwIv "hello" 1
+                    , generatedTest VliwIv "logical_not" 2
+                    ]
+                ]
             ]
         ]
 
@@ -187,6 +231,7 @@ isaPath isa = case isa of
     F32a -> "f32a"
     Acc32 -> "acc32"
     M68k -> "m68k"
+    VliwIv -> "vliw-iv"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -223,6 +268,7 @@ goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.Isa RiscIv fn
 goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
 goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
+goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.Isa VliwIv fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -257,6 +303,7 @@ goldenSimulate' shouldFail isa =
         F32a -> goldenSimulateInner (wrench @(F32aState Int32)) ".f32a.result" shouldFail
         Acc32 -> goldenSimulateInner (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
         M68k -> goldenSimulateInner (wrench @(M68kState Int32)) ".m68k.result" shouldFail
+        VliwIv -> goldenSimulateInner (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn

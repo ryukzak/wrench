@@ -1,0 +1,16 @@
+---
+# Step-by-step
+0:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T1, luiK = 74565}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000000 0x00000000 0x00000000 @_start
+11:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 1656}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x12345000 0x00000000 0x00000000 
+22:	Isa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 74565}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x12345678 0x00000000 0x00000000 
+33:	Isa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = T2, addiK = 1656}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x12345678 0x12345000 0x00000000 
+44:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	0x00000000 0x12345678 0x12345678 0x00000000
+---
+# Result
+4: 	InstructionPart
+5: 	InstructionPart
+6: 	InstructionPart
+7: 	InstructionPart
+[] >>> []
+[] >>> []
+"" >>> ""
