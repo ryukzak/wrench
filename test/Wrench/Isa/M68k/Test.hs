@@ -303,7 +303,7 @@ tests =
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
         st0 :: M68kState Int32
         st0@State{addrRegs = addrRegs0, dataRegs = dataRegs0, mem = mem0} =
-            (initState 256 $ mkIoMem (fromList []) memInit)
+            (initState 256 $ mkIoMem (fromList []) memInit Nothing)
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
 
