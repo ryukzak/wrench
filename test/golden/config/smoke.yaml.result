@@ -66,4 +66,5 @@ Config
             , rcView = Nothing
             }
         ]
+    , cSeed = Just 1337
     }
