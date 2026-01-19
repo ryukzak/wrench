@@ -50,13 +50,13 @@ Instruction size: 11 bytes (90-bit bundle).
 [SLOT 0]   memory: 36 bits    <opcode:4><addr:32>
 [SLOT 1]   alu 1: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
 [SLOT 2]   alu 2: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
-[SLOT 3]   control: 14 bits   <opcode:4><offset | offset+register:10>
+[SLOT 3]   control: 14 bits   <opcode:4><offset or offset+register:10>
 ```
 
-Each instruction is a bundle with 4 slots: Slot 0 (Memory), Slot 1 (ALU1), Slot 2 (ALU2), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `|` to separate slots:
+Each instruction is a bundle with 4 slots: Slot 0 (Memory), Slot 1 (ALU1), Slot 2 (ALU2), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots:
 
 ```assembly
-lw rd, offset(rs1) | add rd, rs1, rs2 | addi rd, rs1, k | beq rs1, rs2, k
+lw rd, offset(rs1) / add rd, rs1, rs2 / addi rd, rs1, k / beq rs1, rs2, k
 ```
 
 ### Slot 0: Memory Operations
