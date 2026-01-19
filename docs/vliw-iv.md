@@ -47,40 +47,19 @@ addi a0, a0, %lo(address) ; Add lower 12 bits to a0
 Instruction size: 11 bytes (90-bit bundle).
 
 ```text
-[SLOT 0]   memory: 36 bits    <opcode:4><addr:32>
-[SLOT 1]   alu 1: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
-[SLOT 2]   alu 2: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
+[SLOT 0]   alu 1: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
+[SLOT 1]   alu 2: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
+[SLOT 2]   memory: 36 bits    <opcode:4><addr:32>
 [SLOT 3]   control: 14 bits   <opcode:4><offset or offset+register:10>
 ```
 
-Each instruction is a bundle with 4 slots: Slot 0 (Memory), Slot 1 (ALU1), Slot 2 (ALU2), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots:
+Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots:
 
 ```assembly
-lw rd, offset(rs1) / add rd, rs1, rs2 / addi rd, rs1, k / beq rs1, rs2, k
+add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
 ```
 
-### Slot 0: Memory Operations
-
-- **Load Word**
-    - **Syntax:** `lw <rd>, <offset>(<rs1>)`
-    - **Description:** Load a word from memory at the address computed by adding the offset to the base register into the destination register.
-    - **Operation:** `rd <- M[offset + rs1]`
-
-- **Store Word**
-    - **Syntax:** `sw <rs2>, <offset>(<rs1>)`
-    - **Description:** Store the value from the source register into memory at the address computed by adding the offset to the base register.
-    - **Operation:** `M[offset + rs1] <- rs2`
-
-- **Store Byte**
-    - **Syntax:** `sb <rs2>, <offset>(<rs1>)`
-    - **Description:** Store the lower 8 bits of the value from the source register into memory at the address computed by adding the offset to the base register.
-    - **Operation:** `M[offset + rs1] <- rs2 & 0xFF`
-
-- **NOP**
-    - **Syntax:** `nop`
-    - **Description:** No operation.
-
-### Slot 1 and Slot 2: ALU Operations (Identical)
+### Slot 0 and Slot 1: ALU Operations (Identical)
 
 - **Load Upper Immediate**
     - **Syntax:** `lui <rd>, <k>`
@@ -161,6 +140,27 @@ lw rd, offset(rs1) / add rd, rs1, rs2 / addi rd, rs1, k / beq rs1, rs2, k
     - **Syntax:** `slti <rd>, <rs1>, <k>`
     - **Description:** Set the destination register to 1 if the source register is less than the immediate (signed), else 0.
     - **Operation:** `rd <- (rs1 < k) ? 1 : 0`
+
+- **NOP**
+    - **Syntax:** `nop`
+    - **Description:** No operation.
+
+### Slot 2: Memory Operations
+
+- **Load Word**
+    - **Syntax:** `lw <rd>, <offset>(<rs1>)`
+    - **Description:** Load a word from memory at the address computed by adding the offset to the base register into the destination register.
+    - **Operation:** `rd <- M[offset + rs1]`
+
+- **Store Word**
+    - **Syntax:** `sw <rs2>, <offset>(<rs1>)`
+    - **Description:** Store the value from the source register into memory at the address computed by adding the offset to the base register.
+    - **Operation:** `M[offset + rs1] <- rs2`
+
+- **Store Byte**
+    - **Syntax:** `sb <rs2>, <offset>(<rs1>)`
+    - **Description:** Store the lower 8 bits of the value from the source register into memory at the address computed by adding the offset to the base register.
+    - **Operation:** `M[offset + rs1] <- rs2 & 0xFF`
 
 - **NOP**
     - **Syntax:** `nop`

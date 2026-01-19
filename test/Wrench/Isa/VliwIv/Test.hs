@@ -20,13 +20,13 @@ tests =
         [ testCase "Bundle with single ALU operation: Addi" $ do
             let State{regs} =
                     simulate
-                        "nop / addi a1, a0, 3 / nop / nop"
+                        "addi a1, a0, 3 / nop / nop / nop"
                         (withRegs [(A0, 5)])
              in (regs !? A1) @?= Just 8
         , testCase "Bundle with two ALU operations: Add and Sub" $ do
             let State{regs} =
                     simulate
-                        "nop / add a2, a0, a1 / sub a3, a0, a1 / nop"
+                        "add a2, a0, a1 / sub a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 10), (A1, 3)])
              in do
                     (regs !? A2) @?= Just 13
@@ -34,19 +34,19 @@ tests =
         , testCase "Shift operations: Sll" $ do
             let State{regs} =
                     simulate
-                        "nop / sll a2, a0, a1 / nop / nop"
+                        "sll a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 3), (A1, 2)])
              in (regs !? A2) @?= Just 12 -- 3 << 2 = 12
         , testCase "Srl: unsigned right shift" $ do
             let State{regs} =
                     simulate
-                        "nop / srl a2, a0, a1 / nop / nop"
+                        "srl a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, -16), (A1, 2)])
              in (regs !? A2) @?= Just 1073741820
         , testCase "Sra: arithmetic right shift" $ do
             let State{regs} =
                     simulate
-                        "nop / sra a2, a0, a1 / nop / nop"
+                        "sra a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, -16), (A1, 2)])
              in (regs !? A2) @?= Just (-4)
         , testCase "Memory operations: Lw" $ do
@@ -56,12 +56,12 @@ tests =
                     m2 <- writeByte m1 21 0x34
                     m3 <- writeByte m2 22 0x56
                     writeByte m3 23 0x78
-                State{regs} = simulate "lw a1, 20(a0) / nop / nop / nop" st1{mem = mem1}
+                State{regs} = simulate "nop / nop / lw a1, 20(a0) / nop" st1{mem = mem1}
              in (regs !? A1) @?= Just 0x78563412
         , testCase "Memory operations: Sw" $ do
             let State{mem} =
                     simulate
-                        "sw a1, 20(a0) / nop / nop / nop"
+                        "nop / nop / sw a1, 20(a0) / nop"
                         (withRegs [(A0, 0), (A1, -559038737)]) -- 0xDEADBEEF as Int32
             case readWord mem 20 of
                 Right (_, w) -> w @?= -559038737
@@ -69,7 +69,7 @@ tests =
         , testCase "Memory operations: Sb" $ do
             let State{mem} =
                     simulate
-                        "sb a1, 20(a0) / nop / nop / nop"
+                        "nop / nop / sb a1, 20(a0) / nop"
                         (withRegs [(A0, 0), (A1, 0x12345678)])
             case readByte mem 20 of
                 Right (_, b) -> b @?= 0x78
@@ -139,7 +139,7 @@ tests =
         , testCase "Logical operations: And and Or" $ do
             let State{regs} =
                     simulate
-                        "nop / and a2, a0, a1 / or a3, a0, a1 / nop"
+                        "and a2, a0, a1 / or a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 0xFF00), (A1, 0x0FF0)])
              in do
                     (regs !? A2) @?= Just 0x0F00
@@ -147,13 +147,13 @@ tests =
         , testCase "Logical operations: Xor" $ do
             let State{regs} =
                     simulate
-                        "nop / xor a2, a0, a1 / nop / nop"
+                        "xor a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 0xFF00), (A1, 0x0FF0)])
              in (regs !? A2) @?= Just 0xF0F0
         , testCase "Arithmetic operations: Mul and Div" $ do
             let State{regs} =
                     simulate
-                        "nop / mul a2, a0, a1 / div a3, a0, a1 / nop"
+                        "mul a2, a0, a1 / div a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 6), (A1, 3)])
              in do
                     (regs !? A2) @?= Just 18
@@ -161,19 +161,19 @@ tests =
         , testCase "Arithmetic operations: Rem (remainder)" $ do
             let State{regs} =
                     simulate
-                        "nop / rem a2, a0, a1 / nop / nop"
+                        "rem a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 17), (A1, 5)])
              in (regs !? A2) @?= Just 2
         , testCase "Mulh: high-order multiplication result" $ do
             let State{regs} =
                     simulate
-                        "nop / mulh a2, a0, a1 / nop / nop"
+                        "mulh a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 0x10000000), (A1, 0x10)])
              in (regs !? A2) @?= Just 1
         , testCase "Slti: set less than immediate" $ do
             let State{regs} =
                     simulate
-                        "nop / slti a1, a0, 10 / slti a2, a0, 3 / nop"
+                        "slti a1, a0, 10 / slti a2, a0, 3 / nop / nop"
                         (withRegs [(A0, 5)])
              in do
                     (regs !? A1) @?= Just 1 -- 5 < 10
@@ -181,19 +181,19 @@ tests =
         , testCase "Lui: load upper immediate" $ do
             let State{regs} =
                     simulate
-                        "nop / lui a0, 0xABCDE / nop / nop"
+                        "lui a0, 0xABCDE / nop / nop / nop"
                         st0
              in (regs !? A0) @?= Just (-1412571136) -- 0xABCDE000 as Int32
         , testCase "Mv: move register" $ do
             let State{regs} =
                     simulate
-                        "nop / mv a1, a0 / nop / nop"
+                        "mv a1, a0 / nop / nop / nop"
                         (withRegs [(A0, 42)])
              in (regs !? A1) @?= Just 42
         , testCase "Translator: parsing various instructions" $ do
-            translate "nop / addi a1, a0, 3 / nop / nop" @?= True
-            translate "lw a1, 20(a0) / nop / nop / j 100" @?= True
-            translate "sw a1, 0(a0) / add a2, a0, a1 / sub a3, a0, a1 / halt" @?= True
+            translate "addi a1, a0, 3 / nop / nop / nop" @?= True
+            translate "nop / nop / lw a1, 20(a0) / j 100" @?= True
+            translate "add a2, a0, a1 / sub a3, a0, a1 / sw a1, 0(a0) / halt" @?= True
         ]
 
 -- Test helper: Initial state for most tests

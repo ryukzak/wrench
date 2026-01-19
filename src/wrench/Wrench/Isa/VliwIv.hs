@@ -277,11 +277,11 @@ parseCtrlOp =
 instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
     mnemonic = do
         hspace
-        memOp <- parseMemOp
-        hspace >> string "/" >> hspace
         alu1Op <- parseAluOp
         hspace >> string "/" >> hspace
         alu2Op <- parseAluOp
+        hspace >> string "/" >> hspace
+        memOp <- parseMemOp
         hspace >> string "/" >> hspace
         ctrlOp <- parseCtrlOp
         eol' (commentStart @(Isa _ _))
