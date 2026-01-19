@@ -314,6 +314,7 @@ test-suite wrench-test
   other-modules:
       Wrench.Isa.M68k.Test
       Wrench.Isa.RiscIv.Test
+      Wrench.Isa.VliwIv.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test
