@@ -106,7 +106,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , archStyle = VliwArch [15, 34, 34, 0] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
+        , archStyle = VliwArch [34, 34, 12, 12] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -187,7 +187,7 @@ calculateVliwSlotWidths statements =
         splitByPipe :: [Text] -> [[Text]]
         splitByPipe [] = []
         splitByPipe tokens =
-            let (slot, rest) = break (== "|") tokens
+            let (slot, rest) = break (== "/") tokens
              in slot : case rest of
                     [] -> []
                     (_ : rest') -> splitByPipe rest'
@@ -245,12 +245,12 @@ pprint
             formatVliwLine widths tokens =
                 let slots = splitByPipe tokens
                     formattedSlots = zipWith formatSlot widths slots
-                 in T.intercalate " | " formattedSlots
+                 in T.intercalate " / " formattedSlots
 
             splitByPipe :: [Text] -> [[Text]]
             splitByPipe [] = []
             splitByPipe tokens =
-                let (slot, rest) = break (== "|") tokens
+                let (slot, rest) = break (== "/") tokens
                  in slot : case rest of
                         [] -> []
                         (_ : rest') -> splitByPipe rest'
@@ -268,11 +268,11 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
-            | isVliwArch && T.isPrefixOf "|" txt = "|" : inner (T.strip $ T.drop 1 txt)
+            | isVliwArch && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '|')
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '/')
                     )
                     txt =
                 token : inner (T.strip rest)
