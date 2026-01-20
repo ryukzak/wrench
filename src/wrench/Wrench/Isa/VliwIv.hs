@@ -17,7 +17,6 @@ import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import System.Random (StdGen, mkStdGen, uniformR)
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
@@ -379,11 +378,6 @@ getRandoms n = do
     modify $ \st -> st{randoms = rest}
     return taken
 
-randomInts :: (Int, Int) -> StdGen -> [Int]
-randomInts range gen =
-    let (val, gen') = uniformR range gen
-     in val : randomInts range gen'
-
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
@@ -430,14 +424,14 @@ setByte addr byte = do
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump@IoMem{mSeed} =
+    initState pc dump randomStream =
         State
             { pc
             , mem = dump
             , regs = def
             , stopped = False
             , internalError = Nothing
-            , randoms = randomInts (0, maxBound) (mkStdGen mSeed)
+            , randoms = randomStream
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where

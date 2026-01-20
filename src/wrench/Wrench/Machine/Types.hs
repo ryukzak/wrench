@@ -151,7 +151,7 @@ instance (ByteSize t, Default t) => ByteSizeT t where
     byteSizeT = byteSize (def :: t)
 
 class InitState mem st | st -> mem where
-    initState :: Int -> mem -> st
+    initState :: Int -> mem -> [Int] -> st
 
 class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
@@ -188,21 +188,18 @@ data IoMem isa w = IoMem
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
     , mIoByteToWord :: IntMap Int
-    , mSeed :: Int
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> Maybe Int -> IoMem isa w
-mkIoMem streams cells (Just v) =
+mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem streams cells =
     IoMem
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
-        , mSeed = v
         }
-mkIoMem streams cells _ = mkIoMem streams cells (Just 0)
 
 data Cell isa w
     = Instruction isa

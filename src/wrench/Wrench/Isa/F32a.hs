@@ -220,7 +220,7 @@ data MachineState mem w = State
     deriving (Show)
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump =
+    initState pc dump _ =
         State
             { p = pc
             , a = def

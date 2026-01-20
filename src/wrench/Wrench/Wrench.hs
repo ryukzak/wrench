@@ -13,6 +13,7 @@ import Data.Default (Default (..), def)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
+import System.Random (StdGen, mkStdGen, uniformR)
 import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
@@ -160,8 +161,9 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        ioDump = mkIoMem mIoStreams dump cSeed
-        st :: st = initState (fromEnum pc) ioDump
+        randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
+        ioDump = mkIoMem mIoStreams dump
+        st :: st = initState (fromEnum pc) ioDump randomStream
 
     traceLog <- powerOn cLimit maxStateLogLimit labels st
 
@@ -184,3 +186,8 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
                 toSign $ toEnum x
             | otherwise =
                 error $ "integer value out of machine word range: " <> show x
+
+        randomInts :: (Int, Int) -> StdGen -> [Int]
+        randomInts range gen =
+            let (val, gen') = uniformR range gen
+             in val : randomInts range gen'

@@ -201,7 +201,7 @@ st0 :: VliwIvState Int32
 st0 =
     State
         { pc = 0
-        , mem = mkIoMem def (Mem 1000 def) Nothing
+        , mem = mkIoMem def (Mem 1000 def)
         , regs = def
         , stopped = False
         , internalError = Nothing

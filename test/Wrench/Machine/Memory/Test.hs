@@ -125,7 +125,6 @@ tests =
                     , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
                     }
                 )
-                Nothing
         piomem :: IoMem Isa Int32
         piomem =
             mkIoMem
@@ -160,4 +159,3 @@ tests =
                             ]
                     }
                 )
-                Nothing

@@ -43,7 +43,6 @@ initialState pc regs instr =
                     , memorySize = 4
                     }
                 )
-                Nothing
         , regs = regs
         , stopped = False
         , internalError = Nothing
