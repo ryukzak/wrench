@@ -174,13 +174,23 @@ formatLines fmt tokenss =
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
     let textLines =
-            [ tokens | TextLine tokens <- statements, not (null tokens), case tokens of (t : _) -> not (T.isSuffixOf ":" t); _ -> True
+            [ tokens
+            | TextLine tokens <- statements
+            , not (null tokens)
+            , (t : _) <- [tokens]
+            , not (T.isSuffixOf ":" t)
             ]
         slotsList = map splitByPipe textLines
         numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
         maxWidths =
-            [ foldl' max 0 (0 : [T.length (unwords slot) | slots <- slotsList, idx < length slots, let slot = slots Unsafe.!! idx])
-            | idx <- [0 .. numSlots - 1]
+            [ foldl' max 0
+                ( 0
+                : [ T.length (unwords slot)
+                | slots <- slotsList
+                , idx < length slots
+                , let slot = slots Unsafe.!! idx
+                ]
+                )
             ]
      in maxWidths
     where
