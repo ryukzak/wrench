@@ -106,7 +106,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , archStyle = VliwArch [34, 34, 12, 12] -- Memory | ALU1 | ALU2 | Control (last slot no padding)
+        , archStyle = VliwArch [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
 process :: Options -> String -> IO (Either Text Text)
