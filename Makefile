@@ -99,6 +99,10 @@ test-examples: build
 	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive.s -c example/m68k/factorial-5.yaml
 	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive-2.s -c example/m68k/factorial-5.yaml
 
+	stack exec wrench -- --isa vliw-iv    example/vliw-iv/hello.s           -c example/vliw-iv/hello.yaml
+	stack exec wrench -- --isa vliw-iv    example/vliw-iv/factorial.s       -c example/vliw-iv/factorial-5.yaml
+	stack exec wrench -- --isa vliw-iv    example/vliw-iv/test-parallel.s   -c example/vliw-iv/test-parallel.yaml
+
 test-serv: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl
@@ -135,12 +139,14 @@ format-asm: build-fmt
 	stack exec wrench-fmt -- --inplace --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
 	stack exec wrench-fmt -- --inplace --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --inplace --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
+	stack exec wrench-fmt -- --inplace --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
 
 format-asm-check: build-fmt
 	stack exec wrench-fmt -- --check   --isa risc-iv-32 -v example/risc-iv-32/*.s test/golden/risc-iv-32/*.s
 	stack exec wrench-fmt -- --check   --isa f32a       -v example/f32a/*.s       test/golden/f32a/*.s
 	stack exec wrench-fmt -- --check   --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --check   --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
+	stack exec wrench-fmt -- --check   --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
 
 format-check:
 	fourmolu -m check $(HS_SRC_DIR)
