@@ -183,14 +183,17 @@ calculateVliwSlotWidths statements =
         slotsList = map splitByPipe textLines
         numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
         maxWidths =
-            [ foldl' max 0
+            [ foldl'
+                max
+                0
                 ( 0
-                : [ T.length (unwords slot)
-                | slots <- slotsList
-                , idx < length slots
-                , let slot = slots Unsafe.!! idx
-                ]
+                    : [ T.length (unwords slot)
+                      | slots <- slotsList
+                      , idx < length slots
+                      , let slot = slots Unsafe.!! idx
+                      ]
                 )
+            | idx <- [0 .. numSlots - 1]
             ]
      in maxWidths
     where
