@@ -27,19 +27,19 @@ The VLIW assembly language provides special directives for handling larger immed
 
 - **%hi(symbol)**
     - **Description:** Used to extract the upper 20 bits of a 32-bit address or immediate value
-    - **Usage:** `lui rd, %hi(symbol)`
+    - **Usage:** `lui rd, %hi(symbol) / nop / nop / nop`
     - **Operation:** `rd <- (symbol & 0xFFFFF000)`
 
 - **%lo(symbol)**
     - **Description:** Used to extract the lower 12 bits of a 32-bit address or immediate value
-    - **Usage:** `addi rd, rs, %lo(symbol)`
+    - **Usage:** `addi rd, rs, %lo(symbol) / nop / nop / nop`
     - **Operation:** `rd <- rs + (symbol & 0x00000FFF)`
 
 These directives are typically used together to load a full 32-bit address into a register:
 
 ```assembly
-lui  a0, %hi(address)    ; Load upper 20 bits into a0
-addi a0, a0, %lo(address) ; Add lower 12 bits to a0
+lui  a0, %hi(address)     / nop / nop / nop ; Load upper 20 bits into a0
+addi a0, a0, %lo(address) / nop / nop / nop ; Add lower 12 bits to a0
 ```
 
 ## Instructions
