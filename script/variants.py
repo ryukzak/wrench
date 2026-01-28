@@ -18,6 +18,7 @@ import testcases.mathematics  # noqa: F401
 import testcases.bitwise  # noqa: F401
 import testcases.string  # noqa: F401
 import testcases.complex  # noqa: F401
+import testcases.vliw  # noqa: F401
 
 
 def python_assert_string(name, params, results):
