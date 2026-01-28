@@ -105,9 +105,9 @@ class Words2Words:
         return f"assert {name}({params}) == {results}"
 
     def check_assert(self, f):
-        assert (
-            f(*self.xs) == self.ys
-        ), f"{f.__name__} actual: {f(*self.xs)}, expect: {self.ys}"
+        assert f(*self.xs) == self.ys, (
+            f"{f.__name__} actual: {f(*self.xs)}, expect: {self.ys}"
+        )
 
     def yaml_memory_mapped_io(self):
         return "\n".join(
@@ -143,16 +143,14 @@ class CharSequence2Word(Words2Words):
         self.y = y
 
     def assert_string(self, name):
-        params = "".join(
-            [it if ord(it) > 0 else "\\0" for it in self.x]
-        )
+        params = "".join([it if ord(it) > 0 else "\\0" for it in self.x])
         results = f"{self.y}"
         return f"assert {name}('{params}') == {results}"
 
     def check_assert(self, f):
-        assert (
-            f(self.x) == self.y
-        ), f"{f.__name__}({self.x}) actual: {f(self.x)}, expect: {self.y}"
+        assert f(self.x) == self.y, (
+            f"{f.__name__}({self.x}) actual: {f(self.x)}, expect: {self.y}"
+        )
 
 
 class Word2Word(Words2Words):
@@ -167,16 +165,14 @@ class Word2Word(Words2Words):
         return f"assert {name}({params}) == {results}"
 
     def check_assert(self, f):
-        assert (
-            f(self.x) == self.y
-        ), f"{f.__name__}({self.x}) actual: {f(self.x)}, expect: {self.y}"
+        assert f(self.x) == self.y, (
+            f"{f.__name__}({self.x}) actual: {f(self.x)}, expect: {self.y}"
+        )
 
 
 class Bool2Bool(Word2Word):
     def __init__(self, x, y, limit=2000):
-        super(Bool2Bool, self).__init__(
-            1 if x else 0, 1 if y else 0, limit=limit
-        )
+        super(Bool2Bool, self).__init__(1 if x else 0, 1 if y else 0, limit=limit)
 
     def assert_string(self, name):
         x = True if self.x == 1 else False
@@ -197,9 +193,9 @@ class String2String:
         self.limit = limit
         for i, (a, b, dump) in enumerate(mem_view):
             # Interval inclusive, so we need +1
-            assert (
-                len(dump) <= b - a + 1
-            ), f"incorrect dump length, actual: {len(dump)}, expect: {b - a + 1}"
+            assert len(dump) <= b - a + 1, (
+                f"incorrect dump length, actual: {len(dump)}, expect: {b - a + 1}"
+            )
             mem_view[i] = (a, b, dump + ("_" * (b - a + 1 - len(dump))))
         self.mem_view = mem_view
 
@@ -207,10 +203,7 @@ class String2String:
         res = f"assert {name}({py_str(self.input)}) == ({py_str(self.output)}, {py_str(self.rest)})"
         if len(self.mem_view) > 0:
             res += "\n# and " + ", ".join(
-                [
-                    f"mem[{a}..{b}]: {dump_symbols(dump)}"
-                    for a, b, dump in self.mem_view
-                ]
+                [f"mem[{a}..{b}]: {dump_symbols(dump)}" for a, b, dump in self.mem_view]
             )
         return res
 
