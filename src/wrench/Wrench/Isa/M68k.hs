@@ -384,7 +384,7 @@ raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump _ =
+    initState pc dump _randomStream =
         State
             { pc
             , dataRegs = def

@@ -384,7 +384,7 @@ setByte addr byte = do
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump _ =
+    initState pc dump _randomStream =
         State
             { pc
             , mem = dump

@@ -207,7 +207,7 @@ data MachineState mem w = State
     deriving (Show)
 
 instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
-    initState pc dump _ =
+    initState pc dump _randomStream =
         State
             { acc = 0
             , overflowFlag = False
