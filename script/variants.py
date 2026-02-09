@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 
+import inspect
 import itertools
 import os
-import inspect
 import random
-from testcases.core import (
-    py_str,
-    read_line,
-    cstr,
-    cbuf,
-    pbuf,
-    pstr,
-    TEST_CASES,
-)
+
+import testcases.bitwise  # noqa: F401
+import testcases.complex  # noqa: F401
 import testcases.examples  # noqa: F401
 import testcases.mathematics  # noqa: F401
-import testcases.bitwise  # noqa: F401
 import testcases.string  # noqa: F401
-import testcases.complex  # noqa: F401
 import testcases.vliw  # noqa: F401
+from testcases.core import (
+    TEST_CASES,
+    cbuf,
+    cstr,
+    pbuf,
+    pstr,
+    py_str,
+    read_line,
+)
 
 
 def python_assert_string(name, params, results):
@@ -191,10 +192,11 @@ def inf_shuffle(xs):
 
 
 def fun_shuffle(xs):
-    a, b, c, d = xs
-    xs = [a, b, c]
+    a, b, c, d, e = xs
+    xs = [a, b, d]
     random.shuffle(xs)
-    return xs + [d]
+    a, b, d = xs
+    return a, b, c, d, e
 
 
 def gen_variants(cases):
@@ -202,8 +204,9 @@ def gen_variants(cases):
     for e in zip(
         inf_shuffle(categories["String Manipulation"]),
         inf_shuffle(categories["Bitwise Operations"]),
-        inf_shuffle(categories["Mathematics"]),
         inf_shuffle(categories["Complex Tasks"]),
+        inf_shuffle(categories["Mathematics"]),
+        inf_shuffle(["acc32", "f18a", "m68k", "risc-iv"]),
     ):
         yield fun_shuffle(e)
 
@@ -211,16 +214,16 @@ def gen_variants(cases):
 def generate_variants(n, fn):
     variants = [next(gen_variants(TEST_CASES)) for _ in range(n)]
     distribution = {}
-    for a, b, c, d in variants:
-        distribution[(a, b, c, d)] = distribution.get((a, b, c, d), 0) + 1
+    for a, b, c, d, e in variants:
+        distribution[(a, b, c, d, e)] = distribution.get((a, b, c, d, e), 0) + 1
     grouped_by_rep = {}
     for k, v in distribution.items():
         grouped_by_rep[v] = grouped_by_rep.get(v, 0) + 1
     print("Generate random variants to csv file:", grouped_by_rep)
     with open(fn, "w") as f:
-        f.write("acc32,f32a,risc-iv-32,m68k\n")
-        for a, b, c, d in variants:
-            f.write(f"{a},{b},{c},{d}\n")
+        f.write("acc32,f32a,m68k,risc-iv,scheme\n")
+        for a, b, c, d, e in variants:
+            f.write(f"{a},{b},{c},{d},{e}\n")
 
 
 if __name__ == "__main__":
@@ -241,7 +244,7 @@ if __name__ == "__main__":
     print("Generate variant tests")
     generate_wrench_variant_test_cases("variants")
 
-    generate_variants(375, "variants.csv")
+    generate_variants(400, "variants.csv")
 
     # all variants in one column
     # categories = get_categories(TEST_CASES)
