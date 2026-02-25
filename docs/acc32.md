@@ -94,6 +94,11 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Description:** Clear the overflow flag.
     - **Operation:** `overflow <- 0`
 
+- **Clear Carry**
+    - **Syntax:** `clc`
+    - **Description:** Clear the carry flag.
+    - **Operation:** `carry <- 0`
+
 ### Bitwise Instructions
 
 - **Shift Left**
