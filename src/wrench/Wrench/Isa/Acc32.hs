@@ -47,7 +47,7 @@ data Isa w l
       Div l
     | -- | Syntax: @rem <address>@ Compute the remainder of the accumulator divided by a value from a specific address.
       Rem l
-    | -- | Syntax: @clc@ Clear carry flag
+    | -- | Syntax: @clc@ Clear overflow flag
       Clv
     | -- | Syntax: @clc@ Clear carry flag
       Clc
