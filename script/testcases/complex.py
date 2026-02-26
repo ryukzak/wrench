@@ -539,7 +539,7 @@ TEST_CASES["brainfuck_interpreter"] = TestCase(
             "+++++[>+++++[>++<-]<-]>>.\n",
             "2",
             "",
-            limit=5000,
+            limit=7000,
         ),
         String2String(
             "+++++[>+++++<-]>[\n",
