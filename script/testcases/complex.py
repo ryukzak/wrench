@@ -133,6 +133,11 @@ TEST_CASES["base64_decoding"] = TestCase(
             "Next line",
         ),
         String2String(
+            "Pj4+Pz8/\n",
+            ">>>???",
+            "",
+        ),
+        String2String(
             "\n",
             "",
             "",
