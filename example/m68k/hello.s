@@ -13,8 +13,8 @@ _start:
 
 loop:
     movea.l  D0, A0
-    move.l   (A0), D2                        ; TODO: support for .b
-    and.l    0xFF, D2
+    move.b   (A0), D2                        ; Load 1 byte = 1 symbol
+    ;   and.l    0xFF, D2                      No need to mask
     move.l   D2, (A1)
 
     add.l    1, D0
