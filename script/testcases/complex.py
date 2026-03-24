@@ -1187,8 +1187,16 @@ def format_string(input):
         format_str = lines[0]
 
         # Check format string buffer size limit (0x20 bytes)
-        if len(format_str) > 0x20:
-            return [-1], input
+        format_bytes = 0
+        overflow_idx = None
+        for idx, ch in enumerate(format_str):
+            format_bytes += len(ch.encode("utf-8"))
+            if format_bytes > 0x20:
+                overflow_idx = idx
+                break
+        if overflow_idx is not None:
+            remaining = input[overflow_idx + 1 :]
+            return [-1], remaining
 
         # Find all format specifiers: %d, %5d, %-5d, etc.
         format_specs = []
@@ -1215,32 +1223,63 @@ def format_string(input):
             return [-1], input
 
         # Parse integers from remaining lines
+        # Parse integers from remaining lines
         integers = []
         line_idx = 1
         for _ in range(placeholder_count):
             if line_idx >= len(lines):
                 return [-1], input
-            try:
-                parsed_int = int(lines[line_idx])
+
+            line = lines[line_idx]
+            pos = 0
+            sign = 1
+            value = 0
+
+            if pos < len(line) and line[pos] == "-":
+                sign = -1
+                pos += 1
+            elif pos < len(line) and line[pos] == "+":
+                pos += 1
+
+            digit_start = pos
+
+            while pos < len(line) and line[pos].isdigit():
+                digit = ord(line[pos]) - ord("0")
+                value = value * 10 + digit
+                pos += 1
+
                 # Check 32-bit boundary
-                if parsed_int < -2147483648 or parsed_int > 2147483647:
-                    remaining = "\n".join(lines[line_idx:])
-                    return [-1], remaining
-                integers.append(parsed_int)
-                line_idx += 1
-            except ValueError:
+                if sign == 1:
+                    if value > 2147483647:
+                        remaining = "\n".join([line[pos:]] + lines[line_idx + 1 :])
+                        return [-1], remaining
+                else:
+                    if value > 2147483648:
+                        remaining = "\n".join([line[pos:]] + lines[line_idx + 1 :])
+                        return [-1], remaining
+
+            if digit_start == pos:
                 # Check if the line is empty (missing input) or invalid
-                if lines[line_idx] == "":
+                if pos < len(line):
+                    # Non-empty invalid line - consume invalid character and return what's after
+                    remaining = "\n".join([line[pos + 1 :]] + lines[line_idx + 1 :])
+                else:
                     # Empty line - consume it and return what's after
                     remaining = (
                         "\n".join(lines[line_idx + 1 :])
                         if line_idx + 1 < len(lines)
                         else ""
                     )
-                else:
-                    # Non-empty invalid line - include it in remaining
-                    remaining = "\n".join(lines[line_idx:])
                 return [-1], remaining
+
+            if pos < len(line):
+                # Non-empty invalid line - consume invalid character and return what's after
+                remaining = "\n".join([line[pos + 1 :]] + lines[line_idx + 1 :])
+                return [-1], remaining
+
+            parsed_int = sign * value
+            integers.append(parsed_int)
+            line_idx += 1
 
         # Format the string
         try:
@@ -1315,7 +1354,7 @@ TEST_CASES["format_string"] = TestCase(
         String2String(
             "Bad int %d\nabc\n",
             [-1],
-            "abc\n",
+            "bc\n",
         ),
         String2String(
             "Negative %-4d\n-5\n",
@@ -1350,12 +1389,12 @@ TEST_CASES["format_string"] = TestCase(
         String2String(
             "Beyond 32-bit: %d\n2147483648\n",
             [-1],
-            "2147483648\n",
+            "\n",
         ),
         String2String(
             "Below 32-bit: %d\n-2147483649\n",
             [-1],
-            "-2147483649\n",
+            "\n",
         ),
         String2String(
             "Edge case: %d\n2147483647\nExtra\n",
@@ -1375,12 +1414,12 @@ TEST_CASES["format_string"] = TestCase(
         String2String(
             "Multiple invalid: %d %d\n2147483647\n2147483648\n",
             [-1],
-            "2147483648\n",
+            "\n",
         ),
         String2String(
             "This format string is too long for input buffer %d\n1\n",
             [-1],
-            "This format string is too long for input buffer %d\n1\n",
+            "r input buffer %d\n1\n",
         ),
         String2String(
             "Long: %d %d %d %d %d\n1\n2\n3\n4\n5\n",
