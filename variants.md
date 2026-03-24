@@ -1,29 +1,27 @@
 # Wrench variants
 
-Variants described as a Python function with several asserts. It is a limited
-implementation because your variant may have additional requirements like:
-specific string representation, limited integer number representation, etc.
+Variants described as a Python function with several asserts. It is a
+limited implementation because your variant may have additional
+requirements like: specific string representation, limited integer
+number representation, etc.
 
 Additional requirements for all variants:
 
 1. If the input does not match the domain -- return `-1`.
 1. If the result cannot be correctly calculated (the result cannot be
-   represented within the machine word) -- return the result filled with bytes
-   with the value `0xCC`.
+   represented within the machine word) -- return the result filled with
+   bytes with the value `0xCC`.
 1. The input should be passed through memory cell `0x80`.
 1. The output should be passed to memory cell `0x84`.
-1. The input value and the result by default -- a 32-bit machine word unless
-   otherwise specified.
+1. The input value and the result by default -- a 32-bit machine word
+   unless otherwise specified.
 1. Source code should be properly formatted (manually or using `wrench-fmt`).
 1. Execution log should not be truncated (use configuration with understanding).
 1. ISA-specific requirements:
-   - `F32a`: use procedures.
-   - `RISC-IV`: use nested procedures and stack. Where applicable -- recursive
-     solutions are recommended.
-   - `M68k`: use different instruction modes and addressing modes. Use nested
-     procedures and stack.
-1. When using procedures, develop a label naming convention that helps visualize
-   code structure.
+    - `F32a`: use procedures.
+    - `RISC-IV`: use nested procedures and stack. Where applicable -- recursive solutions are recommended.
+    - `M68k`: use different instruction modes and addressing modes. Use nested procedures and stack.
+1. When using procedures, develop a label naming convention that helps visualize code structure.
 
 Also we have the following helper functions not from builtins:
 
@@ -64,56 +62,56 @@ def pbuf(s, buf_size):
 Variants:
 
 - Bitwise Operations
-  - [big_to_little_endian](#big_to_little_endian)
-  - [count_leading_zeros](#count_leading_zeros)
-  - [count_ones](#count_ones)
-  - [count_trailing_zeros](#count_trailing_zeros)
-  - [count_zero](#count_zero)
-  - [is_binary_palindrome](#is_binary_palindrome)
-  - [little_to_big_endian](#little_to_big_endian)
-  - [reverse_bits](#reverse_bits)
+    - [big_to_little_endian](#big_to_little_endian)
+    - [count_leading_zeros](#count_leading_zeros)
+    - [count_ones](#count_ones)
+    - [count_trailing_zeros](#count_trailing_zeros)
+    - [count_zero](#count_zero)
+    - [is_binary_palindrome](#is_binary_palindrome)
+    - [little_to_big_endian](#little_to_big_endian)
+    - [reverse_bits](#reverse_bits)
 - Complex Tasks
-  - [base64_decoding](#base64_decoding)
-  - [base64_encoding](#base64_encoding)
-  - [brainfuck_interpreter](#brainfuck_interpreter)
-  - [format_string](#format_string)
-  - [rle_compress](#rle_compress)
-  - [rle_compress_bytes](#rle_compress_bytes)
-  - [rle_decompress](#rle_decompress)
-  - [rle_decompress_bytes](#rle_decompress_bytes)
-  - [stack_based_calculator](#stack_based_calculator)
-  - [text_word_counter](#text_word_counter)
+    - [base64_decoding](#base64_decoding)
+    - [base64_encoding](#base64_encoding)
+    - [brainfuck_interpreter](#brainfuck_interpreter)
+    - [format_string](#format_string)
+    - [rle_compress](#rle_compress)
+    - [rle_compress_bytes](#rle_compress_bytes)
+    - [rle_decompress](#rle_decompress)
+    - [rle_decompress_bytes](#rle_decompress_bytes)
+    - [stack_based_calculator](#stack_based_calculator)
+    - [text_word_counter](#text_word_counter)
 - Mathematics
-  - [count_divisors](#count_divisors)
-  - [fibonacci](#fibonacci)
-  - [gcd](#gcd)
-  - [is_prime](#is_prime)
-  - [sum_even_n](#sum_even_n)
-  - [sum_n](#sum_n)
-  - [sum_odd_n](#sum_odd_n)
-  - [sum_of_digits](#sum_of_digits)
-  - [sum_word_cstream](#sum_word_cstream)
-  - [sum_word_pstream](#sum_word_pstream)
+    - [count_divisors](#count_divisors)
+    - [fibonacci](#fibonacci)
+    - [gcd](#gcd)
+    - [is_prime](#is_prime)
+    - [sum_even_n](#sum_even_n)
+    - [sum_n](#sum_n)
+    - [sum_odd_n](#sum_odd_n)
+    - [sum_of_digits](#sum_of_digits)
+    - [sum_word_cstream](#sum_word_cstream)
+    - [sum_word_pstream](#sum_word_pstream)
 - String Manipulation
-  - [capital_case_cstr](#capital_case_cstr)
-  - [capital_case_pstr](#capital_case_pstr)
-  - [hello_user_cstr](#hello_user_cstr)
-  - [hello_user_pstr](#hello_user_pstr)
-  - [reverse_string_cstr](#reverse_string_cstr)
-  - [reverse_string_pstr](#reverse_string_pstr)
-  - [upper_case_cstr](#upper_case_cstr)
-  - [upper_case_pstr](#upper_case_pstr)
+    - [capital_case_cstr](#capital_case_cstr)
+    - [capital_case_pstr](#capital_case_pstr)
+    - [hello_user_cstr](#hello_user_cstr)
+    - [hello_user_pstr](#hello_user_pstr)
+    - [reverse_string_cstr](#reverse_string_cstr)
+    - [reverse_string_pstr](#reverse_string_pstr)
+    - [upper_case_cstr](#upper_case_cstr)
+    - [upper_case_pstr](#upper_case_pstr)
 - VLIW
-  - [determinant_3x3](#determinant_3x3)
-  - [djb2_hash](#djb2_hash)
-  - [fnv32_1_hash](#fnv32_1_hash)
-  - [fnv32_1a_hash](#fnv32_1a_hash)
+    - [determinant_3x3](#determinant_3x3)
+    - [djb2_hash](#djb2_hash)
+    - [fnv32_1_hash](#fnv32_1_hash)
+    - [fnv32_1a_hash](#fnv32_1a_hash)
 - _Examples_
-  - [dup](#dup)
-  - [factorial](#factorial)
-  - [get_put_char](#get_put_char)
-  - [hello](#hello)
-  - [logical_not](#logical_not)
+    - [dup](#dup)
+    - [factorial](#factorial)
+    - [get_put_char](#get_put_char)
+    - [hello](#hello)
+    - [logical_not](#logical_not)
 
 ## Bitwise Operations
 
@@ -547,58 +545,26 @@ def format_string(input):
         for _ in range(placeholder_count):
             if line_idx >= len(lines):
                 return [-1], input
-
-            line = lines[line_idx]
-            pos = 0
-
-            # Optional sign
-            if pos < len(line) and line[pos] in ("+", "-"):
-                pos += 1
-
-            digit_start = pos
-
-            # Read digits character by character
-            while pos < len(line) and line[pos].isdigit():
-                pos += 1
-
-            # No digits found -> invalid integer
-            if digit_start == pos:
-                if pos < len(line):
-                    # Invalid character at current pos was already read, so remaining starts after it
-                    remaining = "\n".join([line[pos + 1 :]] + lines[line_idx + 1 :])
-                else:
-                    # Reached end of line without a valid integer
-                    remaining = (
-                        "\n".join(lines[line_idx + 1 :])
-                        if line_idx + 1 < len(lines)
-                        else ""
-                    )
-                return [-1], remaining
-
-            # Any extra character after digits is invalid
-            if pos < len(line):
-                # Invalid character at current pos was already read, so remaining starts after it
-                remaining = "\n".join([line[pos + 1 :]] + lines[line_idx + 1 :])
-                return [-1], remaining
-
             try:
-                parsed_int = int(line[:pos])
+                parsed_int = int(lines[line_idx])
                 # Check 32-bit boundary
                 if parsed_int < -2147483648 or parsed_int > 2147483647:
-                    remaining = (
-                        "\n".join(lines[line_idx + 1 :])
-                        if line_idx + 1 < len(lines)
-                        else ""
-                    )
+                    remaining = "\n".join(lines[line_idx:])
                     return [-1], remaining
                 integers.append(parsed_int)
                 line_idx += 1
             except ValueError:
-                remaining = (
-                    "\n".join(lines[line_idx + 1 :])
-                    if line_idx + 1 < len(lines)
-                    else ""
-                )
+                # Check if the line is empty (missing input) or invalid
+                if lines[line_idx] == "":
+                    # Empty line - consume it and return what's after
+                    remaining = (
+                        "\n".join(lines[line_idx + 1 :])
+                        if line_idx + 1 < len(lines)
+                        else ""
+                    )
+                else:
+                    # Non-empty invalid line - include it in remaining
+                    remaining = "\n".join(lines[line_idx:])
                 return [-1], remaining
 
         # Format the string
