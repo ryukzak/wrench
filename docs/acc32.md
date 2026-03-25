@@ -23,14 +23,14 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
-Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand. Control flow, Load/Store Immediate/Indirect/Addr use absolute address, other -- relative.
+Instruction size: 1 byte for opcode, 4 bytes for absolute operand **(5 bytes total)**, 2 bytes for relative operand **(3 bytes total)**. Control flow, Load/Store Immediate/Indirect/Addr use absolute address, other -- relative.
 
 ### Data Movement Instructions
 
 - **Load Immediate**
-    - **Syntax:** `load_imm <address>`
+    - **Syntax:** `load_imm <value>`
     - **Description:** Load an immediate value into the accumulator.
-    - **Operation:** `acc <- <address>`
+    - **Operation:** `acc <- <value>`
 
 - **Load**
     - **Syntax:** `load <offset>`
@@ -65,29 +65,29 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 ### Arithmetic Instructions
 
 - **Add**
-    - **Syntax:** `add <address>`
+    - **Syntax:** `add <offset>`
     - **Description:** Add a value from a specific address to the accumulator.
-    - **Operation:** `acc <- acc + mem[<address>]` and set `C` and `V` flags.
+    - **Operation:** `acc <- acc + mem[pc + <offset>]` and set `C` and `V` flags.
 
 - **Subtract**
-    - **Syntax:** `sub <address>`
+    - **Syntax:** `sub <offset>`
     - **Description:** Subtract a value from a specific address from the accumulator.
-    - **Operation:** `acc <- acc - mem[<address>]` and set `V` flags.
+    - **Operation:** `acc <- acc - mem[pc + <offset>]` and set `V` flags.
 
 - **Multiply**
-    - **Syntax:** `mul <address>`
+    - **Syntax:** `mul <offset>`
     - **Description:** Multiply the accumulator by a value from a specific address.
-    - **Operation:** `acc <- acc * mem[<address>]` and set `V` flags.
+    - **Operation:** `acc <- acc * mem[pc + <offset>]` and set `V` flags.
 
 - **Divide**
-    - **Syntax:** `div <address>`
+    - **Syntax:** `div <offset>`
     - **Description:** Divide the accumulator by a value from a specific address.
-    - **Operation:** `acc <- acc / mem[<address>]`
+    - **Operation:** `acc <- acc / mem[pc + <offset>]`
 
 - **Remainder**
-    - **Syntax:** `rem <address>`
+    - **Syntax:** `rem <offset>`
     - **Description:** Compute the remainder of the accumulator divided by a value from a specific address.
-    - **Operation:** `acc <- acc % mem[<address>]`
+    - **Operation:** `acc <- acc % mem[pc + <offset>]`
 
 - **Clear Overflow**
     - **Syntax:** `clv`
@@ -102,29 +102,29 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 ### Bitwise Instructions
 
 - **Shift Left**
-    - **Syntax:** `shiftl <address>`
+    - **Syntax:** `shiftl <offset>`
     - **Description:** Shift the accumulator left by a number of bits from a specific address (Carry flag will not be used).
-    - **Operation:** `acc <- acc << mem[<address>]`
+    - **Operation:** `acc <- acc << mem[pc + <offset>]`
 
 - **Shift Right**
-    - **Syntax:** `shiftr <address>`
+    - **Syntax:** `shiftr <offset>`
     - **Description:** Shift the accumulator right by a number of bits from a specific address, preserving the sign (Carry flag will not be used).
-    - **Operation:** `acc <- acc >> mem[<address>]`
+    - **Operation:** `acc <- acc >> mem[pc + <offset>]`
 
 - **Bitwise AND**
-    - **Syntax:** `and <address>`
+    - **Syntax:** `and <offset>`
     - **Description:** Perform a bitwise AND on the accumulator with a value from a specific address.
-    - **Operation:** `acc <- acc & mem[<address>]`
+    - **Operation:** `acc <- acc & mem[pc + <offset>]`
 
 - **Bitwise OR**
-    - **Syntax:** `or <address>`
+    - **Syntax:** `or <offset>`
     - **Description:** Perform a bitwise OR on the accumulator with a value from a specific address.
-    - **Operation:** `acc <- acc | mem[<address>]`
+    - **Operation:** `acc <- acc | mem[pc + <offset>]`
 
 - **Bitwise XOR**
-    - **Syntax:** `xor <address>`
+    - **Syntax:** `xor <offset>`
     - **Description:** Perform a bitwise XOR on the accumulator with a value from a specific address.
-    - **Operation:** `acc <- acc ^ mem[<address>]`
+    - **Operation:** `acc <- acc ^ mem[pc + <offset>]`
 
 - **Bitwise NOT**
     - **Syntax:** `not`
