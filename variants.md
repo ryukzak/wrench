@@ -903,9 +903,9 @@ def rle_decompress_bytes(*input_words):
         return [-1]
 
 
-assert rle_decompress_bytes([2, 67764224]) == [4, 168430090]
-assert rle_decompress_bytes([6, 44696251, 80478208]) == [8, 2863315899, 3435973836]
-assert rle_decompress_bytes([2, 33488896]) == [1, 4278190080]
+assert rle_decompress_bytes(2, 67764224) == [4, 168430090]
+assert rle_decompress_bytes(6, 44696251, 80478208) == [8, 2863315899, 3435973836]
+assert rle_decompress_bytes(2, 33488896) == [1, 4278190080]
 ```
 
 ### `stack_based_calculator`
