@@ -100,8 +100,8 @@ class Words2Words:
         self.limit = limit
 
     def assert_string(self, name):
-        params = f"{self.xs}"
-        results = f"{self.ys}"
+        params = ", ".join(repr(x) for x in self.xs)
+        results = repr(self.ys)
         return f"assert {name}({params}) == {results}"
 
     def check_assert(self, f):

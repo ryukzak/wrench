@@ -764,9 +764,9 @@ def rle_compress_bytes(*input_words):
         return [-1]
 
 
-assert rle_compress_bytes([4, 168430090]) == [2, 67764224]
-assert rle_compress_bytes([12, 2863315899, 3435973836, 3722304989]) == [8, 44696251, 80479453]
-assert rle_compress_bytes([1, 4278190080]) == [2, 33488896]
+assert rle_compress_bytes(4, 168430090) == [2, 67764224]
+assert rle_compress_bytes(12, 2863315899, 3435973836, 3722304989) == [8, 44696251, 80479453]
+assert rle_compress_bytes(1, 4278190080) == [2, 33488896]
 ```
 
 ### `rle_decompress`
@@ -1136,8 +1136,8 @@ def gcd(a, b):
     return [abs(a)]
 
 
-assert gcd([48, 18]) == [6]
-assert gcd([56, 98]) == [14]
+assert gcd(48, 18) == [6]
+assert gcd(56, 98) == [14]
 ```
 
 ### `is_prime`
@@ -1255,14 +1255,14 @@ def sum_word_cstream(*xs):
     return [hw, lw]
 
 
-assert sum_word_cstream([48, 18, 0]) == [0, 66]
-assert sum_word_cstream([1, 0]) == [0, 1]
-assert sum_word_cstream([48, 18, 0, 12, 0]) == [0, 66]
-assert sum_word_cstream([1, 0]) == [0, 1]
-assert sum_word_cstream([2147483647, 1, 0]) == [0, 2147483648]
-assert sum_word_cstream([2147483647, 1, 2147483647, 0]) == [0, 4294967295]
-assert sum_word_cstream([2147483647, 1, 2147483647, 1, 0]) == [1, 0]
-assert sum_word_cstream([2147483647, 1, 2147483647, 2, 0]) == [1, 1]
+assert sum_word_cstream(48, 18, 0) == [0, 66]
+assert sum_word_cstream(1, 0) == [0, 1]
+assert sum_word_cstream(48, 18, 0, 12, 0) == [0, 66]
+assert sum_word_cstream(1, 0) == [0, 1]
+assert sum_word_cstream(2147483647, 1, 0) == [0, 2147483648]
+assert sum_word_cstream(2147483647, 1, 2147483647, 0) == [0, 4294967295]
+assert sum_word_cstream(2147483647, 1, 2147483647, 1, 0) == [1, 0]
+assert sum_word_cstream(2147483647, 1, 2147483647, 2, 0) == [1, 1]
 ```
 
 ### `sum_word_pstream`
@@ -1281,15 +1281,15 @@ def sum_word_pstream(n, *xs):
     return [hw, lw]
 
 
-assert sum_word_pstream([2, 48, 18]) == [0, 66]
-assert sum_word_pstream([1, 1]) == [0, 1]
-assert sum_word_pstream([2, 48, 18, 0, 12]) == [0, 66]
-assert sum_word_pstream([2, 48, 18, 12]) == [0, 66]
-assert sum_word_pstream([2, 2147483647, 1, 0]) == [0, 2147483648]
-assert sum_word_pstream([3, 2147483647, 1, 2147483647, 0]) == [0, 4294967295]
-assert sum_word_pstream([4, 2147483647, 1, 2147483647, 1, 0]) == [1, 0]
-assert sum_word_pstream([4, 2147483647, 1, 2147483647, 2, 0]) == [1, 1]
-assert sum_word_pstream([2, 1, -1]) == [0, 0]
+assert sum_word_pstream(2, 48, 18) == [0, 66]
+assert sum_word_pstream(1, 1) == [0, 1]
+assert sum_word_pstream(2, 48, 18, 0, 12) == [0, 66]
+assert sum_word_pstream(2, 48, 18, 12) == [0, 66]
+assert sum_word_pstream(2, 2147483647, 1, 0) == [0, 2147483648]
+assert sum_word_pstream(3, 2147483647, 1, 2147483647, 0) == [0, 4294967295]
+assert sum_word_pstream(4, 2147483647, 1, 2147483647, 1, 0) == [1, 0]
+assert sum_word_pstream(4, 2147483647, 1, 2147483647, 2, 0) == [1, 1]
+assert sum_word_pstream(2, 1, -1) == [0, 0]
 ```
 
 ## String Manipulation
@@ -1563,10 +1563,10 @@ def determinant_3x3(*xs):
     return [result]
 
 
-assert determinant_3x3([0, 0, 0, 0, 0, 0, 0, 0, 0]) == [0]
-assert determinant_3x3([1, 2, 3, 4, 5, 6, 7, 8, 9]) == [0]
-assert determinant_3x3([0, 0, 1, 0, 1, 0, 1, 0, 0]) == [-1]
-assert determinant_3x3([7, -5, 4, 32, 8, 3, 5, 2, 8]) == [1707]
+assert determinant_3x3(0, 0, 0, 0, 0, 0, 0, 0, 0) == [0]
+assert determinant_3x3(1, 2, 3, 4, 5, 6, 7, 8, 9) == [0]
+assert determinant_3x3(0, 0, 1, 0, 1, 0, 1, 0, 0) == [-1]
+assert determinant_3x3(7, -5, 4, 32, 8, 3, 5, 2, 8) == [1707]
 ```
 
 ### `djb2_hash`
@@ -1652,7 +1652,7 @@ def dup(x):
     return [x, x]
 
 
-assert dup([42]) == [42, 42]
+assert dup(42) == [42, 42]
 ```
 
 ### `factorial`
