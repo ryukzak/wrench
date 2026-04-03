@@ -23,7 +23,7 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
-## Opcode
+### Opcode
 - **Size:** 1 byte
 
 ### Instructions using Absolute Addressing
