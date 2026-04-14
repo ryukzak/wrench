@@ -207,6 +207,8 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 , ("{{comment}}", escapeHtml commentContent)
                 , ("{{status}}", escapeHtml status)
                 , ("{{test_cases_status}}", escapeHtml testCaseStatus)
+                , ("{{report_wrench_version}}", escapeHtml reportWrenchVersion)
+                , ("{{version_warning}}", versionWarning reportWrenchVersion)
                 ]
 
     let renderTemplate =
@@ -233,6 +235,11 @@ getReport conf@Config{cStoragePath} cookie guid = do
                 }
     liftIO $ trackEvent conf event
     return $ addHeader (trackCookie track) $ toHtmlRaw renderTemplate
+
+versionWarning :: Text -> Text
+versionWarning reportVer
+    | reportVer == wrenchVersion = ""
+    | otherwise = " <span class=\"text-[var(--c-orange)]\">[WARNING: current wrench version is " <> escapeHtml wrenchVersion <> "]</span>"
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
