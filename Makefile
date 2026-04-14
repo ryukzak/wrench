@@ -131,7 +131,7 @@ markdown-fix:
 format: format-asm markdown-fix
 	fourmolu -m inplace $(HS_SRC_DIR)
 	ruff format script
-	prettier -w static/
+	npx @biomejs/biome format --write static/
 	yamlfmt package.yaml example test .github/workflows
 
 format-asm: build-fmt

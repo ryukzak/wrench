@@ -3,35 +3,30 @@
   <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
 
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta content="#1a1a1a" name="theme-color" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="#1a1a1a" name="theme-color">
     <title>Wrench</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <script defer type="module" src="/assets/utils.js"></script>
-    <link rel="stylesheet" href="/assets/ascii.css" />
+    <link rel="stylesheet" href="/assets/ascii.css">
 
-    {{tracker}}
+    {{ tracker }}
   </head>
 
-  <body
-    class="flex justify-center items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
-  >
+  <body class="flex justify-center items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark">
     <script type="module">
-      import { setupThemeToggle } from '/assets/utils.js'
+    import { setupThemeToggle } from '/assets/utils.js'
 
-      document.addEventListener('DOMContentLoaded', () => {
-        setupThemeToggle('invert-theme-button')
-      })
+    document.addEventListener('DOMContentLoaded', () => {
+      setupThemeToggle('invert-theme-button')
+    })
     </script>
     <div class="p-8 rounded-lg w-full max-w-[80vw]">
       <h1 class="mb-6 text-6xl text-center">Wrench Submit</h1>
@@ -80,7 +75,7 @@
           >
             <option value="" selected disabled>Select a variant</option>
             <!-- prettier-ignore -->
-            {{variants}}
+            {{ variants }}
           </select>
         </div>
 
@@ -100,22 +95,18 @@
         </div>
 
         <div class="mb-6">
-          <label for="name" class="block text-[var(--c-grey)]"
-            >/* author */</label
-          >
+          <label for="name" class="block text-[var(--c-grey)]">/* author */</label>
           <input
             type="text"
             id="name"
             name="name"
             required
             class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full overflow-x-auto whitespace-pre"
-          />
+          >
         </div>
 
         <div class="mb-6">
-          <label for="comment" class="block text-[var(--c-grey)]"
-            >/* comment */</label
-          >
+          <label for="comment" class="block text-[var(--c-grey)]">/* comment */</label>
           <textarea
             id="comment"
             name="comment"
@@ -124,9 +115,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="asm" class="block text-[var(--c-grey)]"
-            >/* assembler_code */</label
-          >
+          <label for="asm" class="block text-[var(--c-grey)]">/* assembler_code */</label>
           <textarea
             id="asm"
             name="asm"
@@ -136,9 +125,7 @@
         </div>
 
         <div class="mb-6">
-          <label for="config" class="block text-[var(--c-grey)]"
-            >/* simulation_config */</label
-          >
+          <label for="config" class="block text-[var(--c-grey)]">/* simulation_config */</label>
           <textarea
             id="config"
             name="config"
@@ -153,21 +140,21 @@
             type="submit"
             value="submit"
             class="inline-flex justify-center bg-[var(--c-purple)] hover:opacity-80 shadow-sm px-4 py-2 border focus:border-[var(--c-white)] border-transparent rounded-md focus:outline-none text-white"
-          />
+          >
         </div>
 
         <script>
-          // Load saved name when page opens
-          window.addEventListener('DOMContentLoaded', function () {
-            const savedName = window.localStorage.getItem('author-name')
-            if (savedName) {
-              document.getElementById('name').value = savedName
-            }
-          })
+        // Load saved name when page opens
+        window.addEventListener('DOMContentLoaded', function () {
+          const savedName = window.localStorage.getItem('author-name')
+          if (savedName) {
+            document.getElementById('name').value = savedName
+          }
+        })
         </script>
 
         <!-- prettier-ignore -->
-        <div class="text-[var(--c-grey)] text-center">/* {{version}} */</div>
+        <div class="text-[var(--c-grey)] text-center">/* {{ version }} */</div>
       </form>
     </div>
   </body>

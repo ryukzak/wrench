@@ -21,8 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run Prettier
-        run: npx prettier --check static/**/*.html
+      - name: Run Biome
+        run: npx @biomejs/biome format static/
 
   markdown-formatting:
     timeout-minutes: 5
