@@ -121,6 +121,21 @@ Instruction size: 4 bytes.
 
 ### Bitwise Instructions
 
+- **Logical Shift Left Immediate**
+    - **Syntax:** `slli <rd>, <rs1>, <k>`
+    - **Description:** Shift the value of the source register left by the immediate amount (lower 5 bits) and store the result in the destination register.
+    - **Operation:** `rd <- rs1 << (k & 0x1F)`
+
+- **Logical Shift Right Immediate**
+    - **Syntax:** `srli <rd>, <rs1>, <k>`
+    - **Description:** Shift the value of the source register right (zero-fill) by the immediate amount (lower 5 bits) and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >>> (k & 0x1F)`
+
+- **Arithmetic Shift Right Immediate**
+    - **Syntax:** `srai <rd>, <rs1>, <k>`
+    - **Description:** Shift the value of the source register right by the immediate amount (lower 5 bits), preserving the sign, and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >> (k & 0x1F)`
+
 - **Logical Shift Left**
     - **Syntax:** `sll <rd>, <rs1>, <rs2>`
     - **Description:** Shift the value of the first source register left by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.

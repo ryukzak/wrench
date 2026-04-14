@@ -62,6 +62,14 @@ tests =
             runInstruction Ori{rd = A1, rs1 = A0, k = 0x00F} [(A0, 0x1230)] A1 @?= 0x123F
         , testCase "Xori: 0x1234 ^ 0x0FF = 0x12CB" $ do
             runInstruction Xori{rd = A1, rs1 = A0, k = 0x0FF} [(A0, 0x1234)] A1 @?= 0x12CB
+        , testCase "Slli: 1 << 4 = 16" $ do
+            runInstruction Slli{rd = A1, rs1 = A0, k = 4} [(A0, 1)] A1 @?= 16
+        , testCase "Srli: 0x100 >> 4 = 0x10" $ do
+            runInstruction Srli{rd = A1, rs1 = A0, k = 4} [(A0, 0x100)] A1 @?= 0x10
+        , testCase "Srli: -16 >> 4 = 0x0FFFFFFF (no sign extension)" $ do
+            runInstruction Srli{rd = A1, rs1 = A0, k = 4} [(A0, -16)] A1 @?= 0x0FFFFFFF
+        , testCase "Srai: -16 >> 4 = -1" $ do
+            runInstruction Srai{rd = A1, rs1 = A0, k = 4} [(A0, -16)] A1 @?= -1
         ]
 
 initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32

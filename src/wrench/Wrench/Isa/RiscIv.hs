@@ -143,6 +143,12 @@ data Isa w l
       Xor {rd, rs1, rs2 :: Register}
     | -- | Set less than immediate: rd = (rs1 < k) ? 1 : 0
       Slti {rd, rs1 :: Register, k :: l}
+    | -- | Logical shift left immediate: rd = rs1 << k (5 bit)
+      Slli {rd, rs1 :: Register, k :: l}
+    | -- | Logical shift right immediate: rd = rs1 >>> k (5 bit)
+      Srli {rd, rs1 :: Register, k :: l}
+    | -- | Arithmetic shift right immediate: rd = rs1 >> k (5 bit)
+      Srai {rd, rs1 :: Register, k :: l}
     | -- | Bitwise AND immediate: rd = rs1 & k
       Andi {rd, rs1 :: Register, k :: l}
     | -- | Bitwise OR immediate: rd = rs1 | k
@@ -256,8 +262,11 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd3args "mulh" Mulh register register register
                     , cmd3args "div" Div register register register
                     , cmd3args "rem" Rem register register register
+                    , cmd3args "slli" Slli register register referenceWithDirective
                     , cmd3args "sll" Sll register register register
+                    , cmd3args "srli" Srli register register referenceWithDirective
                     , cmd3args "srl" Srl register register register
+                    , cmd3args "srai" Srai register register referenceWithDirective
                     , cmd3args "sra" Sra register register register
                     , cmd3args "andi" Andi register register referenceWithDirective
                     , cmd3args "and" And register register register
@@ -294,6 +303,9 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Jr{rs} -> Jr{rs}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
                 Slti{rd, rs1, k} -> Slti{rd, rs1, k = deref' f k}
+                Slli{rd, rs1, k} -> Slli{rd, rs1, k = deref' f k}
+                Srli{rd, rs1, k} -> Srli{rd, rs1, k = deref' f k}
+                Srai{rd, rs1, k} -> Srai{rd, rs1, k = deref' f k}
                 Andi{rd, rs1, k} -> Andi{rd, rs1, k = deref' f k}
                 Ori{rd, rs1, k} -> Ori{rd, rs1, k = deref' f k}
                 Xori{rd, rs1, k} -> Xori{rd, rs1, k = deref' f k}
@@ -460,6 +472,18 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Slti{rd, rs1, k} -> do
                 rs1' <- getReg rs1
                 setReg rd (if rs1' < k then 1 else 0)
+                nextPc
+            Slli{rd, rs1, k} -> do
+                rs1' <- getReg rs1
+                setReg rd (rs1' `shiftL` (fromEnum k .&. 0x1F))
+                nextPc
+            Srli{rd, rs1, k} -> do
+                rs1' <- getReg rs1
+                setReg rd (lShiftR rs1' (k .&. 0x1F))
+                nextPc
+            Srai{rd, rs1, k} -> do
+                rs1' <- getReg rs1
+                setReg rd (rs1' `shiftR` (fromEnum k .&. 0x1F))
                 nextPc
             Andi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
