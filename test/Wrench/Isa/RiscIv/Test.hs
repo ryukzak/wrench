@@ -26,6 +26,8 @@ tests =
             runInstruction Addi{rd = Zero, rs1 = Zero, k = 42} [(Zero, 0)] Zero @?= 0
         , testCase "Addi: A0(5) + 3 = 8" $ do
             runInstruction Addi{rd = A1, rs1 = A0, k = 3} [(A0, 5)] A1 @?= 8
+        , testCase "Sll masks shift amount to 5 bits" $ do
+            runInstruction Sll{rd = A2, rs1 = A0, rs2 = A1} [(A0, 1), (A1, 33)] A2 @?= 2
         , testCase "Srl: A0(16) >> A1(2) = 4" $ do
             runInstruction Srl{rd = A2, rs1 = A0, rs2 = A1} [(A0, 16), (A1, 2)] A2 @?= 4
         , testCase "Sll: A0(3) << A1(2) = 12" $ do
