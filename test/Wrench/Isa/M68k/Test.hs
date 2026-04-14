@@ -307,6 +307,18 @@ tests =
              in do
                     pc @?= 0x1211100F
                     (addrRegs !? A7) @?= Just 0x13
+        , testCase "Shift carry flag" $ do
+            -- LSR: shift right, last bit shifted out is bit 0
+            let State{cFlag} =
+                    simulate "lsr.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 3 dataRegs0}
+             in cFlag @?= True -- 3 = ...11, shifting right 1, bit 0 = 1
+            let State{cFlag} =
+                    simulate "lsr.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 2 dataRegs0}
+             in cFlag @?= False -- 2 = ...10, shifting right 1, bit 0 = 0
+            -- ASL: shift left, last bit shifted out is bit 31
+            let State{cFlag} =
+                    simulate "asl.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 minBound dataRegs0}
+             in cFlag @?= True -- minBound has bit 31 set
         , testCase "LINK and UNLK operations" $ do
             let State{addrRegs, mem} =
                     simulate
