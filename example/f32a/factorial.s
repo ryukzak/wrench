@@ -24,7 +24,7 @@ swap:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 multiply:
-    lit 31 >r                \ for R = 31
+    31 >r                \ for R = 31
 multiply_do:
     +*                       \ mres-high:acc-old:n:[]; mres-low in a
     next multiply_do
@@ -34,7 +34,7 @@ multiply_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 factorial:
-    lit 1 swap               \ n:acc:[]
+    1 swap               \ n:acc:[]
 factorial_while:
     dup                      \ n:n:acc:[]
     if factorial_finish      \ n:acc:[]
@@ -42,12 +42,12 @@ factorial_while:
     dup a!                   \ n:acc:[]
 
     swap                     \ acc:n:[]
-    lit 0                    \ 0:acc:n:[]
+    0                        \ 0:acc:n:[]
 
     multiply
 
     swap                     \ n:acc
-    lit -1 +                 \ n-1:acc
+    -1 +                 \ n-1:acc
 
     factorial_while ;
 

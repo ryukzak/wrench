@@ -10,17 +10,17 @@ _start:
 
     lit buf a!               \ a for buf address
 
-    lit 14                   \ hardcoded counter on T
+    14                   \ hardcoded counter on T
 
 while:
     dup
     if end
 
-    @+ lit 255 and
+    @+ 255 and
 
     !b
 
-    lit -1 +
+    -1 +
     while ;
 
 end:
