@@ -72,6 +72,11 @@ Instruction size: 4 bytes.
     - **Description:** Load a word from memory at the address computed by adding the offset to the base register into the destination register.
     - **Operation:** `rd <- M[offset + rs1]`
 
+- **Load Byte**
+    - **Syntax:** `lb <rd>, <offset>(<rs1>)`
+    - **Description:** Load a byte from memory at the address computed by adding the offset to the base register, sign-extend it to 32 bits, and store in the destination register.
+    - **Operation:** `rd <- signext(M[offset + rs1][7:0])`
+
 ### Arithmetic Instructions
 
 - **Add Immediate**

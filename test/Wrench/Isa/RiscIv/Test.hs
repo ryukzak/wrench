@@ -42,6 +42,20 @@ tests =
             runInstruction Slti{rd = A1, rs1 = A0, k = 3} [(A0, 5)] A1 @?= 0
         , testCase "Slti: -1 < 0 = 1" $ do
             runInstruction Slti{rd = A1, rs1 = A0, k = 0} [(A0, -1)] A1 @?= 1
+        , testCase "Lb: load byte 0x41" $ do
+            runInstructionWithMem
+                Lb{rd = A1, offsetRs1 = MemRef{mrOffset = 20, mrReg = A0}}
+                [(A0, 0)]
+                [(20, 0x41)]
+                A1
+                @?= 0x41
+        , testCase "Lb: sign extension of 0x80 = -128" $ do
+            runInstructionWithMem
+                Lb{rd = A1, offsetRs1 = MemRef{mrOffset = 20, mrReg = A0}}
+                [(A0, 0)]
+                [(20, 0x80)]
+                A1
+                @?= -128
         ]
 
 initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
@@ -72,6 +86,39 @@ runInstruction instr initRegs result = do
     let st = initialState 0 (fromList initRegs) instr
         State{regs} = execState instructionStep st
     fromMaybe (error "Register not found") (regs !? result)
+
+runInstructionWithMem :: Isa Int32 Int32 -> [(Register, Int32)] -> [(Int, Word8)] -> Register -> Int32
+runInstructionWithMem instr initRegs memWrites result = do
+    let st = initialStateWithMem 0 (fromList initRegs) instr memWrites
+        State{regs} = execState instructionStep st
+    fromMaybe (error "Register not found") (regs !? result)
+
+initialStateWithMem ::
+    Int -> HashMap Register Int32 -> Isa Int32 Int32 -> [(Int, Word8)] -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
+initialStateWithMem pc regs instr memWrites =
+    let baseMem =
+            mkIoMem
+                def
+                ( Mem
+                    { memoryData =
+                        fromList
+                            $ [(i, Value 0) | i <- [0 .. 255]]
+                            <> [ (pc, Instruction instr)
+                               , (pc + 1, InstructionPart)
+                               , (pc + 2, InstructionPart)
+                               , (pc + 3, InstructionPart)
+                               ]
+                    , memorySize = 256
+                    }
+                )
+        mem' = either error id $ foldlM (\m (i, b) -> writeByte m i b) baseMem memWrites
+     in State
+            { pc = pc
+            , mem = mem'
+            , regs = regs
+            , stopped = False
+            , internalError = Nothing
+            }
 
 translate :: String -> Either String (Isa Int32 (Ref Int32))
 translate code =

@@ -9,6 +9,7 @@ module Wrench.Isa.RiscIv (
     MachineState (..),
     RiscIvState,
     Register (..),
+    MemRef (..),
 ) where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -152,6 +153,8 @@ data Isa w l
       Lui {rd :: Register, k :: l}
     | -- | Load word: rd = M[offsetRs1]
       Lw {rd :: Register, offsetRs1 :: MemRef w}
+    | -- | Load byte (sign-extended): rd = signext(M[offsetRs1][7:0])
+      Lb {rd :: Register, offsetRs1 :: MemRef w}
     | -- | Jump: PC = PC + k
       J {k :: l}
     | -- | Jump and Link: rd = PC + 4, PC += k
@@ -258,6 +261,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd2args "sb" Sb register memRef
                     , cmd2args "lui" Lui register referenceWithDirective
                     , cmd2args "lw" Lw register memRef
+                    , cmd2args "lb" Lb register memRef
                     , cmd1args "j" J reference
                     , cmd2args "jal" Jal register reference
                     , cmd1args "jr" Jr register
@@ -298,6 +302,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Sb{rs2, offsetRs1} -> Sb{rs2, offsetRs1}
                 Lui{rd, k} -> Lui{rd, k = deref' f k}
                 Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
+                Lb{rd, offsetRs1} -> Lb{rd, offsetRs1}
                 Beqz{rs1, k} -> Beqz rs1 $ deref' relF k
                 Bnez{rs1, k} -> Bnez rs1 $ deref' relF k
                 Bgt{rs1, rs2, k} -> Bgt rs1 rs2 $ deref' relF k
@@ -380,6 +385,16 @@ setWord addr w = do
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
+
+getByte addr = do
+    st@State{mem} <- get
+    case readByte mem addr of
+        Right (mem', b) -> do
+            put st{mem = mem'}
+            return b
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return 0
 
 setByte addr byte = do
     st@State{mem} <- get
@@ -478,6 +493,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 rs1' <- getReg mrReg
                 w <- getWord $ fromEnum (mrOffset + rs1')
                 setReg rd w
+                nextPc
+            Lb{rd, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
+                rs1' <- getReg mrReg
+                b <- getByte $ fromEnum (mrOffset + rs1')
+                setReg rd (fromIntegral (fromIntegral b :: Int8))
                 nextPc
             J{k} -> do
                 State{pc} <- get
