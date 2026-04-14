@@ -24,6 +24,12 @@ tests =
             runBranch (Blz 100) 0 @?= 10
         , testCase "bltz not taken (acc > 0)" $ do
             runBranch (Blz 100) 5 @?= 10
+        , testCase "bgez taken (acc == 0)" $ do
+            runBranch (Bgez 100) 0 @?= 100
+        , testCase "bgez taken (acc > 0)" $ do
+            runBranch (Bgez 100) 5 @?= 100
+        , testCase "bgez not taken (acc < 0)" $ do
+            runBranch (Bgez 100) (-1) @?= 10
         ]
 
 -- | Build an initial state with a LoadImm at address 0 (5 bytes) followed by
