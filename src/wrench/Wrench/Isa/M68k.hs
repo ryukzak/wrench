@@ -597,14 +597,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         , cFlag = carry
                         }
                 nextPc
-            Asl{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftL d (fromEnum s)) (\n -> 32 - n)
-            Asl{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftL d (fromEnum s)) (\n -> 8 - n)
-            Asr{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftR d (fromEnum s)) (\n -> n - 1)
-            Asr{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftR d (fromEnum s)) (\n -> n - 1)
-            Lsl{mode = Long, src, dst} -> wordShift src dst lShiftL (\n -> 32 - n)
-            Lsl{mode = Byte, src, dst} -> byteShift src dst lShiftL (\n -> 8 - n)
-            Lsr{mode = Long, src, dst} -> wordShift src dst lShiftR (\n -> n - 1)
-            Lsr{mode = Byte, src, dst} -> byteShift src dst lShiftR (\n -> n - 1)
+            Asl{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftL d (fromEnum s)) (32 -)
+            Asl{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftL d (fromEnum s)) (8 -)
+            Asr{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftR d (fromEnum s)) (subtract 1)
+            Asr{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftR d (fromEnum s)) (subtract 1)
+            Lsl{mode = Long, src, dst} -> wordShift src dst lShiftL (32 -)
+            Lsl{mode = Byte, src, dst} -> byteShift src dst lShiftL (8 -)
+            Lsr{mode = Long, src, dst} -> wordShift src dst lShiftR (subtract 1)
+            Lsr{mode = Byte, src, dst} -> byteShift src dst lShiftR (subtract 1)
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
