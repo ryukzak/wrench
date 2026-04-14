@@ -69,10 +69,12 @@ data Isa w l
       Beqz l
     | -- | Syntax: @bnez <address>@ Jump to a specific address if the accumulator is not zero.
       Bnez l
-    | -- | Syntax: @bgt <address>@ Jump to a specific address if the accumulator is greater than zero.
+    | -- | Syntax: @bgtz <address>@ Jump to a specific address if the accumulator is greater than zero.
       Bgz l
-    | -- | Syntax: @ble <address>@ Jump to a specific address if the accumulator is less than zero.
+    | -- | Syntax: @bltz <address>@ Jump to a specific address if the accumulator is less than zero.
       Blz l
+    | -- | Syntax: @bgez <address>@ Jump to a specific address if the accumulator is greater than or equal to zero.
+      Bgez l
     | Bvs l
     | Bvc l
     | Bcs l
@@ -111,6 +113,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , Beqz <$> cmdMnemonic1 "beqz" reference
             , Bnez <$> cmdMnemonic1 "bnez" reference
             , Bgz <$> cmdMnemonic1 "bgtz" reference
+            , Bgez <$> cmdMnemonic1 "bgez" reference
             , Blz <$> cmdMnemonic1 "bltz" reference
             , Bvs <$> cmdMnemonic1 "bvs" reference
             , Bvc <$> cmdMnemonic1 "bvc" reference
@@ -164,6 +167,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Beqz l -> Beqz (deref' f l)
                 Bnez l -> Bnez (deref' f l)
                 Bgz l -> Bgz (deref' f l)
+                Bgez l -> Bgez (deref' f l)
                 Blz l -> Blz (deref' f l)
                 Bvs l -> Bvs (deref' f l)
                 Bvc l -> Bvc (deref' f l)
@@ -181,6 +185,7 @@ instance ByteSize (Isa w l) where
     byteSize Beqz{} = 5
     byteSize Bnez{} = 5
     byteSize Bgz{} = 5
+    byteSize Bgez{} = 5
     byteSize Blz{} = 5
     byteSize Bvs{} = 5
     byteSize Bvc{} = 5
@@ -319,6 +324,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Beqz a -> condJmp (== 0) a
             Bnez a -> condJmp (/= 0) a
             Bgz a -> condJmp (> 0) a
+            Bgez a -> condJmp (>= 0) a
             Blz a -> condJmp (< 0) a
             Bvs a -> getOverflowFlag >>= \overflow -> if overflow then setPc (fromEnum a) else nextPc
             Bvc a -> getOverflowFlag >>= \overflow -> if not overflow then setPc (fromEnum a) else nextPc
