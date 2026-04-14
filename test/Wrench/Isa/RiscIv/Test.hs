@@ -4,16 +4,25 @@ import Data.Default
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, testCase, (@?=))
+import Text.Megaparsec (parse)
 import Wrench.Isa.RiscIv
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Translator.Parser.Types (MnemonicParser (..))
+import Wrench.Translator.Types (Ref)
 
 tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "Addi: A0(5) + 3 = 8" $ do
+        [ testCase "Parse register s10" $ do
+            assertBool "s10 should parse" $ isRight (translate "add s10, s10, s10")
+        , testCase "Parse register s11" $ do
+            assertBool "s11 should parse" $ isRight (translate "add s11, s11, s11")
+        , testCase "Parse register s1 (not confused with s10/s11)" $ do
+            assertBool "s1 should parse" $ isRight (translate "add s1, s1, s1")
+        , testCase "Addi: A0(5) + 3 = 8" $ do
             runInstruction Addi{rd = A1, rs1 = A0, k = 3} [(A0, 5)] A1 @?= 8
         , testCase "Srl: A0(16) >> A1(2) = 4" $ do
             runInstruction Srl{rd = A2, rs1 = A0, rs2 = A1} [(A0, 16), (A1, 2)] A2 @?= 4
@@ -53,3 +62,9 @@ runInstruction instr initRegs result = do
     let st = initialState 0 (fromList initRegs) instr
         State{regs} = execState instructionStep st
     fromMaybe (error "Register not found") (regs !? result)
+
+translate :: String -> Either String (Isa Int32 (Ref Int32))
+translate code =
+    case parse mnemonic "-" (code <> "\n") of
+        Left err -> Left $ show err
+        Right m -> Right m
