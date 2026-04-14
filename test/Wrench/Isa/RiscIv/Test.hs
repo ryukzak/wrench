@@ -56,6 +56,12 @@ tests =
                 [(20, 0x80)]
                 A1
                 @?= -128
+        , testCase "Andi: 0x1234 & 0x0FF = 0x0034" $ do
+            runInstruction Andi{rd = A1, rs1 = A0, k = 0x0FF} [(A0, 0x1234)] A1 @?= 0x0034
+        , testCase "Ori: 0x1230 | 0x00F = 0x123F" $ do
+            runInstruction Ori{rd = A1, rs1 = A0, k = 0x00F} [(A0, 0x1230)] A1 @?= 0x123F
+        , testCase "Xori: 0x1234 ^ 0x0FF = 0x12CB" $ do
+            runInstruction Xori{rd = A1, rs1 = A0, k = 0x0FF} [(A0, 0x1234)] A1 @?= 0x12CB
         ]
 
 initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
