@@ -22,6 +22,8 @@ tests =
             assertBool "s11 should parse" $ isRight (translate "add s11, s11, s11")
         , testCase "Parse register s1 (not confused with s10/s11)" $ do
             assertBool "s1 should parse" $ isRight (translate "add s1, s1, s1")
+        , testCase "Zero register is hardwired to 0" $ do
+            runInstruction Addi{rd = Zero, rs1 = Zero, k = 42} [(Zero, 0)] Zero @?= 0
         , testCase "Addi: A0(5) + 3 = 8" $ do
             runInstruction Addi{rd = A1, rs1 = A0, k = 3} [(A0, 5)] A1 @?= 8
         , testCase "Srl: A0(16) >> A1(2) = 4" $ do
