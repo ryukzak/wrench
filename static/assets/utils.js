@@ -9,9 +9,7 @@ export function setupCopyButton(buttonId, sourceElementId) {
 
     const codeContent = sourceElement.querySelector('.code-content')
     if (codeContent) {
-      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(
-        line => line.textContent,
-      )
+      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(line => line.textContent)
       text = lines.join('')
     }
 
@@ -21,8 +19,7 @@ export function setupCopyButton(buttonId, sourceElementId) {
     count++
     button.dataset.copyCount = count
 
-    const originalClass =
-      button.getAttribute('data-original-class') || button.className
+    const originalClass = button.getAttribute('data-original-class') || button.className
 
     button.className = originalClass.replaceAll('--c-white', '--c-green')
     button.setAttribute('data-original-class', originalClass)
@@ -80,11 +77,7 @@ export function removeComments(code, commentStarter) {
   let insideString = false
   let cleanedCode = ''
 
-  for (
-    let currentPosition = 0;
-    currentPosition < code.length;
-    currentPosition++
-  ) {
+  for (let currentPosition = 0; currentPosition < code.length; currentPosition++) {
     const currentCharacter = code[currentPosition]
 
     // Check for comment starter
@@ -101,10 +94,7 @@ export function removeComments(code, commentStarter) {
     }
 
     // Check for string ending and quotes escape
-    if (
-      currentCharacter === insideString &&
-      code[currentPosition - 1] !== '\\'
-    ) {
+    if (currentCharacter === insideString && code[currentPosition - 1] !== '\\') {
       insideString = false
       continue
     }
