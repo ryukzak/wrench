@@ -239,7 +239,8 @@ getReport conf@Config{cStoragePath} cookie guid = do
 versionWarning :: Text -> Text
 versionWarning reportVer
     | reportVer == wrenchVersion = ""
-    | otherwise = " <span class=\"text-[var(--c-orange)]\">[WARNING: current wrench version is " <> escapeHtml wrenchVersion <> "]</span>"
+    | otherwise =
+        " <span class=\"text-[var(--c-orange)]\">[WARNING: current wrench version is " <> escapeHtml wrenchVersion <> "]</span>"
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
