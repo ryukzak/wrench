@@ -122,7 +122,7 @@ subExt :: (MachineWord w) => w -> w -> Ext w
 subExt x y =
     let result = x - y
         overflow = ((x > 0 && y < 0 && result < 0) || (x < 0 && y > 0 && result > 0))
-        carry = False
+        carry = fromSign x < fromSign y
      in Ext{value = result, overflow, carry}
 
 mulExt :: (MachineWord w) => w -> w -> Ext w

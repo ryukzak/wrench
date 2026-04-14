@@ -25,6 +25,12 @@ tests =
             subExt (minBound :: Int32) 1 @?= Ext{value = maxBound, overflow = True, carry = False}
         , testCase "subExt: minBound - maxBound = 1, overflow, carry" $ do
             subExt (minBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = False}
+        , testCase "subExt: 0 - 1 = -1, no overflow, carry (borrow)" $ do
+            subExt (0 :: Int32) 1 @?= Ext{value = -1, overflow = False, carry = True}
+        , testCase "subExt: 1 - 2 = -1, no overflow, carry (borrow)" $ do
+            subExt (1 :: Int32) 2 @?= Ext{value = -1, overflow = False, carry = True}
+        , testCase "subExt: 5 - 3 = 2, no overflow, no carry" $ do
+            subExt (5 :: Int32) 3 @?= Ext{value = 2, overflow = False, carry = False}
         , testCase "mulExt: 2 * 3 = 6, no overflow, no carry" $ do
             mulExt (2 :: Int32) 3 @?= Ext{value = 6, overflow = False, carry = False}
         , testCase "mulExt: maxBound * 2 = -2, overflow, carry" $ do
