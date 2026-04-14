@@ -117,6 +117,7 @@ instance (Default w) => Default (HashMap Register w) where
 
 data MemoryOp w l
     = Lw {lwRd :: Register, lwOffsetRs1 :: MemRef w}
+    | Lb {lbRd :: Register, lbOffsetRs1 :: MemRef w}
     | Sw {swRs2 :: Register, swOffsetRs1 :: MemRef w}
     | Sb {sbRs2 :: Register, sbOffsetRs1 :: MemRef w}
     | NopM
@@ -227,6 +228,7 @@ parseMemOp :: (MachineWord w) => Parser (MemoryOp w (Ref w))
 parseMemOp =
     choice
         [ cmd2args "lw" Lw register memRef
+        , cmd2args "lb" Lb register memRef
         , cmd2args "sw" Sw register memRef
         , cmd2args "sb" Sb register memRef
         , string "nop" >> return NopM
@@ -289,6 +291,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
 instance DerefMnemonic (MemoryOp w) w where
     derefMnemonic _ _ NopM = NopM
     derefMnemonic _ _ (Lw lwRd lwOffsetRs1) = Lw lwRd lwOffsetRs1
+    derefMnemonic _ _ (Lb lbRd lbOffsetRs1) = Lb lbRd lbOffsetRs1
     derefMnemonic _ _ (Sw swRs2 swOffsetRs1) = Sw swRs2 swOffsetRs1
     derefMnemonic _ _ (Sb sbRs2 sbOffsetRs1) = Sb sbRs2 sbOffsetRs1
 
@@ -417,6 +420,16 @@ setWord addr w = do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
+getByte addr = do
+    st@State{mem} <- get
+    case readByte mem addr of
+        Right (mem', b) -> do
+            put st{mem = mem'}
+            return b
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return 0
+
 setByte addr byte = do
     st@State{mem} <- get
     case writeByte mem addr byte of
@@ -501,6 +514,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 rs1' <- getReg mrReg
                 w <- getWord $ fromEnum (mrOffset + rs1')
                 return $ Just (lwRd, w)
+            computeMem (Lb lbRd (MemRef mrOffset mrReg)) = do
+                rs1' <- getReg mrReg
+                b <- getByte $ fromEnum (mrOffset + rs1')
+                return $ Just (lbRd, fromIntegral (fromIntegral b :: Int8))
             computeMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg swRs2
                 mrReg' <- getReg mrReg

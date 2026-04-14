@@ -74,6 +74,24 @@ tests =
             case readByte mem 20 of
                 Right (_, b) -> b @?= 0x78
                 Left err -> assertFailure $ "Memory read failed: " <> toString err
+        , testCase "Memory operations: Lb (positive byte)" $ do
+            let st1 = withRegs [(A0, 0)]
+                mem1 = either error id $ do
+                    writeByte (mem st1) 20 0x41
+                State{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
+             in (regs !? A1) @?= Just 0x41
+        , testCase "Memory operations: Lb (sign extension for negative byte)" $ do
+            let st1 = withRegs [(A0, 0)]
+                mem1 = either error id $ do
+                    writeByte (mem st1) 20 0x80
+                State{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
+             in (regs !? A1) @?= Just (-128)
+        , testCase "Memory operations: Lb with offset (sign extension from 0xFF)" $ do
+            let st1 = withRegs [(A0, 0)]
+                mem1 = either error id $ do
+                    writeByte (mem st1) 25 0xFF
+                State{regs} = simulate "nop / nop / lb a1, 25(a0) / nop" st1{mem = mem1}
+             in (regs !? A1) @?= Just (-1)
         , testCase "Control flow: J (jump)" $ do
             let State{pc} =
                     simulate
