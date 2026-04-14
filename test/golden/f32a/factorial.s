@@ -28,21 +28,21 @@ continue:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 handler_negative:
-    lit -1
+    -1
     @p output_addr a! !
     halt
 
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 handler_overflow:
-    lit -858993460
+    -858993460
     @p output_addr a! !
     halt
 
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 multiply:
-    lit 31 >r                \ for R = 31
+    31 >r                \ for R = 31
 multiply_do:
     +*                       \ mres-high:acc-old:n:[]
     \ mres-low in a
@@ -54,7 +54,7 @@ multiply_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 divide:
-    lit 31 >r                \ for R = 31
+    31 >r                \ for R = 31
 divide_do:
     +/
 
@@ -64,7 +64,7 @@ divide_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 factorial:
-    lit 1 over >r >r drop r> r>  \ n:acc:[]
+    1 over >r >r drop r> r>  \ n:acc:[]
 factorial_while:
     dup                      \ n:n:acc:[]
     if factorial_finish      \ n:acc:[]
@@ -75,13 +75,13 @@ factorial_while:
     dup !p tmp_prev
 
 continue_factorial:
-    lit 0                    \ 0:acc:n:[]
+    0                        \ 0:acc:n:[]
 
     multiply                 \ acc:n:[]
 
     a! !b                    \ []
     a @b                     \ n:acc:[]
-    lit 0 lit 0              \ 0:0:n:acc:[]
+    0 0              \ 0:0:n:acc:[]
     divide                   \ quot:rem:n:acc:[]
     over >r >r drop r> r>    \ rem:quot:n:acc:[]
     if continue_factorial2
@@ -90,13 +90,13 @@ continue_factorial:
 continue_factorial2:
     @p tmp_prev              \ prev_acc:quot:n:acc[]
 
-    inv lit 1 + +            \ quot-prev_acc:n:acc[]
+    inv 1 + +            \ quot-prev_acc:n:acc[]
 
     if continue_factorial3
     handler_overflow
 
 continue_factorial3:
-    lit -1 +                 \ n-1:acc
+    -1 +                 \ n-1:acc
     factorial_while ;
 
 factorial_finish:

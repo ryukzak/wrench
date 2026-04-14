@@ -1,17 +1,17 @@
     .text
 
 _start:
-    lit 2
-    lit 0xFFFF_FFFE lit 1 +
-    lit 1 + +
+    2
+    0xFFFF_FFFE 1 +
+    1 + +
 
     drop
 
-    lit 1 eam
+    1 eam
 
-    lit 2
-    lit 0xFFFF_FFFE lit 1 +
-    lit 1 + +
+    2
+    0xFFFF_FFFE 1 +
+    1 + +
 
     drop
 

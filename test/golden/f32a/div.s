@@ -14,9 +14,9 @@ _start:
     !b                       \ [B] <- divisor
 
     a!                       \ A <- dividend
-    lit 0 lit 0              \ quotient:remainder:[]
+    0 0              \ quotient:remainder:[]
 
-    lit 31 >r                \ for R = 31
+    31 >r                \ for R = 31
 multiply_begin:
     +/                       \ mres-high:acc-old:n:[]
     \ mres-low in a
