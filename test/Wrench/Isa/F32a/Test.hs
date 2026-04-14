@@ -33,7 +33,7 @@ tests =
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
         st0 :: F32aState Int32
         st0 =
-            (initState 256 (mkIoMem (fromList []) memInit) [])
+            initState 256 (mkIoMem (fromList []) memInit) []
 
 translate :: (MnemonicParser (isa' w (Ref w)), w ~ Int32) => String -> Either String (isa' w (Ref w))
 translate code =
