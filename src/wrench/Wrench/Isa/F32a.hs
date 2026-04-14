@@ -13,8 +13,9 @@ import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testB
 import Data.Default (def)
 import Data.Text qualified as T
 import Relude
-import Text.Megaparsec (choice, try)
-import Text.Megaparsec.Char (hspace, hspace1, string)
+import Relude.Unsafe qualified as Unsafe
+import Text.Megaparsec (anySingleBut, choice, try)
+import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
@@ -133,11 +134,32 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                 hspace1
                 void $ string ";"
                 return $ Jump label
+            , Lit <$> bareLiteral
             , try $ do
                 label <- reference
                 hspace1 <|> eol' "\\"
                 return $ Call label
             ]
+
+bareLiteral :: (MachineWord w) => Parser (Ref w)
+bareLiteral = try $ do
+    hspace
+    ref <-
+        choice
+            [ do
+                void $ char '\''
+                c <- anySingleBut '\''
+                void $ char '\''
+                return $ ValueR id $ fromIntegral $ ord c
+            , hexNum <&> ValueR id . Unsafe.read
+            , do
+                n <- num
+                guard (not $ null n)
+                guard (n /= "-")
+                return $ ValueR id $ Unsafe.read n
+            ]
+    hspace1 <|> eol' "\\"
+    return ref
 
 cmdMnemonic0 :: String -> Parser ()
 cmdMnemonic0 mnemonic = try $ do
