@@ -332,6 +332,18 @@ tests =
              in do
                     (dataRegs !? D0) @?= Just (-3)
                     nFlag @?= True
+        , testCase "Clear operations" $ do
+            let State{dataRegs, zFlag, nFlag, vFlag, cFlag} = simulate "clr.l D0" st0{dataRegs = insert D0 42 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0
+                    zFlag @?= True
+                    nFlag @?= False
+                    vFlag @?= False
+                    cFlag @?= False
+            let State{dataRegs, zFlag} = simulate "clr.b D0" st0{dataRegs = insert D0 0xFF dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0x00
+                    zFlag @?= True
         , testCase "LINK and UNLK operations" $ do
             let State{addrRegs, mem} =
                     simulate

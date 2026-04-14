@@ -79,6 +79,7 @@ data Isa w l
     | MoveA {mode :: Mode, src, dst :: Argument w l}
     | Not {mode :: Mode, dst :: Argument w l}
     | Neg {mode :: Mode, dst :: Argument w l}
+    | Clr {mode :: Mode, dst :: Argument w l}
     | And {mode :: Mode, src, dst :: Argument w l}
     | Or {mode :: Mode, src, dst :: Argument w l}
     | Xor {mode :: Mode, src, dst :: Argument w l}
@@ -121,6 +122,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmd2args "movea" MoveA longMode src addrRegister
             , cmd1args "not" Not (longMode <|> byteMode) dst
             , cmd1args "neg" Neg (longMode <|> byteMode) dst
+            , cmd1args "clr" Clr (longMode <|> byteMode) dst
             , cmd2args "and" And (longMode <|> byteMode) src dst
             , cmd2args "or" Or (longMode <|> byteMode) src dst
             , cmd2args "xor" Xor (longMode <|> byteMode) src dst
@@ -284,6 +286,7 @@ instance DerefMnemonic (Isa w) w where
                 MoveA{mode, src, dst} -> MoveA mode (derefArg src) (derefArg dst)
                 Not{mode, dst} -> Not mode (derefArg dst)
                 Neg{mode, dst} -> Neg mode (derefArg dst)
+                Clr{mode, dst} -> Clr mode (derefArg dst)
                 And{mode, src, dst} -> And mode (derefArg src) (derefArg dst)
                 Or{mode, src, dst} -> Or mode (derefArg src) (derefArg dst)
                 Xor{mode, src, dst} -> Xor mode (derefArg src) (derefArg dst)
@@ -328,6 +331,7 @@ instance (ByteSizeT w) => ByteSize (Isa w l) where
     byteSize (MoveA _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Not _mode dst) = 2 + byteSize dst
     byteSize (Neg _mode dst) = 2 + byteSize dst
+    byteSize (Clr _mode dst) = 2 + byteSize dst
     byteSize (And _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Or _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Xor _mode src dst) = 2 + byteSize src + byteSize dst
@@ -563,6 +567,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             MoveA{mode = Byte} -> error "not implemented"
             Not{mode = Long, dst} -> wordCmd1 dst dst complement
             Not{mode = Byte, dst} -> byteCmd1 dst dst complement
+            Clr{mode = Long, dst} -> do
+                storeWord dst 0
+                modify $ \st -> st{nFlag = False, zFlag = True, vFlag = False, cFlag = False}
+                nextPc
+            Clr{mode = Byte, dst} -> do
+                storeByte dst 0
+                modify $ \st -> st{nFlag = False, zFlag = True, vFlag = False, cFlag = False}
+                nextPc
             Neg{mode = Long, dst} -> do
                 a <- fetchWord dst
                 let Ext{value, carry, overflow} = subExt 0 a
