@@ -647,14 +647,17 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         where
             branch addr True = setPc $ fromEnum addr
             branch _addr False = nextPc
+            clearVC = modify $ \st -> st{vFlag = False, cFlag = False}
             wordCmd1 src dst f = do
                 a <- fetchWord src
                 storeWord dst $ f a
+                clearVC
                 nextPc
             wordCmd2 src dst f = do
                 a <- fetchWord dst
                 b <- fetchWord src
                 storeWord dst $ f a b
+                clearVC
                 nextPc
             wordCmd2Ext src dst f = do
                 a <- fetchWord dst
@@ -672,11 +675,13 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             byteCmd1 src dst f = do
                 a <- fetchByte src
                 storeByte dst $ f a
+                clearVC
                 nextPc
             byteCmd2 src dst f = do
                 a <- fetchByte dst
                 b <- fetchByte src
                 storeByte dst $ f a b
+                clearVC
                 nextPc
             byteCmd2Ext src dst f = do
                 a <- fetchByte dst
