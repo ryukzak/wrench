@@ -599,8 +599,16 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Sub{mode = Byte, src, dst} -> byteCmd2Ext src dst subExt
             Mul{mode = Long, src, dst} -> wordCmd2Ext src dst mulExt
             Mul{mode = Byte, src, dst} -> byteCmd2Ext src dst mulExt
-            Div{mode = Long, src, dst} -> wordCmd2 src dst div
-            Div{mode = Byte, src, dst} -> byteCmd2 src dst div
+            Div{mode = Long, src, dst} -> do
+                b <- fetchWord src
+                if b == 0
+                    then raiseInternalError "division by zero"
+                    else wordCmd2 src dst div
+            Div{mode = Byte, src, dst} -> do
+                b <- fetchByte src
+                if b == 0
+                    then raiseInternalError "division by zero"
+                    else byteCmd2 src dst div
             Cmp{mode = Long, src, dst} -> do
                 a <- fetchWord dst
                 b <- fetchWord src

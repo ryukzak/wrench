@@ -344,6 +344,13 @@ tests =
              in do
                     (dataRegs !? D0) @?= Just 0x00
                     zFlag @?= True
+        , testCase "Division by zero" $ do
+            let State{internalError} =
+                    simulate "div.l D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
+             in internalError @?= Just "division by zero"
+            let State{internalError} =
+                    simulate "div.b D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
+             in internalError @?= Just "division by zero"
         , testCase "LINK and UNLK operations" $ do
             let State{addrRegs, mem} =
                     simulate
