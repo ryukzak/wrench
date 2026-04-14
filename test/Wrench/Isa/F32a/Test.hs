@@ -28,6 +28,21 @@ tests =
         , testCase "Drop removes top" $ do
             let State{dataStack} = simulate "drop" st0{dataStack = [1, 2, 3]}
              in dataStack @?= [2, 3]
+        , testCase "Bare decimal literal pushes to stack" $ do
+            let State{dataStack} = simulate "42" st0
+             in dataStack @?= [42]
+        , testCase "Bare hex literal pushes to stack" $ do
+            let State{dataStack} = simulate "0xFF" st0
+             in dataStack @?= [255]
+        , testCase "Bare negative literal pushes to stack" $ do
+            let State{dataStack} = simulate "-1" st0
+             in dataStack @?= [-1]
+        , testCase "Bare char literal pushes to stack" $ do
+            let State{dataStack} = simulate "'A'" st0
+             in dataStack @?= [65]
+        , testCase "lit keyword still works" $ do
+            let State{dataStack} = simulate "lit 42" st0
+             in dataStack @?= [42]
         ]
     where
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
