@@ -6,7 +6,7 @@ The RISC-IV ISA is a simple register-based instruction set inspired by the RISC-
 
 The RISC-IV architecture is a 32-bit RISC (Reduced Instruction Set Computer) architecture inspired by the RISC-V specification. It features:
 
-- 32 general-purpose registers (including one hardwired zero register)
+- 32 general-purpose registers (including one hardwired zero register — writes to `Zero` are silently discarded)
 - Fixed-length 4-byte instructions
 - Load-store architecture (memory access only through specific instructions)
 - Simple addressing modes
@@ -113,18 +113,18 @@ Instruction size: 4 bytes.
 
 - **Logical Shift Left**
     - **Syntax:** `sll <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register left by the number of bits specified in the second source register and store the result in the destination register.
-    - **Operation:** `rd <- rs1 << rs2`
+    - **Description:** Shift the value of the first source register left by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.
+    - **Operation:** `rd <- rs1 << (rs2 & 0x1F)`
 
 - **Logical Shift Right**
     - **Syntax:** `srl <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register right by the number of bits specified in the second source register and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> rs2`
+    - **Description:** Shift the value of the first source register right by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >> (rs2 & 0x1F)`
 
 - **Arithmetic Shift Right**
     - **Syntax:** `sra <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register right by the number of bits specified in the second source register, preserving the sign, and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> rs2`
+    - **Description:** Shift the value of the first source register right by the number of bits specified in the lower 5 bits of the second source register, preserving the sign, and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >> (rs2 & 0x1F)`
 
 - **Bitwise AND**
     - **Syntax:** `and <rd>, <rs1>, <rs2>`
