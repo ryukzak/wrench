@@ -141,15 +141,30 @@ Instruction size: 4 bytes.
     - **Description:** Perform a bitwise AND on the values of two source registers and store the result in the destination register.
     - **Operation:** `rd <- rs1 & rs2`
 
+- **Bitwise AND Immediate**
+    - **Syntax:** `andi <rd>, <rs1>, <k>`
+    - **Description:** Perform a bitwise AND of the source register with a 12-bit sign-extended immediate value.
+    - **Operation:** `rd <- rs1 & signext(k[11:0])`
+
 - **Bitwise OR**
     - **Syntax:** `or <rd>, <rs1>, <rs2>`
     - **Description:** Perform a bitwise OR on the values of two source registers and store the result in the destination register.
     - **Operation:** `rd <- rs1 | rs2`
 
+- **Bitwise OR Immediate**
+    - **Syntax:** `ori <rd>, <rs1>, <k>`
+    - **Description:** Perform a bitwise OR of the source register with a 12-bit sign-extended immediate value.
+    - **Operation:** `rd <- rs1 | signext(k[11:0])`
+
 - **Bitwise XOR**
     - **Syntax:** `xor <rd>, <rs1>, <rs2>`
     - **Description:** Perform a bitwise XOR on the values of two source registers and store the result in the destination register.
     - **Operation:** `rd <- rs1 ^ rs2`
+
+- **Bitwise XOR Immediate**
+    - **Syntax:** `xori <rd>, <rs1>, <k>`
+    - **Description:** Perform a bitwise XOR of the source register with a 12-bit sign-extended immediate value.
+    - **Operation:** `rd <- rs1 ^ signext(k[11:0])`
 
 ### Control Flow Instructions
 
