@@ -65,6 +65,40 @@ tests =
                     (dataRegs !? D0) @?= Just 0
                     (dataRegs !? D1) @?= Just 0x100
                     zFlag @?= True
+        , testCase "Logic ops clear V and C flags" $ do
+            let State{vFlag, cFlag} =
+                    simulate
+                        "and.l D1, D0"
+                        st0
+                            { dataRegs = insert D1 0xFF $ insert D0 0xFF dataRegs0
+                            , vFlag = True
+                            , cFlag = True
+                            }
+             in do
+                    vFlag @?= False
+                    cFlag @?= False
+            let State{vFlag, cFlag} =
+                    simulate
+                        "move.l D1, D0"
+                        st0
+                            { dataRegs = insert D1 1 dataRegs0
+                            , vFlag = True
+                            , cFlag = True
+                            }
+             in do
+                    vFlag @?= False
+                    cFlag @?= False
+            let State{vFlag, cFlag} =
+                    simulate
+                        "not.l D0"
+                        st0
+                            { dataRegs = insert D0 0 dataRegs0
+                            , vFlag = True
+                            , cFlag = True
+                            }
+             in do
+                    vFlag @?= False
+                    cFlag @?= False
         , testCase "Translator" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
             translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
