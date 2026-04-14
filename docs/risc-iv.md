@@ -79,6 +79,11 @@ Instruction size: 4 bytes.
     - **Description:** Add a 12-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the addition.
     - **Operation:** `rd <- rs1 + signext(k[11:0])`
 
+- **Set Less Than Immediate**
+    - **Syntax:** `slti <rd>, <rs1>, <k>`
+    - **Description:** Set the destination register to 1 if the source register is less than the immediate value (signed comparison), else set to 0.
+    - **Operation:** `rd <- (rs1 < k) ? 1 : 0`
+
 - **Add**
     - **Syntax:** `add <rd>, <rs1>, <rs2>`
     - **Description:** Add the values of two source registers and store the result in the destination register.

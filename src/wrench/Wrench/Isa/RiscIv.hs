@@ -140,6 +140,8 @@ data Isa w l
       Or {rd, rs1, rs2 :: Register}
     | -- | Bitwise XOR: rd = rs1 ^ rs2
       Xor {rd, rs1, rs2 :: Register}
+    | -- | Set less than immediate: rd = (rs1 < k) ? 1 : 0
+      Slti {rd, rs1 :: Register, k :: l}
     | -- | Move: rd = rs
       Mv {rd, rs :: Register}
     | -- | Store word: M[offsetRs1] = rs2
@@ -238,6 +240,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             cmd =
                 choice
                     [ cmd3args "addi" Addi register register referenceWithDirective
+                    , cmd3args "slti" Slti register register referenceWithDirective
                     , cmd3args "add" Add register register register
                     , cmd3args "sub" Sub register register register
                     , cmd3args "mul" Mul register register register
@@ -277,6 +280,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Jal{rd, k} -> Jal rd $ deref' relF k
                 Jr{rs} -> Jr{rs}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
+                Slti{rd, rs1, k} -> Slti{rd, rs1, k = deref' f k}
                 Add{rd, rs1, rs2} -> Add{rd, rs1, rs2}
                 Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
                 Mul{rd, rs1, rs2} -> Mul{rd, rs1, rs2}
@@ -425,6 +429,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
                 setReg rd (rs1' + (k `signBitAnd` 0x00000FFF))
+                nextPc
+            Slti{rd, rs1, k} -> do
+                rs1' <- getReg rs1
+                setReg rd (if rs1' < k then 1 else 0)
                 nextPc
             Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
             Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)
