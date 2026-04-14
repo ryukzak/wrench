@@ -319,6 +319,19 @@ tests =
             let State{cFlag} =
                     simulate "asl.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 minBound dataRegs0}
              in cFlag @?= True -- minBound has bit 31 set
+        , testCase "Negate operations" $ do
+            let State{dataRegs, nFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 5 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just (-5)
+                    nFlag @?= True
+            let State{dataRegs, zFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 0 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just 0
+                    zFlag @?= True
+            let State{dataRegs, nFlag} = simulate "neg.b D0" st0{dataRegs = insert D0 3 dataRegs0}
+             in do
+                    (dataRegs !? D0) @?= Just (-3)
+                    nFlag @?= True
         , testCase "LINK and UNLK operations" $ do
             let State{addrRegs, mem} =
                     simulate
