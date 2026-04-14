@@ -64,14 +64,14 @@ divide_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 factorial:
-    lit 1 over               \ n:acc:[]
+    lit 1 over >r >r drop r> r>  \ n:acc:[]
 factorial_while:
     dup                      \ n:n:acc:[]
     if factorial_finish      \ n:acc:[]
 
     dup a!                   \ n:acc:[]
 
-    over                     \ acc:n:[]
+    over >r >r drop r> r>    \ acc:n:[]
     dup !p tmp_prev
 
 continue_factorial:
@@ -83,7 +83,7 @@ continue_factorial:
     a @b                     \ n:acc:[]
     lit 0 lit 0              \ 0:0:n:acc:[]
     divide                   \ quot:rem:n:acc:[]
-    over                     \ rem:quot:n:acc:[]
+    over >r >r drop r> r>    \ rem:quot:n:acc:[]
     if continue_factorial2
     handler_overflow
 

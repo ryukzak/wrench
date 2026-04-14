@@ -6,6 +6,7 @@
 module Wrench.Isa.F32a (
     Isa (..),
     F32aState,
+    MachineState (..),
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -514,6 +515,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Over -> do
                 t <- dataPop
                 s <- dataPop
+                dataPush s
                 dataPush t
                 dataPush s
                 nextP

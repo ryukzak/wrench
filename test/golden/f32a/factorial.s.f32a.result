@@ -12,11 +12,11 @@
 223:	divide
 229:	divide_do
 236:	factorial
-242:	factorial_while
-257:	continue_factorial
-297:	continue_factorial2
-320:	continue_factorial3
-331:	factorial_finish
+247:	factorial_while
+267:	continue_factorial
+312:	continue_factorial2
+335:	continue_factorial3
+346:	factorial_finish
 ---
 mem[0..3]: 	80 00 00 00	@"input_addr"
 mem[4..7]: 	84 00 00 00	@"output_addr"
@@ -61,36 +61,51 @@ mem[230..234]: 	Next 229
 mem[235..235]: 	Return
 mem[236..240]: 	Lit 1 	@factorial
 mem[241..241]: 	Over
-mem[242..242]: 	Dup 	@factorial_while
-mem[243..247]: 	If 331
-mem[248..248]: 	Dup
-mem[249..249]: 	AStore
-mem[250..250]: 	Over
-mem[251..251]: 	Dup
-mem[252..256]: 	StoreP 12
-mem[257..261]: 	Lit 0 	@continue_factorial
-mem[262..266]: 	Call 207
-mem[267..267]: 	AStore
-mem[268..268]: 	StoreB
-mem[269..269]: 	AFetch
-mem[270..270]: 	FetchB
-mem[271..275]: 	Lit 0
-mem[276..280]: 	Lit 0
-mem[281..285]: 	Call 223
-mem[286..286]: 	Over
-mem[287..291]: 	If 297
-mem[292..296]: 	Call 194
-mem[297..301]: 	FetchP 12 	@continue_factorial2
-mem[302..302]: 	Inv
-mem[303..307]: 	Lit 1
-mem[308..308]: 	Add
-mem[309..309]: 	Add
-mem[310..314]: 	If 320
-mem[315..319]: 	Call 194
-mem[320..324]: 	Lit (-1) 	@continue_factorial3
-mem[325..325]: 	Add
-mem[326..330]: 	Jump 242
-mem[331..331]: 	Drop 	@factorial_finish
-mem[332..332]: 	Return
-mem[333..999]: 	( 00 )
+mem[242..242]: 	TIntoR
+mem[243..243]: 	TIntoR
+mem[244..244]: 	Drop
+mem[245..245]: 	RIntoT
+mem[246..246]: 	RIntoT
+mem[247..247]: 	Dup 	@factorial_while
+mem[248..252]: 	If 346
+mem[253..253]: 	Dup
+mem[254..254]: 	AStore
+mem[255..255]: 	Over
+mem[256..256]: 	TIntoR
+mem[257..257]: 	TIntoR
+mem[258..258]: 	Drop
+mem[259..259]: 	RIntoT
+mem[260..260]: 	RIntoT
+mem[261..261]: 	Dup
+mem[262..266]: 	StoreP 12
+mem[267..271]: 	Lit 0 	@continue_factorial
+mem[272..276]: 	Call 207
+mem[277..277]: 	AStore
+mem[278..278]: 	StoreB
+mem[279..279]: 	AFetch
+mem[280..280]: 	FetchB
+mem[281..285]: 	Lit 0
+mem[286..290]: 	Lit 0
+mem[291..295]: 	Call 223
+mem[296..296]: 	Over
+mem[297..297]: 	TIntoR
+mem[298..298]: 	TIntoR
+mem[299..299]: 	Drop
+mem[300..300]: 	RIntoT
+mem[301..301]: 	RIntoT
+mem[302..306]: 	If 312
+mem[307..311]: 	Call 194
+mem[312..316]: 	FetchP 12 	@continue_factorial2
+mem[317..317]: 	Inv
+mem[318..322]: 	Lit 1
+mem[323..323]: 	Add
+mem[324..324]: 	Add
+mem[325..329]: 	If 335
+mem[330..334]: 	Call 194
+mem[335..339]: 	Lit (-1) 	@continue_factorial3
+mem[340..340]: 	Add
+mem[341..345]: 	Jump 247
+mem[346..346]: 	Drop 	@factorial_finish
+mem[347..347]: 	Return
+mem[348..999]: 	( 00 )
 ---

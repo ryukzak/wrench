@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.38.0.
+-- This file has been generated from package.yaml by hpack version 0.38.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -312,6 +312,7 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Wrench.Isa.F32a.Test
       Wrench.Isa.M68k.Test
       Wrench.Isa.RiscIv.Test
       Wrench.Isa.VliwIv.Test
