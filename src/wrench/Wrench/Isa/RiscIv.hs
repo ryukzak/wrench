@@ -512,8 +512,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                             shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
-            Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id div
-            Rem{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id rem
+            Div{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> if r2 == 0 then -1 else div r1 r2)
+            Rem{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> if r2 == 0 then r1 else rem r1 r2)
             Sll{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftL` (fromEnum r2 .&. 0x1F))
             Srl{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> lShiftR r1 (r2 .&. 0x1F))
             Sra{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (\r1 r2 -> r1 `shiftR` (fromEnum r2 .&. 0x1F))
