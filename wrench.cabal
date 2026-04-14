@@ -5,13 +5,13 @@ cabal-version: 2.2
 -- see: https://github.com/sol/hpack
 
 name:           wrench
-version:        0.0.4.0
+version:        0.0.4.1
 description:    Wrench - is a tool for educating computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi
 maintainer:     aleksandr.penskoi@gmail.com
-copyright:      2025 Aleksandr Penskoi
+copyright:      2026 Aleksandr Penskoi
 license:        BSD-3-Clause
 license-file:   LICENSE
 build-type:     Simple

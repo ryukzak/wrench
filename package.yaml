@@ -1,10 +1,10 @@
 name: wrench
-version: 0.0.4.0
-github: 'ryukzak/wrench'
+version: 0.0.4.1
+github: "ryukzak/wrench"
 license: BSD-3-Clause
-author: 'Aleksandr Penskoi'
-maintainer: 'aleksandr.penskoi@gmail.com'
-copyright: '2025 Aleksandr Penskoi'
+author: "Aleksandr Penskoi"
+maintainer: "aleksandr.penskoi@gmail.com"
+copyright: "2026 Aleksandr Penskoi"
 
 extra-source-files:
   - README.md
