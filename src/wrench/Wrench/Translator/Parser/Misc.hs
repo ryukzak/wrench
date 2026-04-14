@@ -47,14 +47,10 @@ sectionItems = mapMaybe $ \case
 
 sectionOrg :: [SectionItem i] -> Maybe Int
 sectionOrg items =
-    let orgs =
-            mapMaybe
-                ( \case
-                    Org i -> Just i
-                    _ -> Nothing
-                )
-                items
-     in listToMaybe orgs
+    case [i | Org i <- items] of
+        [] -> Nothing
+        [x] -> Just x
+        (_ : _ : _) -> error "error: multiple .org directives not allowed"
 
 orgDirective :: String -> Parser Int
 orgDirective cstart = do
