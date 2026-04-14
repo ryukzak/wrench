@@ -97,10 +97,10 @@ _start:
     bnez         jump_target                 ; if acc != 0, jump to jump_target
 
     load_imm     0x02                        ; acc <- 0x02
-    bgt          jump_target                 ; if acc > 0, jump to jump_target
+    bgtz         jump_target                 ; if acc > 0, jump to jump_target
 
     load_imm     0xFF                        ; acc <- 0xFF
-    ble          jump_target                 ; if acc < 0, jump to jump_target
+    bltz         jump_target                 ; if acc < 0, jump to jump_target
 
 jump_target:
     ; Halt the machine

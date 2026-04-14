@@ -13,7 +13,7 @@ _start:
     load_acc
     store        n                           ; mem[n] = acc
 
-    ble          not_in_domain
+    bltz         not_in_domain
 
 factorial_begin:
     load         const_1                     ; acc = mem[const_1]
