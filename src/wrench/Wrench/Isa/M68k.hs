@@ -16,7 +16,7 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (complement, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
@@ -597,14 +597,14 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         , cFlag = carry
                         }
                 nextPc
-            Asl{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftL d (fromEnum s))
-            Asl{mode = Byte, src, dst} -> byteCmd2 src dst (\d s -> shiftL d (fromEnum s))
-            Asr{mode = Long, src, dst} -> wordCmd2 src dst (\d s -> shiftR d (fromEnum s))
-            Asr{mode = Byte, src, dst} -> byteCmd2 src dst (\d s -> shiftR d (fromEnum s))
-            Lsl{mode = Long, src, dst} -> wordCmd2 src dst lShiftL
-            Lsl{mode = Byte, src, dst} -> byteCmd2 src dst lShiftL
-            Lsr{mode = Long, src, dst} -> wordCmd2 src dst lShiftR
-            Lsr{mode = Byte, src, dst} -> byteCmd2 src dst lShiftR
+            Asl{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftL d (fromEnum s)) (\n -> 32 - n)
+            Asl{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftL d (fromEnum s)) (\n -> 8 - n)
+            Asr{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftR d (fromEnum s)) (\n -> n - 1)
+            Asr{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftR d (fromEnum s)) (\n -> n - 1)
+            Lsl{mode = Long, src, dst} -> wordShift src dst lShiftL (\n -> 32 - n)
+            Lsl{mode = Byte, src, dst} -> byteShift src dst lShiftL (\n -> 8 - n)
+            Lsr{mode = Long, src, dst} -> wordShift src dst lShiftR (\n -> n - 1)
+            Lsr{mode = Byte, src, dst} -> byteShift src dst lShiftR (\n -> n - 1)
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
@@ -682,6 +682,24 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 b <- fetchByte src
                 storeByte dst $ f a b
                 clearVC
+                nextPc
+            wordShift src dst f carryBit = do
+                a <- fetchWord dst
+                b <- fetchWord src
+                let count = fromEnum b
+                    result = f a b
+                    carry = count > 0 && testBit a (carryBit count)
+                storeWord dst result
+                modify $ \st -> st{vFlag = False, cFlag = carry}
+                nextPc
+            byteShift src dst f carryBit = do
+                a <- fetchByte dst
+                b <- fetchByte src
+                let count = fromEnum b
+                    result = f a b
+                    carry = count > 0 && testBit a (carryBit count)
+                storeByte dst result
+                modify $ \st -> st{vFlag = False, cFlag = carry}
                 nextPc
             byteCmd2Ext src dst f = do
                 a <- fetchByte dst
