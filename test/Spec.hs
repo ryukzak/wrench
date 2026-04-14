@@ -10,6 +10,7 @@ import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.Acc32 qualified as Acc32
+import Wrench.Isa.Acc32.Test qualified
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
 import Wrench.Isa.F32a.Test qualified
@@ -128,7 +129,8 @@ tests =
             ]
         , testGroup
             "Acc32"
-            [ testGroup
+            [ Wrench.Isa.Acc32.Test.tests
+            , testGroup
                 "Translator"
                 [ goldenTranslate Acc32 "test/golden/acc32/logical_not.s"
                 , goldenTranslate Acc32 "test/golden/acc32/hello.s"

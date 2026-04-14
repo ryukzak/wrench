@@ -110,8 +110,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , Jmp <$> cmdMnemonic1 "jmp" reference
             , Beqz <$> cmdMnemonic1 "beqz" reference
             , Bnez <$> cmdMnemonic1 "bnez" reference
-            , Bgz <$> cmdMnemonic1 "bgt" reference
-            , Blz <$> cmdMnemonic1 "ble" reference
+            , Bgz <$> cmdMnemonic1 "bgtz" reference
+            , Blz <$> cmdMnemonic1 "bltz" reference
             , Bvs <$> cmdMnemonic1 "bvs" reference
             , Bvc <$> cmdMnemonic1 "bvc" reference
             , Bcs <$> cmdMnemonic1 "bcs" reference

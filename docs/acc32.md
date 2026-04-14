@@ -149,12 +149,12 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Operation:** `if acc != 0 then pc <- <address>`
 
 - **Branch if Greater Than Zero**
-    - **Syntax:** `bgt <address>`
+    - **Syntax:** `bgtz <address>`
     - **Description:** Jump to a specific address if the accumulator is greater than zero.
     - **Operation:** `if acc > 0 then pc <- <address>`
 
 - **Branch if Less Than Zero**
-    - **Syntax:** `ble <address>`
+    - **Syntax:** `bltz <address>`
     - **Description:** Jump to a specific address if the accumulator is less than zero.
     - **Operation:** `if acc < 0 then pc <- <address>`
 
