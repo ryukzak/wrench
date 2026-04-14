@@ -17,6 +17,12 @@ _start:
 
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
+swap:
+    over >r >r drop r> r>
+    ;
+
+    \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
 multiply:
     lit 31 >r                \ for R = 31
 multiply_do:
@@ -28,19 +34,19 @@ multiply_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 factorial:
-    lit 1 over               \ n:acc:[]
+    lit 1 swap               \ n:acc:[]
 factorial_while:
     dup                      \ n:n:acc:[]
     if factorial_finish      \ n:acc:[]
 
     dup a!                   \ n:acc:[]
 
-    over                     \ acc:n:[]
+    swap                     \ acc:n:[]
     lit 0                    \ 0:acc:n:[]
 
     multiply
 
-    over                     \ n:acc
+    swap                     \ n:acc
     lit -1 +                 \ n-1:acc
 
     factorial_while ;

@@ -1,5 +1,5 @@
 name: "assert factorial(-2) == -1"
-limit: 2000
+limit: 4000
 memory_size: 0x1000
 memory_mapped_io:
   0x80: [-2]

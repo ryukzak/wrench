@@ -12,6 +12,7 @@ import Wrench.Isa.Acc32 (Acc32State)
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.F32a (F32aState)
 import Wrench.Isa.F32a qualified as F32a
+import Wrench.Isa.F32a.Test qualified
 import Wrench.Isa.M68k (M68kState)
 import Wrench.Isa.M68k qualified as M68k
 import Wrench.Isa.M68k.Test qualified
@@ -98,7 +99,8 @@ tests =
             ]
         , testGroup
             "F32a"
-            [ testGroup
+            [ Wrench.Isa.F32a.Test.tests
+            , testGroup
                 "Translator"
                 [ goldenTranslate F32a "test/golden/f32a/logical_not.s"
                 , goldenTranslate F32a "test/golden/f32a/hello.s"
