@@ -35,27 +35,30 @@ tests =
             let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
              in (dataRegs !? D0) @?= Just 100
         , testCase "Compare operations" $ do
-            let State{dataRegs, zFlag, nFlag} =
+            let State{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 5 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
                     (dataRegs !? D1) @?= Just 5
                     zFlag @?= True
                     nFlag @?= False
-            let State{dataRegs, zFlag, nFlag} =
+                    cFlag @?= False
+            let State{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
                     (dataRegs !? D1) @?= Just 10
                     zFlag @?= False
                     nFlag @?= True
-            let State{dataRegs, zFlag, nFlag} =
+                    cFlag @?= True
+            let State{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 3 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
                     (dataRegs !? D1) @?= Just 3
                     zFlag @?= False
                     nFlag @?= False
+                    cFlag @?= False
             let State{dataRegs, zFlag} =
                     simulate "cmp.b D1, D0" st0{dataRegs = insert D1 0x100 $ insert D0 0 dataRegs0}
              in do
