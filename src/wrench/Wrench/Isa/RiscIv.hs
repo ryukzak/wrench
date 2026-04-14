@@ -191,6 +191,8 @@ register =
         , string "t2" >> return T2
         , string "s0" >> return S0Fp
         , string "fp" >> return S0Fp
+        , string "s10" >> return S10
+        , string "s11" >> return S11
         , string "s1" >> return S1
         , string "a0" >> return A0
         , string "a1" >> return A1
@@ -208,8 +210,6 @@ register =
         , string "s7" >> return S7
         , string "s8" >> return S8
         , string "s9" >> return S9
-        , string "s10" >> return S10
-        , string "s11" >> return S11
         , string "t3" >> return T3
         , string "t4" >> return T4
         , string "t5" >> return T5
