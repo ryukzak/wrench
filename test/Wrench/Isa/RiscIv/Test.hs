@@ -70,6 +70,10 @@ tests =
             runInstruction Srli{rd = A1, rs1 = A0, k = 4} [(A0, -16)] A1 @?= 0x0FFFFFFF
         , testCase "Srai: -16 >> 4 = -1" $ do
             runInstruction Srai{rd = A1, rs1 = A0, k = 4} [(A0, -16)] A1 @?= -1
+        , testCase "Div by zero: 42 / 0 = -1" $ do
+            runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= -1
+        , testCase "Rem by zero: 42 % 0 = 42" $ do
+            runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= 42
         ]
 
 initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
