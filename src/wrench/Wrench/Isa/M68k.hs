@@ -632,7 +632,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
 
                 sp <- fetchWord (DirectAddrReg A7)
                 storeWord (DirectAddrReg addrReg) sp
-                storeWord (DirectAddrReg A7) (sp - toEnum offset)
+                storeWord (DirectAddrReg A7) (sp + toEnum offset)
 
                 nextPc
             Unlk{addrReg} -> do

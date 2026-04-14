@@ -279,7 +279,7 @@ tests =
                             }
              in do
                     (addrRegs !? A6) @?= Just 0x0C
-                    (addrRegs !? A7) @?= Just 0x14
+                    (addrRegs !? A7) @?= Just 0x04
                     fmap snd (readWord mem 0x1C) @?= Right 0x1F1E1D1C
                     fmap snd (readWord mem 0x0C) @?= Right 0x00000020
             let State{addrRegs, mem} =
