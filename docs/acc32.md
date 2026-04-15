@@ -72,12 +72,12 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 - **Subtract**
     - **Syntax:** `sub <address>`
     - **Description:** Subtract a value from a specific address from the accumulator.
-    - **Operation:** `acc <- acc - mem[<address>]` and set `V` flags.
+    - **Operation:** `acc <- acc - mem[<address>]` and set `C` and `V` flags.
 
 - **Multiply**
     - **Syntax:** `mul <address>`
     - **Description:** Multiply the accumulator by a value from a specific address.
-    - **Operation:** `acc <- acc * mem[<address>]` and set `V` flags.
+    - **Operation:** `acc <- acc * mem[<address>]` and set `C` and `V` flags.
 
 - **Divide**
     - **Syntax:** `div <address>`
