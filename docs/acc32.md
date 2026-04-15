@@ -28,9 +28,9 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 ### Data Movement Instructions
 
 - **Load Immediate**
-    - **Syntax:** `load_imm <address>`
+    - **Syntax:** `load_imm <value>`
     - **Description:** Load an immediate value into the accumulator.
-    - **Operation:** `acc <- <address>`
+    - **Operation:** `acc <- <value>`
 
 - **Load**
     - **Syntax:** `load <offset>`
