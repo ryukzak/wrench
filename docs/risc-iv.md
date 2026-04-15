@@ -49,8 +49,8 @@ Instruction size: 4 bytes.
 
 - **Load Upper Immediate**
     - **Syntax:** `lui <rd>, <k>`
-    - **Description:** Load an immediate value shifted left by 12 bits into the destination register.
-    - **Operation:** `rd <- k << 12`
+    - **Description:** Load an immediate value masked to 20 bits and shifted left by 12 bits into the destination register.
+    - **Operation:** `rd <- (k & 0x000FFFFF) << 12`
 
 - **Move**
     - **Syntax:** `mv <rd>, <rs>`
@@ -76,8 +76,8 @@ Instruction size: 4 bytes.
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add an immediate value to the source register and store the result in the destination register. Only the lower 12 bits of the result are stored (upper 20 bits sets depending on the sign of the immediate value).
-    - **Operation:** `rd <- rs1 + k`
+    - **Description:** Add a 12-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the addition.
+    - **Operation:** `rd <- rs1 + signext(k[11:0])`
 
 - **Add**
     - **Syntax:** `add <rd>, <rs1>, <rs2>`
