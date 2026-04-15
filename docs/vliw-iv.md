@@ -6,7 +6,7 @@ The VLIW ISA is a simple register-based instruction set inspired by VLIW (Very L
 
 The VLIW architecture is a 32-bit VLIW (Very Long Instruction Word) architecture inspired by RISC-V and classic VLIW designs. It features:
 
-- 32 general-purpose registers (including one hardwired zero register)
+- 32 general-purpose registers (including one hardwired zero register — writes to `Zero` are silently ignored)
 - Fixed-length 11-byte (90-bit) instruction bundles, divided into 4 slots for parallel execution
 - Load-store architecture (memory access only through specific instructions in dedicated slots)
 - Simple addressing modes
