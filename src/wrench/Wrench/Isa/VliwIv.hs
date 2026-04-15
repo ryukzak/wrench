@@ -397,6 +397,7 @@ getReg r = do
             raiseInternalError $ "wrong register: " <> show r
             return def
 
+setReg Zero _ = return ()
 setReg r value = modify $ \st@State{regs} -> st{regs = insert r value regs}
 
 getWord addr = do
