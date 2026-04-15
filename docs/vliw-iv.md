@@ -53,7 +53,9 @@ Instruction size: 11 bytes (90-bit bundle).
 [SLOT 3]   control: 14 bits   <opcode:4><offset or offset+register:10>
 ```
 
-Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots:
+Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
+
+**Execution model:** All source operands are read first, then all results are written back simultaneously. The order of register writes from ALU1, ALU2, and Memory slots is non-deterministic — if multiple slots write to the same register, the result is undefined. The control slot always executes last. The compiler/assembler must ensure that parallel operations in the same bundle are independent (no write-write or read-write conflicts across slots).
 
 ```assembly
 add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
