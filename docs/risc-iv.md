@@ -180,13 +180,13 @@ Instruction size: 4 bytes.
 
 - **Branch if Greater Than (Unsigned)**
     - **Syntax:** `bgtu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned value in the first source register is greater than the unsigned value in the second source register.
-    - **Operation:** `if rs1 > rs2 then pc <- pc + k`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) > unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Less Than or Equal (Unsigned)**
     - **Syntax:** `bleu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned value in the first source register is less than or equal to the unsigned value in the second source register.
-    - **Operation:** `if rs1 <= rs2 then pc <- pc + k`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than or equal to the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) <= unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Equal**
     - **Syntax:** `beq <rs1>, <rs2>, <k>`
