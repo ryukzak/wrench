@@ -108,18 +108,18 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
 
 - **Logical Shift Left**
     - **Syntax:** `sll <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register left by the number of bits specified in the second source register and store the result in the destination register.
-    - **Operation:** `rd <- rs1 << rs2`
+    - **Description:** Shift the value of the first source register left by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.
+    - **Operation:** `rd <- rs1 << (rs2 & 0x1F)`
 
 - **Logical Shift Right**
     - **Syntax:** `srl <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register right by the number of bits specified in the second source register and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> rs2`
+    - **Description:** Shift the value of the first source register right (zero-fill) by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >>> (rs2 & 0x1F)`
 
 - **Arithmetic Shift Right**
     - **Syntax:** `sra <rd>, <rs1>, <rs2>`
-    - **Description:** Shift the value of the first source register right by the number of bits specified in the second source register, preserving the sign, and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> rs2`
+    - **Description:** Shift the value of the first source register right by the number of bits specified in the lower 5 bits of the second source register, preserving the sign, and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >> (rs2 & 0x1F)`
 
 - **Bitwise AND**
     - **Syntax:** `and <rd>, <rs1>, <rs2>`
