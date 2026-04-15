@@ -164,6 +164,8 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
     - **Description:** Store the lower 8 bits of the value from the source register into memory at the address computed by adding the offset to the base register.
     - **Operation:** `M[offset + rs1] <- rs2 & 0xFF`
 
+> **Note:** There is no `lb` (load byte) instruction. Byte-level reads can be performed by loading a word with `lw` and using ALU operations to extract the desired byte.
+
 - **NOP**
     - **Syntax:** `nop`
     - **Description:** No operation.
