@@ -312,6 +312,7 @@ test-suite wrench-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Wrench.Isa.Acc32.Test
       Wrench.Isa.F32a.Test
       Wrench.Isa.M68k.Test
       Wrench.Isa.RiscIv.Test
