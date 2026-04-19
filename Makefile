@@ -3,7 +3,6 @@
          test-examples generate-variants update-golden fix markdown-fix \
          builder-image edge-image release-image format-python lint-python lint-fix-python
 
-VERSION = $(shell cat package.yaml | grep version | sed -E 's/version: //')
 COMMIT = $(shell git rev-parse --short HEAD)
 
 BUILDER_IMAGE_NAME = ryukzak/wrench-builder
@@ -12,9 +11,6 @@ IMAGE_NAME = ryukzak/wrench
 
 EDGE_IMAGE = $(IMAGE_NAME):edge
 COMMIT_IMAGE = $(IMAGE_NAME):$(COMMIT)
-
-RELEASE_IMAGE = $(IMAGE_NAME):$(VERSION)
-LATEST_IMAGE = $(IMAGE_NAME):$(VERSION)
 
 HS_SRC_DIR = .
 
@@ -43,30 +39,12 @@ edge-image:
 		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 release-image:
-	@if [ "$(shell git symbolic-ref --short HEAD)" != "master" ]; then \
-		echo "Error: You must be on the master branch to release."; \
+	@if [ -z "$(NEW_VERSION)" ]; then \
+		echo "Error: NEW_VERSION is required. Usage: make release-image NEW_VERSION=X.Y.Z[.W]"; \
+		echo "Current version: $$(grep '^version:' package.yaml | sed -E 's/version: //')"; \
 		exit 1; \
 	fi
-	@if ! git diff-index --quiet HEAD --; then \
-		echo "Error: You have uncommitted changes. Please commit or stash them before releasing."; \
-		exit 1; \
-	fi
-	@if [ "$(shell git rev-list --count --left-only HEAD...@{u})" -gt 0 ]; then \
-		echo "Error: You have unpushed commits. Please push them before releasing."; \
-		exit 1; \
-	fi
-	git fetch
-	@if [ "$(shell git rev-list --count --left-only @{u}...HEAD)" -gt 0 ]; then \
-		echo "Error: You have unpulled commits. Please pull them before releasing."; \
-		exit 1; \
-	fi
-	@if docker pull $(IMAGE); then \
-		echo "Version already exists: $(IMAGE)"; \
-		exit 1; \
-	fi
-	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE_NAME) -t $(LATEST_IMAGE) --push .
-	git tag -a $(VERSION) -m "Release $(VERSION)"
-	git push origin $(VERSION)
+	script/release.sh $(NEW_VERSION)
 
 test:
 	stack build --fast --test --test-arguments "--rerun"
