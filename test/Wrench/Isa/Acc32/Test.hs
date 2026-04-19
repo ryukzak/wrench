@@ -43,11 +43,11 @@ mkState branchInstr accVal =
                 def
                 ( Mem
                     { memoryData =
-                        fromList $
-                            [(0, Instruction loadInstr)]
-                                <> [(i, InstructionPart) | i <- [1 .. 4]]
-                                <> [(5, Instruction branchInstr)]
-                                <> [(i, InstructionPart) | i <- [6 .. 9]]
+                        fromList
+                            $ [(0, Instruction loadInstr)]
+                            <> [(i, InstructionPart) | i <- [1 .. 4]]
+                            <> [(5, Instruction branchInstr)]
+                            <> [(i, InstructionPart) | i <- [6 .. 9]]
                     , memorySize = 10
                     }
                 )
