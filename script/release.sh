@@ -56,13 +56,13 @@ echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml
 rm -f package.yaml.bak
 
-docker buildx build --platform linux/amd64,linux/arm64 \
-    -t "$IMAGE_NAME" -t "$RELEASE_IMAGE" --push .
-
 git add package.yaml
 git commit -m "chore: release $NEW_VERSION"
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 git push origin master
 git push origin "$NEW_VERSION"
+
+docker buildx build --platform linux/amd64,linux/arm64 \
+    -t "$IMAGE_NAME" -t "$RELEASE_IMAGE" --push .
 
 echo "Release $NEW_VERSION completed successfully."
