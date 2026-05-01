@@ -56,7 +56,9 @@ echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml
 rm -f package.yaml.bak
 
-git add package.yaml
+make build
+
+git add package.yaml wrench.cabal
 git commit -m "chore: release $NEW_VERSION"
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 git push origin master
