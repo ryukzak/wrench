@@ -30,7 +30,7 @@ run-server: build generate-variants
 build-image-local:
 	docker build --build-arg VERSION_SUFFIX=DEV -t $(IMAGE_NAME) .
 
-builder-image:
+builder-image: gen-stack-deps
 	docker buildx build --platform linux/amd64,linux/arm64 --push \
 		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
 
@@ -100,7 +100,9 @@ update-golden: generate-variants
 	script/variants.py
 	stack test --fast --test --test-arguments="--accept --rerun"
 
-fix: lint-fix format update-golden test test-examples
+fix: lint-fix format update-golden test test-examples gen-stack-deps
+
+gen-stack-deps:
 	stack ls dependencies | grep -v wrench > .stack-deps.txt
 
 markdown-fix:
