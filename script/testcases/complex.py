@@ -572,6 +572,7 @@ def rle_compress(input):
     - "aaaaaaaaaa" -> "9a1a" (splits runs > 9)
 
     - Buffer size for the compressed message -- `0x40`, starts from `0x00`.
+    - Buffer size for the input message -- `0x40`, starts from `0x40`.
     - End of input -- new line.
 
     Python example args:
