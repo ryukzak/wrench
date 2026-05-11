@@ -1,10 +1,10 @@
 from testcases.core import (
+    TEST_CASES,
     TestCase,
     Word2Word,
     Words2Words,
     limit_to_int32,
     overflow_error_value,
-    TEST_CASES,
 )
 
 
@@ -197,6 +197,7 @@ is_prime_ref = is_prime
 TEST_CASES["is_prime"] = TestCase(
     simple=is_prime,
     cases=[
+        Word2Word(2, 1),
         Word2Word(5, 1),
         Word2Word(4, 0),
         Word2Word(7, 1),

@@ -1155,6 +1155,7 @@ def is_prime(n):
     return 1
 
 
+assert is_prime(2) == 1
 assert is_prime(5) == 1
 assert is_prime(4) == 0
 assert is_prime(7) == 1
