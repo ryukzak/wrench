@@ -138,6 +138,7 @@ lint-fix:
 lint:
 	hlint $(HS_SRC_DIR)
 	ruff check script
+	npx @biomejs/biome lint static/
 
 format-python:
 	ruff format script

@@ -96,7 +96,6 @@ export function removeComments(code, commentStarter) {
     // Check for string ending and quotes escape
     if (currentCharacter === insideString && code[currentPosition - 1] !== '\\') {
       insideString = false
-      continue
     }
   }
 
