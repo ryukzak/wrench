@@ -4,7 +4,13 @@
     "includes": ["static/**"]
   },
   "linter": {
-    "enabled": false
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noImportantStyles": "off"
+      }
+    }
   },
   "formatter": {
     "indentStyle": "space",
@@ -26,6 +32,9 @@
     }
   },
   "html": {
+    "parser": {
+      "interpolation": true
+    },
     "formatter": {
       "enabled": false
     }

@@ -127,6 +127,7 @@
       >
       <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
       <button
+        type="button"
         id="invert-theme-button"
         class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
       >
@@ -161,8 +162,7 @@
                 id="comment-text-element"
                 class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto"
               >
-{{comment}}</pre
-              >
+{{comment}}</pre>
             </div>
           </div>
 
@@ -171,12 +171,14 @@
               <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <div class="flex gap-2">
                 <button
+                  type="button"
                   id="hide-comments-button"
                   class="hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
                 >
                   [hide_comments]
                 </button>
                 <button
+                  type="button"
                   id="copy-assembler-code-button"
                   class="hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
                 >
@@ -221,6 +223,7 @@
             >
               <span class="text-[var(--c-grey)]">/* simulation_config */</span>
               <button
+                type="button"
                 id="copy-simulation-config-button"
                 class="hover:bg-[var(--c-white)] hover:opacity-80 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
               >
@@ -268,8 +271,7 @@
             id="status-text-element"
             class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto"
           >
-{{status}}</pre
-          >
+{{status}}</pre>
         </div>
 
         <div
@@ -311,8 +313,7 @@
           id="test-cases-status-element"
           class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto"
         >
-{{test_cases_status}}</pre
-        >
+{{test_cases_status}}</pre>
 
         <div
           id="accordion-collapse-test-cases-result"

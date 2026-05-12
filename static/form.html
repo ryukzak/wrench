@@ -58,6 +58,7 @@
         >
         <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
         <button
+          type="button"
           id="invert-theme-button"
           class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
         >
@@ -158,7 +159,7 @@
 
         <script>
           // Load saved name when page opens
-          window.addEventListener('DOMContentLoaded', function () {
+          window.addEventListener('DOMContentLoaded', () => {
             const savedName = window.localStorage.getItem('author-name')
             if (savedName) {
               document.getElementById('name').value = savedName

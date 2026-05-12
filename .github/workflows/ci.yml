@@ -21,8 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run Biome
+      - name: Run Biome format
         run: npx @biomejs/biome format static/
+
+      - name: Run Biome lint
+        run: npx @biomejs/biome lint static/
 
   markdown-formatting:
     timeout-minutes: 5
