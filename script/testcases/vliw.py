@@ -107,6 +107,62 @@ TEST_CASES["djb2_hash"] = TestCase(
 ###########################################################
 
 
+def palindrome_cstr(xs):
+    """Input: stream of chars forming c string style.
+
+    Need to check whether the input string is a palindrome
+    (reads the same forwards and backwards).
+
+    Returns: 1 if the string is a palindrome, 0 otherwise.
+    """
+    it = 0
+    chars = []
+    while ord(xs[it]) > 0:
+        chars.append(xs[it])
+        it += 1
+
+    left = 0
+    right = len(chars) - 1
+    while left < right:
+        if chars[left] != chars[right]:
+            return 0
+        left += 1
+        right -= 1
+    return 1
+
+
+TEST_CASES["palindrome_cstr"] = TestCase(
+    simple=palindrome_cstr,
+    cases=[
+        CharSequence2Word("\0", 1),
+        CharSequence2Word("a\0", 1),
+        CharSequence2Word("aba\0", 1),
+        CharSequence2Word("abba\0", 1),
+        CharSequence2Word("racecar\0", 1),
+        CharSequence2Word("abc\0", 0),
+        CharSequence2Word("hello\0", 0),
+    ],
+    reference=palindrome_cstr,
+    reference_cases=[
+        CharSequence2Word("ab\0", 0),
+        CharSequence2Word("aa\0", 1),
+        CharSequence2Word("abcba\0", 1),
+        CharSequence2Word("abcde\0", 0),
+        CharSequence2Word("level\0", 1),
+        CharSequence2Word("noon\0", 1),
+        CharSequence2Word("Aba\0", 0),
+        CharSequence2Word("12321\0", 1),
+        CharSequence2Word(" \0", 1),
+        CharSequence2Word("ab a\0", 0),
+    ],
+    is_variant=True,
+    category="VLIW",
+)
+
+
+###########################################################
+
+
 def determinant_3x3(*xs):
     """Input: 3x3 matrix in format a_10, a_20, a_30, a_11, ...
 

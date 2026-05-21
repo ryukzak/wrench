@@ -106,6 +106,7 @@ Variants:
     - [djb2_hash](#djb2_hash)
     - [fnv32_1_hash](#fnv32_1_hash)
     - [fnv32_1a_hash](#fnv32_1a_hash)
+    - [palindrome_cstr](#palindrome_cstr)
 - _Examples_
     - [dup](#dup)
     - [factorial](#factorial)
@@ -1642,6 +1643,42 @@ def fnv32_1a_hash(xs):
 assert fnv32_1a_hash('a\0') == 3826002220
 assert fnv32_1a_hash('abc\0') == 440920331
 assert fnv32_1a_hash('Computers are awesome!\0') == 4243580747
+```
+
+### `palindrome_cstr`
+
+```python
+def palindrome_cstr(xs):
+    """Input: stream of chars forming c string style.
+
+    Need to check whether the input string is a palindrome
+    (reads the same forwards and backwards).
+
+    Returns: 1 if the string is a palindrome, 0 otherwise.
+    """
+    it = 0
+    chars = []
+    while ord(xs[it]) > 0:
+        chars.append(xs[it])
+        it += 1
+
+    left = 0
+    right = len(chars) - 1
+    while left < right:
+        if chars[left] != chars[right]:
+            return 0
+        left += 1
+        right -= 1
+    return 1
+
+
+assert palindrome_cstr('\0') == 1
+assert palindrome_cstr('a\0') == 1
+assert palindrome_cstr('aba\0') == 1
+assert palindrome_cstr('abba\0') == 1
+assert palindrome_cstr('racecar\0') == 1
+assert palindrome_cstr('abc\0') == 0
+assert palindrome_cstr('hello\0') == 0
 ```
 
 ## _Examples_
