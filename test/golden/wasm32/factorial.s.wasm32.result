@@ -1,0 +1,50 @@
+0:	_start
+23:	factorial
+---
+mem[0..3]: 	Func {funcParams = [], funcLocals = ["$result"], funcResults = 0} 	@_start
+mem[4..8]: 	I32Const 132
+mem[9..13]: 	I32Const 128
+mem[14..14]: 	I32Load
+mem[15..19]: 	Call 23
+mem[20..20]: 	I32Store
+mem[21..21]: 	Halt
+mem[22..22]: 	EndFunc
+mem[23..26]: 	Func {funcParams = ["$n"], funcLocals = ["$acc"], funcResults = 1} 	@factorial
+mem[27..28]: 	LocalGet "$n"
+mem[29..33]: 	I32Const 0
+mem[34..34]: 	I32LtS
+mem[35..36]: 	If "$negative"
+mem[37..41]: 	I32Const (-1)
+mem[42..42]: 	Return
+mem[43..43]: 	End
+mem[44..45]: 	LocalGet "$n"
+mem[46..50]: 	I32Const 12
+mem[51..51]: 	I32GtS
+mem[52..53]: 	If "$overflow"
+mem[54..58]: 	I32Const (-858993460)
+mem[59..59]: 	Return
+mem[60..60]: 	End
+mem[61..65]: 	I32Const 1
+mem[66..67]: 	LocalSet "$acc"
+mem[68..69]: 	Block "$done"
+mem[70..71]: 	Loop "$loop"
+mem[72..73]: 	LocalGet "$n"
+mem[74..78]: 	I32Const 1
+mem[79..79]: 	I32LeS
+mem[80..81]: 	BrIf "$done"
+mem[82..83]: 	LocalGet "$acc"
+mem[84..85]: 	LocalGet "$n"
+mem[86..86]: 	I32Mul
+mem[87..88]: 	LocalSet "$acc"
+mem[89..90]: 	LocalGet "$n"
+mem[91..95]: 	I32Const 1
+mem[96..96]: 	I32Sub
+mem[97..98]: 	LocalSet "$n"
+mem[99..100]: 	Br "$loop"
+mem[101..101]: 	End
+mem[102..102]: 	End
+mem[103..104]: 	LocalGet "$acc"
+mem[105..105]: 	Return
+mem[106..106]: 	EndFunc
+mem[107..999]: 	( 00 )
+---

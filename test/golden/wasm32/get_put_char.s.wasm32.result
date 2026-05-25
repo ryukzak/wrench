@@ -1,0 +1,31 @@
+0:	_start
+23:	normalize_char
+---
+mem[0..3]: 	Func {funcParams = [], funcLocals = [], funcResults = 0} 	@_start
+mem[4..8]: 	I32Const 132
+mem[9..13]: 	I32Const 128
+mem[14..14]: 	I32Load
+mem[15..19]: 	Call 23
+mem[20..20]: 	I32Store
+mem[21..21]: 	Halt
+mem[22..22]: 	EndFunc
+mem[23..26]: 	Func {funcParams = ["$ch"], funcLocals = [], funcResults = 1} 	@normalize_char
+mem[27..28]: 	LocalGet "$ch"
+mem[29..33]: 	I32Const 88
+mem[34..34]: 	I32Eq
+mem[35..36]: 	If "$domain_error"
+mem[37..41]: 	I32Const (-1)
+mem[42..42]: 	Return
+mem[43..43]: 	End
+mem[44..45]: 	LocalGet "$ch"
+mem[46..50]: 	I32Const 89
+mem[51..51]: 	I32Eq
+mem[52..53]: 	If "$overflow_error"
+mem[54..58]: 	I32Const (-858993460)
+mem[59..59]: 	Return
+mem[60..60]: 	End
+mem[61..62]: 	LocalGet "$ch"
+mem[63..63]: 	Return
+mem[64..64]: 	EndFunc
+mem[65..999]: 	( 00 )
+---
