@@ -1,0 +1,4 @@
+---
+# Check results
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [5040]

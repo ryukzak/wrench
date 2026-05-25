@@ -29,7 +29,7 @@ options =
         <*> strOption
             ( long "isa"
                 <> metavar "ISA"
-                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k)"
+                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k, wasm32)"
             )
         <*> switch
             ( long "inplace"
@@ -118,6 +118,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
+            Just Wasm32 -> formatFile def content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -249,7 +250,9 @@ pprint
             inner (TextLine tokens) = case archStyle of
                 VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
                 StandardArch ->
-                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
