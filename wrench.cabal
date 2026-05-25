@@ -32,6 +32,7 @@ library
       Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
+      Wrench.Isa.Wasm32
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types
@@ -106,6 +107,7 @@ executable wrench
       Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
+      Wrench.Isa.Wasm32
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types
@@ -318,6 +320,7 @@ test-suite wrench-test
       Wrench.Isa.RiscIv.Test
       Wrench.Isa.Test
       Wrench.Isa.VliwIv.Test
+      Wrench.Isa.Wasm32.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test

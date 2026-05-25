@@ -31,7 +31,7 @@ options =
                 ( long "isa"
                     <> metavar "ISA"
                     <> help
-                        "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k); detected from the source if omitted"
+                        "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k, wasm32); detected from the source if omitted"
                 )
             )
         <*> switch
@@ -267,7 +267,9 @@ pprint
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
                 StandardLayout ->
-                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
