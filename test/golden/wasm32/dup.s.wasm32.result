@@ -1,0 +1,20 @@
+0:	_start
+17:	write_twice
+---
+mem[0..3]: 	Func {funcParams = [], funcLocals = [], funcResults = 0} 	@_start
+mem[4..8]: 	I32Const 128
+mem[9..9]: 	I32Load
+mem[10..14]: 	Call 17
+mem[15..15]: 	Halt
+mem[16..16]: 	EndFunc
+mem[17..20]: 	Func {funcParams = ["$value"], funcLocals = [], funcResults = 0} 	@write_twice
+mem[21..25]: 	I32Const 132
+mem[26..27]: 	LocalGet "$value"
+mem[28..28]: 	I32Store
+mem[29..33]: 	I32Const 132
+mem[34..35]: 	LocalGet "$value"
+mem[36..36]: 	I32Store
+mem[37..37]: 	Return
+mem[38..38]: 	EndFunc
+mem[39..999]: 	( 00 )
+---

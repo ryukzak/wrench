@@ -1,0 +1,32 @@
+0:	buf
+14:	buf_end
+17:	_start
+---
+mem[0..13]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
+mem[14..16]: 	00 00 00	@"buf_end"
+mem[17..20]: 	Func {funcParams = [], funcLocals = ["$ptr","$end"], funcResults = 0} 	@_start
+mem[21..25]: 	I32Const 0
+mem[26..27]: 	LocalSet "$ptr"
+mem[28..32]: 	I32Const 14
+mem[33..34]: 	LocalSet "$end"
+mem[35..36]: 	Block "$done"
+mem[37..38]: 	Loop "$loop"
+mem[39..40]: 	LocalGet "$ptr"
+mem[41..42]: 	LocalGet "$end"
+mem[43..43]: 	I32GeU
+mem[44..45]: 	BrIf "$done"
+mem[46..50]: 	I32Const 132
+mem[51..52]: 	LocalGet "$ptr"
+mem[53..53]: 	I32Load8U
+mem[54..54]: 	I32Store8
+mem[55..56]: 	LocalGet "$ptr"
+mem[57..61]: 	I32Const 1
+mem[62..62]: 	I32Add
+mem[63..64]: 	LocalSet "$ptr"
+mem[65..66]: 	Br "$loop"
+mem[67..67]: 	End
+mem[68..68]: 	End
+mem[69..69]: 	Halt
+mem[70..70]: 	EndFunc
+mem[71..999]: 	( 00 )
+---
