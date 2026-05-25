@@ -1,0 +1,18 @@
+0:	_start
+23:	logical_not
+---
+mem[0..3]: 	Func {funcParams = [], funcLocals = [], funcResults = 0} 	@_start
+mem[4..8]: 	I32Const 132
+mem[9..13]: 	I32Const 128
+mem[14..14]: 	I32Load
+mem[15..19]: 	Call 23
+mem[20..20]: 	I32Store
+mem[21..21]: 	Halt
+mem[22..22]: 	EndFunc
+mem[23..26]: 	Func {funcParams = ["$value"], funcLocals = [], funcResults = 1} 	@logical_not
+mem[27..28]: 	LocalGet "$value"
+mem[29..29]: 	I32Eqz
+mem[30..30]: 	Return
+mem[31..31]: 	EndFunc
+mem[32..999]: 	( 00 )
+---
