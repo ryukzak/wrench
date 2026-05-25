@@ -328,3 +328,12 @@ dstack:  rstack:
 # Result
 numio[0x80]: [] >>> [6,3]
 numio[0x84]: [] >>> []
+---
+# stats
+instructions: 81
+sections: 59 bytes
+code/data: 59 bytes (0..58)
+dstack depth: 3 (12 bytes)
+rstack depth: 1 (4 bytes)
+effective memory: 75 / 256 bytes
+

@@ -26,6 +26,7 @@ import Wrench.Machine.Types (
     InitState (..),
     IoMem (..),
     Machine (..),
+    StackInfo (..),
     StateInterspector (..),
     fromSign,
     halted,
@@ -441,6 +442,10 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
+    stackInfo State{regs} =
+        case regs !? Sp of
+            Just s | s /= def -> SpStack{sp = s, spInitialised = True}
+            _ -> SpStack{sp = def, spInitialised = False}
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{regs} v =

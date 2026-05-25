@@ -4,3 +4,12 @@ numio[0x80]: [90] >>> []
 numio[0x84]: [] >>> [-1]
 symio[0x80]: "Z" >>> ""
 symio[0x84]: "" >>> "?"
+---
+# stats
+instructions: 17
+sections: 78 bytes
+code/data: 78 bytes (0..77)
+dstack depth: 4 (16 bytes)
+rstack depth: 1 (4 bytes)
+effective memory: 98 / 4096 bytes
+

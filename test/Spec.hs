@@ -242,7 +242,8 @@ generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
     where
         testCases =
-            [ goldenSimulate
+            [ goldenSimulateTagged
+                (if sname == vname then Nothing else Just sname)
                 isa
                 ("test/golden/" <> isaPath isa <> "/" <> sname <> ".s")
                 ("test/golden/generated/" <> vname <> "/" <> show i <> ".yaml")
@@ -290,29 +291,33 @@ goldenTranslate' isa fn =
     goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 1000 fn src of
-            Right (TranslatorResult dump labels) ->
+            Right (TranslatorResult dump labels _stats) ->
                 return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 
 goldenSimulate :: Isa -> FilePath -> FilePath -> TestTree
-goldenSimulate = goldenSimulate' False
+goldenSimulate = goldenSimulate' Nothing False
 
 goldenSimulateFail :: Isa -> FilePath -> FilePath -> TestTree
-goldenSimulateFail = goldenSimulate' True
+goldenSimulateFail = goldenSimulate' Nothing True
 
-goldenSimulate' :: Bool -> Isa -> FilePath -> FilePath -> TestTree
-goldenSimulate' shouldFail isa =
+goldenSimulateTagged :: Maybe String -> Isa -> FilePath -> FilePath -> TestTree
+goldenSimulateTagged tag = goldenSimulate' tag False
+
+goldenSimulate' :: Maybe String -> Bool -> Isa -> FilePath -> FilePath -> TestTree
+goldenSimulate' goldenTag shouldFail isa =
     case isa of
-        RiscIv -> goldenSimulateInner (wrench @(RiscIvState Int32)) ".risc-iv-32.result" shouldFail
-        F32a -> goldenSimulateInner (wrench @(F32aState Int32)) ".f32a.result" shouldFail
-        Acc32 -> goldenSimulateInner (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
-        M68k -> goldenSimulateInner (wrench @(M68kState Int32)) ".m68k.result" shouldFail
-        VliwIv -> goldenSimulateInner (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
+        RiscIv -> goldenSimulateInner goldenTag (wrench @(RiscIvState Int32)) ".risc-iv-32.result" shouldFail
+        F32a -> goldenSimulateInner goldenTag (wrench @(F32aState Int32)) ".f32a.result" shouldFail
+        Acc32 -> goldenSimulateInner goldenTag (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
+        M68k -> goldenSimulateInner goldenTag (wrench @(M68kState Int32)) ".m68k.result" shouldFail
+        VliwIv -> goldenSimulateInner goldenTag (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
     where
-        goldenSimulateInner wrench' ext shouldFail' fn confFn =
-            let testName = "Test case: " <> fn2name confFn
-                goldenPath = dropExtension confFn <> ext
+        goldenSimulateInner tag wrench' ext shouldFail' fn confFn =
+            let tagSuffix = maybe "" ("." <>) tag
+                testName = "Test case: " <> fn2name confFn
+                goldenPath = dropExtension confFn <> tagSuffix <> ext
                 action = do
                     src <- decodeUtf8 <$> readFileBS fn
                     conf <- either (error . toText) id <$> readConfig confFn

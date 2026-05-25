@@ -18,3 +18,11 @@ A0 1 A1 -1
 88:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = A1, bleuRs2 = Zero, bleuK = -33}}	
 A0 1 A1 -1
 99:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+---
+# stats
+instructions: 9
+sections: 110 bytes
+code/data: 110 bytes (0..109)
+stack: 0 bytes (uninitialised)
+effective memory: 110 / 4096 bytes
+

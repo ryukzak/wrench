@@ -4,3 +4,11 @@ numio[0x80]: [90] >>> []
 numio[0x84]: [] >>> [-858993460]
 symio[0x80]: "Z" >>> ""
 symio[0x84]: "" >>> "?"
+---
+# stats
+instructions: 15
+sections: 88 bytes
+code/data: 88 bytes (0..87)
+stack: 0 bytes (uninitialised)
+effective memory: 88 / 4096 bytes
+

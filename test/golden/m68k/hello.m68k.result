@@ -4,3 +4,11 @@ numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [72,101,108,108,111,10,0,87,111,114,108,100]
 symio[0x80]: "" >>> ""
 symio[0x84]: "" >>> "Hello\n\0World"
+---
+# stats
+instructions: 77
+sections: 69 bytes
+code/data: 308 bytes (0..307)
+stack: 0 bytes (uninitialised)
+effective memory: 308 / 4096 bytes
+

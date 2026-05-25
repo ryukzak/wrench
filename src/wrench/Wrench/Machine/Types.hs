@@ -7,6 +7,7 @@ module Wrench.Machine.Types (
     Cell (..),
     InitState (..),
     StateInterspector (..),
+    StackInfo (..),
     MachineWord,
     FromSign (..),
     RegisterId,
@@ -153,12 +154,26 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
+-- | Per-state snapshot of stack architecture used for runtime stats accounting.
+data StackInfo w
+    = -- | Architecture has no stack (e.g. accumulator-only ISAs).
+      NoStack
+    | -- | Stack pointer lives in a register / RAM. 'spInitialised' is True once
+      --   the program has written a value to SP at least once; while False the
+      --   value is ignored by stats accumulation.
+      SpStack {sp :: w, spInitialised :: Bool}
+    | -- | Host-side list stacks (e.g. f32a's data / return stacks).
+      ListStack {dDepth :: !Int, rDepth :: !Int}
+    deriving (Show)
+
 class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
     ioStreams :: st -> IntMap ([w], [w])
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
+    stackInfo :: st -> StackInfo w
+    stackInfo _ = NoStack
 
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))

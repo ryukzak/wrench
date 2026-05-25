@@ -19,3 +19,12 @@
 52: Add  carry: 1 eam: 1 stack: 0x00000000:0x00000002
 53: Drop  carry: 0 eam: 1 stack: 0x00000003
 54: Halt  carry: 0 eam: 1 stack:
+---
+# stats
+instructions: 19
+sections: 55 bytes
+code/data: 55 bytes (0..54)
+dstack depth: 3 (12 bytes)
+rstack depth: 0 (0 bytes)
+effective memory: 67 / 576 bytes
+

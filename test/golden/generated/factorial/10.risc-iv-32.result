@@ -2,3 +2,11 @@
 # Check results
 numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [-1]
+---
+# stats
+instructions: 12
+sections: 128 bytes
+code/data: 128 bytes (0..127)
+stack: 0 bytes (uninitialised)
+effective memory: 128 / 4096 bytes
+

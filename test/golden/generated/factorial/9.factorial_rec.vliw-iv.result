@@ -1,0 +1,12 @@
+---
+# Check results
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [-858993460]
+---
+# stats
+instructions: 242
+sections: 426 bytes
+code/data: 674 bytes (0..673)
+stack: 104 bytes (1194..1297)
+effective memory: 778 / 4096 bytes
+

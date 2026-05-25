@@ -157,7 +157,7 @@ wrench ::
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed} src = do
-    trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
+    trResult@TranslatorResult{dump, labels, dumpStats} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
@@ -165,15 +165,17 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 
-    traceLog <- powerOn cLimit maxStateLogLimit labels st
+    (traceLog, runtimeStats) <- powerOn cLimit maxStateLogLimit labels st
 
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
         reportTexts = map snd reports
+        statsText = formatStats cMemorySize dumpStats runtimeStats
+        allSections = map (T.strip . ("---\n" <>)) reportTexts <> ["---\n" <> statsText]
 
     return
         $ Result
-            { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
+            { rTrace = unlines allSections
             , rLabels = labels
             , rSuccess = isSuccess
             , rDump = dumpCells dump
@@ -191,3 +193,45 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         randomInts range gen =
             let (val, gen') = uniformR range gen
              in val : randomInts range gen'
+
+formatStats :: forall w. (MachineWord w) => Int -> DumpStats -> RuntimeStats w -> Text
+formatStats memorySize DumpStats{dsSectionsTotalBytes, dsCodeDataExtent} RuntimeStats{rsInstructions, rsStack} =
+    let wordBytes = byteSizeT @w
+        codeDataLine :: Text
+        codeDataLine =
+            if dsCodeDataExtent == 0
+                then "code/data: 0 bytes"
+                else "code/data: " <> show dsCodeDataExtent <> " bytes (0.." <> show (dsCodeDataExtent - 1) <> ")"
+        stackLines :: [Text]
+        stackLines = case rsStack of
+            StackStatsNone -> []
+            StackStatsSp{ssTopSp = Nothing} -> ["stack: 0 bytes (uninitialised)"]
+            StackStatsSp{ssMinSp = Nothing} -> ["stack: 0 bytes (no push observed)"]
+            StackStatsSp{ssTopSp = Just hi, ssMinSp = Just lo} ->
+                let bytes = fromEnum hi - fromEnum lo
+                    rangeNote :: Text
+                    rangeNote =
+                        if bytes == 0
+                            then ""
+                            else " (" <> show (fromEnum lo) <> ".." <> show (fromEnum hi - 1) <> ")"
+                 in ["stack: " <> show bytes <> " bytes" <> rangeNote]
+            StackStatsList{ssMaxDDepth, ssMaxRDepth} ->
+                [ "dstack depth: " <> show ssMaxDDepth <> " (" <> show (ssMaxDDepth * wordBytes) <> " bytes)"
+                , "rstack depth: " <> show ssMaxRDepth <> " (" <> show (ssMaxRDepth * wordBytes) <> " bytes)"
+                ]
+        topBytes = case rsStack of
+            StackStatsNone -> 0
+            StackStatsSp{ssTopSp = Just hi, ssMinSp = Just lo} -> fromEnum hi - fromEnum lo
+            StackStatsSp{} -> 0
+            StackStatsList{ssMaxDDepth, ssMaxRDepth} -> (ssMaxDDepth + ssMaxRDepth) * wordBytes
+        effective = dsCodeDataExtent + topBytes
+        coreLines :: [Text]
+        coreLines =
+            [ "# stats"
+            , "instructions: " <> show rsInstructions
+            , "sections: " <> show dsSectionsTotalBytes <> " bytes"
+            , codeDataLine
+            ]
+                <> stackLines
+                <> ["effective memory: " <> show effective <> " / " <> show memorySize <> " bytes"]
+     in unlines coreLines

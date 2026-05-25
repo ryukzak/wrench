@@ -1442,3 +1442,12 @@ T A S 0x00000000 0x00000084 0x00000000 R 0
 # Result
 numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [24]
+---
+# stats
+instructions: 719
+sections: 348 bytes
+code/data: 348 bytes (0..347)
+dstack depth: 5 (20 bytes)
+rstack depth: 3 (12 bytes)
+effective memory: 380 / 576 bytes
+

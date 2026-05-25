@@ -1,3 +1,11 @@
 ---
 # Check results
 ERROR: memory access error: iomemory[128]: input is depleted
+---
+# stats
+instructions: 7
+sections: 228 bytes
+code/data: 476 bytes (0..475)
+stack: 0 bytes (uninitialised)
+effective memory: 476 / 4096 bytes
+

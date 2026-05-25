@@ -9,6 +9,7 @@ module Wrench.Machine.Memory (
     word32ToHex,
     prepareDump,
     prettyDump,
+    DumpStats (..),
 ) where
 
 import Data.Bits (FiniteBits, finiteBitSize)
@@ -20,7 +21,17 @@ import Relude.Unsafe qualified as Unsafe
 import Wrench.Machine.Types
 import Wrench.Translator.Types
 
-prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> Mem isa w
+-- | Translation-time memory layout statistics.
+data DumpStats = DumpStats
+    { dsSectionsTotalBytes :: !Int
+    -- ^ Sum of byte sizes of all sections (no gaps from .org).
+    , dsCodeDataExtent :: !Int
+    -- ^ Address right after the last byte holding section content
+    --   (i.e. the position of the first placeholder cell counted from 0).
+    }
+    deriving (Eq, Show)
+
+prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> (Mem isa w, DumpStats)
 prepareDump memorySize sections =
     let addSection cells offset dump =
             let dump' = zip [offset ..] cells
@@ -55,14 +66,19 @@ prepareDump memorySize sections =
                     sections
         dumpSize = maximum1 $ 0 :| keys fromSections
         placeholder = map (,Value 0) [0 .. memorySize - 1]
+        sectionsTotalBytes = sum (map byteSize sections)
+        codeDataExtent = if null fromSections then 0 else dumpSize + 1
+        dumpStats = DumpStats{dsSectionsTotalBytes = sectionsTotalBytes, dsCodeDataExtent = codeDataExtent}
      in if dumpSize > memorySize
             then
                 error $ "error: can not fit translation results in memory, need: " <> show dumpSize <> " available: " <> show memorySize
             else
-                Mem
+                ( Mem
                     { memorySize
                     , memoryData = fromList (placeholder <> fromSections)
                     }
+                , dumpStats
+                )
 
 isValue Value{} = True
 isValue _ = False

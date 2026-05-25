@@ -4,3 +4,12 @@ numio[0x80]: [66,67,68] >>> []
 numio[0x84]: [] >>> [65]
 symio[0x80]: "BCD" >>> ""
 symio[0x84]: "" >>> "A"
+---
+# stats
+instructions: 25
+sections: 78 bytes
+code/data: 78 bytes (0..77)
+dstack depth: 4 (16 bytes)
+rstack depth: 1 (4 bytes)
+effective memory: 98 / 4096 bytes
+

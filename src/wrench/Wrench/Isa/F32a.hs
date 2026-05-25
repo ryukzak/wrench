@@ -344,6 +344,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{p} = p
     memoryDump State{ram} = ram
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
+    stackInfo State{dataStack, returnStack} =
+        ListStack{dDepth = length dataStack, rDepth = length returnStack}
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =

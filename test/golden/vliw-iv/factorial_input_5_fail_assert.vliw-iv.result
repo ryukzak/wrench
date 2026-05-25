@@ -91,3 +91,11 @@ numio[0x84]: [] >>> [120]
 ASSERTION FAIL, expect:
 numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [100]
+---
+# stats
+instructions: 42
+sections: 338 bytes
+code/data: 474 bytes (0..473)
+stack: 0 bytes (uninitialised)
+effective memory: 474 / 4096 bytes
+
