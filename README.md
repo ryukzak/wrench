@@ -36,6 +36,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
     - [M68k](./docs/m68k.md) -- Motorola 68000-inspired architecture
     - [RISC-IV](./docs/risc-iv.md) -- RISC-V-inspired 32-bit architecture
     - [VLIW-IV](./docs/vliw-iv.md) -- RISC-V-inspired VLIW 32-bit architecture
+    - [Wasm32](./docs/wasm32.md) -- WebAssembly-inspired 32-bit stack-based architecture
 
 ## How to Run
 
@@ -84,7 +85,7 @@ Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [-v|--verbose]
 
 Available options:
   INPUT                    Input assembler file (.s)
-  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)
+  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv, wasm32)
   -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   -v,--verbose             Verbose output

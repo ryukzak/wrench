@@ -69,6 +69,7 @@ Additional requirements for all variants:
     - `F32a`: use procedures.
     - `RISC-IV`: use nested procedures and stack. Where applicable -- recursive solutions are recommended.
     - `M68k`: use different instruction modes and addressing modes. Use nested procedures and stack.
+    - `Wasm32`: use functions, locals, and structured control flow (`block`, `loop`, `if`, `br`, `br_if`).
 1. When using procedures, develop a label naming convention that helps visualize code structure.
 
 Also we have the following helper functions not from builtins:

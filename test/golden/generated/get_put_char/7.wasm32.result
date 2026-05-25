@@ -1,0 +1,6 @@
+---
+# Check results
+numio[0x80]: [10] >>> []
+numio[0x84]: [] >>> [0]
+symio[0x80]: "\n" >>> ""
+symio[0x84]: "" >>> "\0"
