@@ -4,10 +4,9 @@ numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [-858993460]
 ---
 # stats
-instructions: 1932
 sections: 348 bytes
 code/data: 348 bytes (0..347)
+instructions: 1932
 dstack depth: 5 (20 bytes)
 rstack depth: 3 (12 bytes)
-effective memory: 380 / 4096 bytes
 

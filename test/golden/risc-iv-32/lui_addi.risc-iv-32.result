@@ -13,9 +13,8 @@ mem[4..7]: 	Addi {rd = T1, rs1 = T1, k = 1656}
 "" >>> ""
 ---
 # stats
-instructions: 5
 sections: 20 bytes
 code/data: 20 bytes (0..19)
+instructions: 5
 stack: 0 bytes (uninitialised)
-effective memory: 20 / 144 bytes
 

@@ -4,9 +4,8 @@ numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [120]
 ---
 # stats
-instructions: 56
 sections: 110 bytes
 code/data: 110 bytes (0..109)
+instructions: 56
 stack: 60 bytes (452..511)
-effective memory: 170 / 4096 bytes
 

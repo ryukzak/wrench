@@ -16,9 +16,8 @@
 "" >>> ""
 ---
 # stats
-instructions: 5
 sections: 55 bytes
 code/data: 55 bytes (0..54)
+instructions: 5
 stack: 0 bytes (uninitialised)
-effective memory: 55 / 144 bytes
 

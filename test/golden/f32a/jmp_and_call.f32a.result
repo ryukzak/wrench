@@ -12,10 +12,9 @@
 T A B S 50 0 0x00000000 0
 ---
 # stats
-instructions: 7
 sections: 23 bytes
 code/data: 23 bytes (0..22)
+instructions: 7
 dstack depth: 2 (8 bytes)
 rstack depth: 1 (4 bytes)
-effective memory: 35 / 4096 bytes
 

@@ -25,11 +25,14 @@ import Wrench.Machine.Types (
     InitState (..),
     IoMem (..),
     Machine (..),
-    StackInfo (..),
+    SpStatsAcc,
     StateInterspector (..),
+    emptySpStatsAcc,
     fromSign,
     halted,
     lShiftR,
+    recordSp,
+    renderSpStats,
     signBitAnd,
  )
 import Wrench.Report
@@ -372,6 +375,7 @@ data MachineState mem w = State
     , stopped :: Bool
     , internalError :: Maybe Text
     , randoms :: [Int]
+    , spStats :: SpStatsAcc w
     }
     deriving (Show)
 
@@ -447,16 +451,16 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , stopped = False
             , internalError = Nothing
             , randoms = randomStream
+            , spStats = emptySpStatsAcc
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    stackInfo State{regs} =
-        case regs !? Sp of
-            Just s | s /= def -> SpStack{sp = s, spInitialised = True}
-            _ -> SpStack{sp = def, spInitialised = False}
+    recordStats st@State{regs, spStats} =
+        st{spStats = recordSp (mfilter (/= def) (regs !? Sp)) spStats}
+    machineStats State{spStats} = renderSpStats spStats
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{regs} v =

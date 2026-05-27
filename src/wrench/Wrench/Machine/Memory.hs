@@ -10,6 +10,7 @@ module Wrench.Machine.Memory (
     prepareDump,
     prettyDump,
     DumpStats (..),
+    dumpStatsEntries,
 ) where
 
 import Data.Bits (FiniteBits, finiteBitSize)
@@ -30,6 +31,18 @@ data DumpStats = DumpStats
     --   (i.e. the position of the first placeholder cell counted from 0).
     }
     deriving (Eq, Show)
+
+-- | Render translation-time layout stats as key/value pairs.
+dumpStatsEntries :: DumpStats -> [(Text, Text)]
+dumpStatsEntries DumpStats{dsSectionsTotalBytes, dsCodeDataExtent} =
+    [ ("sections", show dsSectionsTotalBytes <> " bytes")
+    ,
+        ( "code/data"
+        , if dsCodeDataExtent == 0
+            then "0 bytes"
+            else show dsCodeDataExtent <> " bytes (0.." <> show (dsCodeDataExtent - 1) <> ")"
+        )
+    ]
 
 prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> (Mem isa w, DumpStats)
 prepareDump memorySize sections =

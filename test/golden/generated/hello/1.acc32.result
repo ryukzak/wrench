@@ -7,8 +7,7 @@ symio[0x84]: "" >>> "?Hello\n\0World!"
 mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
 ---
 # stats
-instructions: 174
 sections: 104 bytes
 code/data: 104 bytes (0..103)
-effective memory: 104 / 4096 bytes
+instructions: 174
 

@@ -20,9 +20,8 @@ A0 1 A1 -1
 36:	Halt
 ---
 # stats
-instructions: 9
 sections: 40 bytes
 code/data: 40 bytes (0..39)
+instructions: 9
 stack: 0 bytes (uninitialised)
-effective memory: 40 / 4096 bytes
 

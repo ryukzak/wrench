@@ -21,10 +21,9 @@
 54: Halt  carry: 0 eam: 1 stack:
 ---
 # stats
-instructions: 19
 sections: 55 bytes
 code/data: 55 bytes (0..54)
+instructions: 19
 dstack depth: 3 (12 bytes)
 rstack depth: 0 (0 bytes)
-effective memory: 67 / 576 bytes
 

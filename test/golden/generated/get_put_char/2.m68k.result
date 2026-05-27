@@ -6,9 +6,8 @@ symio[0x80]: "" >>> ""
 symio[0x84]: "" >>> "B"
 ---
 # stats
-instructions: 13
 sections: 98 bytes
 code/data: 98 bytes (0..97)
+instructions: 13
 stack: 0 bytes (no push observed)
-effective memory: 98 / 4096 bytes
 

@@ -16,8 +16,7 @@ symio[0x84]: "" >>> "??o"
 mem[0..11]: 	cc cc cc cc ff ff ff ff 6f 00 00 00
 ---
 # stats
-instructions: 7
 sections: 47 bytes
 code/data: 47 bytes (0..46)
-effective memory: 47 / 4096 bytes
+instructions: 7
 

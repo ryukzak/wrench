@@ -373,6 +373,7 @@ data MachineState mem w = State
     , stopped :: Bool
     , internalError :: Maybe Text
     , nFlag, zFlag, vFlag, cFlag :: Bool
+    , spStats :: SpStatsAcc w
     }
     deriving (Show)
 
@@ -404,16 +405,16 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , zFlag = True
             , vFlag = False
             , cFlag = False
+            , spStats = emptySpStatsAcc
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    stackInfo State{addrRegs} =
-        case addrRegs !? A7 of
-            Just s | s /= def -> SpStack{sp = s, spInitialised = True}
-            _ -> SpStack{sp = def, spInitialised = False}
+    recordStats st@State{addrRegs, spStats} =
+        st{spStats = recordSp (mfilter (/= def) (addrRegs !? A7)) spStats}
+    machineStats State{spStats} = renderSpStats spStats
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =

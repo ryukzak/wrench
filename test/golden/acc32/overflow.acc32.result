@@ -14,8 +14,7 @@
 47:	Halt	 Acc: 0 Overflow: 0 Carry: 0
 ---
 # stats
-instructions: 12
 sections: 48 bytes
 code/data: 48 bytes (0..47)
-effective memory: 48 / 4096 bytes
+instructions: 12
 

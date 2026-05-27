@@ -7,7 +7,15 @@ module Wrench.Machine.Types (
     Cell (..),
     InitState (..),
     StateInterspector (..),
-    StackInfo (..),
+    StatEntry,
+    SpStatsAcc,
+    emptySpStatsAcc,
+    recordSp,
+    renderSpStats,
+    DepthStatsAcc,
+    emptyDepthStatsAcc,
+    recordDepth,
+    renderDepthStats,
     MachineWord,
     FromSign (..),
     RegisterId,
@@ -154,17 +162,8 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
--- | Per-state snapshot of stack architecture used for runtime stats accounting.
-data StackInfo w
-    = -- | Architecture has no stack (e.g. accumulator-only ISAs).
-      NoStack
-    | -- | Stack pointer lives in a register / RAM. 'spInitialised' is True once
-      --   the program has written a value to SP at least once; while False the
-      --   value is ignored by stats accumulation.
-      SpStack {sp :: w, spInitialised :: Bool}
-    | -- | Host-side list stacks (e.g. f32a's data / return stacks).
-      ListStack {dDepth :: !Int, rDepth :: !Int}
-    deriving (Show)
+-- | A single statistic as a key/value text pair, e.g. @("stack", "32 bytes (566..597)")@.
+type StatEntry = (Text, Text)
 
 class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
@@ -172,8 +171,87 @@ class StateInterspector st m isa w | st -> m isa w where
     ioStreams :: st -> IntMap ([w], [w])
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
-    stackInfo :: st -> StackInfo w
-    stackInfo _ = NoStack
+
+    -- | Update the state's own statistics accumulators. Called by the simulator
+    --   once per executed instruction (after the step). ISAs that track runtime
+    --   stats store the accumulators inside their own state and override this.
+    recordStats :: st -> st
+    recordStats = id
+
+    -- | Extract the accumulated ISA-specific stats as key/value pairs.
+    machineStats :: st -> [StatEntry]
+    machineStats _ = []
+
+-----------------------------------------------------------
+-- Shared stat accumulators
+--
+-- These helpers let each ISA keep a small accumulator inside its own state and
+-- render it to 'StatEntry' pairs, without the generic simulator needing to know
+-- anything about stack architecture.
+
+-- | Stack-pointer usage tracker with a "settled top" heuristic: the top is the
+-- SP value observed just before the first decrease. This skips the multi-step
+-- initialisation sequence (e.g. RiscIv's @lui sp, 0 ; addi sp, sp, _@ or M68k's
+-- @movea.l label, A7 ; movea.l (A7), A7@) whose intermediate SP values are
+-- transient address-of-label rather than the true stack top.
+data SpStatsAcc w = SpStatsAcc
+    { spsaLast :: !(Maybe w)
+    -- ^ last observed SP value (for trend detection)
+    , spsaTop :: !(Maybe w)
+    -- ^ "settled" top — the value just before the first decrease
+    , spsaMin :: !(Maybe w)
+    -- ^ minimum SP observed after the first decrease
+    }
+    deriving (Eq, Show)
+
+emptySpStatsAcc :: SpStatsAcc w
+emptySpStatsAcc = SpStatsAcc{spsaLast = Nothing, spsaTop = Nothing, spsaMin = Nothing}
+
+-- | Record an SP observation. Pass 'Nothing' while SP is not yet meaningfully
+-- set (e.g. before the program writes it) so it is ignored.
+recordSp :: (Ord w) => Maybe w -> SpStatsAcc w -> SpStatsAcc w
+recordSp Nothing acc = acc
+recordSp (Just sp) acc@SpStatsAcc{spsaLast, spsaMin} =
+    case (spsaLast, spsaMin) of
+        (Nothing, _) -> SpStatsAcc{spsaLast = Just sp, spsaTop = Just sp, spsaMin = Nothing}
+        (Just prev, Nothing)
+            | sp < prev -> SpStatsAcc{spsaLast = Just sp, spsaTop = Just prev, spsaMin = Just sp}
+            | otherwise -> SpStatsAcc{spsaLast = Just sp, spsaTop = Just sp, spsaMin = Nothing}
+        (Just _, Just lo) -> acc{spsaLast = Just sp, spsaMin = Just (min lo sp)}
+
+renderSpStats :: (MachineWord w) => SpStatsAcc w -> [StatEntry]
+renderSpStats SpStatsAcc{spsaTop, spsaMin} =
+    case (spsaTop, spsaMin) of
+        (Nothing, _) -> [("stack", "0 bytes (uninitialised)")]
+        (Just _, Nothing) -> [("stack", "0 bytes (no push observed)")]
+        (Just hi, Just lo) ->
+            let bytes = fromEnum hi - fromEnum lo
+                rangeNote :: Text
+                rangeNote =
+                    if bytes == 0
+                        then ""
+                        else " (" <> show (fromEnum lo) <> ".." <> show (fromEnum hi - 1) <> ")"
+             in [("stack", show bytes <> " bytes" <> rangeNote)]
+
+-- | Depth tracker for host-side list stacks (e.g. f32a's data / return stacks).
+data DepthStatsAcc = DepthStatsAcc
+    { dsaMaxDepth :: !Int
+    , dsaMaxReturn :: !Int
+    }
+    deriving (Eq, Show)
+
+emptyDepthStatsAcc :: DepthStatsAcc
+emptyDepthStatsAcc = DepthStatsAcc{dsaMaxDepth = 0, dsaMaxReturn = 0}
+
+recordDepth :: Int -> Int -> DepthStatsAcc -> DepthStatsAcc
+recordDepth d r DepthStatsAcc{dsaMaxDepth, dsaMaxReturn} =
+    DepthStatsAcc{dsaMaxDepth = max dsaMaxDepth d, dsaMaxReturn = max dsaMaxReturn r}
+
+renderDepthStats :: Int -> DepthStatsAcc -> [StatEntry]
+renderDepthStats wordBytes DepthStatsAcc{dsaMaxDepth, dsaMaxReturn} =
+    [ ("dstack depth", show dsaMaxDepth <> " (" <> show (dsaMaxDepth * wordBytes) <> " bytes)")
+    , ("rstack depth", show dsaMaxReturn <> " (" <> show (dsaMaxReturn * wordBytes) <> " bytes)")
+    ]
 
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))

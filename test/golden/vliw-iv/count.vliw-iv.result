@@ -53,9 +53,8 @@ mem[4..7]: 	02 00 00 00
 "" >>> "????\n??????"
 ---
 # stats
-instructions: 45
 sections: 192 bytes
 code/data: 432 bytes (0..431)
+instructions: 45
 stack: 0 bytes (uninitialised)
-effective memory: 432 / 512 bytes
 

@@ -6,9 +6,8 @@ symio[0x80]: "BCD" >>> ""
 symio[0x84]: "" >>> "A"
 ---
 # stats
-instructions: 13
 sections: 228 bytes
 code/data: 476 bytes (0..475)
+instructions: 13
 stack: 0 bytes (uninitialised)
-effective memory: 476 / 4096 bytes
 

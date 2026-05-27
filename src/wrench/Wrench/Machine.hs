@@ -1,70 +1,12 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
-module Wrench.Machine (
-    powerOn,
-    RuntimeStats (..),
-    StackStats (..),
-) where
+module Wrench.Machine (powerOn) where
 
 import Relude
 import Relude.Extra
 import Wrench.Machine.Types
 
--- | Stats accumulated while simulating, classified by stack architecture.
---
--- For SP-based stacks the "top" is taken as the SP value observed just before
--- the first decrease — this skips over the multi-step initialisation sequence
--- (e.g. RiscIv's @lui sp, 0 ; addi sp, sp, _@ or M68k's
--- @movea.l label, A7 ; movea.l (A7), A7@) where intermediate SP values are
--- transient address-of-label rather than the true stack top.
-data StackStats w
-    = StackStatsNone
-    | StackStatsSp
-        { ssLastSp :: !(Maybe w)
-        -- ^ last observed SP value (for trend detection)
-        , ssTopSp :: !(Maybe w)
-        -- ^ "settled" top — the value just before the first decrease
-        , ssMinSp :: !(Maybe w)
-        -- ^ minimum SP observed after the first decrease
-        }
-    | StackStatsList
-        { ssMaxDDepth :: !Int
-        , ssMaxRDepth :: !Int
-        }
-    deriving (Show)
-
-data RuntimeStats w = RuntimeStats
-    { rsInstructions :: !Int
-    , rsStack :: !(StackStats w)
-    }
-    deriving (Show)
-
-initStackStats :: StackInfo w -> StackStats w
-initStackStats NoStack = StackStatsNone
-initStackStats SpStack{} = StackStatsSp{ssLastSp = Nothing, ssTopSp = Nothing, ssMinSp = Nothing}
-initStackStats ListStack{} = StackStatsList{ssMaxDDepth = 0, ssMaxRDepth = 0}
-
-mergeStack :: (Ord w) => StackInfo w -> StackStats w -> StackStats w
-mergeStack NoStack acc = acc
-mergeStack SpStack{spInitialised = False} acc = acc
-mergeStack SpStack{sp, spInitialised = True} acc =
-    case acc of
-        StackStatsSp{ssLastSp = Nothing} ->
-            StackStatsSp{ssLastSp = Just sp, ssTopSp = Just sp, ssMinSp = Nothing}
-        StackStatsSp{ssLastSp = Just prev, ssMinSp = Nothing} ->
-            if sp < prev
-                then StackStatsSp{ssLastSp = Just sp, ssTopSp = Just prev, ssMinSp = Just sp}
-                else StackStatsSp{ssLastSp = Just sp, ssTopSp = Just sp, ssMinSp = Nothing}
-        StackStatsSp{ssTopSp, ssMinSp = Just lo} ->
-            StackStatsSp{ssLastSp = Just sp, ssTopSp, ssMinSp = Just (min lo sp)}
-        _ -> acc
-mergeStack ListStack{dDepth, rDepth} acc =
-    case acc of
-        StackStatsList{ssMaxDDepth, ssMaxRDepth} ->
-            StackStatsList{ssMaxDDepth = max ssMaxDDepth dDepth, ssMaxRDepth = max ssMaxRDepth rDepth}
-        _ -> acc
-
-data Simulation st isa w = Simulation
+data Simulation st isa = Simulation
     { log :: [Trace st isa]
     , machineState :: st
     , pc2label :: HashMap Int String
@@ -73,54 +15,55 @@ data Simulation st isa w = Simulation
     , stateRecordCount :: Int
     , stateRecordLimits :: Int
     , takePartOnStateRecordLimit :: Int
-    , stackStats :: StackStats w
     }
 
-tellState :: (StateInterspector st m isa w, Ord w) => st -> State (Simulation st isa w) ()
+tellState :: st -> State (Simulation st isa) ()
 tellState machineState = modify
-    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, stackStats} ->
-        let stackStats' = mergeStack (stackInfo machineState) stackStats
-            sim' = sim{stackStats = stackStats'}
-         in if stateRecordCount >= stateRecordLimits
-                then
-                    let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
-                        rest = drop n log
-                        rest' =
-                            filter
-                                ( \case
-                                    TState _ -> False
-                                    _ -> True
-                                )
-                                rest
-                        dropped = length rest - length rest'
-                        warn = "Dropped " <> show dropped <> " states"
-                     in sim'
-                            { log = take n log <> rest' <> [TWarn warn]
-                            , stateRecordCount = stateRecordCount - dropped
-                            }
-                else
-                    sim'
-                        { log = TState machineState : log
-                        , stateRecordCount = stateRecordCount + 1
+    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit} ->
+        if stateRecordCount >= stateRecordLimits
+            then
+                let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
+                    rest = drop n log
+                    rest' =
+                        filter
+                            ( \case
+                                TState _ -> False
+                                _ -> True
+                            )
+                            rest
+                    dropped = length rest - length rest'
+                    warn = "Dropped " <> show dropped <> " states"
+                 in sim
+                        { log = take n log <> rest' <> [TWarn warn]
+                        , stateRecordCount = stateRecordCount - dropped
                         }
+            else
+                sim
+                    { log = TState machineState : log
+                    , stateRecordCount = stateRecordCount + 1
+                    }
 
 tellError msg = modify $ \sim@Simulation{log} ->
     sim{log = TError msg : log}
 
-simulate :: (Machine st isa w, StateInterspector st m isa w, Ord w) => Simulation st isa w -> ([Trace st isa], RuntimeStats w)
+-- | Run the simulation, returning the trace log together with the collected
+-- statistics: the generic counters tracked by the simulator (instruction count)
+-- plus the ISA-specific stats accumulated inside the machine state.
+simulate :: (Machine st isa w, StateInterspector st m isa w) => Simulation st isa -> ([Trace st isa], [StatEntry])
 simulate sim =
-    let Simulation{log, instructionCount, stackStats} = execState simulate' sim
-     in (reverse log, RuntimeStats{rsInstructions = instructionCount, rsStack = stackStats})
+    let Simulation{log, instructionCount, machineState} = execState simulate' sim
+        stats = ("instructions", show instructionCount) : machineStats machineState
+     in (reverse log, stats)
 
-simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa w) ()
+simulateInstructionStep :: (Machine st isa w, StateInterspector st m isa w) => State (Simulation st isa) ()
 simulateInstructionStep =
     modify $ \sim@Simulation{machineState, instructionCount} ->
         sim
-            { machineState = execState instructionStep machineState
+            { machineState = recordStats (execState instructionStep machineState)
             , instructionCount = instructionCount + 1
             }
 
-simulate' :: (Machine st isa w, StateInterspector st m isa w, Ord w) => State (Simulation st isa w) ()
+simulate' :: (Machine st isa w, StateInterspector st m isa w) => State (Simulation st isa) ()
 simulate' = do
     Simulation{machineState, instructionCount, instructionLimits} <- get
     if instructionCount >= instructionLimits
@@ -139,10 +82,9 @@ powerOn ::
     -> Int
     -> HashMap String w
     -> st
-    -> Either Text ([Trace st isa], RuntimeStats w)
+    -> Either Text ([Trace st isa], [StatEntry])
 powerOn instructionLimits stateRecordLimits labels machineInitState = do
     let pc2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
-        initialStack = initStackStats (stackInfo machineInitState)
     Right
         $ simulate
             Simulation
@@ -154,5 +96,4 @@ powerOn instructionLimits stateRecordLimits labels machineInitState = do
                 , stateRecordCount = 0
                 , stateRecordLimits
                 , takePartOnStateRecordLimit = 4
-                , stackStats = initialStack
                 }

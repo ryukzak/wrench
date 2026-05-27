@@ -3,9 +3,8 @@
 ERROR: memory access error: iomemory[128]: input is depleted
 ---
 # stats
-instructions: 7
 sections: 88 bytes
 code/data: 88 bytes (0..87)
+instructions: 7
 stack: 0 bytes (uninitialised)
-effective memory: 88 / 4096 bytes
 

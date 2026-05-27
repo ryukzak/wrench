@@ -170,7 +170,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
     let reports = maybe [] (map (prepareReport trResult verbose traceLog)) cReports
         isSuccess = all fst reports
         reportTexts = map snd reports
-        statsText = formatStats cMemorySize dumpStats runtimeStats
+        statsText = formatStats $ dumpStatsEntries dumpStats <> runtimeStats
         allSections = map (T.strip . ("---\n" <>)) reportTexts <> ["---\n" <> statsText]
 
     return
@@ -194,44 +194,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             let (val, gen') = uniformR range gen
              in val : randomInts range gen'
 
-formatStats :: forall w. (MachineWord w) => Int -> DumpStats -> RuntimeStats w -> Text
-formatStats memorySize DumpStats{dsSectionsTotalBytes, dsCodeDataExtent} RuntimeStats{rsInstructions, rsStack} =
-    let wordBytes = byteSizeT @w
-        codeDataLine :: Text
-        codeDataLine =
-            if dsCodeDataExtent == 0
-                then "code/data: 0 bytes"
-                else "code/data: " <> show dsCodeDataExtent <> " bytes (0.." <> show (dsCodeDataExtent - 1) <> ")"
-        stackLines :: [Text]
-        stackLines = case rsStack of
-            StackStatsNone -> []
-            StackStatsSp{ssTopSp = Nothing} -> ["stack: 0 bytes (uninitialised)"]
-            StackStatsSp{ssMinSp = Nothing} -> ["stack: 0 bytes (no push observed)"]
-            StackStatsSp{ssTopSp = Just hi, ssMinSp = Just lo} ->
-                let bytes = fromEnum hi - fromEnum lo
-                    rangeNote :: Text
-                    rangeNote =
-                        if bytes == 0
-                            then ""
-                            else " (" <> show (fromEnum lo) <> ".." <> show (fromEnum hi - 1) <> ")"
-                 in ["stack: " <> show bytes <> " bytes" <> rangeNote]
-            StackStatsList{ssMaxDDepth, ssMaxRDepth} ->
-                [ "dstack depth: " <> show ssMaxDDepth <> " (" <> show (ssMaxDDepth * wordBytes) <> " bytes)"
-                , "rstack depth: " <> show ssMaxRDepth <> " (" <> show (ssMaxRDepth * wordBytes) <> " bytes)"
-                ]
-        topBytes = case rsStack of
-            StackStatsNone -> 0
-            StackStatsSp{ssTopSp = Just hi, ssMinSp = Just lo} -> fromEnum hi - fromEnum lo
-            StackStatsSp{} -> 0
-            StackStatsList{ssMaxDDepth, ssMaxRDepth} -> (ssMaxDDepth + ssMaxRDepth) * wordBytes
-        effective = dsCodeDataExtent + topBytes
-        coreLines :: [Text]
-        coreLines =
-            [ "# stats"
-            , "instructions: " <> show rsInstructions
-            , "sections: " <> show dsSectionsTotalBytes <> " bytes"
-            , codeDataLine
-            ]
-                <> stackLines
-                <> ["effective memory: " <> show effective <> " / " <> show memorySize <> " bytes"]
-     in unlines coreLines
+-- | Render the collected stats (key/value pairs) as a @# stats@ report section.
+formatStats :: [StatEntry] -> Text
+formatStats entries =
+    unlines $ "# stats" : map (\(k, v) -> k <> ": " <> v) entries

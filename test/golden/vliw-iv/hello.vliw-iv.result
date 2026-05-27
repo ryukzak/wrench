@@ -6,9 +6,8 @@ symio[0x80]: "" >>> ""
 symio[0x84]: "" >>> "?Hello\n\0World!"
 ---
 # stats
-instructions: 33
 sections: 87 bytes
 code/data: 322 bytes (0..321)
+instructions: 33
 stack: 0 bytes (uninitialised)
-effective memory: 322 / 4096 bytes
 

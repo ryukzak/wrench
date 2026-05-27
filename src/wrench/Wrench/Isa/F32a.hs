@@ -239,6 +239,7 @@ data MachineState mem w = State
     , extendedArithmeticMode :: Bool
     , carryFlag :: Bool
     , internalError :: Maybe Text
+    , depthStats :: DepthStatsAcc
     }
     deriving (Show)
 
@@ -255,6 +256,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , extendedArithmeticMode = False
             , carryFlag = False
             , internalError = Nothing
+            , depthStats = emptyDepthStatsAcc
             }
 
 setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
@@ -344,8 +346,9 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{p} = p
     memoryDump State{ram} = ram
     ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
-    stackInfo State{dataStack, returnStack} =
-        ListStack{dDepth = length dataStack, rDepth = length returnStack}
+    recordStats st@State{dataStack, returnStack, depthStats} =
+        st{depthStats = recordDepth (length dataStack) (length returnStack) depthStats}
+    machineStats State{depthStats} = renderDepthStats (byteSizeT @w) depthStats
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =

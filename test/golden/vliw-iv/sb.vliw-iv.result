@@ -12,9 +12,8 @@
 mem[0..5]: 	ff 32 33 34 ff 00
 ---
 # stats
-instructions: 7
 sections: 82 bytes
 code/data: 333 bytes (0..332)
+instructions: 7
 stack: 0 bytes (uninitialised)
-effective memory: 333 / 4096 bytes
 
