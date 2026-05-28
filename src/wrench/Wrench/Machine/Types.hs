@@ -3,7 +3,12 @@ module Wrench.Machine.Types (
     Machine (..),
     Mem (..),
     IoMem (..),
+    SpiMode (..),
+    SpiMisoShift (..),
+    SpiDevice (..),
     mkIoMem,
+    mkIoMemWithSpi,
+    tickIoMem,
     Cell (..),
     InitState (..),
     StateInterspector (..),
@@ -25,8 +30,9 @@ module Wrench.Machine.Types (
 
 import Data.Bits
 import Data.Default (Default, def)
+import Data.IntMap.Strict qualified as IM
 import Relude
-import Relude.Extra (keys)
+import Relude.Extra (keys, toPairs)
 
 -- * State
 
@@ -157,6 +163,10 @@ class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
     ioStreams :: st -> IntMap ([w], [w])
+    spiDevices :: st -> IntMap (SpiDevice w)
+    spiDevices _ = mempty
+    machineClock :: st -> Int
+    machineClock _ = 0
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
@@ -166,7 +176,10 @@ class Machine st isa w | st -> isa w where
     instructionStep = do
         (pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         instructionExecute pc instruction
+        afterInstructionStep
     instructionExecute :: Int -> isa -> State st ()
+    afterInstructionStep :: State st ()
+    afterInstructionStep = return ()
 
 halted :: Text
 halted = "halted"
@@ -185,21 +198,92 @@ data Mem isa w = Mem
 
 data IoMem isa w = IoMem
     { mIoStreams :: IntMap ([w], [w])
+    , mSpiDevices :: IntMap (SpiDevice w)
+    , mClock :: Int
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
+    , mSpiKeys :: [Int]
     , mIoByteToWord :: IntMap Int
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
-mkIoMem streams cells =
+data SpiMode = SpiHardware | SpiSoftware
+    deriving (Eq, Show)
+
+data SpiMisoShift w = SpiMisoShift
+    { smsWord :: w
+    , smsBitIndex :: Int
+    , smsTick :: Int
+    }
+    deriving (Eq, Show)
+
+data SpiDevice w = SpiDevice
+    { spiMisoPending :: [(w, Int)]
+    , spiMisoConsumed :: [(w, Int)]
+    , spiMosiLog :: [(w, Int)]
+    , spiClkDiv :: Int
+    , spiMode :: SpiMode
+    , spiCsPin :: Bool
+    , spiClkPin :: Bool
+    , spiMosiPin :: Bool
+    , spiMisoPin :: Bool
+    , spiMosiShift :: w
+    , spiMosiBits :: Int
+    , spiMisoShift :: Maybe (SpiMisoShift w)
+    , spiSoftClock :: Int
+    }
+    deriving (Eq, Show)
+
+mkIoMem :: forall w isa. (ByteSizeT w, Num w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem streams = mkIoMemWithSpi streams mempty mempty mempty
+
+mkIoMemWithSpi ::
+    forall w isa.
+    (ByteSizeT w, Num w) =>
+    IntMap ([w], [w])
+    -> IntMap [(w, Int)]
+    -> IntMap Int
+    -> IntMap SpiMode
+    -> Mem isa w
+    -> IoMem isa w
+mkIoMemWithSpi streams spiInputs spiClkDivs spiModes cells =
     IoMem
         { mIoStreams = streams
+        , mSpiDevices =
+            IM.fromList
+                $ map
+                    ( \(base, misoData) ->
+                        let clkDiv = fromMaybe 1 (spiClkDivs IM.!? base)
+                            mode = fromMaybe SpiSoftware (spiModes IM.!? base)
+                         in ( base
+                            , SpiDevice
+                                { spiMisoPending = misoData
+                                , spiMisoConsumed = []
+                                , spiMosiLog = []
+                                , spiClkDiv = clkDiv
+                                , spiMode = mode
+                                , spiCsPin = True
+                                , spiClkPin = False
+                                , spiMosiPin = False
+                                , spiMisoPin = False
+                                , spiMosiShift = 0
+                                , spiMosiBits = 0
+                                , spiMisoShift = Nothing
+                                , spiSoftClock = 0
+                                }
+                            )
+                    )
+                    (toPairs spiInputs)
+        , mClock = 0
         , mIoCells = cells
         , mIoKeys = keys streams
+        , mSpiKeys = keys spiInputs
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }
+
+tickIoMem :: IoMem isa w -> IoMem isa w
+tickIoMem io@IoMem{mClock} = io{mClock = mClock + 1}
 
 data Cell isa w
     = Instruction isa

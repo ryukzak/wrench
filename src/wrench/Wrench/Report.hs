@@ -137,6 +137,7 @@ defaultView labels st v =
         ["memory", a, b] -> Just $ viewMemory a b $ dumpCells $ memoryDump st
         ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
         ["io", a, fmt] -> Just $ viewIO fmt a st
+        ["spi", a, fmt] -> Just $ viewSpi fmt a st
         _ -> Nothing
 
 viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
@@ -172,6 +173,48 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
                 )
         fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
 viewIO fmt _addr _st = unknownFormat fmt
+
+viewSpi :: (MachineWord w, StateInterspector st m isa w) => Text -> Text -> st -> Text
+viewSpi "miso" addr st = case spiDevices st !? readAddr addr of
+    Just SpiDevice{spiMisoPending, spiMisoConsumed} ->
+        show spiMisoPending <> " >>> " <> show spiMisoConsumed
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "mosi" addr st = case spiDevices st !? readAddr addr of
+    Just SpiDevice{spiMosiLog} -> "[] >>> " <> show spiMosiLog
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "status" addr st = case spiDevices st !? readAddr addr of
+    Just device -> spiStatusText (spiDeviceClock (machineClock st) device) device
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "clock" addr st = case spiDevices st !? readAddr addr of
+    Just device -> show $ spiDeviceClock (machineClock st) device
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "pins" addr st = case spiDevices st !? readAddr addr of
+    Just SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} ->
+        "cs="
+            <> pinBit spiCsPin
+            <> " clk="
+            <> pinBit spiClkPin
+            <> " mosi="
+            <> pinBit spiMosiPin
+            <> " miso="
+            <> pinBit spiMisoPin
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi fmt _addr _st = unknownFormat fmt
+
+spiStatusText :: Int -> SpiDevice w -> Text
+spiStatusText clock SpiDevice{spiMisoPending, spiMisoShift} =
+    misoStatus
+    where
+        misoStatus = if any ((<= clock) . snd) spiMisoPending || isJust spiMisoShift then "miso_ready" else "miso_empty"
+
+spiDeviceClock :: Int -> SpiDevice w -> Int
+spiDeviceClock hwClock SpiDevice{spiMode, spiSoftClock, spiClkDiv} = case spiMode of
+    SpiSoftware -> spiSoftClock
+    SpiHardware -> hwClock `div` spiClkDiv
+
+pinBit :: Bool -> Text
+pinBit True = "1"
+pinBit False = "0"
 
 readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
 

@@ -410,6 +410,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
+    spiDevices State{mem = IoMem{mSpiDevices}} = mSpiDevices
+    machineClock State{mem = IoMem{mClock}} = mClock
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
@@ -558,6 +560,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         instruction <- readInstruction mem pc
                         return (pc, instruction)
                 )
+
+    afterInstructionStep = modify $ \st@State{mem} -> st{mem = tickIoMem mem}
 
     instructionExecute _pc instruction = do
         case instruction of

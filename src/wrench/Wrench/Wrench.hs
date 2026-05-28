@@ -156,13 +156,16 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed} src = do
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cSpiFlat, cSpiClkDiv, cSpiModeFlat, cReports, cSeed} src = do
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
+        spiInputs = fmap (map (first int2mword)) $ fromMaybe mempty cSpiFlat
+        spiClkDivs = fromMaybe mempty cSpiClkDiv
+        spiModes = fmap mapSpiMode $ fromMaybe mempty cSpiModeFlat
         randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
-        ioDump = mkIoMem mIoStreams dump
+        ioDump = mkIoMemWithSpi mIoStreams spiInputs spiClkDivs spiModes dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 
     traceLog <- powerOn cLimit maxStateLogLimit labels st
@@ -191,3 +194,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         randomInts range gen =
             let (val, gen') = uniformR range gen
              in val : randomInts range gen'
+
+        mapSpiMode = \case
+            SpiModeHardware -> SpiHardware
+            SpiModeSoftware -> SpiSoftware

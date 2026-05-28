@@ -11,8 +11,7 @@ module Wrench.Machine.Memory (
     prettyDump,
 ) where
 
-import Data.Bits (FiniteBits, finiteBitSize)
-import Data.Default (Default, def)
+import Data.Bits (Bits (..), FiniteBits (..))
 import Numeric (showHex)
 import Relude
 import Relude.Extra
@@ -173,24 +172,263 @@ instance
     dumpCells Mem{memoryData} = memoryData
 
 ioPortInstructionCollision ::
-    forall w isa. (ByteSize isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
-ioPortInstructionCollision IoMem{mIoKeys} addr instr =
+    forall w isa. (ByteSize isa, ByteSizeT w) => IoMem isa w -> Int -> isa -> Bool
+ioPortInstructionCollision io addr instr =
     let !n = byteSize instr
-        wn = finiteBitSize (def :: w) `div` 8
-        !result = any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) mIoKeys
+        wn = byteSizeT @w
+        !result =
+            any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) (ioWordKeys @w io)
      in result
 
-ioPortWordCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortWordCollision IoMem{mIoKeys} addr =
-    let n = finiteBitSize (def :: w) `div` 8
-     in any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + n - 1)) mIoKeys
+ioPortWordCollision :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Bool
+ioPortWordCollision io addr =
+    let n = byteSizeT @w
+     in any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + n - 1)) (ioWordKeys @w io)
 
-ioPortByteCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortByteCollision IoMem{mIoKeys} addr =
-    let n = finiteBitSize (def :: w) `div` 8
+ioPortByteCollision :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Bool
+ioPortByteCollision io addr =
+    let n = byteSizeT @w
         mkParts idx = [idx + 1 .. idx + n - 1]
-        parts = concatMap mkParts mIoKeys
+        parts = concatMap mkParts (ioWordKeys @w io)
      in (addr `elem` parts)
+
+ioWordKeys :: forall w isa. (ByteSizeT w) => IoMem isa w -> [Int]
+ioWordKeys IoMem{mIoKeys, mSpiKeys} =
+    mIoKeys <> concatMap (\idx -> [idx, idx + byteSizeT @w]) mSpiKeys
+
+data SpiRegister = SpiData | SpiStatus | SpiPinsOut | SpiPinsIn
+
+findSpiRegister :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Maybe (Int, SpiRegister)
+findSpiRegister IoMem{mSpiKeys, mSpiDevices} addr =
+    asum $ map match mSpiKeys
+    where
+        wordSize = byteSizeT @w
+        match base
+            | addr == base = (\d -> (base,) <$> firstRegister d) =<< (mSpiDevices !? base)
+            | addr == base + wordSize = (\d -> (base,) <$> secondRegister d) =<< (mSpiDevices !? base)
+            | otherwise = Nothing
+        firstRegister SpiDevice{spiMode} = case spiMode of
+            SpiHardware -> Just SpiData
+            SpiSoftware -> Just SpiPinsOut
+        secondRegister SpiDevice{spiMode} = case spiMode of
+            SpiHardware -> Just SpiStatus
+            SpiSoftware -> Just SpiPinsIn
+
+findSpiByteRegister :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Maybe (SpiRegister, Int, Int)
+findSpiByteRegister io@IoMem{mSpiKeys} addr =
+    asum $ map match mSpiKeys
+    where
+        wordSize = byteSizeT @w
+        match base
+            | base <= addr && addr < base + wordSize =
+                (\(_, r) -> (r, addr - base, base)) <$> findSpiRegister @w io base
+            | base + wordSize <= addr && addr < base + 2 * wordSize =
+                (\(_, r) -> (r, addr - base - wordSize, base + wordSize)) <$> findSpiRegister @w io (base + wordSize)
+            | otherwise = Nothing
+
+readSpiWord :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Maybe (Either Text (IoMem isa w, w))
+readSpiWord io@IoMem{mSpiDevices, mClock} addr =
+    findSpiRegister @w io addr <&> \(base, register) ->
+        case mSpiDevices !? base of
+            Nothing -> Left $ "iomemory[" <> show addr <> "]: unknown SPI device"
+            Just device@SpiDevice{spiMisoPending, spiMisoConsumed} ->
+                case register of
+                    SpiStatus
+                        | not (spiHardwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI status register is disabled"
+                        | otherwise ->
+                            Right (io, spiStatusWord (spiHardwareClock mClock device) device)
+                    SpiData
+                        | not (spiHardwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI data register is disabled"
+                        | otherwise ->
+                            case popAvailableMiso (spiHardwareClock mClock device) spiMisoPending of
+                                Nothing -> Left $ "iomemory[" <> show addr <> "]: SPI input is not ready"
+                                Just (misoValue, spiMisoPending') ->
+                                    let device' =
+                                            device
+                                                { spiMisoPending = spiMisoPending'
+                                                , spiMisoConsumed = spiMisoConsumed <> [misoValue]
+                                                }
+                                        io' = io{mSpiDevices = insert base device' mSpiDevices}
+                                     in Right (io', fst misoValue)
+                    SpiPinsOut
+                        | not (spiSoftwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI pins register is disabled"
+                        | otherwise ->
+                            Right (io, spiPinsOutWord device)
+                    SpiPinsIn
+                        | not (spiSoftwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI pins register is disabled"
+                        | otherwise ->
+                            Right (io, spiPinsInWord device)
+
+writeSpiWord :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> w -> Maybe (Either Text (IoMem isa w))
+writeSpiWord io@IoMem{mSpiDevices, mClock} addr word =
+    findSpiRegister @w io addr <&> \(base, register) ->
+        case mSpiDevices !? base of
+            Nothing -> Left $ "iomemory[" <> show addr <> "]: unknown SPI device"
+            Just device@SpiDevice{spiMosiLog} ->
+                case register of
+                    SpiStatus ->
+                        Left $ "iomemory[" <> show addr <> "]: can't write to SPI status register"
+                    SpiPinsIn ->
+                        Left $ "iomemory[" <> show addr <> "]: can't write to SPI pins-in register"
+                    SpiData
+                        | not (spiHardwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI data register is disabled"
+                        | otherwise ->
+                            let clock = spiHardwareClock mClock device
+                                device' = device{spiMosiLog = spiMosiLog <> [(word, clock)]}
+                             in Right io{mSpiDevices = insert base device' mSpiDevices}
+                    SpiPinsOut
+                        | not (spiSoftwareEnabled device) ->
+                            Left $ "iomemory[" <> show addr <> "]: SPI pins register is disabled"
+                        | otherwise ->
+                            let device' = writeSpiPins mClock device word
+                             in Right io{mSpiDevices = insert base device' mSpiDevices}
+
+readSpiByte :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Maybe (Either Text (IoMem isa w, Word8))
+readSpiByte io addr =
+    findSpiByteRegister @w io addr <&> \(_register, offset, wordAddr) -> do
+        case readSpiWord io wordAddr of
+            Just result -> do
+                (io', word) <- result
+                return (io', wordSplit word Unsafe.!! offset)
+            Nothing -> Left $ "iomemory[" <> show addr <> "]: unknown SPI device"
+
+writeSpiByte :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Word8 -> Maybe (Either Text (IoMem isa w))
+writeSpiByte io addr byte =
+    findSpiByteRegister @w io addr <&> \(register, offset, wordAddr) ->
+        case (register, offset) of
+            (SpiData, 0) -> fromMaybe (Left $ "iomemory[" <> show addr <> "]: unknown SPI device") $ writeSpiWord io wordAddr (byteToWord byte)
+            (SpiStatus, 0) -> Left $ "iomemory[" <> show addr <> "]: can't write to SPI status register"
+            (SpiPinsOut, 0) -> fromMaybe (Left $ "iomemory[" <> show addr <> "]: unknown SPI device") $ writeSpiWord io wordAddr (byteToWord byte)
+            (SpiPinsIn, 0) -> Left $ "iomemory[" <> show addr <> "]: can't write to SPI pins-in register"
+            _ -> Left $ "iomemory[" <> show addr <> "]: can't write byte to SPI register part"
+
+popAvailableMiso :: Int -> [(w, Int)] -> Maybe ((w, Int), [(w, Int)])
+popAvailableMiso clock = go []
+    where
+        go _ [] = Nothing
+        go earlier (entry@(_, arrivalTick) : rest)
+            | arrivalTick <= clock = Just (entry, reverse earlier <> rest)
+            | otherwise = go (entry : earlier) rest
+
+spiStatusWord :: forall w. (Num w) => Int -> SpiDevice w -> w
+spiStatusWord clock device =
+    if misoReadyAt clock device then 1 else 0
+
+misoReadyAt :: Int -> SpiDevice w -> Bool
+misoReadyAt clock SpiDevice{spiMisoPending, spiMisoShift} =
+    any ((<= clock) . snd) spiMisoPending || isJust spiMisoShift
+
+spiHardwareEnabled :: SpiDevice w -> Bool
+spiHardwareEnabled SpiDevice{spiMode} = spiMode == SpiHardware
+
+spiSoftwareEnabled :: SpiDevice w -> Bool
+spiSoftwareEnabled SpiDevice{spiMode} = spiMode == SpiSoftware
+
+spiHardwareClock :: Int -> SpiDevice w -> Int
+spiHardwareClock cpuClock SpiDevice{spiClkDiv} = cpuClock `div` spiClkDiv
+
+spiPinsOutWord :: (Bits w, Num w) => SpiDevice w -> w
+spiPinsOutWord SpiDevice{spiCsPin, spiClkPin, spiMosiPin} =
+    bitWord 0 spiCsPin .|. bitWord 1 spiClkPin .|. bitWord 2 spiMosiPin
+
+spiPinsInWord :: (Bits w, Num w) => SpiDevice w -> w
+spiPinsInWord SpiDevice{spiMisoPin} = bitWord 0 spiMisoPin
+
+bitWord :: (Bits w, Num w) => Int -> Bool -> w
+bitWord idx enabled = if enabled then bit idx else 0
+
+writeSpiPins :: forall w. (MachineWord w) => Int -> SpiDevice w -> w -> SpiDevice w
+writeSpiPins _clock device word =
+    let oldCs = spiCsPin device
+        oldClk = spiClkPin device
+        oldSoftClock = spiSoftClock device
+        newCs = testBit word 0
+        newClk = testBit word 1
+        newMosi = testBit word 2
+        baseDevice =
+            device
+                { spiCsPin = newCs
+                , spiClkPin = newClk
+                , spiMosiPin = newMosi
+                }
+        afterCs =
+            if oldCs && not newCs
+                then primeMiso oldSoftClock baseDevice
+                else
+                    if newCs
+                        then baseDevice{spiMisoPin = False, spiMosiShift = 0, spiMosiBits = 0}
+                        else baseDevice
+        onRising = (not newCs) && (not oldClk) && newClk
+     in if onRising
+            then
+                let softClock' = oldSoftClock + 1
+                    shifted = shiftMiso softClock' (shiftMosi softClock' newMosi afterCs)
+                 in shifted{spiSoftClock = softClock'}
+            else afterCs
+
+primeMiso :: forall w. (MachineWord w) => Int -> SpiDevice w -> SpiDevice w
+primeMiso clock device =
+    let device' = ensureMisoLoaded clock device
+     in device'{spiMisoPin = currentMisoBit device'}
+
+ensureMisoLoaded :: forall w. (MachineWord w) => Int -> SpiDevice w -> SpiDevice w
+ensureMisoLoaded _clock device@SpiDevice{spiMisoShift}
+    | isJust spiMisoShift = device
+ensureMisoLoaded clock device@SpiDevice{spiMisoPending} =
+    case popAvailableMiso clock spiMisoPending of
+        Nothing -> device
+        Just ((w, tick), rest) ->
+            device
+                { spiMisoPending = rest
+                , spiMisoShift = Just SpiMisoShift{smsWord = w, smsBitIndex = finiteBitSize w - 1, smsTick = tick}
+                }
+
+currentMisoBit :: (Bits w) => SpiDevice w -> Bool
+currentMisoBit SpiDevice{spiMisoShift} =
+    case spiMisoShift of
+        Just SpiMisoShift{smsWord, smsBitIndex} -> testBit smsWord smsBitIndex
+        Nothing -> False
+
+shiftMiso :: forall w. (MachineWord w) => Int -> SpiDevice w -> SpiDevice w
+shiftMiso clock device =
+    let device0 = ensureMisoLoaded clock device
+     in case spiMisoShift device0 of
+            Nothing -> device0{spiMisoPin = False}
+            Just SpiMisoShift{smsWord, smsBitIndex, smsTick} ->
+                if smsBitIndex == 0
+                    then
+                        let finished = (smsWord, smsTick)
+                            device1 =
+                                device0
+                                    { spiMisoShift = Nothing
+                                    , spiMisoConsumed = spiMisoConsumed device0 <> [finished]
+                                    }
+                            device2 = ensureMisoLoaded clock device1
+                         in device2{spiMisoPin = currentMisoBit device2}
+                    else
+                        let shift' = SpiMisoShift{smsWord, smsBitIndex = smsBitIndex - 1, smsTick}
+                            device1 = device0{spiMisoShift = Just shift'}
+                         in device1{spiMisoPin = currentMisoBit device1}
+
+shiftMosi :: forall w. (MachineWord w) => Int -> Bool -> SpiDevice w -> SpiDevice w
+shiftMosi clock mosiBit device@SpiDevice{spiMosiShift, spiMosiBits, spiMosiLog} =
+    let newBit :: w = if mosiBit then 1 else 0
+        nextWord = (spiMosiShift `shiftL` 1) .|. newBit
+        nextBits = spiMosiBits + 1
+        wordBits = finiteBitSize spiMosiShift
+     in if nextBits >= wordBits
+            then
+                device
+                    { spiMosiShift = 0
+                    , spiMosiBits = 0
+                    , spiMosiLog = spiMosiLog <> [(nextWord, clock)]
+                    }
+            else device{spiMosiShift = nextWord, spiMosiBits = nextBits}
 
 instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
@@ -207,11 +445,15 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
         | Just wordIdx <- mIoByteToWord !? idx = do
             (io', word) <- readWord io wordIdx
             return (io', wordSplit word Unsafe.!! (idx - wordIdx))
+    readByte io idx
+        | Just result <- readSpiByte io idx = result
     readByte io@IoMem{mIoCells} idx = do
         (mIoCells', v) <- readByte mIoCells idx
         return (io{mIoCells = mIoCells'}, v)
 
     readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
+    readWord io idx
+        | Just result <- readSpiWord io idx = result
     readWord io@IoMem{mIoStreams, mIoCells} idx = do
         case mIoStreams !? idx of
             Just ([], _) -> Left $ "iomemory[" <> show idx <> "]: input is depleted"
@@ -223,6 +465,8 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
                 return (io{mIoCells = mIoCells'}, w)
 
     writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't write word to input port"
+    writeWord io idx word
+        | Just result <- writeSpiWord io idx word = result
     writeWord io idx word =
         case mIoStreams io !? idx of
             Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
@@ -233,6 +477,8 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
     writeByte io idx _byte
         | ioPortByteCollision io idx =
             Left $ "iomemory[" <> show idx <> "]: can't write byte to input port"
+    writeByte io idx byte
+        | Just result <- writeSpiByte io idx byte = result
     writeByte io idx byte =
         case mIoStreams io !? idx of
             Just (is, os) -> Right io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
