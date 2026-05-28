@@ -3,6 +3,10 @@ Config
     , cMemorySize = 144
     , cMemoryMappedIo = Nothing
     , cMemoryMappedIoFlat = Nothing
+    , cSpi = Nothing
+    , cSpiFlat = Nothing
+    , cSpiClkDiv = Nothing
+    , cSpiModeFlat = Nothing
     , cReports = Just
         [ ReportConf
             { rcName = Just "Executed Instruction Log"

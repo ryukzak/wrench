@@ -1,0 +1,6 @@
+---
+# Check SPI
+spi_miso[0x90]: [] >>> [(65,5),(66,6),(67,7),(0,50)]
+spi_mosi[0x90]: [] >>> [(65,8),(66,12),(67,15)]
+spi_status[0x90]: miso_empty
+spi_clock[0x90]: 53

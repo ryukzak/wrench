@@ -1,0 +1,25 @@
+name: "SPI echo reads string until zero terminator with clock division"
+limit: 200
+memory_size: 0x1000
+spi:
+  0x90:
+    mode: hardware
+    clk_div: 2
+    input:
+      - ["ABC", 5]
+      - [0, 50]
+reports:
+  - name: Check SPI
+    slice: last
+    filter:
+      - state
+    view: |
+      spi_miso[0x90]: {spi:0x90:miso}
+      spi_mosi[0x90]: {spi:0x90:mosi}
+      spi_status[0x90]: {spi:0x90:status}
+      spi_clock[0x90]: {spi:0x90:clock}
+    assert: |
+      spi_miso[0x90]: [] >>> [(65,5),(66,6),(67,7),(0,50)]
+      spi_mosi[0x90]: [] >>> [(65,8),(66,12),(67,15)]
+      spi_status[0x90]: miso_empty
+      spi_clock[0x90]: 53
