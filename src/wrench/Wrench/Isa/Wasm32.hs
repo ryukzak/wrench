@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
@@ -447,11 +446,11 @@ enterFunction instruction@Func{funcParams, funcLocals, funcResults} = do
                 put st{frames = frame : frames, pendingCall = Nothing}
                 nextPc instruction
             | otherwise ->
-                raiseInternalError $
-                    "function expects "
-                        <> show (length funcParams)
-                        <> " arguments, got "
-                        <> show (length pcArgs)
+                raiseInternalError
+                    $ "function expects "
+                    <> show (length funcParams)
+                    <> " arguments, got "
+                    <> show (length pcArgs)
         Nothing
             | null frames && null funcParams -> do
                 let frame = Frame{frReturnPc = Nothing, frLocals = map (,def) funcLocals, frResults = funcResults}
@@ -681,7 +680,8 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 case findIfTargets mem (pc + byteSize instruction) of
                     Right (elsePc, endPc)
                         | condition /= 0 -> pushControlFrame label ControlIf (pc + byteSize instruction) endPc >> nextPc instruction
-                        | Just elseAddr <- elsePc -> pushControlFrame label ControlIf (elseAddr + byteSize Else) endPc >> setPc (elseAddr + byteSize Else)
+                        | Just elseAddr <- elsePc ->
+                            pushControlFrame label ControlIf (elseAddr + byteSize Else) endPc >> setPc (elseAddr + byteSize Else)
                         | otherwise -> setPc (endPc + byteSize End)
                     Left err -> raiseInternalError $ "control flow error: " <> err
             Else -> executeElse
