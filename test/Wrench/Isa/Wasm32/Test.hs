@@ -16,11 +16,11 @@ tests =
     testGroup
         "ISA"
         [ testCase "Parse keyword function metadata" $ do
-            assertBool "keyword .func should parse" $
-                isRight (translate ".func params $n result i32 locals $acc")
+            assertBool "keyword .func should parse"
+                $ isRight (translate ".func params $n result i32 locals $acc")
         , testCase "Parse numeric function metadata" $ do
-            assertBool "numeric func should parse" $
-                isRight (translate "func 2, 3, 1")
+            assertBool "numeric func should parse"
+                $ isRight (translate "func 2, 3, 1")
         , testCase "Binary operations pop right operand first" $ do
             operandStack (execute I32Sub [3, 10]) @?= [7]
         , testCase "Logical right shift treats negative value as unsigned" $ do
@@ -61,7 +61,7 @@ translate code =
         Right m -> Right m
 
 execute :: Isa Int32 Int32 -> [Int32] -> Wasm32State Int32
-execute instr stack = executeWithBytes instr [] stack
+execute instr = executeWithBytes instr []
 
 executeWithBytes :: Isa Int32 Int32 -> [(Int, Word8)] -> [Int32] -> Wasm32State Int32
 executeWithBytes instr bytes stack =
@@ -84,9 +84,9 @@ programState instrs =
                 Mem
                     { memorySize = 512
                     , memoryData =
-                        fromList $
-                            [(addr, Value 0) | addr <- [0 .. 511]]
-                                <> concatMap instructionCells instrs
+                        fromList
+                            $ [(addr, Value 0) | addr <- [0 .. 511]]
+                            <> concatMap instructionCells instrs
                     }
         , operandStack = []
         , frames = []
