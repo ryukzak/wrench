@@ -208,9 +208,7 @@ spiStatusText clock SpiDevice{spiMisoPending, spiMisoShift} =
         misoStatus = if any ((<= clock) . snd) spiMisoPending || isJust spiMisoShift then "miso_ready" else "miso_empty"
 
 spiDeviceClock :: Int -> SpiDevice w -> Int
-spiDeviceClock hwClock SpiDevice{spiMode, spiSoftClock, spiClkDiv} = case spiMode of
-    SpiSoftware -> spiSoftClock
-    SpiHardware -> hwClock `div` spiClkDiv
+spiDeviceClock _hwClock SpiDevice{spiSoftClock} = spiSoftClock
 
 pinBit :: Bool -> Text
 pinBit True = "1"

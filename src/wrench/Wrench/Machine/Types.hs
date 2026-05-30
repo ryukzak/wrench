@@ -3,7 +3,6 @@ module Wrench.Machine.Types (
     Machine (..),
     Mem (..),
     IoMem (..),
-    SpiMode (..),
     SpiMisoShift (..),
     SpiDevice (..),
     mkIoMem,
@@ -207,9 +206,6 @@ data IoMem isa w = IoMem
     }
     deriving (Eq, Show)
 
-data SpiMode = SpiHardware | SpiSoftware
-    deriving (Eq, Show)
-
 data SpiMisoShift w = SpiMisoShift
     { smsWord :: w
     , smsBitIndex :: Int
@@ -221,8 +217,6 @@ data SpiDevice w = SpiDevice
     { spiMisoPending :: [(w, Int)]
     , spiMisoConsumed :: [(w, Int)]
     , spiMosiLog :: [(w, Int)]
-    , spiClkDiv :: Int
-    , spiMode :: SpiMode
     , spiCsPin :: Bool
     , spiClkPin :: Bool
     , spiMosiPin :: Bool
@@ -235,33 +229,27 @@ data SpiDevice w = SpiDevice
     deriving (Eq, Show)
 
 mkIoMem :: forall w isa. (ByteSizeT w, Num w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
-mkIoMem streams = mkIoMemWithSpi streams mempty mempty mempty
+mkIoMem streams = mkIoMemWithSpi streams mempty
 
 mkIoMemWithSpi ::
     forall w isa.
     (ByteSizeT w, Num w) =>
     IntMap ([w], [w])
     -> IntMap [(w, Int)]
-    -> IntMap Int
-    -> IntMap SpiMode
     -> Mem isa w
     -> IoMem isa w
-mkIoMemWithSpi streams spiInputs spiClkDivs spiModes cells =
+mkIoMemWithSpi streams spiInputs cells =
     IoMem
         { mIoStreams = streams
         , mSpiDevices =
             IM.fromList
                 $ map
                     ( \(base, misoData) ->
-                        let clkDiv = fromMaybe 1 (spiClkDivs IM.!? base)
-                            mode = fromMaybe SpiSoftware (spiModes IM.!? base)
-                         in ( base
+                        ( base
                             , SpiDevice
                                 { spiMisoPending = misoData
                                 , spiMisoConsumed = []
                                 , spiMosiLog = []
-                                , spiClkDiv = clkDiv
-                                , spiMode = mode
                                 , spiCsPin = True
                                 , spiClkPin = False
                                 , spiMosiPin = False

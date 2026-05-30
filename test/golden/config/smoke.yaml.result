@@ -42,8 +42,6 @@ Config
         )
     , cSpi = Nothing
     , cSpiFlat = Nothing
-    , cSpiClkDiv = Nothing
-    , cSpiModeFlat = Nothing
     , cReports = Just
         [ ReportConf
             { rcName = Just "foo"

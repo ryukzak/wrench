@@ -3,7 +3,6 @@ limit: 500
 memory_size: 0x1000
 spi:
   0x90:
-    mode: software
     input:
       - [0xA5, 0]
 reports:
