@@ -1,0 +1,28 @@
+name: "SPI input bytes echo"
+limit: 2000
+memory_size: 0x1000
+spi:
+  0x90:
+    mode: 0
+    input:
+      - at: 0
+        bytes: [0x12, 0x34]
+      - at: 64
+        bytes: [0]
+reports:
+  - name: Check SPI bytes input
+    slice: last
+    filter:
+      - state
+    view: |
+      spi_miso[0x90]: {spi:0x90:miso}
+      spi_mosi[0x90]: {spi:0x90:mosi}
+      spi_status[0x90]: {spi:0x90:status}
+      spi_clock[0x90]: {spi:0x90:clock}
+      spi_pins[0x90]: {spi:0x90:pins}
+    assert: |
+      spi_miso[0x90]: [] >>> [(18,0),(52,1),(0,64)]
+      spi_mosi[0x90]: [] >>> [(18,32),(52,64),(0,96)]
+      spi_status[0x90]: miso_empty
+      spi_clock[0x90]: 96
+      spi_pins[0x90]: cs=1 clk=0 mosi=0 miso=0

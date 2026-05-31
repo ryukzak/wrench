@@ -1,7 +1,7 @@
 ---
 # Check SPI bitbang
 spi_miso[0x90]: [] >>> [(165,0)]
-spi_mosi[0x90]: [] >>> [(165,32)]
-spi_status[0x90]: miso_empty
-spi_clock[0x90]: 32
+spi_mosi[0x90]: [] >>> [(165,32),(0,64)]
+spi_status[0x90]: miso_ready
+spi_clock[0x90]: 64
 spi_pins[0x90]: cs=1 clk=0 mosi=0 miso=0

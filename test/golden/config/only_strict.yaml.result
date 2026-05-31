@@ -5,6 +5,8 @@ Config
     , cMemoryMappedIoFlat = Nothing
     , cSpi = Nothing
     , cSpiFlat = Nothing
+    , cSpiModeFlat = Nothing
+    , cSpiPinsFlat = Nothing
     , cReports = Just
         [ ReportConf
             { rcName = Just "Executed Instruction Log"

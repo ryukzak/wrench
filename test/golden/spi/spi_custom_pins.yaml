@@ -1,0 +1,33 @@
+name: "SPI custom pin mapping echo"
+limit: 2000
+memory_size: 0x1000
+spi:
+  0x90:
+    mode: 0
+    cs_bit: 0x90:5
+    clk_bit: 0x90:6
+    mosi_bit: 0x90:7
+    miso_bit: 0x94:3
+    input:
+      - at: 0
+        word: 0xA5
+      - at: 64
+        word: 0
+reports:
+  - name: Check SPI custom pins
+    slice: last
+    filter:
+      - state
+    view: |
+      spi_miso[0x90]: {spi:0x90:miso}
+      spi_mosi[0x90]: {spi:0x90:mosi}
+      spi_status[0x90]: {spi:0x90:status}
+      spi_clock[0x90]: {spi:0x90:clock}
+      spi_pins[0x90]: {spi:0x90:pins}
+    assert: |
+      spi_miso[0x90]: [] >>> [(165,0)]
+      spi_mosi[0x90]: [] >>> [(165,32),(0,64)]
+      spi_status[0x90]: miso_ready
+      spi_clock[0x90]: 64
+      spi_pins[0x90]: cs=1 clk=0 mosi=0 miso=0
+
