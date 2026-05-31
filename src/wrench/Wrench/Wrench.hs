@@ -10,6 +10,7 @@ module Wrench.Wrench (
 ) where
 
 import Data.Default (Default (..), def)
+import Data.IntMap.Strict qualified as IM
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
@@ -156,14 +157,16 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cSpiFlat, cReports, cSeed} src = do
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cSpiFlat, cSpiModeFlat, cSpiPinsFlat, cReports, cSeed} src = do
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
         spiInputs = fmap (map (first int2mword)) $ fromMaybe mempty cSpiFlat
-        randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
-        ioDump = mkIoMemWithSpi mIoStreams spiInputs dump
+        spiModes = fmap mapSpiMode $ fromMaybe mempty cSpiModeFlat
+    spiPins <- IM.traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
+    let randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
+        ioDump = mkIoMemWithSpi mIoStreams spiInputs spiModes spiPins dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 
     traceLog <- powerOn cLimit maxStateLogLimit labels st
@@ -192,3 +195,47 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         randomInts range gen =
             let (val, gen') = uniformR range gen
              in val : randomInts range gen'
+
+        mapSpiMode = \case
+            SpiCfgMode0 -> Wrench.Machine.Types.SpiMode0
+            SpiCfgMode1 -> Wrench.Machine.Types.SpiMode1
+            SpiCfgMode2 -> Wrench.Machine.Types.SpiMode2
+            SpiCfgMode3 -> Wrench.Machine.Types.SpiMode3
+
+        mapSpiPins base SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
+            let defaultOut = base
+                defaultIn = base + byteSizeT @w
+                cs = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 0} spfCsBit
+                clk = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 1} spfClkBit
+                mosi = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 2} spfMosiBit
+                miso = fromMaybe SpiPortBitConf{spbcAddr = defaultIn, spbcBit = 0} spfMisoBit
+                outAddr = spbcAddr cs
+                inAddr = spbcAddr miso
+                validAddr a = a == base || a == base + byteSizeT @w
+                maxBit = byteSizeT @w * 8 - 1
+                validBit b = 0 <= b && b <= maxBit
+                withAddr msg a = if validAddr a then Right () else Left msg
+                withBit msg b = if validBit b then Right () else Left msg
+
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") outAddr
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") inAddr
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddr clk)
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddr mosi)
+
+            when (spbcAddr clk /= outAddr || spbcAddr mosi /= outAddr)
+                $ Left ("spi[" <> show base <> "]: cs/clk/mosi must target one output address")
+
+            withBit ("spi[" <> show base <> "]: cs bit is out of range") (spbcBit cs)
+            withBit ("spi[" <> show base <> "]: clk bit is out of range") (spbcBit clk)
+            withBit ("spi[" <> show base <> "]: mosi bit is out of range") (spbcBit mosi)
+            withBit ("spi[" <> show base <> "]: miso bit is out of range") (spbcBit miso)
+
+            pure
+                SpiPinsConf
+                    { spPinsOutAddr = outAddr
+                    , spPinsInAddr = inAddr
+                    , spCsBit = spbcBit cs
+                    , spClkBit = spbcBit clk
+                    , spMosiBit = spbcBit mosi
+                    , spMisoBit = spbcBit miso
+                    }

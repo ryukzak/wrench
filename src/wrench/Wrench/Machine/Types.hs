@@ -3,6 +3,8 @@ module Wrench.Machine.Types (
     Machine (..),
     Mem (..),
     IoMem (..),
+    SpiClockMode (..),
+    SpiPinsConf (..),
     SpiMisoShift (..),
     SpiDevice (..),
     mkIoMem,
@@ -213,10 +215,25 @@ data SpiMisoShift w = SpiMisoShift
     }
     deriving (Eq, Show)
 
+data SpiClockMode = SpiMode0 | SpiMode1 | SpiMode2 | SpiMode3
+    deriving (Eq, Show)
+
+data SpiPinsConf = SpiPinsConf
+    { spPinsOutAddr :: Int
+    , spPinsInAddr :: Int
+    , spCsBit :: Int
+    , spClkBit :: Int
+    , spMosiBit :: Int
+    , spMisoBit :: Int
+    }
+    deriving (Eq, Show)
+
 data SpiDevice w = SpiDevice
     { spiMisoPending :: [(w, Int)]
     , spiMisoConsumed :: [(w, Int)]
     , spiMosiLog :: [(w, Int)]
+    , spiClockMode :: SpiClockMode
+    , spiPins :: SpiPinsConf
     , spiCsPin :: Bool
     , spiClkPin :: Bool
     , spiMosiPin :: Bool
@@ -229,27 +246,42 @@ data SpiDevice w = SpiDevice
     deriving (Eq, Show)
 
 mkIoMem :: forall w isa. (ByteSizeT w, Num w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
-mkIoMem streams = mkIoMemWithSpi streams mempty
+mkIoMem streams = mkIoMemWithSpi streams mempty mempty mempty
 
 mkIoMemWithSpi ::
     forall w isa.
     (ByteSizeT w, Num w) =>
     IntMap ([w], [w])
     -> IntMap [(w, Int)]
+    -> IntMap SpiClockMode
+    -> IntMap SpiPinsConf
     -> Mem isa w
     -> IoMem isa w
-mkIoMemWithSpi streams spiInputs cells =
+mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
     IoMem
         { mIoStreams = streams
         , mSpiDevices =
             IM.fromList
                 $ map
                     ( \(base, misoData) ->
-                        ( base
+                        let mode = fromMaybe SpiMode0 (spiModes IM.!? base)
+                            pinsDefault =
+                                SpiPinsConf
+                                    { spPinsOutAddr = base
+                                    , spPinsInAddr = base + byteSizeT @w
+                                    , spCsBit = 0
+                                    , spClkBit = 1
+                                    , spMosiBit = 2
+                                    , spMisoBit = 0
+                                    }
+                            pins = fromMaybe pinsDefault (spiPins IM.!? base)
+                         in ( base
                             , SpiDevice
                                 { spiMisoPending = misoData
                                 , spiMisoConsumed = []
                                 , spiMosiLog = []
+                                , spiClockMode = mode
+                                , spiPins = pins
                                 , spiCsPin = True
                                 , spiClkPin = False
                                 , spiMosiPin = False
