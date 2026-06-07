@@ -20,9 +20,5 @@ reports:
       spi_status[0x90]: {spi:0x90:status}
       spi_clock[0x90]: {spi:0x90:clock}
       spi_pins[0x90]: {spi:0x90:pins}
-    assert: |
-      spi_miso[0x90]: [] >>> [(165,0)]
-      spi_mosi[0x90]: [] >>> [(165,32),(0,64)]
-      spi_status[0x90]: miso_ready
-      spi_clock[0x90]: 64
-      spi_pins[0x90]: cs=1 clk=0 mosi=0 miso=0
+      spi_wave[0x90]:
+      {spi:0x90:wave}

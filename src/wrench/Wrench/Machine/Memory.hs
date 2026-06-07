@@ -339,8 +339,31 @@ writeSpiPins _clock device word =
             then
                 let softClock' = oldSoftClock + 1
                     sampled = shiftMosi softClock' newMosi afterShift
-                 in sampled{spiSoftClock = softClock'}
-            else afterShift
+                 in rememberSpiPins sampled{spiSoftClock = softClock'}
+            else rememberSpiPins afterShift
+
+rememberSpiPins :: SpiDevice w -> SpiDevice w
+rememberSpiPins device@SpiDevice{spiWaveLog} =
+    let snapshot = spiPinsSnapshot device
+     in case reverse spiWaveLog of
+            old : _ | samePins old snapshot -> device
+            _ -> device{spiWaveLog = spiWaveLog <> [snapshot]}
+
+spiPinsSnapshot :: SpiDevice w -> SpiPinsSnapshot
+spiPinsSnapshot SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} =
+    SpiPinsSnapshot
+        { spsCsPin = spiCsPin
+        , spsClkPin = spiClkPin
+        , spsMosiPin = spiMosiPin
+        , spsMisoPin = spiMisoPin
+        }
+
+samePins :: SpiPinsSnapshot -> SpiPinsSnapshot -> Bool
+samePins a b =
+    spsCsPin a == spsCsPin b
+        && spsClkPin a == spsClkPin b
+        && spsMosiPin a == spsMosiPin b
+        && spsMisoPin a == spsMisoPin b
 
 spiModeSampleOnRising :: SpiClockMode -> Bool
 spiModeSampleOnRising SpiMode0 = True

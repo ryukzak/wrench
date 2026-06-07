@@ -5,6 +5,7 @@ module Wrench.Machine.Types (
     IoMem (..),
     SpiClockMode (..),
     SpiPinsConf (..),
+    SpiPinsSnapshot (..),
     SpiMisoShift (..),
     SpiDevice (..),
     mkIoMem,
@@ -228,6 +229,14 @@ data SpiPinsConf = SpiPinsConf
     }
     deriving (Eq, Show)
 
+data SpiPinsSnapshot = SpiPinsSnapshot
+    { spsCsPin :: Bool
+    , spsClkPin :: Bool
+    , spsMosiPin :: Bool
+    , spsMisoPin :: Bool
+    }
+    deriving (Eq, Show)
+
 data SpiDevice w = SpiDevice
     { spiMisoPending :: [(w, Int)]
     , spiMisoConsumed :: [(w, Int)]
@@ -242,6 +251,7 @@ data SpiDevice w = SpiDevice
     , spiMosiBits :: Int
     , spiMisoShift :: Maybe (SpiMisoShift w)
     , spiSoftClock :: Int
+    , spiWaveLog :: [SpiPinsSnapshot]
     }
     deriving (Eq, Show)
 
@@ -290,6 +300,14 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
                                 , spiMosiBits = 0
                                 , spiMisoShift = Nothing
                                 , spiSoftClock = 0
+                                , spiWaveLog =
+                                    [ SpiPinsSnapshot
+                                        { spsCsPin = True
+                                        , spsClkPin = False
+                                        , spsMosiPin = False
+                                        , spsMisoPin = False
+                                        }
+                                    ]
                                 }
                             )
                     )

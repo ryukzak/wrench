@@ -199,7 +199,38 @@ viewSpi "pins" addr st = case spiDevices st !? readAddr addr of
             <> " miso="
             <> pinBit spiMisoPin
     Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "wave" addr st = case spiDevices st !? readAddr addr of
+    Just SpiDevice{spiWaveLog} -> spiWaveText spiWaveLog
+    Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi fmt _addr _st = unknownFormat fmt
+
+spiWaveText :: [SpiPinsSnapshot] -> Text
+spiWaveText [] = ""
+spiWaveText xs =
+    T.intercalate
+        "\n"
+        [ "CS  : " <> waveLine spsCsPin xs
+        , "CLK : " <> waveLine spsClkPin xs
+        , "MOSI: " <> waveLine spsMosiPin xs
+        , "MISO: " <> waveLine spsMisoPin xs
+        ]
+
+waveLine :: (SpiPinsSnapshot -> Bool) -> [SpiPinsSnapshot] -> Text
+waveLine pin xs =
+    case map pin xs of
+        [] -> ""
+        firstBit : rest ->
+            T.concat $ level firstBit : zipWith edge (firstBit : rest) rest
+
+level :: Bool -> Text
+level True = "‾"
+level False = "_"
+
+edge :: Bool -> Bool -> Text
+edge False False = "__"
+edge False True = "_/"
+edge True False = "\\_"
+edge True True = "‾‾"
 
 spiStatusText :: Int -> SpiDevice w -> Text
 spiStatusText clock SpiDevice{spiMisoPending, spiMisoShift} =
