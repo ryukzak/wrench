@@ -1,6 +1,6 @@
 # SPI
 
-Wrench has one universal SPI model for all architectures. It implemented as software bitbang - you should control SPI maualy
+Wrench has one universal SPI model for all architectures. It is implemented as software bitbang, so you should control SPI manually
 
 ## Quick Terms
 
@@ -38,22 +38,38 @@ Signal meaning in the model:
 
 ## Memory-Mapped View
 
-For each SPI base address, the device uses two word cells:
+Each SPI device has a numeric id in the `spi` config section. This id is used only to select the device in config and reports.
 
-- output cell (`PINS_OUT`) for `CS/CLK/MOSI`
-- input cell (`PINS_IN`) for `MISO`
+The actual memory-mapped pins are configured separately. Each pin has:
 
-By default (32-bit, base `0x90`):
+- `address`: memory word address
+- `bit`: bit number inside that word
 
-- `0x90` -> output cell
-- `0x94` -> input cell
+For example, this maps one SPI device to addresses `0x90` and `0x94`:
 
-Default bit mapping:
+```yaml
+spi:
+  0:
+    mode: 0
+    cs_bit:
+      address: 0x90
+      bit: 0
+    clk_bit:
+      address: 0x90
+      bit: 1
+    mosi_bit:
+      address: 0x90
+      bit: 2
+    miso_bit:
+      address: 0x94
+      bit: 0
+```
 
-- `CS`   -> `0x90:0`
-- `CLK`  -> `0x90:1`
-- `MOSI` -> `0x90:2`
-- `MISO` -> `0x94:0`
+The example uses two cells intentionally. `CS/CLK/MOSI` are written by the program and `MISO` is read by the program. Keeping them separate makes the direction of each signal clear and avoids read/write ambiguity in memory-mapped IO
+
+When pins are placed on the same word address, the emulator still protects each pin by its exact `{ address, bit }` pair
+
+Pin addresses are not limited by the device id. You may connect pins to any memory word address, but one `{ address, bit }` pair can be assigned only once. This means several SPI devices may share one memory word when they use different bits. For example, `spi: 0` may use bits `0..3` of address `0x90`, and `spi: 1` may use bits `4..7` of the same address
 
 ## Configuration
 
@@ -61,12 +77,20 @@ Example config:
 
 ```yaml
 spi:
-  0x90:
+  0:
     mode: 0
-    cs_bit: 0x90:0
-    clk_bit: 0x90:1
-    mosi_bit: 0x90:2
-    miso_bit: 0x94:0
+    cs_bit:
+      address: 0x90
+      bit: 0
+    clk_bit:
+      address: 0x90
+      bit: 1
+    mosi_bit:
+      address: 0x90
+      bit: 2
+    miso_bit:
+      address: 0x94
+      bit: 0
     input:
       - at: 0
         word: 0xA5
@@ -79,17 +103,30 @@ spi:
 ### Required field
 
 - `mode`: one of `0`, `1`, `2`, `3`
+- `cs_bit`, `clk_bit`, `mosi_bit`, `miso_bit`
 
-### Optional pin remapping
+### Pin mapping
 
-- `cs_bit`, `clk_bit`, `mosi_bit`, `miso_bit` use format `<addr>:<bit>`
-- Example: `cs_bit: 0x90:5`
+- `cs_bit`, `clk_bit`, `mosi_bit`, `miso_bit` use `{ address, bit }`
+- Example:
+
+```yaml
+cs_bit:
+  address: 0x90
+  bit: 5
+```
+
+or
+
+```yaml
+cs_bit: { address: 0x90, bit: 5 }
+```
 
 Naturally occurring validation rules:
 
-- Address is limited to device range: `base` or `base + word_size`
-- `cs/clk/mosi` must point to one common output address
+- one `{ address, bit }` pair can be assigned only once
 - Bit index must fit word size
+- device id is only a number for config/report lookup, not a memory address
 
 ### Input format
 
@@ -159,6 +196,8 @@ Short memory rule:
 - `CPOL` tells where clock rests when idle
 - `CPHA` tells whether first active edge is `sample` (`0`) or `shift` (`1`)
 
+More details: [Clock polarity and phase](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Clock_polarity_and_phase)
+
 ## Tick Semantics
 
 SPI tick increments on sample edges while `CS=0`.
@@ -174,17 +213,33 @@ So `at` is not CPU instruction number; it is SPI edge-time in the transfer
 Available placeholders:
 
 ```text
-{spi:<base>:miso}
-{spi:<base>:mosi}
-{spi:<base>:status}
-{spi:<base>:clock}
-{spi:<base>:pins}
+{spi:<device_id>:miso}
+{spi:<device_id>:mosi}
+{spi:<device_id>:status}
+{spi:<device_id>:clock}
+{spi:<device_id>:pins}
+{spi:<device_id>:wave}
 ```
 
 - `status`:
     - `miso_ready` if data is ready at current SPI tick (or already loaded in shift register)
     - `miso_empty` otherwise
 - `clock` is current SPI tick
+- `wave` is an ASCII diagram of pin changes collected during simulation:
+
+```text
+CS  : ‾\___________________/‾
+CLK : ______/‾‾\__/‾‾\_______
+MOSI: _______________________
+MISO: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+```
+
+In wave output:
+
+- `_` means low level
+- `‾` means high level
+- `/` means rising edge
+- `\` means falling edge
 
 Example:
 
@@ -195,9 +250,11 @@ reports:
     filter:
       - state
     view: |
-      spi_miso[0x90]: {spi:0x90:miso}
-      spi_mosi[0x90]: {spi:0x90:mosi}
-      spi_status[0x90]: {spi:0x90:status}
-      spi_clock[0x90]: {spi:0x90:clock}
-      spi_pins[0x90]: {spi:0x90:pins}
+      spi_miso[0]: {spi:0:miso}
+      spi_mosi[0]: {spi:0:mosi}
+      spi_status[0]: {spi:0:status}
+      spi_clock[0]: {spi:0:clock}
+      spi_pins[0]: {spi:0:pins}
+      spi_wave[0]:
+      {spi:0:wave}
 ```
