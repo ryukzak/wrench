@@ -205,12 +205,12 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         mapSpiPins base SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
             let defaultOut = base
                 defaultIn = base + byteSizeT @w
-                cs = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 0} spfCsBit
-                clk = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 1} spfClkBit
-                mosi = fromMaybe SpiPortBitConf{spbcAddr = defaultOut, spbcBit = 2} spfMosiBit
-                miso = fromMaybe SpiPortBitConf{spbcAddr = defaultIn, spbcBit = 0} spfMisoBit
-                outAddr = spbcAddr cs
-                inAddr = spbcAddr miso
+                cs = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 0} spfCsBit
+                clk = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 1} spfClkBit
+                mosi = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 2} spfMosiBit
+                miso = fromMaybe SpiPortBitConf{spbcAddress = defaultIn, spbcBit = 0} spfMisoBit
+                outAddr = spbcAddress cs
+                inAddr = spbcAddress miso
                 validAddr a = a == base || a == base + byteSizeT @w
                 maxBit = byteSizeT @w * 8 - 1
                 validBit b = 0 <= b && b <= maxBit
@@ -219,10 +219,10 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
 
             withAddr ("spi[" <> show base <> "]: pin address must be inside device range") outAddr
             withAddr ("spi[" <> show base <> "]: pin address must be inside device range") inAddr
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddr clk)
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddr mosi)
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddress clk)
+            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddress mosi)
 
-            when (spbcAddr clk /= outAddr || spbcAddr mosi /= outAddr)
+            when (spbcAddress clk /= outAddr || spbcAddress mosi /= outAddr)
                 $ Left ("spi[" <> show base <> "]: cs/clk/mosi must target one output address")
 
             withBit ("spi[" <> show base <> "]: cs bit is out of range") (spbcBit cs)

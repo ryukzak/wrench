@@ -9,7 +9,6 @@ module Wrench.Config (
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, withObject, (.:), (.:?))
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Default
-import Data.Text qualified as T
 import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
@@ -155,21 +154,13 @@ instance FromJSON SpiPinsConfFlat where
     parseJSON = genericParseJSON $ aesonDrop 3 snakeCase
 
 data SpiPortBitConf = SpiPortBitConf
-    { spbcAddr :: Int
+    { spbcAddress :: Int
     , spbcBit :: Int
     }
-    deriving (Eq, Show)
+    deriving (Eq, Generic, Show)
 
 instance FromJSON SpiPortBitConf where
-    parseJSON (String t) =
-        let chunks = T.splitOn ":" t
-         in case chunks of
-                [addrRaw, bitRaw] ->
-                    case (readMaybe (toString addrRaw), readMaybe (toString bitRaw)) of
-                        (Just addr, Just bit) -> pure SpiPortBitConf{spbcAddr = addr, spbcBit = bit}
-                        _ -> fail "invalid spi pin mapping, expected <addr>:<bit>"
-                _ -> fail "invalid spi pin mapping, expected <addr>:<bit>"
-    parseJSON _ = fail "invalid spi pin mapping, expected string <addr>:<bit>"
+    parseJSON = genericParseJSON $ aesonDrop 4 snakeCase
 
 data SpiInput
     = SpiByteAt Int Int
