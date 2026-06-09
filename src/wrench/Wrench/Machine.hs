@@ -65,15 +65,17 @@ simulateInstructionStep =
 
 simulate' :: (Machine st isa w) => State (Simulation st isa) ()
 simulate' = do
-    Simulation{machineState, instructionCount, instructionLimits} <- get
+    Simulation{machineState = stateBefore, instructionCount, instructionLimits} <- get
     if instructionCount >= instructionLimits
         then tellError "Simulation limit reached"
-        else case evalState instructionFetch machineState of
+        else case evalState instructionFetch stateBefore of
             Right _ -> do
-                tellState machineState
+                tellState stateBefore
                 simulateInstructionStep
                 simulate'
-            Left err | err == halted -> return ()
+            Left err | err == halted -> do
+                Simulation{machineState = stateAfter} <- get
+                tellState stateAfter
             Left err -> tellError err
 
 powerOn ::
