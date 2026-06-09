@@ -118,10 +118,10 @@ flattenIoStream memory_mapped_io =
 
 data SpiConfig = SpiConfig
     { scMode :: SpiClockModeConf
-    , scCsBit :: Maybe SpiPortBitConf
-    , scClkBit :: Maybe SpiPortBitConf
-    , scMosiBit :: Maybe SpiPortBitConf
-    , scMisoBit :: Maybe SpiPortBitConf
+    , scCsBit :: SpiPortBitConf
+    , scClkBit :: SpiPortBitConf
+    , scMosiBit :: SpiPortBitConf
+    , scMisoBit :: SpiPortBitConf
     , scInput :: [SpiInput]
     }
     deriving (Generic, Show)
@@ -143,10 +143,10 @@ instance FromJSON SpiClockModeConf where
             _ -> fail "invalid spi mode, expected 0|1|2|3"
 
 data SpiPinsConfFlat = SpiPinsConfFlat
-    { spfCsBit :: Maybe SpiPortBitConf
-    , spfClkBit :: Maybe SpiPortBitConf
-    , spfMosiBit :: Maybe SpiPortBitConf
-    , spfMisoBit :: Maybe SpiPortBitConf
+    { spfCsBit :: SpiPortBitConf
+    , spfClkBit :: SpiPortBitConf
+    , spfMosiBit :: SpiPortBitConf
+    , spfMisoBit :: SpiPortBitConf
     }
     deriving (Eq, Generic, Show)
 

@@ -275,16 +275,10 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
                 $ map
                     ( \(base, misoData) ->
                         let mode = fromMaybe SpiMode0 (spiModes IM.!? base)
-                            pinsDefault =
-                                SpiPinsConf
-                                    { spPinsOutAddr = base
-                                    , spPinsInAddr = base + byteSizeT @w
-                                    , spCsBit = 0
-                                    , spClkBit = 1
-                                    , spMosiBit = 2
-                                    , spMisoBit = 0
-                                    }
-                            pins = fromMaybe pinsDefault (spiPins IM.!? base)
+                            pins =
+                                fromMaybe
+                                    (error $ "internal error: missing SPI pin mapping for " <> show base)
+                                    (spiPins IM.!? base)
                          in ( base
                             , SpiDevice
                                 { spiMisoPending = misoData

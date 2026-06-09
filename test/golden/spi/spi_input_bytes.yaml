@@ -4,6 +4,18 @@ memory_size: 0x1000
 spi:
   0x90:
     mode: 0
+    cs_bit:
+      address: 0x90
+      bit: 0
+    clk_bit:
+      address: 0x90
+      bit: 1
+    mosi_bit:
+      address: 0x90
+      bit: 2
+    miso_bit:
+      address: 0x94
+      bit: 0
     input:
       - at: 0
         bytes: [0x12, 0x34]

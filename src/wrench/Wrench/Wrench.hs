@@ -203,12 +203,10 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             SpiCfgMode3 -> Wrench.Machine.Types.SpiMode3
 
         mapSpiPins base SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
-            let defaultOut = base
-                defaultIn = base + byteSizeT @w
-                cs = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 0} spfCsBit
-                clk = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 1} spfClkBit
-                mosi = fromMaybe SpiPortBitConf{spbcAddress = defaultOut, spbcBit = 2} spfMosiBit
-                miso = fromMaybe SpiPortBitConf{spbcAddress = defaultIn, spbcBit = 0} spfMisoBit
+            let cs = spfCsBit
+                clk = spfClkBit
+                mosi = spfMosiBit
+                miso = spfMisoBit
                 outAddr = spbcAddress cs
                 inAddr = spbcAddress miso
                 validAddr a = a == base || a == base + byteSizeT @w
