@@ -45,9 +45,9 @@ data Config = Config
     , cMemoryMappedIoFlat :: Maybe (IntMap ([Int], [Int]))
     -- ^ (generated) Flattened memory-mapped IO configuration, mapping addresses to pairs of input and output lists.
     , cSpi :: Maybe (HashMap String SpiConfig)
-    -- ^ Optional SPI configuration, mapping device base address to scheduled input values.
+    -- ^ Optional SPI configuration, mapping device id to scheduled input values.
     , cSpiFlat :: Maybe (IntMap [(Int, Int)])
-    -- ^ (generated) Flattened SPI configuration, mapping device base address to (value, tick) pairs.
+    -- ^ (generated) Flattened SPI configuration, mapping device id to (value, tick) pairs.
     , cSpiModeFlat :: Maybe (IntMap SpiClockModeConf)
     -- ^ (generated) Flattened SPI mode number per device.
     , cSpiPinsFlat :: Maybe (IntMap SpiPinsConfFlat)

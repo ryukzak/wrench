@@ -1,14 +1,14 @@
     .data
 
-spi_base:       .word  0x90
+spi_pins:       .word  0x90
 
     .text
 
 _start:
     ; This test focuses on config format `input: [{at, byte}]`
     ; Program reads words until it receives NULL
-    lui      t0, %hi(spi_base)
-    addi     t0, t0, %lo(spi_base)
+    lui      t0, %hi(spi_pins)
+    addi     t0, t0, %lo(spi_pins)
     lw       t0, 0(t0)
 
     addi     t1, t0, 0        ; SPI_PINS_OUT

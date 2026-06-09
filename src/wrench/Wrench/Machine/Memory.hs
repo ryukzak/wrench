@@ -194,79 +194,51 @@ ioPortByteCollision io addr =
 
 ioWordKeys :: forall w isa. IoMem isa w -> [Int]
 ioWordKeys IoMem{mIoKeys, mSpiDevices} =
-    mIoKeys <> concatMap (\d -> [pinOutAddr d, pinInAddr d]) (elems mSpiDevices)
+    mIoKeys <> spiWordKeys mSpiDevices
 
-data SpiRegister = SpiPinsOut | SpiPinsIn
+spiWordKeys :: IntMap (SpiDevice w) -> [Int]
+spiWordKeys devices = ordNub $ concatMap spiDeviceAddrs (elems devices)
 
-pinOutAddr :: SpiDevice w -> Int
-pinOutAddr SpiDevice{spiPins = SpiPinsConf{spPinsOutAddr}} = spPinsOutAddr
+spiDeviceAddrs :: SpiDevice w -> [Int]
+spiDeviceAddrs SpiDevice{spiPins = SpiPinsConf{spCsAddr, spClkAddr, spMosiAddr, spMisoAddr}} =
+    [spCsAddr, spClkAddr, spMosiAddr, spMisoAddr]
 
-pinInAddr :: SpiDevice w -> Int
-pinInAddr SpiDevice{spiPins = SpiPinsConf{spPinsInAddr}} = spPinsInAddr
+spiOutputAddrs :: IntMap (SpiDevice w) -> [Int]
+spiOutputAddrs devices = ordNub $ concatMap spiDeviceOutputAddrs (elems devices)
 
-findSpiRegister :: forall w isa. Bool -> IoMem isa w -> Int -> Maybe (Int, SpiRegister)
-findSpiRegister preferIn IoMem{mSpiKeys, mSpiDevices} addr =
-    asum $ map match mSpiKeys
-    where
-        match base
-            | Just device <- mSpiDevices !? base =
-                let outMatch = addr == pinOutAddr device
-                    inMatch = addr == pinInAddr device
-                 in case (outMatch, inMatch, preferIn) of
-                        (True, True, True) -> Just (base, SpiPinsIn)
-                        (True, True, False) -> Just (base, SpiPinsOut)
-                        (True, False, _) -> Just (base, SpiPinsOut)
-                        (False, True, _) -> Just (base, SpiPinsIn)
-                        _ -> Nothing
-            | otherwise = Nothing
+spiDeviceOutputAddrs :: SpiDevice w -> [Int]
+spiDeviceOutputAddrs SpiDevice{spiPins = SpiPinsConf{spCsAddr, spClkAddr, spMosiAddr}} =
+    [spCsAddr, spClkAddr, spMosiAddr]
 
-findSpiByteRegister :: forall w isa. (ByteSizeT w) => Bool -> IoMem isa w -> Int -> Maybe (SpiRegister, Int, Int)
-findSpiByteRegister preferIn IoMem{mSpiKeys, mSpiDevices} addr =
-    asum $ map match mSpiKeys
+findSpiByteRegister :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Maybe (Int, Int)
+findSpiByteRegister IoMem{mSpiDevices} addr =
+    asum $ map match (spiWordKeys mSpiDevices)
     where
         wordSize = byteSizeT @w
-        match base
-            | Just device <- mSpiDevices !? base
-            , let outAddr = pinOutAddr device
-            , outAddr <= addr
-            , addr < outAddr + wordSize =
-                if preferIn && pinInAddr device == outAddr
-                    then Nothing
-                    else Just (SpiPinsOut, addr - outAddr, outAddr)
-            | Just device <- mSpiDevices !? base
-            , let inAddr = pinInAddr device
-            , inAddr <= addr
-            , addr < inAddr + wordSize =
-                Just (SpiPinsIn, addr - inAddr, inAddr)
+        match wordAddr
+            | wordAddr <= addr && addr < wordAddr + wordSize =
+                Just (addr - wordAddr, wordAddr)
             | otherwise =
                 Nothing
 
 readSpiWord :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Maybe (Either Text (IoMem isa w, w))
 readSpiWord io@IoMem{mSpiDevices} addr =
-    findSpiRegister @w True io addr <&> \(base, register) ->
-        case mSpiDevices !? base of
-            Nothing -> Left $ "iomemory[" <> show addr <> "]: unknown SPI device"
-            Just device ->
-                case register of
-                    SpiPinsOut -> Right (io, spiPinsOutWord device)
-                    SpiPinsIn -> Right (io, spiPinsInWord device)
+    if addr `elem` spiWordKeys mSpiDevices
+        then Just $ Right (io, spiPinsWord addr mSpiDevices)
+        else Nothing
 
 writeSpiWord :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> w -> Maybe (Either Text (IoMem isa w))
-writeSpiWord io@IoMem{mSpiDevices, mClock} addr word =
-    findSpiRegister @w False io addr <&> \(base, register) ->
-        case mSpiDevices !? base of
-            Nothing -> Left $ "iomemory[" <> show addr <> "]: unknown SPI device"
-            Just device ->
-                case register of
-                    SpiPinsIn ->
-                        Left $ "iomemory[" <> show addr <> "]: can't write to SPI pins-in register"
-                    SpiPinsOut ->
-                        let device' = writeSpiPins mClock device word
-                         in Right io{mSpiDevices = insert base device' mSpiDevices}
+writeSpiWord io@IoMem{mSpiDevices, mClock} addr word
+    | addr `notElem` spiWordKeys mSpiDevices = Nothing
+    | addr `notElem` spiOutputAddrs mSpiDevices =
+        Just $ Left $ "iomemory[" <> show addr <> "]: can't write to SPI input-only pin address"
+    | otherwise =
+        let devices' = fmap (writeSpiPins mClock addr word) mSpiDevices
+         in Just $ Right io{mSpiDevices = devices'}
 
 readSpiByte :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Maybe (Either Text (IoMem isa w, Word8))
 readSpiByte io addr =
-    findSpiByteRegister @w True io addr <&> \(_register, offset, wordAddr) -> do
+    findSpiByteRegister @w io addr <&> \(offset, wordAddr) -> do
         case readSpiWord io wordAddr of
             Just result -> do
                 (io', word) <- result
@@ -275,10 +247,9 @@ readSpiByte io addr =
 
 writeSpiByte :: forall w isa. (MachineWord w) => IoMem isa w -> Int -> Word8 -> Maybe (Either Text (IoMem isa w))
 writeSpiByte io addr byte =
-    findSpiByteRegister @w False io addr <&> \(register, offset, wordAddr) ->
-        case (register, offset) of
-            (SpiPinsOut, 0) -> fromMaybe (Left $ "iomemory[" <> show addr <> "]: unknown SPI device") $ writeSpiWord io wordAddr (byteToWord byte)
-            (SpiPinsIn, 0) -> Left $ "iomemory[" <> show addr <> "]: can't write to SPI pins-in register"
+    findSpiByteRegister @w io addr <&> \(offset, wordAddr) ->
+        case offset of
+            0 -> fromMaybe (Left $ "iomemory[" <> show addr <> "]: unknown SPI device") $ writeSpiWord io wordAddr (byteToWord byte)
             _ -> Left $ "iomemory[" <> show addr <> "]: can't write byte to SPI register part"
 
 popAvailableMiso :: Int -> [(w, Int)] -> Maybe ((w, Int), [(w, Int)])
@@ -289,42 +260,59 @@ popAvailableMiso clock = go []
             | arrivalTick <= clock = Just (entry, reverse earlier <> rest)
             | otherwise = go (entry : earlier) rest
 
-spiPinsOutWord :: (Bits w, Num w) => SpiDevice w -> w
-spiPinsOutWord SpiDevice{spiPins = SpiPinsConf{spCsBit, spClkBit, spMosiBit}, spiCsPin, spiClkPin, spiMosiPin} =
-    bitWord spCsBit spiCsPin .|. bitWord spClkBit spiClkPin .|. bitWord spMosiBit spiMosiPin
+spiPinsWord :: (Bits w, Num w) => Int -> IntMap (SpiDevice w) -> w
+spiPinsWord addr devices =
+    foldl' (.|.) 0 $ map (spiDevicePinsWord addr) (elems devices)
 
-spiPinsInWord :: (Bits w, Num w) => SpiDevice w -> w
-spiPinsInWord SpiDevice{spiPins = SpiPinsConf{spMisoBit}, spiMisoPin} = bitWord spMisoBit spiMisoPin
+spiDevicePinsWord :: (Bits w, Num w) => Int -> SpiDevice w -> w
+spiDevicePinsWord
+    addr
+    SpiDevice
+        { spiPins = SpiPinsConf{spCsAddr, spCsBit, spClkAddr, spClkBit, spMosiAddr, spMosiBit, spMisoAddr, spMisoBit}
+        , spiCsPin
+        , spiClkPin
+        , spiMosiPin
+        , spiMisoPin
+        } =
+        pinBitWord spCsAddr spCsBit spiCsPin
+            .|. pinBitWord spClkAddr spClkBit spiClkPin
+            .|. pinBitWord spMosiAddr spMosiBit spiMosiPin
+            .|. pinBitWord spMisoAddr spMisoBit spiMisoPin
+        where
+            pinBitWord pinAddr pinBit value =
+                if pinAddr == addr then bitWord pinBit value else 0
 
 bitWord :: (Bits w, Num w) => Int -> Bool -> w
 bitWord idx enabled = if enabled then bit idx else 0
 
-writeSpiPins :: forall w. (MachineWord w) => Int -> SpiDevice w -> w -> SpiDevice w
-writeSpiPins _clock device word =
+writeSpiPins :: forall w. (MachineWord w) => Int -> Int -> w -> SpiDevice w -> SpiDevice w
+writeSpiPins _clock addr word device =
     let oldCs = spiCsPin device
         oldClk = spiClkPin device
         oldSoftClock = spiSoftClock device
-        SpiPinsConf{spCsBit, spClkBit, spMosiBit} = spiPins device
+        SpiPinsConf{spCsAddr, spCsBit, spClkAddr, spClkBit, spMosiAddr, spMosiBit} = spiPins device
         mode = spiClockMode device
-        newCs = testBit word spCsBit
-        newClk = testBit word spClkBit
-        newMosi = testBit word spMosiBit
-        baseDevice =
+        newCs = updatePin spCsAddr spCsBit oldCs
+        newClk = updatePin spClkAddr spClkBit oldClk
+        newMosi = updatePin spMosiAddr spMosiBit (spiMosiPin device)
+        updatePin pinAddr pinBit oldValue =
+            if pinAddr == addr then testBit word pinBit else oldValue
+        deviceWithNewPins =
             device
                 { spiCsPin = newCs
                 , spiClkPin = newClk
                 , spiMosiPin = newMosi
                 }
-        afterCs =
+        deviceAfterCs =
             if oldCs && not newCs
                 then
                     if spiModePrimeOnActivate mode
-                        then primeMiso oldSoftClock baseDevice
-                        else baseDevice{spiMisoPin = False}
+                        then primeMiso oldSoftClock deviceWithNewPins
+                        else deviceWithNewPins{spiMisoPin = False}
                 else
                     if newCs
-                        then baseDevice{spiMisoPin = False, spiMosiShift = 0, spiMosiBits = 0}
-                        else baseDevice
+                        then deviceWithNewPins{spiMisoPin = False, spiMosiShift = 0, spiMosiBits = 0}
+                        else deviceWithNewPins
         active = not newCs
         onRising = (not oldClk) && newClk
         onFalling = oldClk && (not newClk)
@@ -333,8 +321,8 @@ writeSpiPins _clock device word =
         shiftEdge = active && ((sampleOnRising && onFalling) || ((not sampleOnRising) && onRising))
         afterShift =
             if shiftEdge
-                then shiftMiso oldSoftClock afterCs
-                else afterCs
+                then shiftMiso oldSoftClock deviceAfterCs
+                else deviceAfterCs
      in if sampleEdge
             then
                 let softClock' = oldSoftClock + 1
@@ -360,10 +348,14 @@ spiPinsSnapshot SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} =
 
 samePins :: SpiPinsSnapshot -> SpiPinsSnapshot -> Bool
 samePins a b =
-    spsCsPin a == spsCsPin b
-        && spsClkPin a == spsClkPin b
-        && spsMosiPin a == spsMosiPin b
-        && spsMisoPin a == spsMisoPin b
+    spsCsPin a
+        == spsCsPin b
+        && spsClkPin a
+        == spsClkPin b
+        && spsMosiPin a
+        == spsMosiPin b
+        && spsMisoPin a
+        == spsMisoPin b
 
 spiModeSampleOnRising :: SpiClockMode -> Bool
 spiModeSampleOnRising SpiMode0 = True

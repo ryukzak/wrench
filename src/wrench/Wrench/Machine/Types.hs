@@ -220,11 +220,13 @@ data SpiClockMode = SpiMode0 | SpiMode1 | SpiMode2 | SpiMode3
     deriving (Eq, Show)
 
 data SpiPinsConf = SpiPinsConf
-    { spPinsOutAddr :: Int
-    , spPinsInAddr :: Int
+    { spCsAddr :: Int
     , spCsBit :: Int
+    , spClkAddr :: Int
     , spClkBit :: Int
+    , spMosiAddr :: Int
     , spMosiBit :: Int
+    , spMisoAddr :: Int
     , spMisoBit :: Int
     }
     deriving (Eq, Show)
@@ -273,13 +275,13 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
         , mSpiDevices =
             IM.fromList
                 $ map
-                    ( \(base, misoData) ->
-                        let mode = fromMaybe SpiMode0 (spiModes IM.!? base)
+                    ( \(deviceId, misoData) ->
+                        let mode = fromMaybe SpiMode0 (spiModes IM.!? deviceId)
                             pins =
                                 fromMaybe
-                                    (error $ "internal error: missing SPI pin mapping for " <> show base)
-                                    (spiPins IM.!? base)
-                         in ( base
+                                    (error $ "internal error: missing SPI pin mapping for " <> show deviceId)
+                                    (spiPins IM.!? deviceId)
+                         in ( deviceId
                             , SpiDevice
                                 { spiMisoPending = misoData
                                 , spiMisoConsumed = []

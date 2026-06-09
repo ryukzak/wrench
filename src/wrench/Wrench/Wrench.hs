@@ -165,6 +165,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         spiInputs = fmap (map (first int2mword)) $ fromMaybe mempty cSpiFlat
         spiModes = fmap mapSpiMode $ fromMaybe mempty cSpiModeFlat
     spiPins <- IM.traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
+    validateSpiPinUsage spiPins
     let randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
         ioDump = mkIoMemWithSpi mIoStreams spiInputs spiModes spiPins dump
         st :: st = initState (fromEnum pc) ioDump randomStream
@@ -202,38 +203,58 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             SpiCfgMode2 -> Wrench.Machine.Types.SpiMode2
             SpiCfgMode3 -> Wrench.Machine.Types.SpiMode3
 
-        mapSpiPins base SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
+        mapSpiPins deviceId SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
             let cs = spfCsBit
                 clk = spfClkBit
                 mosi = spfMosiBit
                 miso = spfMisoBit
-                outAddr = spbcAddress cs
-                inAddr = spbcAddress miso
-                validAddr a = a == base || a == base + byteSizeT @w
                 maxBit = byteSizeT @w * 8 - 1
                 validBit b = 0 <= b && b <= maxBit
-                withAddr msg a = if validAddr a then Right () else Left msg
                 withBit msg b = if validBit b then Right () else Left msg
 
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") outAddr
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") inAddr
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddress clk)
-            withAddr ("spi[" <> show base <> "]: pin address must be inside device range") (spbcAddress mosi)
-
-            when (spbcAddress clk /= outAddr || spbcAddress mosi /= outAddr)
-                $ Left ("spi[" <> show base <> "]: cs/clk/mosi must target one output address")
-
-            withBit ("spi[" <> show base <> "]: cs bit is out of range") (spbcBit cs)
-            withBit ("spi[" <> show base <> "]: clk bit is out of range") (spbcBit clk)
-            withBit ("spi[" <> show base <> "]: mosi bit is out of range") (spbcBit mosi)
-            withBit ("spi[" <> show base <> "]: miso bit is out of range") (spbcBit miso)
+            withBit ("spi[" <> show deviceId <> "]: cs bit is out of range") (spbcBit cs)
+            withBit ("spi[" <> show deviceId <> "]: clk bit is out of range") (spbcBit clk)
+            withBit ("spi[" <> show deviceId <> "]: mosi bit is out of range") (spbcBit mosi)
+            withBit ("spi[" <> show deviceId <> "]: miso bit is out of range") (spbcBit miso)
 
             pure
                 SpiPinsConf
-                    { spPinsOutAddr = outAddr
-                    , spPinsInAddr = inAddr
+                    { spCsAddr = spbcAddress cs
                     , spCsBit = spbcBit cs
+                    , spClkAddr = spbcAddress clk
                     , spClkBit = spbcBit clk
+                    , spMosiAddr = spbcAddress mosi
                     , spMosiBit = spbcBit mosi
+                    , spMisoAddr = spbcAddress miso
                     , spMisoBit = spbcBit miso
                     }
+
+        validateSpiPinUsage :: IntMap SpiPinsConf -> Either Text ()
+        validateSpiPinUsage spiPins =
+            case findDuplicatePin (concatMap pinRefs (toPairs spiPins)) of
+                Nothing -> Right ()
+                Just (pin, owners) ->
+                    Left
+                        $ "spi pin "
+                        <> showPin pin
+                        <> " is assigned more than once: "
+                        <> T.intercalate ", " owners
+
+        pinRefs :: (Int, SpiPinsConf) -> [((Int, Int), Text)]
+        pinRefs (deviceId, SpiPinsConf{spCsAddr, spCsBit, spClkAddr, spClkBit, spMosiAddr, spMosiBit, spMisoAddr, spMisoBit}) =
+            [ ((spCsAddr, spCsBit), "spi[" <> show deviceId <> "]:cs")
+            , ((spClkAddr, spClkBit), "spi[" <> show deviceId <> "]:clk")
+            , ((spMosiAddr, spMosiBit), "spi[" <> show deviceId <> "]:mosi")
+            , ((spMisoAddr, spMisoBit), "spi[" <> show deviceId <> "]:miso")
+            ]
+
+        findDuplicatePin :: [((Int, Int), Text)] -> Maybe ((Int, Int), [Text])
+        findDuplicatePin [] = Nothing
+        findDuplicatePin ((pin, owner) : rest) =
+            let samePinOwners = [otherOwner | (otherPin, otherOwner) <- rest, otherPin == pin]
+             in if null samePinOwners
+                    then findDuplicatePin rest
+                    else Just (pin, owner : samePinOwners)
+
+        showPin :: (Int, Int) -> Text
+        showPin (addr, bit) = show addr <> ":" <> show bit

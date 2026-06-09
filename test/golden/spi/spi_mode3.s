@@ -1,13 +1,13 @@
     .data
 
-spi_base:       .word  0x90
+spi_pins:       .word  0x90
 
     .text
 
 _start:
-    ; Load SPI base.
-    lui      t0, %hi(spi_base)
-    addi     t0, t0, %lo(spi_base)
+    ; Load first SPI pin word address used by this program
+    lui      t0, %hi(spi_pins)
+    addi     t0, t0, %lo(spi_pins)
     lw       t0, 0(t0)
 
     addi     t1, t0, 0        ; SPI_PINS_OUT

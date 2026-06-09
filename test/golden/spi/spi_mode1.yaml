@@ -2,7 +2,7 @@ name: "SPI mode 1 echo"
 limit: 2000
 memory_size: 0x1000
 spi:
-  0x90:
+  0:
     mode: 1
     cs_bit:
       address: 0x90
@@ -27,10 +27,8 @@ reports:
     filter:
       - state
     view: |
-      spi_miso[0x90]: {spi:0x90:miso}
-      spi_mosi[0x90]: {spi:0x90:mosi}
-      spi_status[0x90]: {spi:0x90:status}
-      spi_clock[0x90]: {spi:0x90:clock}
-      spi_pins[0x90]: {spi:0x90:pins}
-      spi_wave[0x90]:
-      {spi:0x90:wave}
+      spi_miso[0]: {spi:0:miso}
+      spi_mosi[0]: {spi:0:mosi}
+      spi_status[0]: {spi:0:status}
+      spi_clock[0]: {spi:0:clock}
+      spi_pins[0]: {spi:0:pins}

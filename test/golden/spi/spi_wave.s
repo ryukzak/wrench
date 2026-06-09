@@ -6,7 +6,7 @@ spi_in:         .word  0x94
     .text
 
 _start:
-    ; Custom pin mapping test:
+    ; Wave report test with non-standard pin mapping:
     ;   CS   -> addr 0x90 bit 5
     ;   CLK  -> addr 0x90 bit 6
     ;   MOSI -> addr 0x90 bit 7
