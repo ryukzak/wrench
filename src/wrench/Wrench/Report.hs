@@ -14,6 +14,7 @@ module Wrench.Report (
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
+import Data.Bifunctor qualified as Bi
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
@@ -218,14 +219,23 @@ spiWaveText xs =
             ]
 
 spiWaveBlockWidth :: Int
-spiWaveBlockWidth = 100
+spiWaveBlockWidth = spiWaveBlockTicks * spiWaveTickWidth
+
+spiWaveBlockTicks :: Int
+spiWaveBlockTicks = 25
+
+spiWaveTickWidth :: Int
+spiWaveTickWidth = 4
+
+spiWaveTickLabelStep :: Int
+spiWaveTickLabelStep = 5
 
 waveBlocks :: Int -> [(Text, Text)] -> [[(Text, Text)]]
 waveBlocks width lines'
     | all (T.null . snd) lines' = []
     | otherwise =
-        let block = map (\(name, line) -> (name, T.take width line)) lines'
-            rest = map (\(name, line) -> (name, T.drop width line)) lines'
+        let block = map (Bi.second (T.take width)) lines'
+            rest = map (Bi.second (T.drop width)) lines'
          in block : waveBlocks width rest
 
 renderWaveBlock :: [(Text, Text)] -> Text
@@ -236,52 +246,59 @@ renderWaveBlock block =
 
 tickLine :: [SpiPinsSnapshot] -> Text
 tickLine xs =
-    toText $ addTickLabels (waveWidth xs) (tickLabels xs)
+    T.concat [tickCell tick | tick <- waveTicks xs]
 
-waveWidth :: [SpiPinsSnapshot] -> Int
-waveWidth [] = 0
-waveWidth xs = 1 + 2 * (length xs - 1)
+tickCell :: Int -> Text
+tickCell tick
+    | tick `mod` spiWaveTickLabelStep == 0 = T.take spiWaveTickWidth $ show tick <> T.replicate spiWaveTickWidth " "
+    | otherwise = T.replicate spiWaveTickWidth " "
 
-tickLabels :: [SpiPinsSnapshot] -> [(Int, String)]
-tickLabels = go 0 Nothing
-    where
-        go :: Int -> Maybe Int -> [SpiPinsSnapshot] -> [(Int, String)]
-        go _ _ [] = []
-        go idx lastTick (snapshot : rest) =
-            let tick = spsTick snapshot
-                shouldShow = tick `mod` 10 == 0 && Just tick /= lastTick
-                label = show tick
-                restLabels = go (idx + 1) (if shouldShow then Just tick else lastTick) rest
-             in if shouldShow
-                    then (idx * 2, label) : restLabels
-                    else restLabels
-
-addTickLabels :: Int -> [(Int, String)] -> String
-addTickLabels width labels =
-    foldl' addOneLabel (replicate width ' ') labels
-    where
-        addOneLabel line (idx, label) =
-            let lineBefore = take idx line
-                lineAfter = drop (idx + length label) line
-                label' = take (width - idx) label
-             in lineBefore <> label' <> lineAfter
+waveTicks :: [SpiPinsSnapshot] -> [Int]
+waveTicks [] = []
+waveTicks (firstSnapshot : rest) =
+    [spsTick firstSnapshot .. spsTick (lastSnapshot firstSnapshot rest)]
 
 waveLine :: (SpiPinsSnapshot -> Bool) -> [SpiPinsSnapshot] -> Text
-waveLine pin xs =
-    case map pin xs of
-        [] -> ""
-        firstBit : rest ->
-            T.concat $ level firstBit : zipWith edge (firstBit : rest) rest
+waveLine _ [] = ""
+waveLine pin (firstSnapshot : rest) =
+    T.concat $ waveLineCells pin firstSnapshot (snapshotsByTick (firstSnapshot : rest))
 
-level :: Bool -> Text
-level True = "‾"
-level False = "_"
+waveLineCells :: (SpiPinsSnapshot -> Bool) -> SpiPinsSnapshot -> [[SpiPinsSnapshot]] -> [Text]
+waveLineCells _ _ [] = []
+waveLineCells pin previous (snapshots : rest) =
+    let bits = map pin snapshots
+        cell = waveCell (pin previous) bits
+        previous' = lastSnapshot previous snapshots
+     in cell : waveLineCells pin previous' rest
 
-edge :: Bool -> Bool -> Text
-edge False False = "__"
-edge False True = "_/"
-edge True False = "\\_"
-edge True True = "‾‾"
+snapshotsByTick :: [SpiPinsSnapshot] -> [[SpiPinsSnapshot]]
+snapshotsByTick [] = []
+snapshotsByTick xs =
+    [filter (\snapshot -> spsTick snapshot == tick) xs | tick <- waveTicks xs]
+
+lastSnapshot :: SpiPinsSnapshot -> [SpiPinsSnapshot] -> SpiPinsSnapshot
+lastSnapshot previous [] = previous
+lastSnapshot _ (snapshot : rest) = lastSnapshot snapshot rest
+
+waveCell :: Bool -> [Bool] -> Text
+waveCell firstBit bits =
+    T.pack $ take spiWaveTickWidth $ drawBits (firstBit : bits)
+
+drawBits :: [Bool] -> String
+drawBits [] = []
+drawBits [bit] = repeat $ levelChar bit
+drawBits (a : b : rest)
+    | a == b = levelChar a : drawBits (b : rest)
+    | otherwise = levelChar a : edgeChar a b : drawBits (b : rest)
+
+levelChar :: Bool -> Char
+levelChar True = '‾'
+levelChar False = '_'
+
+edgeChar :: Bool -> Bool -> Char
+edgeChar False True = '/'
+edgeChar True False = '\\'
+edgeChar _ _ = '_'
 
 spiStatusText :: Int -> SpiDevice w -> Text
 spiStatusText clock SpiDevice{spiMisoPending, spiMisoShift} =

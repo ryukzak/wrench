@@ -303,22 +303,26 @@ writeSpiPins _clock addr word device =
                 , spiClkPin = newClk
                 , spiMosiPin = newMosi
                 }
-        deviceAfterCs =
-            if oldCs && not newCs
-                then
-                    if spiModePrimeOnActivate mode
-                        then primeMiso oldSoftClock deviceWithNewPins
-                        else deviceWithNewPins{spiMisoPin = False}
-                else
-                    if newCs
-                        then deviceWithNewPins{spiMisoPin = False, spiMosiShift = 0, spiMosiBits = 0}
-                        else deviceWithNewPins
+        deviceAfterCs
+            | oldCs && not newCs =
+                if spiModePrimeOnActivate mode
+                    then
+                        primeMiso oldSoftClock deviceWithNewPins
+                    else
+                        deviceWithNewPins{spiMisoPin = False}
+            | newCs =
+                deviceWithNewPins
+                    { spiMisoPin = False
+                    , spiMosiShift = 0
+                    , spiMosiBits = 0
+                    }
+            | otherwise = deviceWithNewPins
         active = not newCs
-        onRising = (not oldClk) && newClk
-        onFalling = oldClk && (not newClk)
+        onRising = not oldClk && newClk
+        onFalling = oldClk && not newClk
         sampleOnRising = spiModeSampleOnRising mode
-        sampleEdge = active && ((sampleOnRising && onRising) || ((not sampleOnRising) && onFalling))
-        shiftEdge = active && ((sampleOnRising && onFalling) || ((not sampleOnRising) && onRising))
+        sampleEdge = active && ((sampleOnRising && onRising) || (not sampleOnRising && onFalling))
+        shiftEdge = active && ((sampleOnRising && onFalling) || (not sampleOnRising && onRising))
         afterShift =
             if shiftEdge
                 then shiftMiso oldSoftClock deviceAfterCs

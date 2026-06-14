@@ -162,8 +162,8 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        spiInputs = fmap (map (first int2mword)) $ fromMaybe mempty cSpiFlat
-        spiModes = fmap mapSpiMode $ fromMaybe mempty cSpiModeFlat
+        spiInputs = map (first int2mword) <$> fromMaybe mempty cSpiFlat
+        spiModes = mapSpiMode <$> fromMaybe mempty cSpiModeFlat
     spiPins <- IM.traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
     validateSpiPinUsage spiPins
     let randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
