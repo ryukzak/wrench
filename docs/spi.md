@@ -92,12 +92,9 @@ spi:
       address: 0x94
       bit: 0
     input:
-      - at: 0
-        word: 0xA5
-      - at: 40
-        bytes: [0x11, 0x22, 0x33]
-      - at: 100
-        byte: 0x7F
+      - { at: 0, word: 0xA5 }
+      - { at: 40,  bytes: [0x11, 0x22, 0x33] }
+      - { at: 100, byte: 0x7F }
 ```
 
 ### Required field
