@@ -228,6 +228,7 @@ Available placeholders:
 - `wave` is an ASCII diagram of pin changes collected during simulation:
 
 ```text
+TICK: 0                      
 CS  : ‾\___________________/‾
 CLK : ______/‾‾\__/‾‾\_______
 MOSI: _______________________
@@ -236,6 +237,7 @@ MISO: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 
 In wave output:
 
+- `TICK` marks every tenth SPI tick
 - `_` means low level
 - `‾` means high level
 - `/` means rising edge

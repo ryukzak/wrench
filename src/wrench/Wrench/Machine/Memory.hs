@@ -338,9 +338,10 @@ rememberSpiPins device@SpiDevice{spiWaveLog} =
             _ -> device{spiWaveLog = spiWaveLog <> [snapshot]}
 
 spiPinsSnapshot :: SpiDevice w -> SpiPinsSnapshot
-spiPinsSnapshot SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} =
+spiPinsSnapshot SpiDevice{spiSoftClock, spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} =
     SpiPinsSnapshot
-        { spsCsPin = spiCsPin
+        { spsTick = spiSoftClock
+        , spsCsPin = spiCsPin
         , spsClkPin = spiClkPin
         , spsMosiPin = spiMosiPin
         , spsMisoPin = spiMisoPin

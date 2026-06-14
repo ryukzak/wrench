@@ -232,7 +232,8 @@ data SpiPinsConf = SpiPinsConf
     deriving (Eq, Show)
 
 data SpiPinsSnapshot = SpiPinsSnapshot
-    { spsCsPin :: Bool
+    { spsTick :: Int
+    , spsCsPin :: Bool
     , spsClkPin :: Bool
     , spsMosiPin :: Bool
     , spsMisoPin :: Bool
@@ -298,7 +299,8 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
                                 , spiSoftClock = 0
                                 , spiWaveLog =
                                     [ SpiPinsSnapshot
-                                        { spsCsPin = True
+                                        { spsTick = 0
+                                        , spsCsPin = True
                                         , spsClkPin = False
                                         , spsMosiPin = False
                                         , spsMisoPin = False

@@ -209,11 +209,44 @@ spiWaveText [] = ""
 spiWaveText xs =
     T.intercalate
         "\n"
-        [ "CS  : " <> waveLine spsCsPin xs
+        [ "TICK: " <> tickLine xs
+        , "CS  : " <> waveLine spsCsPin xs
         , "CLK : " <> waveLine spsClkPin xs
         , "MOSI: " <> waveLine spsMosiPin xs
         , "MISO: " <> waveLine spsMisoPin xs
         ]
+
+tickLine :: [SpiPinsSnapshot] -> Text
+tickLine xs =
+    toText $ addTickLabels (waveWidth xs) (tickLabels xs)
+
+waveWidth :: [SpiPinsSnapshot] -> Int
+waveWidth [] = 0
+waveWidth xs = 1 + 2 * (length xs - 1)
+
+tickLabels :: [SpiPinsSnapshot] -> [(Int, String)]
+tickLabels = go 0 Nothing
+    where
+        go :: Int -> Maybe Int -> [SpiPinsSnapshot] -> [(Int, String)]
+        go _ _ [] = []
+        go idx lastTick (snapshot : rest) =
+            let tick = spsTick snapshot
+                shouldShow = tick `mod` 10 == 0 && Just tick /= lastTick
+                label = show tick
+                restLabels = go (idx + 1) (if shouldShow then Just tick else lastTick) rest
+             in if shouldShow
+                    then (idx * 2, label) : restLabels
+                    else restLabels
+
+addTickLabels :: Int -> [(Int, String)] -> String
+addTickLabels width labels =
+    foldl' addOneLabel (replicate width ' ') labels
+    where
+        addOneLabel line (idx, label) =
+            let lineBefore = take idx line
+                lineAfter = drop (idx + length label) line
+                label' = take (width - idx) label
+             in lineBefore <> label' <> lineAfter
 
 waveLine :: (SpiPinsSnapshot -> Bool) -> [SpiPinsSnapshot] -> Text
 waveLine pin xs =
