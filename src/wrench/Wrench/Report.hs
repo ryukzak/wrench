@@ -207,14 +207,32 @@ viewSpi fmt _addr _st = unknownFormat fmt
 spiWaveText :: [SpiPinsSnapshot] -> Text
 spiWaveText [] = ""
 spiWaveText xs =
+    T.intercalate "\n\n" $ map renderWaveBlock $ waveBlocks spiWaveBlockWidth waveLines
+    where
+        waveLines =
+            [ ("TICK: ", tickLine xs)
+            , ("CS  : ", waveLine spsCsPin xs)
+            , ("CLK : ", waveLine spsClkPin xs)
+            , ("MOSI: ", waveLine spsMosiPin xs)
+            , ("MISO: ", waveLine spsMisoPin xs)
+            ]
+
+spiWaveBlockWidth :: Int
+spiWaveBlockWidth = 100
+
+waveBlocks :: Int -> [(Text, Text)] -> [[(Text, Text)]]
+waveBlocks width lines'
+    | all (T.null . snd) lines' = []
+    | otherwise =
+        let block = map (\(name, line) -> (name, T.take width line)) lines'
+            rest = map (\(name, line) -> (name, T.drop width line)) lines'
+         in block : waveBlocks width rest
+
+renderWaveBlock :: [(Text, Text)] -> Text
+renderWaveBlock block =
     T.intercalate
         "\n"
-        [ "TICK: " <> tickLine xs
-        , "CS  : " <> waveLine spsCsPin xs
-        , "CLK : " <> waveLine spsClkPin xs
-        , "MOSI: " <> waveLine spsMosiPin xs
-        , "MISO: " <> waveLine spsMisoPin xs
-        ]
+        [name <> line | (name, line) <- block]
 
 tickLine :: [SpiPinsSnapshot] -> Text
 tickLine xs =

@@ -238,6 +238,7 @@ MISO: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 In wave output:
 
 - `TICK` marks every tenth SPI tick
+- long diagrams are split into fixed-width blocks
 - `_` means low level
 - `‾` means high level
 - `/` means rising edge
