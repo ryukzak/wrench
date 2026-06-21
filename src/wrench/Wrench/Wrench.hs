@@ -6,6 +6,7 @@ module Wrench.Wrench (
     prettyLabels,
     runWrenchIO,
     wrench,
+    wrenchWasm32,
     Isa (..),
 ) where
 
@@ -22,7 +23,7 @@ import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
 import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.VliwIv (VliwIvSt)
-import Wrench.Isa.Wasm32 (Wasm32St)
+import Wrench.Isa.Wasm32 qualified as Wasm32
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -110,7 +111,7 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
         Just F32a -> wrenchIO @(F32aSt Int32) opts conf src
         Just Acc32 -> wrenchIO @(Acc32St Int32) opts conf src
         Just M68k -> wrenchIO @(M68kSt Int32) opts conf src
-        Just Wasm32 -> wrenchIO @(Wasm32St Int32) opts conf src
+        Just Wasm32 -> wrenchWasm32IO @Int32 opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::
@@ -137,6 +138,31 @@ wrenchIO ::
     -> IO ()
 wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
     case wrench @st opts conf src of
+        Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+            if onlyTranslation
+                then translationResult rLabels rDump
+                else do
+                    putText rTrace
+                    if rSuccess then exitSuccess else exitFailure
+        Left e -> wrenchError e
+    where
+        translationResult rLabels rDump = do
+            putText $ prettyLabels rLabels
+            putStrLn "---"
+            putText $ prettyDump rLabels rDump
+        wrenchError e = do
+            putStrLn $ "error (" <> isa <> "): " <> toString e
+            exitFailure
+
+wrenchWasm32IO ::
+    forall w.
+    (IsWord w) =>
+    Options
+    -> Config
+    -> String
+    -> IO ()
+wrenchWasm32IO opts@Options{isa, onlyTranslation} conf@Config{} src =
+    case wrenchWasm32 @w opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
                 then translationResult rLabels rDump
@@ -203,6 +229,55 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             , rDump = dumpCells dump
             }
     where
+        int2mword :: Int -> w
+        int2mword x
+            | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
+                toEnum x
+            | fromEnum (minBound :: Unsign w) <= x && x <= fromEnum (maxBound :: Unsign w) =
+                toSign $ toEnum x
+            | otherwise =
+                error $ "integer value out of machine word range: " <> show x
+
+        randomInts :: (Int, Int) -> Random.StdGen -> [Int]
+        randomInts range gen =
+            let (val, gen') = Random.uniformR range gen
+             in val : randomInts range gen'
+
+wrenchWasm32 ::
+    forall w.
+    (IsWord w) =>
+    Options
+    -> Config
+    -> String
+    -> Either Text (Result (IntMap (Cell (Wasm32.Wasm32Isa w w) w)) w)
+wrenchWasm32 Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+    let memoryGen = Random.mkStdGen $ fromMaybe 0 cSeed
+        memoryFillBytes =
+            if fromMaybe False cZeroMemoryInit
+                then repeat 0
+                else map fromIntegral (randomInts (0, 255) memoryGen)
+    (trResult@TranslatorResult{dump, labels}, functionTable) <- Wasm32.translateWasm32 @w cMemorySize memoryFillBytes fn src
+
+    pc <- maybeToRight "_start label should be defined." (labels !? "_start")
+    let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
+        ioDump = mkIoMem mIoStreams dump
+    st <- Wasm32.initWasm32State (fromEnum pc) ioDump functionTable
+
+    (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
+
+    let reports = maybe [] (map (prepareReport trResult verbose finalState traceLog)) cReports
+        isSuccess = all fst reports
+        reportTexts = map snd reports
+
+    return $
+        Result
+            { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
+            , rLabels = labels
+            , rSuccess = isSuccess
+            , rDump = dumpCells dump
+            }
+    where
+        int2mword :: Int -> w
         int2mword x
             | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
                 toEnum x

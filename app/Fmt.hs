@@ -187,14 +187,14 @@ formatStatements fmt statements = map (pprint fmt) statements
 
 wasm32LineDepth :: Int -> Statement -> Int
 wasm32LineDepth depth (TextLine (token : _))
-    | token `elem` ["else", "end"] = max 0 (depth - 1)
+    | token `elem` ["else", "end", ".endfunc", "endfunc"] = max 0 (depth - 1)
     | otherwise = depth
 wasm32LineDepth depth _ = depth
 
 wasm32NextDepth :: Int -> Statement -> Int
 wasm32NextDepth depth (TextLine (token : _))
-    | token `elem` ["block", "loop", "if"] = depth + 1
-    | token == "end" = max 0 (depth - 1)
+    | token `elem` ["block", "loop", "if", ".func", "func"] = depth + 1
+    | token `elem` ["end", ".endfunc", "endfunc"] = max 0 (depth - 1)
     | otherwise = depth
 wasm32NextDepth depth _ = depth
 
