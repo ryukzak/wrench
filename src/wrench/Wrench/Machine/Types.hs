@@ -158,21 +158,10 @@ halted :: Text
 halted = "halted"
 
 data Trace st isa
-    = -- | Captured simulator snapshot.
-      --
-      -- Initial snapshot:
-      --   tInstructionCount = 0
-      --   tInstructionNext  = first instruction if it exists
-      --   tLastInstruction  = Nothing
-      --
-      -- Snapshot after instruction execution:
-      --   tInstructionCount = number of already executed instructions
-      --   tInstructionNext  = next instruction if it exists
-      --   tLastInstruction  = Just executedInstruction
-      TState
+    = TState
         { tInstructionCount :: !Int
-        , tInstructionNext :: !(Maybe isa)
-        , tLastInstruction :: !(Maybe isa)
+        , tNextInstruction :: !(Maybe isa)
+        , tPrevInstruction :: !(Maybe isa)
         , tState :: !st
         }
     | TError Text

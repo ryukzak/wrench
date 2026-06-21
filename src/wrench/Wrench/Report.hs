@@ -63,8 +63,8 @@ prepareReport
                         $ filter (not . null)
                         $ map
                             ( \case
-                                trace@TState{} ->
-                                    prepareStateView rvView' trResult finalState trace
+                                stateTrace@TState{} ->
+                                    prepareStateView rvView' trResult finalState stateTrace
                                 TError err ->
                                     "ERROR: " <> toString err <> "\n"
                                 TWarn warn ->
@@ -109,7 +109,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels, dumpStats} finalState trace@TState{tInstructionCount, tInstructionNext, tLastInstruction, tState} =
+prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tInstructionCount, tNextInstruction, tPrevInstruction, tState} =
     let DumpStats
             { dsSectionsTotalBytes
             , dsTextSectionsBytes
@@ -126,9 +126,12 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState trace@TStat
         resolver v = case T.splitOn ":" v of
             ["sim", "instruction-count"] -> show tInstructionCount
 
-            ["instruction"] -> showMaybeInstruction tInstructionNext
-            ["instruction_next"] -> showMaybeInstruction tInstructionNext
-            ["last_instruction"] -> showMaybeInstruction tLastInstruction
+            ["instruction"] -> showMaybeInstruction tNextInstruction
+            ["instruction_next"] -> showMaybeInstruction tNextInstruction
+            ["next_instruction"] -> showMaybeInstruction tNextInstruction
+            ["instruction_prev"] -> showMaybeInstruction tPrevInstruction
+            ["prev_instruction"] -> showMaybeInstruction tPrevInstruction
+            ["last_instruction"] -> showMaybeInstruction tPrevInstruction
 
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes

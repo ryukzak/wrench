@@ -24,8 +24,8 @@ fetchNextInstruction st =
         Left _ -> Nothing
 
 tellState :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
-tellState lastInstruction = do
-    sim@Simulation{machineState} <- get
+tellState prevInstruction = do
+    Simulation{machineState} <- get
     let nextInstruction = fetchNextInstruction machineState
 
     modify
@@ -52,8 +52,8 @@ tellState lastInstruction = do
                         { log =
                             TState
                                 { tInstructionCount = instructionCount
-                                , tInstructionNext = nextInstruction
-                                , tLastInstruction = lastInstruction
+                                , tNextInstruction = nextInstruction
+                                , tPrevInstruction = prevInstruction
                                 , tState = machineState
                                 }
                                 : log
@@ -72,23 +72,23 @@ simulateOneInstruction :: (Machine st isa w) => State (Simulation st isa) (Eithe
 simulateOneInstruction = do
     sim@Simulation{machineState, instructionCount} <- get
 
-    case evalState instructionFetch machineState of
-        Left err ->
+    case runState instructionFetch machineState of
+        (Left err, _) ->
             return $ Left err
 
-        Right (pc, instruction) -> do
-            let machineState' =
+        (Right (pc, instruction), machineStateAfterFetch) -> do
+            let machineStateAfterExecute =
                     execState
                         (instructionExecute pc instruction)
-                        machineState
+                        machineStateAfterFetch
 
-            put sim
-                { machineState = machineState'
-                , instructionCount = instructionCount + 1
-                }
+            put
+                sim
+                    { machineState = machineStateAfterExecute
+                    , instructionCount = instructionCount + 1
+                    }
 
             return $ Right instruction
-
 simulate' :: (Machine st isa w) => State (Simulation st isa) ()
 simulate' = do
     tellState Nothing
