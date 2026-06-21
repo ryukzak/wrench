@@ -4,29 +4,28 @@
 ---
 mem[0..13]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
 mem[14..16]: 	00 00 00	@"buf_end"
-mem[17..20]: 	Func {funcParams = [], funcLocals = ["$ptr","$end"], funcResults = 0} 	@_start
-mem[21..25]: 	I32Const 0
-mem[26..27]: 	LocalSet "$ptr"
-mem[28..32]: 	I32Const 14
-mem[33..34]: 	LocalSet "$end"
-mem[35..36]: 	Block "$done"
-mem[37..38]: 	Loop "$loop"
-mem[39..40]: 	LocalGet "$ptr"
-mem[41..42]: 	LocalGet "$end"
-mem[43..43]: 	I32GeU
-mem[44..45]: 	BrIf "$done"
-mem[46..50]: 	I32Const 132
-mem[51..52]: 	LocalGet "$ptr"
-mem[53..53]: 	I32Load8U
-mem[54..54]: 	I32Store8
-mem[55..56]: 	LocalGet "$ptr"
-mem[57..61]: 	I32Const 1
-mem[62..62]: 	I32Add
-mem[63..64]: 	LocalSet "$ptr"
-mem[65..66]: 	Br "$loop"
-mem[67..67]: 	End
-mem[68..68]: 	End
-mem[69..69]: 	Halt
-mem[70..70]: 	EndFunc
-mem[71..999]: 	( 00 )
+mem[17..21]: 	I32Const 0 	@_start
+mem[22..23]: 	LocalSet 0
+mem[24..28]: 	I32Const 14
+mem[29..30]: 	LocalSet 1
+mem[31..32]: 	Block 0
+mem[33..34]: 	Loop 1
+mem[35..36]: 	LocalGet 0
+mem[37..38]: 	LocalGet 1
+mem[39..39]: 	I32GeU
+mem[40..41]: 	BrIf 0
+mem[42..46]: 	I32Const 132
+mem[47..48]: 	LocalGet 0
+mem[49..49]: 	I32Load8U
+mem[50..50]: 	I32Store8
+mem[51..52]: 	LocalGet 0
+mem[53..57]: 	I32Const 1
+mem[58..58]: 	I32Add
+mem[59..60]: 	LocalSet 0
+mem[61..62]: 	Br 1
+mem[63..63]: 	End
+mem[64..64]: 	End
+mem[65..65]: 	Halt
+mem[66..66]: 	Return
+mem[67..999]: 	( 00 )
 ---
