@@ -5,32 +5,41 @@
 -- | A small WebAssembly-inspired 32-bit virtual ISA for Wrench.
 module Wrench.Isa.Wasm32 (
     Wasm32Isa (..),
+    Source (..),
+    FunctionMeta (..),
+    FunctionTable,
     Wasm32St (..),
+    initWasm32State,
+    translateWasm32,
 ) where
 
+import Control.Monad (foldM)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
+import Data.HashMap.Strict qualified as HashMap
+import Data.IntMap.Strict qualified as IntMap
 import Data.Text qualified as T
 import Relude
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (anySingle, choice, try)
+import Text.Megaparsec (anySingle, choice, parse, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec.Error (errorBundlePretty)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
+import Wrench.Translator
+import Wrench.Translator.Parser
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
 data Wasm32Isa w l
-    = Func {funcParams :: [String], funcLocals :: [String], funcResults :: Int}
-    | EndFunc
-    | I32Const l
+    = I32Const l
     | Drop
     | Select
-    | LocalGet String
-    | LocalSet String
-    | LocalTee String
+    | LocalGet Int
+    | LocalSet Int
+    | LocalTee Int
     | I32Add
     | I32Sub
     | I32Mul
@@ -60,13 +69,13 @@ data Wasm32Isa w l
     | I32Load8S
     | I32Load8U
     | I32Store8
-    | Block String
-    | Loop String
-    | If String
+    | Block Int
+    | Loop Int
+    | If Int
     | Else
     | End
-    | Br String
-    | BrIf String
+    | Br Int
+    | BrIf Int
     | Call l
     | Return
     | Halt
@@ -74,80 +83,144 @@ data Wasm32Isa w l
     | Nop
     deriving (Show)
 
+data Source w l
+    = SourceFunc {sourceParams :: [String], sourceLocals :: [String], sourceResults :: Int}
+    | SourceEndFunc
+    | SourceI32Const l
+    | SourceDrop
+    | SourceSelect
+    | SourceLocalGet String
+    | SourceLocalSet String
+    | SourceLocalTee String
+    | SourceI32Add
+    | SourceI32Sub
+    | SourceI32Mul
+    | SourceI32DivS
+    | SourceI32DivU
+    | SourceI32RemS
+    | SourceI32RemU
+    | SourceI32And
+    | SourceI32Or
+    | SourceI32Xor
+    | SourceI32Shl
+    | SourceI32ShrS
+    | SourceI32ShrU
+    | SourceI32Eqz
+    | SourceI32Eq
+    | SourceI32Ne
+    | SourceI32LtS
+    | SourceI32LeS
+    | SourceI32GtS
+    | SourceI32GeS
+    | SourceI32LtU
+    | SourceI32LeU
+    | SourceI32GtU
+    | SourceI32GeU
+    | SourceI32Load
+    | SourceI32Store
+    | SourceI32Load8S
+    | SourceI32Load8U
+    | SourceI32Store8
+    | SourceBlock String
+    | SourceLoop String
+    | SourceIf String
+    | SourceElse
+    | SourceEnd
+    | SourceBr String
+    | SourceBrIf String
+    | SourceCall l
+    | SourceReturn
+    | SourceHalt
+    | SourceUnreachable
+    | SourceNop
+    deriving (Show)
+
+data FunctionMeta = FunctionMeta
+    { fmParamCount :: !Int
+    , fmLocalNames :: ![String]
+    , fmResultCount :: !Int
+    }
+    deriving (Eq, Show)
+
+type FunctionTable = IntMap FunctionMeta
+
 instance CommentStart (Wasm32Isa w l) where
     commentStart = ";"
 
-instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
+instance CommentStart (Source w l) where
+    commentStart = ";"
+
+instance (IsWord w) => MnemonicParser (Source w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* eol' (commentStart @(Wasm32Isa _ _))
+        hspace *> cmd <* eol' (commentStart @(Source _ _))
         where
             cmd =
                 choice
                     [ try func
                     , try endFunc
-                    , I32Const <$> cmd1 "i32.const" referenceWithDirective
-                    , cmd0 "drop" Drop
-                    , cmd0 "select" Select
-                    , LocalGet <$> cmd1 "local.get" localId
-                    , LocalSet <$> cmd1 "local.set" localId
-                    , LocalTee <$> cmd1 "local.tee" localId
-                    , cmd0 "i32.add" I32Add
-                    , cmd0 "i32.sub" I32Sub
-                    , cmd0 "i32.mul" I32Mul
-                    , cmd0 "i32.div_s" I32DivS
-                    , cmd0 "i32.div_u" I32DivU
-                    , cmd0 "i32.rem_s" I32RemS
-                    , cmd0 "i32.rem_u" I32RemU
-                    , cmd0 "i32.and" I32And
-                    , cmd0 "i32.or" I32Or
-                    , cmd0 "i32.xor" I32Xor
-                    , cmd0 "i32.shl" I32Shl
-                    , cmd0 "i32.shr_s" I32ShrS
-                    , cmd0 "i32.shr_u" I32ShrU
-                    , cmd0 "i32.eqz" I32Eqz
-                    , cmd0 "i32.eq" I32Eq
-                    , cmd0 "i32.ne" I32Ne
-                    , cmd0 "i32.lt_s" I32LtS
-                    , cmd0 "i32.le_s" I32LeS
-                    , cmd0 "i32.gt_s" I32GtS
-                    , cmd0 "i32.ge_s" I32GeS
-                    , cmd0 "i32.lt_u" I32LtU
-                    , cmd0 "i32.le_u" I32LeU
-                    , cmd0 "i32.gt_u" I32GtU
-                    , cmd0 "i32.ge_u" I32GeU
-                    , cmd0 "i32.load8_s" I32Load8S
-                    , cmd0 "i32.load8_u" I32Load8U
-                    , cmd0 "i32.load" I32Load
-                    , cmd0 "i32.store8" I32Store8
-                    , cmd0 "i32.store" I32Store
-                    , Block <$> cmd1 "block" controlLabel
-                    , Loop <$> cmd1 "loop" controlLabel
-                    , If <$> cmd1 "if" controlLabel
-                    , cmd0 "else" Else
-                    , cmd0 "end" End
-                    , BrIf <$> cmd1 "br_if" controlLabel
-                    , Br <$> cmd1 "br" controlLabel
-                    , Call <$> cmd1 "call" reference
-                    , cmd0 "return" Return
-                    , cmd0 "halt" Halt
-                    , cmd0 "unreachable" Unreachable
-                    , cmd0 "nop" Nop
+                    , SourceI32Const <$> cmd1 "i32.const" referenceWithDirective
+                    , cmd0 "drop" SourceDrop
+                    , cmd0 "select" SourceSelect
+                    , SourceLocalGet <$> cmd1 "local.get" localId
+                    , SourceLocalSet <$> cmd1 "local.set" localId
+                    , SourceLocalTee <$> cmd1 "local.tee" localId
+                    , cmd0 "i32.add" SourceI32Add
+                    , cmd0 "i32.sub" SourceI32Sub
+                    , cmd0 "i32.mul" SourceI32Mul
+                    , cmd0 "i32.div_s" SourceI32DivS
+                    , cmd0 "i32.div_u" SourceI32DivU
+                    , cmd0 "i32.rem_s" SourceI32RemS
+                    , cmd0 "i32.rem_u" SourceI32RemU
+                    , cmd0 "i32.and" SourceI32And
+                    , cmd0 "i32.or" SourceI32Or
+                    , cmd0 "i32.xor" SourceI32Xor
+                    , cmd0 "i32.shl" SourceI32Shl
+                    , cmd0 "i32.shr_s" SourceI32ShrS
+                    , cmd0 "i32.shr_u" SourceI32ShrU
+                    , cmd0 "i32.eqz" SourceI32Eqz
+                    , cmd0 "i32.eq" SourceI32Eq
+                    , cmd0 "i32.ne" SourceI32Ne
+                    , cmd0 "i32.lt_s" SourceI32LtS
+                    , cmd0 "i32.le_s" SourceI32LeS
+                    , cmd0 "i32.gt_s" SourceI32GtS
+                    , cmd0 "i32.ge_s" SourceI32GeS
+                    , cmd0 "i32.lt_u" SourceI32LtU
+                    , cmd0 "i32.le_u" SourceI32LeU
+                    , cmd0 "i32.gt_u" SourceI32GtU
+                    , cmd0 "i32.ge_u" SourceI32GeU
+                    , cmd0 "i32.load8_s" SourceI32Load8S
+                    , cmd0 "i32.load8_u" SourceI32Load8U
+                    , cmd0 "i32.load" SourceI32Load
+                    , cmd0 "i32.store8" SourceI32Store8
+                    , cmd0 "i32.store" SourceI32Store
+                    , SourceBlock <$> cmd1 "block" controlLabel
+                    , SourceLoop <$> cmd1 "loop" controlLabel
+                    , SourceIf <$> cmd1 "if" controlLabel
+                    , cmd0 "else" SourceElse
+                    , cmd0 "end" SourceEnd
+                    , SourceBrIf <$> cmd1 "br_if" controlLabel
+                    , SourceBr <$> cmd1 "br" controlLabel
+                    , SourceCall <$> cmd1 "call" reference
+                    , cmd0 "return" SourceReturn
+                    , cmd0 "halt" SourceHalt
+                    , cmd0 "unreachable" SourceUnreachable
+                    , cmd0 "nop" SourceNop
                     ]
 
-func :: Parser (Wasm32Isa w (Ref w))
+func :: Parser (Source w (Ref w))
 func = try $ do
     optionalDot
     void $ string "func"
     hspace
-    choice [try numericFunc, try keywordFunc, return Func{funcParams = [], funcLocals = [], funcResults = 0}]
+    choice [try numericFunc, try keywordFunc, return SourceFunc{sourceParams = [], sourceLocals = [], sourceResults = 0}]
 
-endFunc :: Parser (Wasm32Isa w (Ref w))
+endFunc :: Parser (Source w (Ref w))
 endFunc = try $ do
     optionalDot
     void $ string "endfunc"
-    return EndFunc
+    return SourceEndFunc
 
-numericFunc :: Parser (Wasm32Isa w (Ref w))
+numericFunc :: Parser (Source w (Ref w))
 numericFunc = do
     params <- number
     comma
@@ -155,16 +228,16 @@ numericFunc = do
     comma
     results <- number
     return
-        Func
-            { funcParams = map show [0 .. params - 1]
-            , funcLocals = map show [params .. params + locals - 1]
-            , funcResults = results
+        SourceFunc
+            { sourceParams = map show [0 .. params - 1]
+            , sourceLocals = map show [params .. params + locals - 1]
+            , sourceResults = results
             }
 
-keywordFunc :: Parser (Wasm32Isa w (Ref w))
+keywordFunc :: Parser (Source w (Ref w))
 keywordFunc = buildFunc <$> some funcWord
 
-buildFunc :: [String] -> Wasm32Isa w l
+buildFunc :: [String] -> Source w l
 buildFunc tokens =
     let params = collectAfter "params" ["locals", "result", "results"] tokens
         locals = collectAfter "locals" ["params", "result", "results"] tokens
@@ -172,11 +245,11 @@ buildFunc tokens =
             case dropWhile (/= "result") tokens of
                 ("result" : "i32" : _) -> 1
                 ("result" : "none" : _) -> 0
-                ("result" : n : _) -> Unsafe.read n
+                ("result" : n : _) -> fromMaybe (error $ "invalid result count: " <> toText n) (readMaybe n)
                 _ -> case dropWhile (/= "results") tokens of
-                    ("results" : n : _) -> Unsafe.read n
+                    ("results" : n : _) -> fromMaybe (error $ "invalid result count: " <> toText n) (readMaybe n)
                     _ -> 0
-     in Func{funcParams = params, funcLocals = locals, funcResults = results}
+     in SourceFunc{sourceParams = params, sourceLocals = locals, sourceResults = results}
 
 collectAfter :: String -> [String] -> [String] -> [String]
 collectAfter key stops tokens =
@@ -223,8 +296,6 @@ instance DerefMnemonic (Wasm32Isa w) w where
         case i of
             I32Const l -> I32Const (deref' f l)
             Call l -> Call (deref' f l)
-            Func{funcParams, funcLocals, funcResults} -> Func{funcParams, funcLocals, funcResults}
-            EndFunc -> EndFunc
             Drop -> Drop
             Select -> Select
             LocalGet n -> LocalGet n
@@ -277,7 +348,6 @@ instance ByteSize (Wasm32Isa w l) where
     byteSize LocalGet{} = 2
     byteSize LocalSet{} = 2
     byteSize LocalTee{} = 2
-    byteSize Func{} = 4
     byteSize Block{} = 2
     byteSize Loop{} = 2
     byteSize If{} = 2
@@ -285,11 +355,272 @@ instance ByteSize (Wasm32Isa w l) where
     byteSize BrIf{} = 2
     byteSize _ = 1
 
+instance ByteSize (Source w l) where
+    byteSize SourceFunc{} = 0
+    byteSize SourceEndFunc = 1
+    byteSize SourceI32Const{} = 5
+    byteSize SourceCall{} = 5
+    byteSize SourceLocalGet{} = 2
+    byteSize SourceLocalSet{} = 2
+    byteSize SourceLocalTee{} = 2
+    byteSize SourceBlock{} = 2
+    byteSize SourceLoop{} = 2
+    byteSize SourceIf{} = 2
+    byteSize SourceBr{} = 2
+    byteSize SourceBrIf{} = 2
+    byteSize _ = 1
+
+translateWasm32 ::
+    forall w.
+    (IsWord w) =>
+    Int
+    -> [Word8]
+    -> FilePath
+    -> String
+    -> Either Text (TranslatorResult (Mem (Wasm32Isa w w) w) w, FunctionTable)
+translateWasm32 memorySize fillBytes fn src =
+    case parse asmParser fn src of
+        Left err -> Left $ toText $ errorBundlePretty err
+        Right sections -> do
+            labels <- evaluateLabels sections
+            let resolveLabel l = HashMap.lookup l labels
+                marked = markupSectionOffsets 0 sections
+            functionTable <- collectFunctions marked
+            code <- lowerSections resolveLabel functionTable marked
+            let stats = computeDumpStats code
+            dump <- prepareDump memorySize fillBytes code
+            Right (TranslatorResult dump labels stats, functionTable)
+
+collectFunctions ::
+    (IsWord w) =>
+    [(w, Section (Source w (Ref w)) w Text)]
+    -> Either Text FunctionTable
+collectFunctions sections = snd <$> foldM collectSection (Nothing, IntMap.empty) sections
+    where
+        collectSection (active, table) (_, Data{})
+            | isJust active = Left "data section inside .func"
+            | otherwise = Right (active, table)
+        collectSection (active, table) (offset, Code{codeTokens}) = foldM collectToken (active, table, offset) codeTokens <&> \(active', table', _) -> (active', table')
+
+        collectToken (active, table, offset) (Label _) = Right (active, table, offset)
+        collectToken (active, table, offset) (Mnemonic instr) =
+            let next = offset + toEnum (byteSize instr)
+             in case instr of
+                    SourceFunc{} -> do
+                        when (isJust active) $ Left ".func before .endfunc"
+                        meta <- functionMeta instr
+                        let addr = fromEnum offset
+                        when (IntMap.member addr table) $ Left $ "duplicate function metadata at address " <> show addr
+                        Right (Just meta, IntMap.insert addr meta table, next)
+                    SourceEndFunc -> do
+                        when (isNothing active) $ Left ".endfunc without .func"
+                        Right (Nothing, table, next)
+                    _ -> Right (active, table, next)
+
+functionMeta :: Source w l -> Either Text FunctionMeta
+functionMeta SourceFunc{sourceParams, sourceLocals, sourceResults} = do
+    let names = sourceParams <> sourceLocals
+    case firstDuplicate names of
+        Just name -> Left $ "duplicate local name: " <> toText name
+        Nothing ->
+            Right
+                FunctionMeta
+                    { fmParamCount = length sourceParams
+                    , fmLocalNames = names
+                    , fmResultCount = sourceResults
+                    }
+functionMeta _ = Left "internal error: expected .func"
+
+firstDuplicate :: (Eq a) => [a] -> Maybe a
+firstDuplicate [] = Nothing
+firstDuplicate (x : xs)
+    | x `elem` xs = Just x
+    | otherwise = firstDuplicate xs
+
+newtype LowerState = LowerState
+    { lsFunction :: Maybe FunctionCtx
+    }
+    deriving (Show)
+
+data FunctionCtx = FunctionCtx
+    { fcLocals :: ![(String, Int)]
+    , fcControls :: ![SourceControl]
+    , fcNextControlId :: !Int
+    }
+    deriving (Show)
+
+data SourceControl = SourceControl
+    { scName :: !String
+    , scId :: !Int
+    , scKind :: !ControlKind
+    , scSeenElse :: !Bool
+    }
+    deriving (Show)
+
+lowerSections ::
+    (IsWord w) =>
+    (Text -> Maybe w)
+    -> FunctionTable
+    -> [(w, Section (Source w (Ref w)) w Text)]
+    -> Either Text [Section (Wasm32Isa w w) w w]
+lowerSections resolveLabel functions sections = do
+    (st, lowered) <- foldM lowerSection (LowerState Nothing, []) sections
+    when (isJust $ lsFunction st) $ Left "unclosed .func"
+    return $ reverse lowered
+    where
+        lowerSection (st@LowerState{lsFunction}, acc) (_, Data{org, dataTokens}) = do
+            when (isJust lsFunction) $ Left "data section inside .func"
+            dataTokens' <- traverse lowerDataToken dataTokens
+            return (st, Data org dataTokens' : acc)
+        lowerSection (st, acc) (offset, Code{org, codeTokens}) = do
+            (st', _, codeTokens') <- foldM lowerCodeToken (st, offset, []) codeTokens
+            return (st', Code org (reverse codeTokens') : acc)
+
+        lowerDataToken DataToken{dtLabel, dtValue} =
+            case resolveLabel dtLabel of
+                Just label -> Right DataToken{dtLabel = label, dtValue}
+                Nothing -> Left $ "unknown label: " <> toText dtLabel
+
+        lowerCodeToken (st, offset, acc) (Label _) = Right (st, offset, acc)
+        lowerCodeToken (st, offset, acc) (Mnemonic source) = do
+            (st', instruction) <- lowerSource resolveLabel functions (fromEnum offset) st source
+            let offset' = offset + toEnum (byteSize source)
+                acc' = maybe acc ((: acc) . Mnemonic) instruction
+            return (st', offset', acc')
+
+lowerSource ::
+    (IsWord w) =>
+    (Text -> Maybe w)
+    -> FunctionTable
+    -> Int
+    -> LowerState
+    -> Source w (Ref w)
+    -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+lowerSource resolveLabel functions addr st source =
+    case source of
+        SourceFunc{} -> do
+            when (isJust $ lsFunction st) $ Left ".func before .endfunc"
+            meta <- maybeToRight ("missing function metadata at address " <> show addr) (IntMap.lookup addr functions)
+            let locals = zip (fmLocalNames meta) [0 ..]
+            return (st{lsFunction = Just FunctionCtx{fcLocals = locals, fcControls = [], fcNextControlId = 0}}, Nothing)
+        SourceEndFunc -> do
+            ctx <- requireFunction st ".endfunc"
+            case fcControls ctx of
+                [] -> return (st{lsFunction = Nothing}, Just Return)
+                control : _ -> Left $ "unclosed structured control label: " <> toText (scName control)
+        SourceI32Const value -> executable st $ I32Const <$> resolveRef resolveLabel value
+        SourceDrop -> executable st $ Right Drop
+        SourceSelect -> executable st $ Right Select
+        SourceLocalGet name -> executableLocal st name LocalGet
+        SourceLocalSet name -> executableLocal st name LocalSet
+        SourceLocalTee name -> executableLocal st name LocalTee
+        SourceI32Add -> executable st $ Right I32Add
+        SourceI32Sub -> executable st $ Right I32Sub
+        SourceI32Mul -> executable st $ Right I32Mul
+        SourceI32DivS -> executable st $ Right I32DivS
+        SourceI32DivU -> executable st $ Right I32DivU
+        SourceI32RemS -> executable st $ Right I32RemS
+        SourceI32RemU -> executable st $ Right I32RemU
+        SourceI32And -> executable st $ Right I32And
+        SourceI32Or -> executable st $ Right I32Or
+        SourceI32Xor -> executable st $ Right I32Xor
+        SourceI32Shl -> executable st $ Right I32Shl
+        SourceI32ShrS -> executable st $ Right I32ShrS
+        SourceI32ShrU -> executable st $ Right I32ShrU
+        SourceI32Eqz -> executable st $ Right I32Eqz
+        SourceI32Eq -> executable st $ Right I32Eq
+        SourceI32Ne -> executable st $ Right I32Ne
+        SourceI32LtS -> executable st $ Right I32LtS
+        SourceI32LeS -> executable st $ Right I32LeS
+        SourceI32GtS -> executable st $ Right I32GtS
+        SourceI32GeS -> executable st $ Right I32GeS
+        SourceI32LtU -> executable st $ Right I32LtU
+        SourceI32LeU -> executable st $ Right I32LeU
+        SourceI32GtU -> executable st $ Right I32GtU
+        SourceI32GeU -> executable st $ Right I32GeU
+        SourceI32Load -> executable st $ Right I32Load
+        SourceI32Store -> executable st $ Right I32Store
+        SourceI32Load8S -> executable st $ Right I32Load8S
+        SourceI32Load8U -> executable st $ Right I32Load8U
+        SourceI32Store8 -> executable st $ Right I32Store8
+        SourceBlock label -> executableControl st label ControlBlock Block
+        SourceLoop label -> executableControl st label ControlLoop Loop
+        SourceIf label -> executableControl st label ControlIf If
+        SourceElse -> lowerElse st
+        SourceEnd -> lowerEnd st
+        SourceBr label -> executableBranch st label Br
+        SourceBrIf label -> executableBranch st label BrIf
+        SourceCall targetRef -> do
+            target <- resolveRef resolveLabel targetRef
+            unless (IntMap.member (fromEnum target) functions) $ Left $ "call target does not point to .func: " <> show target
+            executable st $ Right $ Call target
+        SourceReturn -> executable st $ Right Return
+        SourceHalt -> executable st $ Right Halt
+        SourceUnreachable -> executable st $ Right Unreachable
+        SourceNop -> executable st $ Right Nop
+
+requireFunction :: LowerState -> Text -> Either Text FunctionCtx
+requireFunction LowerState{lsFunction = Just ctx} _ = Right ctx
+requireFunction LowerState{lsFunction = Nothing} source = Left $ source <> " outside .func"
+
+setFunction :: LowerState -> FunctionCtx -> LowerState
+setFunction st ctx = st{lsFunction = Just ctx}
+
+executable :: LowerState -> Either Text (Wasm32Isa w w) -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+executable st instruction = do
+    void $ requireFunction st "instruction"
+    (st,) . Just <$> instruction
+
+executableLocal :: LowerState -> String -> (Int -> Wasm32Isa w w) -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+executableLocal st name constructor = do
+    ctx <- requireFunction st "local instruction"
+    index <- maybeToRight ("unknown local: " <> toText name) (lookupAssoc name $ fcLocals ctx)
+    return (st, Just $ constructor index)
+
+executableControl ::
+    LowerState -> String -> ControlKind -> (Int -> Wasm32Isa w w) -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+executableControl st label kind constructor = do
+    ctx <- requireFunction st "control instruction"
+    let controlId = fcNextControlId ctx
+        control = SourceControl{scName = label, scId = controlId, scKind = kind, scSeenElse = False}
+        ctx' = ctx{fcControls = control : fcControls ctx, fcNextControlId = controlId + 1}
+    return (setFunction st ctx', Just $ constructor controlId)
+
+executableBranch :: LowerState -> String -> (Int -> Wasm32Isa w w) -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+executableBranch st label constructor = do
+    ctx <- requireFunction st "branch instruction"
+    control <- maybeToRight ("unknown control label: " <> toText label) (find ((== label) . scName) $ fcControls ctx)
+    return (st, Just $ constructor $ scId control)
+
+lowerElse :: LowerState -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+lowerElse st = do
+    ctx <- requireFunction st "else"
+    case fcControls ctx of
+        (control@SourceControl{scKind = ControlIf, scSeenElse = False} : rest) ->
+            let ctx' = ctx{fcControls = control{scSeenElse = True} : rest}
+             in return (setFunction st ctx', Just Else)
+        (SourceControl{scKind = ControlIf} : _) -> Left "duplicate else"
+        _ -> Left "else without active if"
+
+lowerEnd :: LowerState -> Either Text (LowerState, Maybe (Wasm32Isa w w))
+lowerEnd st = do
+    ctx <- requireFunction st "end"
+    case fcControls ctx of
+        [] -> Left "unexpected end"
+        (_control : rest) -> return (setFunction st ctx{fcControls = rest}, Just End)
+
+resolveRef :: (Text -> Maybe w) -> Ref w -> Either Text w
+resolveRef resolveLabel = \case
+    ValueR prepare value -> Right $! prepare value
+    Ref prepare label -> case resolveLabel label of
+        Just value -> Right $! prepare value
+        Nothing -> Left $ "Can't resolve label: " <> toText label
+
 data ControlKind = ControlBlock | ControlLoop | ControlIf
     deriving (Eq, Show)
 
 data ControlFrame = ControlFrame
-    { cfLabel :: String
+    { cfLabel :: Int
     , cfKind :: ControlKind
     , cfStartPc :: Int
     , cfEndPc :: Int
@@ -299,14 +630,9 @@ data ControlFrame = ControlFrame
 
 data Frame w = Frame
     { frReturnPc :: Maybe Int
-    , frLocals :: [(String, w)]
+    , frLocals :: [w]
+    , frLocalNames :: [String]
     , frResults :: Int
-    }
-    deriving (Show)
-
-data PendingCall w = PendingCall
-    { pcReturnPc :: Maybe Int
-    , pcArgs :: [w]
     }
     deriving (Show)
 
@@ -319,7 +645,7 @@ data Wasm32St w = Wasm32St
     , framesMax :: !Int
     , controlStack :: [ControlFrame]
     , controlStackMax :: !Int
-    , pendingCall :: Maybe (PendingCall w)
+    , functions :: !FunctionTable
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -338,10 +664,63 @@ instance InitState (Wasm32St w) where
             , framesMax = 0
             , controlStack = []
             , controlStackMax = 0
-            , pendingCall = Nothing
+            , functions = IntMap.empty
             , stopped = False
             , internalError = Nothing
             }
+
+initWasm32State ::
+    (IsWord w) =>
+    Int
+    -> IoMem (Wasm32Isa w w) w
+    -> FunctionTable
+    -> Either Text (Wasm32St w)
+initWasm32State entryPc dump functionTable =
+    case IntMap.lookup entryPc functionTable of
+        Nothing -> Left "_start label should point to .func."
+        Just meta
+            | fmParamCount meta /= 0 -> Left "entry function cannot have parameters"
+            | otherwise ->
+                Right
+                    Wasm32St
+                        { pc = entryPc
+                        , mem = dump
+                        , operandStack = []
+                        , operandStackMax = 0
+                        , frames = [emptyFrame Nothing meta]
+                        , framesMax = 1
+                        , controlStack = []
+                        , controlStackMax = 0
+                        , functions = functionTable
+                        , stopped = False
+                        , internalError = Nothing
+                        }
+
+emptyFrame :: (IsWord w) => Maybe Int -> FunctionMeta -> Frame w
+emptyFrame returnPc meta =
+    Frame
+        { frReturnPc = returnPc
+        , frLocals = replicate (length $ fmLocalNames meta) def
+        , frLocalNames = fmLocalNames meta
+        , frResults = fmResultCount meta
+        }
+
+calledFrame :: (IsWord w) => Maybe Int -> FunctionMeta -> [w] -> Either Text (Frame w)
+calledFrame returnPc meta args
+    | length args /= fmParamCount meta =
+        Left $
+            "function expects "
+                <> show (fmParamCount meta)
+                <> " arguments, got "
+                <> show (length args)
+    | otherwise =
+        Right
+            Frame
+                { frReturnPc = returnPc
+                , frLocals = args <> replicate (length (fmLocalNames meta) - fmParamCount meta) def
+                , frLocalNames = fmLocalNames meta
+                , frResults = fmResultCount meta
+                }
 
 setPc :: Int -> State (Wasm32St w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -416,59 +795,42 @@ currentFrame = get <&> listToMaybe . frames
 currentFrameDepth :: State (Wasm32St w) Int
 currentFrameDepth = get <&> length . frames
 
-lookupLocal :: (IsWord w) => String -> State (Wasm32St w) w
-lookupLocal name = do
+lookupLocal :: (IsWord w) => Int -> State (Wasm32St w) w
+lookupLocal index = do
     currentFrame >>= \case
         Nothing -> do
             raiseInternalError "no active function frame"
             return def
         Just Frame{frLocals} ->
-            case lookupLocalValue name frLocals of
+            case lookupLocalValue index frLocals of
                 Just value -> return value
                 Nothing -> do
-                    raiseInternalError $ "unknown local: " <> toText name
+                    raiseInternalError $ "unknown local index: " <> show index
                     return def
 
-setLocal :: String -> w -> State (Wasm32St w) ()
-setLocal name value = do
+setLocal :: Int -> w -> State (Wasm32St w) ()
+setLocal index value = do
     st@Wasm32St{frames} <- get
     case frames of
         [] -> raiseInternalError "no active function frame"
         (frame@Frame{frLocals} : rest) ->
-            if name `elem` map fst frLocals
-                then put st{frames = frame{frLocals = map update frLocals} : rest}
-                else raiseInternalError $ "unknown local: " <> toText name
-    where
-        update (n, old)
-            | n == name = (n, value)
-            | otherwise = (n, old)
+            case replaceAt index value frLocals of
+                Just frLocals' -> put st{frames = frame{frLocals = frLocals'} : rest}
+                Nothing -> raiseInternalError $ "unknown local index: " <> show index
 
-enterFunction :: (IsWord w) => Wasm32Isa w w -> State (Wasm32St w) ()
-enterFunction instruction@Func{funcParams, funcLocals, funcResults} = do
-    st@Wasm32St{frames, pendingCall} <- get
-    case pendingCall of
-        Just PendingCall{pcReturnPc, pcArgs}
-            | length pcArgs == length funcParams -> do
-                let paramLocals = zip funcParams pcArgs
-                    extraLocals = map (,def) funcLocals
-                    frame = Frame{frReturnPc = pcReturnPc, frLocals = paramLocals <> extraLocals, frResults = funcResults}
-                    frames' = frame : frames
-                put st{frames = frames', framesMax = max (framesMax st) (length frames'), pendingCall = Nothing}
-                nextPc instruction
-            | otherwise ->
-                raiseInternalError
-                    $ "function expects "
-                    <> show (length funcParams)
-                    <> " arguments, got "
-                    <> show (length pcArgs)
-        Nothing
-            | null frames && null funcParams -> do
-                let frame = Frame{frReturnPc = Nothing, frLocals = map (,def) funcLocals, frResults = funcResults}
-                put st{frames = [frame], framesMax = max (framesMax st) 1}
-                nextPc instruction
-            | null frames -> raiseInternalError "entry function cannot have parameters"
-            | otherwise -> raiseInternalError "entered function without call"
-enterFunction _ = raiseInternalError "internal error: expected function metadata"
+lookupLocalValue :: Int -> [w] -> Maybe w
+lookupLocalValue index values
+    | index < 0 = Nothing
+    | otherwise = listToMaybe $ drop index values
+
+replaceAt :: Int -> a -> [a] -> Maybe [a]
+replaceAt index value values
+    | index < 0 = Nothing
+    | otherwise = go index values
+    where
+        go _ [] = Nothing
+        go 0 (_ : rest) = Just (value : rest)
+        go n (x : rest) = (x :) <$> go (n - 1) rest
 
 returnFromFunction :: (IsWord w) => State (Wasm32St w) ()
 returnFromFunction = do
@@ -487,15 +849,18 @@ returnFromFunction = do
 
 callFunction :: (IsWord w) => w -> State (Wasm32St w) ()
 callFunction target = do
-    Wasm32St{pc, mem} <- get
-    case readInstruction mem (fromEnum target) of
-        Right (_, Func{funcParams}) -> do
-            args <- popValues (length funcParams)
-            st' <- get
-            put st'{pendingCall = Just PendingCall{pcReturnPc = Just (pc + byteSize (Call target)), pcArgs = args}}
-            setPc (fromEnum target)
-        Right _ -> raiseInternalError "call target does not point to .func"
-        Left err -> raiseInternalError $ "call target error: " <> err
+    Wasm32St{pc, functions} <- get
+    case IntMap.lookup (fromEnum target) functions of
+        Nothing -> raiseInternalError "call target does not point to .func"
+        Just meta -> do
+            args <- popValues (fmParamCount meta)
+            case calledFrame (Just $ pc + byteSize (Call target)) meta args of
+                Left err -> raiseInternalError err
+                Right frame -> do
+                    st@Wasm32St{frames} <- get
+                    let frames' = frame : frames
+                    put st{frames = frames', framesMax = max (framesMax st) (length frames')}
+                    setPc (fromEnum target)
 
 findEndPc :: (IsWord w) => IoMem (Wasm32Isa w w) w -> Int -> Either Text Int
 findEndPc memory start = go start (0 :: Int)
@@ -530,20 +895,20 @@ findIfTargets memory start = go start (0 :: Int) Nothing
                     | otherwise -> go next (depth - 1) elsePc
                 _ -> go next depth elsePc
 
-pushControlFrame :: String -> ControlKind -> Int -> Int -> State (Wasm32St w) ()
+pushControlFrame :: Int -> ControlKind -> Int -> Int -> State (Wasm32St w) ()
 pushControlFrame label kind startPc endPc = do
     depth <- currentFrameDepth
     modify $ \st@Wasm32St{controlStack, controlStackMax} ->
         let controlStack' = ControlFrame label kind startPc endPc depth : controlStack
          in st{controlStack = controlStack', controlStackMax = max controlStackMax (length controlStack')}
 
-branchTo :: String -> State (Wasm32St w) ()
+branchTo :: Int -> State (Wasm32St w) ()
 branchTo label = do
     st@Wasm32St{controlStack} <- get
     depth <- currentFrameDepth
     let (_above, rest) = break (\cf -> cfFrameDepth cf == depth && cfLabel cf == label) controlStack
     case rest of
-        [] -> raiseInternalError $ "unknown control label: " <> toText label
+        [] -> raiseInternalError $ "unknown control label: " <> show label
         (target@ControlFrame{cfKind, cfStartPc, cfEndPc} : outer) ->
             case cfKind of
                 ControlLoop -> put st{controlStack = target : outer} >> setPc cfStartPc
@@ -555,7 +920,7 @@ popControlEnd instruction = do
     st@Wasm32St{controlStack} <- get
     depth <- currentFrameDepth
     case controlStack of
-        (cf : rest) | cfFrameDepth cf == depth -> put st{controlStack = rest} >> nextPc instruction
+        (_cf : rest) | cfFrameDepth _cf == depth -> put st{controlStack = rest} >> nextPc instruction
         _ -> raiseInternalError "unexpected end"
 
 executeElse :: State (Wasm32St w) ()
@@ -583,7 +948,7 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
             ["locals", f] -> localsView f (listToMaybe frames)
             ["local", name, f] -> localView f name (listToMaybe frames)
             ["frames"] -> show (length frames)
-            ["ctrl"] -> T.intercalate ":" $ map (toText . cfLabel) controlStack
+            ["ctrl"] -> T.intercalate ":" $ map (show . cfLabel) controlStack
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
@@ -592,29 +957,37 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
             stack "hex" values = T.intercalate ":" $ map (toText . word32ToHex) values
             stack f _ = unknownFormat f
             localsView _ Nothing = ""
-            localsView f (Just Frame{frLocals}) = T.intercalate ":" $ map (\(n, value) -> toText n <> "=" <> viewRegister f value) frLocals
+            localsView f (Just Frame{frLocals, frLocalNames}) =
+                T.intercalate ":" $ zipWith (\n value -> toText n <> "=" <> viewRegister f value) frLocalNames frLocals
             localView _ _ Nothing = ""
-            localView f name (Just Frame{frLocals}) =
-                maybe (unknownView name) (viewRegister f) (lookupLocalValue (toString name) frLocals)
+            localView f name (Just frame@Frame{frLocalNames}) =
+                case snd <$> find ((== toString name) . fst) (zip frLocalNames [0 :: Int ..]) of
+                    Just index -> maybe (unknownView name) (viewRegister f) (frameLocal index frame)
+                    Nothing -> case readMaybe (toString name) of
+                        Just index -> maybe (unknownView name) (viewRegister f) (frameLocal index frame)
+                        Nothing -> unknownView name
 
     summaryView _labels Wasm32St{operandStackMax, framesMax, controlStackMax} v = case T.splitOn ":" v of
         ["wasm32", "operand-stack-max"] -> Just $ show operandStackMax
         ["wasm32", "frames-max"] -> Just $ show framesMax
         ["wasm32", "control-stack-max"] -> Just $ show controlStackMax
         ["isa-specific"] ->
-            Just
-                $ "wasm32:operand-stack-max: "
-                <> show operandStackMax
-                <> "\n"
-                <> "wasm32:frames-max:        "
-                <> show framesMax
-                <> "\n"
-                <> "wasm32:control-stack-max: "
-                <> show controlStackMax
+            Just $
+                "wasm32:operand-stack-max: "
+                    <> show operandStackMax
+                    <> "\n"
+                    <> "wasm32:frames-max:        "
+                    <> show framesMax
+                    <> "\n"
+                    <> "wasm32:control-stack-max: "
+                    <> show controlStackMax
         _ -> Nothing
 
-lookupLocalValue :: String -> [(String, w)] -> Maybe w
-lookupLocalValue name = fmap snd . find ((== name) . fst)
+frameLocal :: Int -> Frame w -> Maybe w
+frameLocal index Frame{frLocals} = lookupLocalValue index frLocals
+
+lookupAssoc :: (Eq a) => a -> [(a, b)] -> Maybe b
+lookupAssoc key = fmap snd . find ((== key) . fst)
 
 instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
     instructionFetch = do
@@ -631,8 +1004,6 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 
     instructionExecute _pc instruction =
         case instruction of
-            Func{} -> enterFunction instruction
-            EndFunc -> returnFromFunction
             I32Const value -> pushValue value >> nextPc instruction
             Drop -> popValue >> nextPc instruction
             Select -> do
