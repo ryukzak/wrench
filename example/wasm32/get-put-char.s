@@ -17,16 +17,16 @@ normalize_char:
     i32.const 'X'
     i32.eq
     if       $domain_error
-    i32.const -1
-    return
+        i32.const -1
+        return
     end
 
     local.get $ch
     i32.const 'Y'
     i32.eq
     if       $overflow_error
-    i32.const -858993460
-    return
+        i32.const -858993460
+        return
     end
 
     local.get $ch

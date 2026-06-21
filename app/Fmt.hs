@@ -64,6 +64,7 @@ main = do
 
 data ArchStyle
     = StandardArch
+    | Wasm32Arch
     | VliwArch {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
@@ -118,7 +119,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
-            Just Wasm32 -> formatFile def content
+            Just Wasm32 -> formatFile def{archStyle = Wasm32Arch} content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -154,9 +155,10 @@ formatLines fmt tokenss =
         -- Calculate VLIW slot widths if needed
         archStyle' = case archStyle fmt of
             VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
+            Wasm32Arch -> Wasm32Arch
             StandardArch -> StandardArch
         fmt' = fmt{archStyle = archStyle'}
-        source' = map (pprint fmt') statements
+        source' = formatStatements fmt' statements
         comments' =
             zipWith
                 ( \s c ->
@@ -171,6 +173,30 @@ formatLines fmt tokenss =
                 statements
                 comments
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+formatStatements :: FmtConfig -> [Statement] -> [Text]
+formatStatements fmt@FmtConfig{archStyle = Wasm32Arch} statements = go 0 statements
+    where
+        go _ [] = []
+        go depth (statement : rest) =
+            let lineDepth = wasm32LineDepth depth statement
+                nextDepth = wasm32NextDepth depth statement
+                fmt' = fmt{textCommandIndent = textCommandIndent fmt + lineDepth * 4}
+             in pprint fmt' statement : go nextDepth rest
+formatStatements fmt statements = map (pprint fmt) statements
+
+wasm32LineDepth :: Int -> Statement -> Int
+wasm32LineDepth depth (TextLine (token : _))
+    | token `elem` ["else", "end"] = max 0 (depth - 1)
+    | otherwise = depth
+wasm32LineDepth depth _ = depth
+
+wasm32NextDepth :: Int -> Statement -> Int
+wasm32NextDepth depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = depth + 1
+    | token == "end" = max 0 (depth - 1)
+    | otherwise = depth
+wasm32NextDepth depth _ = depth
 
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
@@ -249,6 +275,12 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case archStyle of
                 VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                Wasm32Arch ->
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
+                        cmd = width textCommandWidth $ unwords cmdTokens
+                     in T.replicate textCommandIndent " " <> cmd
                 StandardArch ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
@@ -294,4 +326,5 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwArch = case archStyle of
             VliwArch _ -> True
+            Wasm32Arch -> False
             StandardArch -> False
