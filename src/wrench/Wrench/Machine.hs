@@ -17,64 +17,100 @@ data Simulation st isa = Simulation
     , takePartOnStateRecordLimit :: Int
     }
 
-tellState :: st -> State (Simulation st isa) ()
-tellState machineState = modify
-    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
-        if stateRecordCount >= stateRecordLimits
-            then
-                let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
-                    rest = drop n log
-                    rest' =
-                        filter
-                            ( \case
-                                TState{} -> False
-                                _ -> True
-                            )
-                            rest
-                    dropped = length rest - length rest'
-                    warn = "Dropped " <> show dropped <> " states"
-                 in sim
-                        { log = take n log <> rest' <> [TWarn warn]
-                        , stateRecordCount = stateRecordCount - dropped
+fetchNextInstruction :: (Machine st isa w) => st -> Maybe isa
+fetchNextInstruction st =
+    case evalState instructionFetch st of
+        Right (_, instruction) -> Just instruction
+        Left _ -> Nothing
+
+tellState :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
+tellState lastInstruction = do
+    sim@Simulation{machineState} <- get
+    let nextInstruction = fetchNextInstruction machineState
+
+    modify
+        $ \sim'@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
+            if stateRecordCount >= stateRecordLimits
+                then
+                    let n = stateRecordLimits `div` takePartOnStateRecordLimit
+                        rest = drop n log
+                        rest' =
+                            filter
+                                ( \case
+                                    TState{} -> False
+                                    _ -> True
+                                )
+                                rest
+                        dropped = length rest - length rest'
+                        warn = "Dropped " <> show dropped <> " states"
+                     in sim'
+                            { log = take n log <> rest' <> [TWarn warn]
+                            , stateRecordCount = stateRecordCount - dropped
+                            }
+                else
+                    sim'
+                        { log =
+                            TState
+                                { tInstructionCount = instructionCount
+                                , tInstructionNext = nextInstruction
+                                , tLastInstruction = lastInstruction
+                                , tState = machineState
+                                }
+                                : log
+                        , stateRecordCount = stateRecordCount + 1
                         }
-            else
-                sim
-                    { log = TState{tInstructionCount = instructionCount + 1, tState = machineState} : log
-                    , stateRecordCount = stateRecordCount + 1
-                    }
 
 tellError msg = modify $ \sim@Simulation{log} ->
     sim{log = TError msg : log}
 
--- | Run the simulation and return both the recorded trace log and the final
---   machine state. The final state carries the complete runtime accumulators
---   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
---   pre-step and therefore don't include the last instruction's accesses.
 simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
 simulate sim =
     let Simulation{log, machineState} = execState simulate' sim
      in (reverse log, machineState)
 
-simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
-simulateInstructionStep =
-    modify $ \sim@Simulation{machineState, instructionCount} ->
-        sim
-            { machineState = execState instructionStep machineState
-            , instructionCount = instructionCount + 1
-            }
+simulateOneInstruction :: (Machine st isa w) => State (Simulation st isa) (Either Text isa)
+simulateOneInstruction = do
+    sim@Simulation{machineState, instructionCount} <- get
+
+    case evalState instructionFetch machineState of
+        Left err ->
+            return $ Left err
+
+        Right (pc, instruction) -> do
+            let machineState' =
+                    execState
+                        (instructionExecute pc instruction)
+                        machineState
+
+            put sim
+                { machineState = machineState'
+                , instructionCount = instructionCount + 1
+                }
+
+            return $ Right instruction
 
 simulate' :: (Machine st isa w) => State (Simulation st isa) ()
 simulate' = do
-    Simulation{machineState, instructionCount, instructionLimits} <- get
+    tellState Nothing
+    simulateLoop
+
+simulateLoop :: (Machine st isa w) => State (Simulation st isa) ()
+simulateLoop = do
+    Simulation{instructionCount, instructionLimits} <- get
+
     if instructionCount >= instructionLimits
         then tellError "Simulation limit reached"
-        else case evalState instructionFetch machineState of
-            Right _ -> do
-                tellState machineState
-                simulateInstructionStep
-                simulate'
-            Left err | err == halted -> return ()
-            Left err -> tellError err
+        else do
+            result <- simulateOneInstruction
+
+            case result of
+                Right instruction -> do
+                    tellState (Just instruction)
+                    simulateLoop
+
+                Left err
+                    | err == halted -> return ()
+                    | otherwise -> tellError err
 
 powerOn ::
     (Machine st isa w, MachineWord w) =>

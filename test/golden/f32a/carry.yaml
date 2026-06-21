@@ -29,3 +29,4 @@ reports:
       52: Add  carry: 1 eam: 1 stack: 0x00000000:0x00000002
       53: Drop  carry: 0 eam: 1 stack: 0x00000003
       54: Halt  carry: 0 eam: 1 stack:
+      54: -  carry: 0 eam: 1 stack:

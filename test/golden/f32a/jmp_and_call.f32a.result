@@ -7,6 +7,7 @@
 21:	Return	
 15:	Jump 22	
 22:	Halt	@halt_jmp
+22:	-	@halt_jmp
 ---
 # Check results
 T A B S 50 0 0x00000000 0

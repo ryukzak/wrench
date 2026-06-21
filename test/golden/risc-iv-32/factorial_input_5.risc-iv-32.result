@@ -84,6 +84,8 @@
 120:	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}	
 132 0 120 0
 124:	Halt	@exit
+132 0 120 0
+124:	-	@exit
 ---
 # result
 numio[0x80]: [] >>> []
@@ -94,6 +96,6 @@ sim:instruction-count: 42
 layout:sections-size: 128
 layout:text-sections-size: 120
 layout:data-sections-size: 8
-mem:instr-ranges: 0x8..0x37, 0x6c..0x7f
+mem:instr-ranges: -
 mem:data-ranges: 0x0..0x7
 mem:io-ranges: 0x80..0x87

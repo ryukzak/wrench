@@ -158,11 +158,21 @@ halted :: Text
 halted = "halted"
 
 data Trace st isa
-    = -- | A captured machine state, tagged with the 1-indexed instruction step
-      --   number it sits before (i.e. the @sim:instruction-count@ value at this
-      --   point in the trace).
+    = -- | Captured simulator snapshot.
+      --
+      -- Initial snapshot:
+      --   tInstructionCount = 0
+      --   tInstructionNext  = first instruction if it exists
+      --   tLastInstruction  = Nothing
+      --
+      -- Snapshot after instruction execution:
+      --   tInstructionCount = number of already executed instructions
+      --   tInstructionNext  = next instruction if it exists
+      --   tLastInstruction  = Just executedInstruction
       TState
         { tInstructionCount :: !Int
+        , tInstructionNext :: !(Maybe isa)
+        , tLastInstruction :: !(Maybe isa)
         , tState :: !st
         }
     | TError Text
