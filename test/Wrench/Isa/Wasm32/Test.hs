@@ -89,8 +89,11 @@ programState instrs =
                             <> concatMap instructionCells instrs
                     }
         , operandStack = []
+        , operandStackMax = 0
         , frames = []
+        , framesMax = 0
         , controlStack = []
+        , controlStackMax = 0
         , pendingCall = Nothing
         , stopped = False
         , internalError = Nothing
