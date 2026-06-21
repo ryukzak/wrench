@@ -54,14 +54,64 @@ double:
 - `frames` -- number of active function frames.
 - `ctrl` -- active structured control labels, innermost first.
 
+### Runtime statistics
+
+The simulator tracks the high-water mark (deepest level reached) of the Wasm32 runtime stacks and exposes them through summary view variables. They are run-totals, so use them with `slice: last`.
+
+- `wasm32:operand-stack-max` -- maximum operand stack depth reached during execution.
+- `wasm32:frames-max` -- maximum active function frame count reached during execution.
+- `wasm32:control-stack-max` -- maximum active structured control label count reached during execution.
+
+All three lines are also emitted together by the generic `{isa-specific}` summary block, which lets a single report template stay uniform across ISAs.
+
 ## Functions and Locals
 
-Function metadata is declared by `.func`.
+Function metadata is declared by `.func`, which is a Wrench directive that describes the next function body. It is not executed as a normal stack instruction by the program author; it marks how Wrench should enter the function, bind parameters, allocate locals, and collect return values.
+
+```assembly
+_start:
+    .func
+    i32.const 5
+    call factorial
+    halt
+    .endfunc
+
+factorial:
+    .func params $n result i32 locals $acc
+    i32.const 1
+    local.set $acc
+    ; ...
+    local.get $acc
+    return
+    .endfunc
+```
 
 - `.func` declares a function with no parameters, no locals, and no return values.
 - `.func locals $x $y` declares local variables initialized to zero.
 - `.func params $n result i32 locals $acc` declares one parameter, one return value, and one extra local.
-- `func 1, 1, 1` is also accepted as a compact numeric form: one parameter, one local, one result.
+- `func 1, 1, 1` is also accepted as a compact numeric form: one parameter, one extra local, one result.
+
+The named form is easier to read in examples and should be preferred in hand-written programs. The numeric form is useful for generated code:
+
+```assembly
+sum:
+    .func params $x $y result i32
+    local.get $x
+    local.get $y
+    i32.add
+    return
+    .endfunc
+
+sum_generated:
+    func 2, 0, 1
+    local.get 0
+    local.get 1
+    i32.add
+    return
+    .endfunc
+```
+
+In `func 2, 0, 1`, locals `0` and `1` are parameters. The second number is the number of additional zero-initialized locals, so `func 1, 1, 1` creates parameter `0`, extra local `1`, and one return value.
 
 Parameters are popped from the operand stack and bound to local names in declaration order. Return values are popped from the operand stack before the current function frame is removed, then pushed back for the caller. `.endfunc` returns from the current function; `return` does the same explicitly. Returning from `_start` stops the machine.
 
@@ -69,17 +119,106 @@ Parameters are popped from the operand stack and bound to local names in declara
 
 Most instructions pop their operands from the stack and push the result back.
 
-For binary operations, the right operand is popped first:
+For binary operations, the right operand is popped first. This Wasm32 code leaves `7` on the stack:
 
-```text
-push x
-push y
-i32.sub   ; pushes x - y
+```assembly
+i32.const 10
+i32.const 3
+i32.sub
 ```
 
 ## Memory and I/O
 
-Wasm32 uses the same memory model as the other Wrench ISAs. Memory addresses are `i32` values, and memory-mapped I/O is configured through the normal Wrench configuration file.
+Wasm32 uses the same byte-addressed memory model as the other Wrench ISAs. Memory addresses are `i32` values. `i32.load` and `i32.store` read and write four bytes, while `i32.load8_u` and `i32.store8` read and write one byte.
+
+```assembly
+    .data
+
+value:           .word  42
+byte_value:      .byte  65
+
+    .text
+
+_start:
+    .func locals $tmp
+    i32.const value
+    i32.load
+    local.set $tmp
+
+    i32.const value
+    local.get $tmp
+    i32.const 1
+    i32.add
+    i32.store
+
+    i32.const byte_value
+    i32.load8_u
+    drop
+    halt
+    .endfunc
+```
+
+Memory-mapped I/O is configured through the normal Wrench configuration file. For example, the existing examples use address `0x80` for input and address `0x84` for output:
+
+```assembly
+_start:
+    .func
+    i32.const 0x84
+    i32.const 0x80
+    i32.load
+    i32.store
+    halt
+    .endfunc
+```
+
+With a configuration that maps `0x80` to input and `0x84` to output, this reads one 32-bit value from input and writes it to output.
+
+## Structured Control Flow
+
+Wasm32 uses structured control instructions instead of arbitrary jumps. `block`, `loop`, and `if` introduce labeled control regions. `br <label>` branches to a region unconditionally, and `br_if <label>` branches only when the popped condition is non-zero.
+
+An `if` executes its body when the condition is non-zero:
+
+```assembly
+    local.get $n
+    i32.const 0
+    i32.lt_s
+    if $negative
+        i32.const -1
+        return
+    end
+```
+
+Use `else` for the alternative branch:
+
+```assembly
+    local.get $flag
+    if $choose
+        i32.const 1
+    else
+        i32.const 2
+    end
+```
+
+A loop is normally wrapped in an outer block. Branching to the loop label continues the loop, while branching to the block label exits it:
+
+```assembly
+    block $done
+        loop $loop
+            local.get $n
+            i32.const 1
+            i32.le_s
+            br_if $done
+
+            local.get $n
+            i32.const 1
+            i32.sub
+            local.set $n
+
+            br $loop
+        end
+    end
+```
 
 ## Instructions
 
