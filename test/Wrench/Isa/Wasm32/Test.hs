@@ -1,15 +1,20 @@
 module Wrench.Isa.Wasm32.Test (tests) where
 
 import Data.Default
+import Data.HashMap.Strict qualified as HashMap
+import Data.IntMap.Strict qualified as IntMap
+import Data.Text qualified as T
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertBool, testCase, (@?=))
+import Test.Tasty.HUnit (Assertion, assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Wrench.Isa.Wasm32
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Translator (TranslatorResult (..))
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
 import Wrench.Translator.Types (Ref)
+import Prelude qualified
 
 tests :: TestTree
 tests =
@@ -17,10 +22,55 @@ tests =
         "ISA"
         [ testCase "Parse keyword function metadata" $ do
             assertBool "keyword .func should parse"
-                $ isRight (translate ".func params $n result i32 locals $acc")
+                $ isRight (parseSource ".func params $n result i32 locals $acc")
         , testCase "Parse numeric function metadata" $ do
             assertBool "numeric func should parse"
-                $ isRight (translate "func 2, 3, 1")
+                $ isRight (parseSource "func 2, 3, 1")
+        , testCase "Source metadata lowers away from executable memory" $ do
+            let src = Prelude.unlines [".text", "_start:", "    .func", "    halt", "    .endfunc"]
+            case translateWasm32 @Int32 64 "-" src of
+                Left err -> assertFailureText err
+                Right (TranslatorResult dump labels _stats, functions) -> do
+                    HashMap.lookup "_start" labels @?= Just 0
+                    IntMap.member 0 functions @?= True
+                    prettyDump labels (dumpCells dump) @?= "mem[0..0]: \tHalt \t@_start\nmem[1..1]: \tReturn\nmem[2..63]: \t( 00 )"
+        , testCase "Translation rejects unknown locals" $ do
+            assertTranslateError
+                "unknown local"
+                [ ".text"
+                , "_start:"
+                , "    .func"
+                , "    local.get $missing"
+                , "    .endfunc"
+                ]
+        , testCase "Translation rejects duplicate locals" $ do
+            assertTranslateError
+                "duplicate local name"
+                [ ".text"
+                , "_start:"
+                , "    .func params $n locals $n"
+                , "    .endfunc"
+                ]
+        , testCase "Translation rejects unknown control labels" $ do
+            assertTranslateError
+                "unknown control label"
+                [ ".text"
+                , "_start:"
+                , "    .func"
+                , "    br missing"
+                , "    .endfunc"
+                ]
+        , testCase "Translation rejects calls to non-functions" $ do
+            assertTranslateError
+                "call target does not point to .func"
+                [ ".text"
+                , "_start:"
+                , "    .func"
+                , "    call target"
+                , "    .endfunc"
+                , "target:"
+                , "    i32.const 0"
+                ]
         , testCase "Binary operations pop right operand first" $ do
             operandStack (execute I32Sub [3, 10]) @?= [7]
         , testCase "Logical right shift treats negative value as unsigned" $ do
@@ -44,21 +94,30 @@ tests =
             let State{mem} = executeWithBytes I32Store8 [] [0x12345641, 10]
             fmap snd (readByte mem 10) @?= Right 0x41
         , testCase "Function calls bind params and return results" $ do
-            let State{operandStack, stopped, internalError} = runProgram functionProgram
+            let State{operandStack, stopped, internalError} = runProgram functionTable functionProgram
             operandStack @?= [42]
             stopped @?= True
             internalError @?= Nothing
         , testCase "If/else executes the selected structured branch" $ do
-            operandStack (runProgram ifElseProgram) @?= [2]
+            operandStack (runProgram ifElseTable ifElseProgram) @?= [2]
         , testCase "Loop branch keeps the loop frame and exits through block branch" $ do
-            operandStack (runProgram loopProgram) @?= [0]
+            operandStack (runProgram loopTable loopProgram) @?= [0]
         ]
 
-translate :: String -> Either String (Isa Int32 (Ref Int32))
-translate code =
+parseSource :: String -> Either String (Source Int32 (Ref Int32))
+parseSource code =
     case parse mnemonic "-" (code <> "\n") of
         Left err -> Left $ show err
         Right m -> Right m
+
+assertFailureText :: Text -> Assertion
+assertFailureText = assertFailure . toString
+
+assertTranslateError :: Text -> [String] -> Assertion
+assertTranslateError needle lines' =
+    case translateWasm32 @Int32 64 "-" (Prelude.unlines lines') of
+        Right _ -> assertFailure $ "translation unexpectedly succeeded; expected " <> toString needle
+        Left err -> assertBool ("expected " <> toString needle <> " in " <> toString err) $ needle `T.isInfixOf` err
 
 execute :: Isa Int32 Int32 -> [Int32] -> Wasm32State Int32
 execute instr = executeWithBytes instr []
@@ -72,40 +131,27 @@ writeBytes bytes st@State{mem} =
     st{mem = either error id $ foldlM (\m (addr, value) -> writeByte m addr value) mem bytes}
 
 emptyState :: Wasm32State Int32
-emptyState = programState []
+emptyState = rawState []
 
-programState :: [(Int, Isa Int32 Int32)] -> Wasm32State Int32
-programState instrs =
+rawState :: [(Int, Isa Int32 Int32)] -> Wasm32State Int32
+rawState instrs =
     State
         { pc = 0
         , mem =
-            mkIoMem
-                def
-                Mem
-                    { memorySize = 512
-                    , memoryData =
-                        fromList
-                            $ [(addr, Value 0) | addr <- [0 .. 511]]
-                            <> concatMap instructionCells instrs
-                    }
+            programMemory instrs
         , operandStack = []
         , operandStackMax = 0
         , frames = []
         , framesMax = 0
         , controlStack = []
         , controlStackMax = 0
-        , pendingCall = Nothing
+        , functions = IntMap.empty
         , stopped = False
         , internalError = Nothing
         }
 
-instructionCells :: (Int, Isa Int32 Int32) -> [(Int, Cell (Isa Int32 Int32) Int32)]
-instructionCells (addr, instr) =
-    (addr, Instruction instr)
-        : [(addr + offset, InstructionPart) | offset <- [1 .. byteSize instr - 1]]
-
-runProgram :: [(Int, Isa Int32 Int32)] -> Wasm32State Int32
-runProgram = go (200 :: Int) . programState
+runProgram :: FunctionTable -> [(Int, Isa Int32 Int32)] -> Wasm32State Int32
+runProgram functionTable' instrs = go (200 :: Int) (programState functionTable' instrs)
     where
         go 0 _ = error "test program did not halt"
         go limit st =
@@ -114,56 +160,82 @@ runProgram = go (200 :: Int) . programState
                 Left err | err == halted -> st
                 Left _ -> st
 
-func :: [String] -> [String] -> Int -> Isa Int32 Int32
-func params locals results =
-    Func
-        { funcParams = params
-        , funcLocals = locals
-        , funcResults = results
-        }
+programState :: FunctionTable -> [(Int, Isa Int32 Int32)] -> Wasm32State Int32
+programState functionTable' instrs =
+    either error id $ initWasm32State 0 (programMemory instrs) functionTable'
+
+programMemory :: [(Int, Isa Int32 Int32)] -> IoMem (Isa Int32 Int32) Int32
+programMemory instrs =
+    mkIoMem
+        def
+        Mem
+            { memorySize = 512
+            , memoryData =
+                fromList
+                    $ [(addr, Value 0) | addr <- [0 .. 511]]
+                    <> concatMap instructionCells instrs
+            }
+
+instructionCells :: (Int, Isa Int32 Int32) -> [(Int, Cell (Isa Int32 Int32) Int32)]
+instructionCells (addr, instr) =
+    (addr, Instruction instr)
+        : [(addr + offset, InstructionPart) | offset <- [1 .. byteSize instr - 1]]
+
+functionTable :: FunctionTable
+functionTable =
+    IntMap.fromList
+        [ (0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})
+        , (11, FunctionMeta{fmParamCount = 1, fmLocalNames = ["$x"], fmResultCount = 1})
+        ]
 
 functionProgram :: [(Int, Isa Int32 Int32)]
 functionProgram =
-    [ (0, func [] [] 0)
-    , (4, I32Const 41)
-    , (9, Call 15)
-    , (14, Halt)
-    , (15, func ["$x"] [] 1)
-    , (19, LocalGet "$x")
-    , (21, I32Const 1)
-    , (26, I32Add)
-    , (27, Return)
+    [ (0, I32Const 41)
+    , (5, Call 11)
+    , (10, Halt)
+    , (11, LocalGet 0)
+    , (13, I32Const 1)
+    , (18, I32Add)
+    , (19, Return)
     ]
+
+ifElseTable :: FunctionTable
+ifElseTable =
+    IntMap.fromList
+        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})]
 
 ifElseProgram :: [(Int, Isa Int32 Int32)]
 ifElseProgram =
-    [ (0, func [] [] 0)
-    , (4, I32Const 0)
-    , (9, If "$choose")
-    , (11, I32Const 1)
-    , (16, Else)
-    , (17, I32Const 2)
-    , (22, End)
-    , (23, Halt)
+    [ (0, I32Const 0)
+    , (5, If 0)
+    , (7, I32Const 1)
+    , (12, Else)
+    , (13, I32Const 2)
+    , (18, End)
+    , (19, Halt)
     ]
+
+loopTable :: FunctionTable
+loopTable =
+    IntMap.fromList
+        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = ["$n"], fmResultCount = 0})]
 
 loopProgram :: [(Int, Isa Int32 Int32)]
 loopProgram =
-    [ (0, func [] ["$n"] 0)
-    , (4, I32Const 3)
-    , (9, LocalSet "$n")
-    , (11, Block "$done")
-    , (13, Loop "$loop")
-    , (15, LocalGet "$n")
-    , (17, I32Eqz)
-    , (18, BrIf "$done")
-    , (20, LocalGet "$n")
-    , (22, I32Const 1)
-    , (27, I32Sub)
-    , (28, LocalSet "$n")
-    , (30, Br "$loop")
-    , (32, End)
-    , (33, End)
-    , (34, LocalGet "$n")
-    , (36, Halt)
+    [ (0, I32Const 3)
+    , (5, LocalSet 0)
+    , (7, Block 0)
+    , (9, Loop 1)
+    , (11, LocalGet 0)
+    , (13, I32Eqz)
+    , (14, BrIf 0)
+    , (16, LocalGet 0)
+    , (18, I32Const 1)
+    , (23, I32Sub)
+    , (24, LocalSet 0)
+    , (26, Br 1)
+    , (28, End)
+    , (29, End)
+    , (30, LocalGet 0)
+    , (32, Halt)
     ]

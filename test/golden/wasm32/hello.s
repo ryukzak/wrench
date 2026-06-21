@@ -7,31 +7,31 @@ buf_end:         .byte  0, 0, 0
 
 _start:
     .func    locals $ptr $end
-    i32.const buf
-    local.set $ptr
-    i32.const buf_end
-    local.set $end
+        i32.const buf
+        local.set $ptr
+        i32.const buf_end
+        local.set $end
 
-    block    $done
-        loop     $loop
-            local.get $ptr
-            local.get $end
-            i32.ge_u
-            br_if    $done
+        block    done
+            loop     again
+                local.get $ptr
+                local.get $end
+                i32.ge_u
+                br_if    done
 
-            i32.const 0x84
-            local.get $ptr
-            i32.load8_u
-            i32.store8
+                i32.const 0x84
+                local.get $ptr
+                i32.load8_u
+                i32.store8
 
-            local.get $ptr
-            i32.const 1
-            i32.add
-            local.set $ptr
+                local.get $ptr
+                i32.const 1
+                i32.add
+                local.set $ptr
 
-            br       $loop
+                br       again
+            end
         end
-    end
 
-    halt
+        halt
     .endfunc

@@ -23,7 +23,6 @@ import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Isa.VliwIv (VliwIvState)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
-import Wrench.Isa.Wasm32 (Wasm32State)
 import Wrench.Isa.Wasm32 qualified as Wasm32
 import Wrench.Isa.Wasm32.Test qualified
 import Wrench.Machine.Memory
@@ -307,7 +306,17 @@ goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
 goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
 goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.Isa VliwIv fn
-goldenTranslate Wasm32 fn = goldenTranslate' @Wasm32.Isa Wasm32 fn
+goldenTranslate Wasm32 fn = goldenTranslateWasm32 fn
+
+goldenTranslateWasm32 :: FilePath -> TestTree
+goldenTranslateWasm32 fn =
+    goldenVsString (fn2name fn) (fn <> "." <> isaPath Wasm32 <> ".result") $ do
+        src <- decodeUtf8 <$> readFileBS fn
+        case Wasm32.translateWasm32 @Int32 1000 fn src of
+            Right (TranslatorResult dump labels _stats, _functionTable) ->
+                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
+            Left err ->
+                error $ "Translation failed: " <> show err
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -343,7 +352,7 @@ goldenSimulate' shouldFail isa =
         Acc32 -> goldenSimulateInner (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
         M68k -> goldenSimulateInner (wrench @(M68kState Int32)) ".m68k.result" shouldFail
         VliwIv -> goldenSimulateInner (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
-        Wasm32 -> goldenSimulateInner (wrench @(Wasm32State Int32)) ".wasm32.result" shouldFail
+        Wasm32 -> goldenSimulateInner (wrenchWasm32 @Int32) ".wasm32.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn

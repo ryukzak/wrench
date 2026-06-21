@@ -52,7 +52,7 @@ double:
 - `locals:dec`, `locals:hex` -- locals of the current function frame.
 - `local:<name>:dec`, `local:<name>:hex` -- one local from the current function frame.
 - `frames` -- number of active function frames.
-- `ctrl` -- active structured control labels, innermost first.
+- `ctrl` -- active structured control ids, innermost first.
 
 ### Runtime statistics
 
@@ -66,7 +66,7 @@ All three lines are also emitted together by the generic `{isa-specific}` summar
 
 ## Functions and Locals
 
-Function metadata is declared by `.func`, which is a Wrench directive that describes the next function body. It is not executed as a normal stack instruction by the program author; it marks how Wrench should enter the function, bind parameters, allocate locals, and collect return values.
+Function metadata is declared by `.func`, which is a Wrench source directive that describes the next function body. During translation Wrench records it in a function table and does not emit an executable instruction cell for it. `.endfunc` lowers to the same runtime instruction as `return`.
 
 ```assembly
 _start:
@@ -82,7 +82,6 @@ factorial:
     local.set $acc
     ; ...
     local.get $acc
-    return
     .endfunc
 ```
 
@@ -99,7 +98,6 @@ sum:
     local.get $x
     local.get $y
     i32.add
-    return
     .endfunc
 
 sum_generated:
@@ -107,13 +105,12 @@ sum_generated:
     local.get 0
     local.get 1
     i32.add
-    return
     .endfunc
 ```
 
 In `func 2, 0, 1`, locals `0` and `1` are parameters. The second number is the number of additional zero-initialized locals, so `func 1, 1, 1` creates parameter `0`, extra local `1`, and one return value.
 
-Parameters are popped from the operand stack and bound to local names in declaration order. Return values are popped from the operand stack before the current function frame is removed, then pushed back for the caller. `.endfunc` returns from the current function; `return` does the same explicitly. Returning from `_start` stops the machine.
+Parameters are popped from the operand stack and bound to local names in declaration order. Return values are popped from the operand stack before the current function frame is removed, then pushed back for the caller. `.endfunc` returns from the current function; `return` does the same explicitly and is only needed for early returns before the function end. Returning from `_start` stops the machine.
 
 ## Operand Stack
 
@@ -183,7 +180,7 @@ An `if` executes its body when the condition is non-zero:
     local.get $n
     i32.const 0
     i32.lt_s
-    if $negative
+    if negative
         i32.const -1
         return
     end
@@ -193,7 +190,7 @@ Use `else` for the alternative branch:
 
 ```assembly
     local.get $flag
-    if $choose
+    if choose
         i32.const 1
     else
         i32.const 2
@@ -203,31 +200,34 @@ Use `else` for the alternative branch:
 A loop is normally wrapped in an outer block. Branching to the loop label continues the loop, while branching to the block label exits it:
 
 ```assembly
-    block $done
-        loop $loop
+    block done
+        loop again
             local.get $n
             i32.const 1
             i32.le_s
-            br_if $done
+            br_if done
 
             local.get $n
             i32.const 1
             i32.sub
             local.set $n
 
-            br $loop
+            br again
         end
     end
 ```
+
+Control labels are ordinary label tokens. The examples use bare labels to distinguish them from locals, while the parser still accepts labels such as `$loop` for compatibility with existing sources.
 
 ## Instructions
 
 Instruction sizes are implementation sizes used by the Wrench translator and trace:
 
 - 5 bytes: `i32.const`, `call`
-- 4 bytes: `.func`
 - 2 bytes: `local.get`, `local.set`, `local.tee`, `block`, `loop`, `if`, `br`, `br_if`
 - 1 byte: all other instructions
+
+Source directives are handled before runtime memory is built: `.func` emits no instruction bytes, and `.endfunc` emits a one-byte `return`.
 
 ### Constants and Stack Operations
 
@@ -478,4 +478,4 @@ Instruction sizes are implementation sizes used by the Wrench translator and tra
     - **Description:** Do nothing.
     - **Operation:** `pc <- pc + 1`
 
-Branching to a `block` or `if` label exits that construct and continues after its `end`. Branching to a `loop` label jumps back to the start of the loop body. `br_if` pops a condition and branches when it is non-zero. `call` target labels must point to a `.func` instruction.
+Branching to a `block` or `if` label exits that construct and continues after its `end`. Branching to a `loop` label jumps back to the start of the loop body. `br_if` pops a condition and branches when it is non-zero. `call` target labels must point to a function label with `.func` metadata.
