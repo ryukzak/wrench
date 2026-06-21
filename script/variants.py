@@ -222,7 +222,7 @@ def gen_variants(cases):
         inf_shuffle(categories["Bitwise Operations"]),
         inf_shuffle(categories["Complex Tasks"]),
         inf_shuffle(categories["Mathematics"]),
-        inf_shuffle(["acc32", "f18a", "m68k", "risc-iv"]),
+        inf_shuffle(["acc32", "f32a", "m68k", "risc-iv"]),
         inf_shuffle(categories["VLIW"]),
     ):
         yield fun_shuffle(e)
