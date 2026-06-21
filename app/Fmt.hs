@@ -67,6 +67,7 @@ main = do
 
 data LineLayout
     = StandardLayout
+    | Wasm32Layout
     | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
@@ -124,6 +125,7 @@ fmtConfig = \case
     Acc32 -> acc32Fmt
     M68k -> def
     VliwIv -> vliwIvFmt
+    Wasm32 -> def{lineLayout = Wasm32Layout}
 
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
@@ -171,9 +173,10 @@ formatLines fmt tokenss =
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
             VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
+            Wasm32Layout -> Wasm32Layout
             StandardLayout -> StandardLayout
         fmt' = fmt{lineLayout = lineLayout'}
-        source' = map (pprint fmt') statements
+        source' = formatStatements fmt' statements
         comments' =
             zipWith
                 ( \s c ->
@@ -188,6 +191,30 @@ formatLines fmt tokenss =
                 statements
                 comments
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+formatStatements :: FmtConfig -> [Statement] -> [Text]
+formatStatements fmt@FmtConfig{lineLayout = Wasm32Layout} statements = go 0 statements
+    where
+        go _ [] = []
+        go depth (statement : rest) =
+            let lineDepth = wasm32LineDepth depth statement
+                nextDepth = wasm32NextDepth depth statement
+                fmt' = fmt{textCommandIndent = textCommandIndent fmt + lineDepth * 4}
+             in pprint fmt' statement : go nextDepth rest
+formatStatements fmt statements = map (pprint fmt) statements
+
+wasm32LineDepth :: Int -> Statement -> Int
+wasm32LineDepth depth (TextLine (token : _))
+    | token `elem` ["else", "end"] = max 0 (depth - 1)
+    | otherwise = depth
+wasm32LineDepth depth _ = depth
+
+wasm32NextDepth :: Int -> Statement -> Int
+wasm32NextDepth depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = depth + 1
+    | token == "end" = max 0 (depth - 1)
+    | otherwise = depth
+wasm32NextDepth depth _ = depth
 
 calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
 calculateVliwSlotWidths configWidths statements =
@@ -266,6 +293,12 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                Wasm32Layout ->
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
+                        cmd = width textCommandWidth $ unwords cmdTokens
+                     in T.replicate textCommandIndent " " <> cmd
                 StandardLayout ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
@@ -310,4 +343,5 @@ tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwLayout = case lineLayout of
             VliwLayout _ -> True
+            Wasm32Layout -> False
             StandardLayout -> False
