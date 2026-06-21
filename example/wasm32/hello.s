@@ -13,24 +13,24 @@ _start:
     local.set $end
 
     block    $done
-    loop     $loop
-    local.get $ptr
-    local.get $end
-    i32.ge_u
-    br_if    $done
+        loop     $loop
+            local.get $ptr
+            local.get $end
+            i32.ge_u
+            br_if    $done
 
-    i32.const 0x84
-    local.get $ptr
-    i32.load8_u
-    i32.store8
+            i32.const 0x84
+            local.get $ptr
+            i32.load8_u
+            i32.store8
 
-    local.get $ptr
-    i32.const 1
-    i32.add
-    local.set $ptr
+            local.get $ptr
+            i32.const 1
+            i32.add
+            local.set $ptr
 
-    br       $loop
-    end
+            br       $loop
+        end
     end
 
     halt

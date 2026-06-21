@@ -314,8 +314,11 @@ data Wasm32St w = Wasm32St
     { pc :: Int
     , mem :: IoMem (Wasm32Isa w w) w
     , operandStack :: [w]
+    , operandStackMax :: !Int
     , frames :: [Frame w]
+    , framesMax :: !Int
     , controlStack :: [ControlFrame]
+    , controlStackMax :: !Int
     , pendingCall :: Maybe (PendingCall w)
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -330,8 +333,11 @@ instance InitState (Wasm32St w) where
             { pc
             , mem = dump
             , operandStack = []
+            , operandStackMax = 0
             , frames = []
+            , framesMax = 0
             , controlStack = []
+            , controlStackMax = 0
             , pendingCall = Nothing
             , stopped = False
             , internalError = Nothing
@@ -349,7 +355,10 @@ raiseInternalError :: Text -> State (Wasm32St w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 pushValue :: w -> State (Wasm32St w) ()
-pushValue value = modify $ \st@Wasm32St{operandStack} -> st{operandStack = value : operandStack}
+pushValue value =
+    modify $ \st@Wasm32St{operandStack, operandStackMax} ->
+        let operandStack' = value : operandStack
+         in st{operandStack = operandStack', operandStackMax = max operandStackMax (length operandStack')}
 
 popValue :: (IsWord w) => State (Wasm32St w) w
 popValue = do
@@ -443,7 +452,8 @@ enterFunction instruction@Func{funcParams, funcLocals, funcResults} = do
                 let paramLocals = zip funcParams pcArgs
                     extraLocals = map (,def) funcLocals
                     frame = Frame{frReturnPc = pcReturnPc, frLocals = paramLocals <> extraLocals, frResults = funcResults}
-                put st{frames = frame : frames, pendingCall = Nothing}
+                    frames' = frame : frames
+                put st{frames = frames', framesMax = max (framesMax st) (length frames'), pendingCall = Nothing}
                 nextPc instruction
             | otherwise ->
                 raiseInternalError
@@ -454,7 +464,7 @@ enterFunction instruction@Func{funcParams, funcLocals, funcResults} = do
         Nothing
             | null frames && null funcParams -> do
                 let frame = Frame{frReturnPc = Nothing, frLocals = map (,def) funcLocals, frResults = funcResults}
-                put st{frames = [frame]}
+                put st{frames = [frame], framesMax = max (framesMax st) 1}
                 nextPc instruction
             | null frames -> raiseInternalError "entry function cannot have parameters"
             | otherwise -> raiseInternalError "entered function without call"
@@ -479,7 +489,7 @@ callFunction :: (IsWord w) => w -> State (Wasm32St w) ()
 callFunction target = do
     Wasm32St{pc, mem} <- get
     case readInstruction mem (fromEnum target) of
-        Right Func{funcParams} -> do
+        Right (_, Func{funcParams}) -> do
             args <- popValues (length funcParams)
             st' <- get
             put st'{pendingCall = Just PendingCall{pcReturnPc = Just (pc + byteSize (Call target)), pcArgs = args}}
@@ -491,7 +501,7 @@ findEndPc :: (IsWord w) => IoMem (Wasm32Isa w w) w -> Int -> Either Text Int
 findEndPc memory start = go start (0 :: Int)
     where
         go addr depth = do
-            instruction <- readInstruction memory addr
+            (_, instruction) <- readInstruction memory addr
             let next = addr + byteSize instruction
             case instruction of
                 Block{} -> go next (depth + 1)
@@ -506,7 +516,7 @@ findIfTargets :: (IsWord w) => IoMem (Wasm32Isa w w) w -> Int -> Either Text (Ma
 findIfTargets memory start = go start (0 :: Int) Nothing
     where
         go addr depth elsePc = do
-            instruction <- readInstruction memory addr
+            (_, instruction) <- readInstruction memory addr
             let next = addr + byteSize instruction
             case instruction of
                 Block{} -> go next (depth + 1) elsePc
@@ -523,8 +533,9 @@ findIfTargets memory start = go start (0 :: Int) Nothing
 pushControlFrame :: String -> ControlKind -> Int -> Int -> State (Wasm32St w) ()
 pushControlFrame label kind startPc endPc = do
     depth <- currentFrameDepth
-    modify $ \st@Wasm32St{controlStack} ->
-        st{controlStack = ControlFrame label kind startPc endPc depth : controlStack}
+    modify $ \st@Wasm32St{controlStack, controlStackMax} ->
+        let controlStack' = ControlFrame label kind startPc endPc depth : controlStack
+         in st{controlStack = controlStack', controlStackMax = max controlStackMax (length controlStack')}
 
 branchTo :: String -> State (Wasm32St w) ()
 branchTo label = do
@@ -586,19 +597,37 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
             localView f name (Just Frame{frLocals}) =
                 maybe (unknownView name) (viewRegister f) (lookupLocalValue (toString name) frLocals)
 
+    summaryView _labels Wasm32St{operandStackMax, framesMax, controlStackMax} v = case T.splitOn ":" v of
+        ["wasm32", "operand-stack-max"] -> Just $ show operandStackMax
+        ["wasm32", "frames-max"] -> Just $ show framesMax
+        ["wasm32", "control-stack-max"] -> Just $ show controlStackMax
+        ["isa-specific"] ->
+            Just
+                $ "wasm32:operand-stack-max: "
+                <> show operandStackMax
+                <> "\n"
+                <> "wasm32:frames-max:        "
+                <> show framesMax
+                <> "\n"
+                <> "wasm32:control-stack-max: "
+                <> show controlStackMax
+        _ -> Nothing
+
 lookupLocalValue :: String -> [(String, w)] -> Maybe w
 lookupLocalValue name = fmap snd . find ((== name) . fst)
 
 instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
-    instructionFetch =
-        get
-            <&> ( \case
-                    Wasm32St{stopped = True} -> Left halted
-                    Wasm32St{internalError = Just err} -> Left err
-                    Wasm32St{pc, mem} -> do
-                        instruction <- readInstruction mem pc
-                        return (pc, instruction)
-                )
+    instructionFetch = do
+        st <- get
+        case st of
+            Wasm32St{stopped = True} -> return $ Left halted
+            Wasm32St{internalError = Just err} -> return $ Left err
+            Wasm32St{pc, mem} ->
+                case readInstruction mem pc of
+                    Left err -> return $ Left err
+                    Right (mem', instruction) -> do
+                        put st{mem = mem'}
+                        return $ Right (pc, instruction)
 
     instructionExecute _pc instruction =
         case instruction of

@@ -108,6 +108,7 @@ format-asm: build-fmt
 	stack exec wrench-fmt -- --inplace --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --inplace --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 	stack exec wrench-fmt -- --inplace --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
+	stack exec wrench-fmt -- --inplace --isa wasm32     -v example/wasm32/*.s     test/golden/wasm32/*.s
 
 format-py:
 	ruff format script
@@ -134,6 +135,7 @@ format-check-asm: build-fmt
 	stack exec wrench-fmt -- --check --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --check --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 	stack exec wrench-fmt -- --check --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
+	stack exec wrench-fmt -- --check --isa wasm32     -v example/wasm32/*.s     test/golden/wasm32/*.s
 
 format-check-py:
 	ruff format --check script

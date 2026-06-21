@@ -17,40 +17,40 @@ factorial:
     i32.const 0
     i32.lt_s
     if       $negative
-    i32.const -1
-    return
+        i32.const -1
+        return
     end
 
     local.get $n
     i32.const 12
     i32.gt_s
     if       $overflow
-    i32.const -858993460
-    return
+        i32.const -858993460
+        return
     end
 
     i32.const 1
     local.set $acc
 
     block    $done
-    loop     $loop
-    local.get $n
-    i32.const 1
-    i32.le_s
-    br_if    $done
+        loop     $loop
+            local.get $n
+            i32.const 1
+            i32.le_s
+            br_if    $done
 
-    local.get $acc
-    local.get $n
-    i32.mul
-    local.set $acc
+            local.get $acc
+            local.get $n
+            i32.mul
+            local.set $acc
 
-    local.get $n
-    i32.const 1
-    i32.sub
-    local.set $n
+            local.get $n
+            i32.const 1
+            i32.sub
+            local.set $n
 
-    br       $loop
-    end
+            br       $loop
+        end
     end
 
     local.get $acc
