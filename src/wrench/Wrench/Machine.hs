@@ -63,54 +63,50 @@ tellState prevInstruction = do
 tellError msg = modify $ \sim@Simulation{log} ->
     sim{log = TError msg : log}
 
+-- | Run the simulation and return both the recorded trace log and the final
+--   machine state. The final state carries the complete runtime accumulators
+--   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
+--   pre-step and therefore don't include the last instruction's accesses.
 simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
 simulate sim =
     let Simulation{log, machineState} = execState simulate' sim
      in (reverse log, machineState)
 
-simulateOneInstruction :: (Machine st isa w) => State (Simulation st isa) (Either Text isa)
-simulateOneInstruction = do
+simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) (Either Text isa)
+simulateInstructionStep = do
     sim@Simulation{machineState, instructionCount} <- get
-
     case runState instructionFetch machineState of
-        (Left err, _) ->
-            return $ Left err
-
         (Right (pc, instruction), machineStateAfterFetch) -> do
             let machineStateAfterExecute =
                     execState
                         (instructionExecute pc instruction)
                         machineStateAfterFetch
-
             put
                 sim
                     { machineState = machineStateAfterExecute
                     , instructionCount = instructionCount + 1
                     }
-
             return $ Right instruction
+        (Left err, _) -> return $ Left err
+
 simulate' :: (Machine st isa w) => State (Simulation st isa) ()
 simulate' = do
     tellState Nothing
-    simulateLoop
-
-simulateLoop :: (Machine st isa w) => State (Simulation st isa) ()
-simulateLoop = do
-    Simulation{instructionCount, instructionLimits} <- get
-
-    if instructionCount >= instructionLimits
-        then tellError "Simulation limit reached"
-        else do
-            result <- simulateOneInstruction
-
-            case result of
-                Right instruction -> do
-                    tellState (Just instruction)
-                    simulateLoop
-
-                Left err
-                    | err == halted -> return ()
-                    | otherwise -> tellError err
+    go
+  where
+    go = do
+        Simulation{instructionCount, instructionLimits} <- get
+        if instructionCount >= instructionLimits
+            then tellError "Simulation limit reached"
+            else do
+                result <- simulateInstructionStep
+                case result of
+                    Right instruction -> do
+                        tellState (Just instruction)
+                        go
+                    Left err
+                        | err == halted -> return ()
+                        | otherwise -> tellError err
 
 powerOn ::
     (Machine st isa w, MachineWord w) =>

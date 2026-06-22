@@ -25,7 +25,7 @@ import Wrench.Translator (TranslatorResult (..))
 
 substituteBrackets :: (Text -> Text) -> Text -> Text
 substituteBrackets f input =
-    let regex = "\\{([^}]*)\\}" :: Text
+    let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
         matches = getAllTextMatches (input =~ regex)
         changes =
             map
@@ -38,8 +38,14 @@ substituteBrackets f input =
 
 data ReportConf = ReportConf
     { rcName :: Maybe String
+    -- ^ Optional name of the report.
+    -- Example: Just "My Report"
     , rcSlice :: ReportSlice
+    -- ^ Specifies which part of the report to select.
+    -- Example: HeadSlice 10
     , rcAssert :: Maybe String
+    -- ^ Optional assertion string to compare the report against.
+    -- Example: Just "Expected output"
     , rcView :: Maybe Text
     }
     deriving (Generic, Show)
@@ -63,12 +69,10 @@ prepareReport
                         $ filter (not . null)
                         $ map
                             ( \case
-                                stateTrace@TState{} ->
-                                    prepareStateView rvView' trResult finalState stateTrace
-                                TError err ->
-                                    "ERROR: " <> toString err <> "\n"
-                                TWarn warn ->
-                                    "WARN: " <> toString warn <> "\n"
+                                trace@TState{} ->
+                                    prepareStateView rvView' trResult finalState trace
+                                (TError err) -> "ERROR: " <> toString err <> "\n"
+                                (TWarn warn) -> "WARN: " <> toString warn <> "\n"
                             )
                             sliced
 
@@ -88,11 +92,16 @@ prepareReport
 
 -----------------------------------------------------------
 
+-- | Specifies which part of the report to select.
 data ReportSlice
-    = HeadSlice Int
-    | AllSlice
-    | TailSlice Int
-    | LastSlice
+    = -- | Select the first 'n' records.
+      HeadSlice Int
+    | -- | Select all records.
+      AllSlice
+    | -- | Select the last 'n' records.
+      TailSlice Int
+    | -- | Select only the last record.
+      LastSlice
     deriving (Show)
 
 instance FromJSON ReportSlice where
@@ -117,22 +126,17 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tIns
             , dsTextIntervals
             , dsDataIntervals
             } = dumpStats
-
         AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
-
         showMaybeInstruction Nothing = "-"
         showMaybeInstruction (Just instruction) = show instruction
-
         resolver v = case T.splitOn ":" v of
             ["sim", "instruction-count"] -> show tInstructionCount
-
             ["instruction"] -> showMaybeInstruction tNextInstruction
             ["instruction_next"] -> showMaybeInstruction tNextInstruction
             ["next_instruction"] -> showMaybeInstruction tNextInstruction
             ["instruction_prev"] -> showMaybeInstruction tPrevInstruction
             ["prev_instruction"] -> showMaybeInstruction tPrevInstruction
             ["last_instruction"] -> showMaybeInstruction tPrevInstruction
-
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes
             ["layout", "data-sections-size"] -> show dsDataSectionsBytes
@@ -140,30 +144,28 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tIns
             ["layout", "text-ranges", fmt] -> rangesFmt fmt dsTextIntervals
             ["layout", "data-ranges"] -> renderIntervalsHex dsDataIntervals
             ["layout", "data-ranges", fmt] -> rangesFmt fmt dsDataIntervals
-
             ["mem", "instr-ranges"] -> renderIntervalsHex alInstr
             ["mem", "instr-ranges", fmt] -> rangesFmt fmt alInstr
             ["mem", "data-ranges"] -> renderIntervalsHex alData
             ["mem", "data-ranges", fmt] -> rangesFmt fmt alData
             ["mem", "io-ranges"] -> renderIntervalsHex alIo
             ["mem", "io-ranges", fmt] -> rangesFmt fmt alIo
-
             ["memory", "table"] -> renderMemoryTable dumpStats (memoryDump finalState)
-
+            -- ISA-specific summary block: each architecture fills it with its
+            -- own stats (vliw:*, f32a:*, ...); ISAs without any render "".
+            -- Lets a single report template stay uniform across ISAs.
             ["isa-specific"] -> fromMaybe "" (summaryView labels finalState "isa-specific")
-
             _ -> case summaryView labels finalState v of
                 Just txt -> txt
                 Nothing -> reprState labels tState v
-
         rangesFmt "dec" = renderIntervals
         rangesFmt "hex" = renderIntervalsHex
         rangesFmt fmt = const (unknownFormat fmt)
      in toString $ substituteBrackets resolver line
 
-prepareStateView _ _ _ _ =
-    ""
-
+-- | Render a full address-space table: one row per declared section, IO
+--   cluster, or @x@ (anything else) span. Auto-sized columns, hex addresses
+--   widened to fit @memory_size@.
 renderMemoryTable ::
     forall m isa w.
     (MachineWord w, Memory m isa w) =>
@@ -179,10 +181,14 @@ renderMemoryTable dumpStats mem =
         ioIntervals = foldr (`recordRange` wordSize) emptyIntervals ports
         accessedAll = alInstr `intervalsUnion` alData `intervalsUnion` alIo
 
+        -- Declared section rows: one per text/data/io cluster (in-section
+        -- coverage is shown via multi-cluster Accessed in the row).
         textRows = [("text", lo, hi) | (lo, hi) <- intervalsToList dsTextIntervals]
         dataRows = [("data", lo, hi) | (lo, hi) <- intervalsToList dsDataIntervals]
         ioRows = [("io", lo, hi) | (lo, hi) <- intervalsToList ioIntervals]
 
+        -- Free rows: complement of (text ∪ data ∪ io) within [0, memSize-1],
+        -- split further at access boundaries (so the stack gets its own row).
         sectionsAll = dsTextIntervals `intervalsUnion` dsDataIntervals `intervalsUnion` ioIntervals
         boundedMem = intervalsRange 0 (memSize - 1)
         freeRegions = boundedMem `intervalsDifference` sectionsAll
@@ -232,6 +238,8 @@ renderMemoryTable dumpStats mem =
             T.intercalate "  " [padR wKind k, padR wRange r, padL wBytes b, padR wAcc a, padL wCov c]
      in T.intercalate "\n" (map renderRow allRows)
 
+-- | Split a free range @[lo, hi]@ at access boundaries — each accessed cluster
+--   and each unaccessed gap becomes its own @x@ row.
 splitByAccess :: Intervals -> Int -> Int -> [(Text, Int, Int)]
 splitByAccess accessedAll lo hi =
     let inRange = intervalsToList (accessedAll `intervalsIntersect` intervalsRange lo hi)
@@ -251,16 +259,8 @@ defaultView labels st "pc:label" =
     Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
-
 defaultView _labels st "instruction" =
-    Just $ either (const "-") (show . snd) (readInstruction (memoryDump st) (programCounter st))
-
-defaultView _labels st "instruction_next" =
-    Just $ either (const "-") (show . snd) (readInstruction (memoryDump st) (programCounter st))
-
-defaultView _labels _st "last_instruction" =
-    Just "-"
-
+    Just $ either error (show . snd) (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
@@ -277,7 +277,6 @@ viewMemory a b mem =
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
     Nothing -> error $ "incorrect IO address: " <> show addr
-
 viewIO "hex" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
@@ -288,7 +287,6 @@ viewIO "hex" addr st = case ioStreams st !? readAddr addr of
                 , show (reverse (map word32ToHex os))
                 ]
     Nothing -> error $ "incorrect IO address: " <> show addr
-
 viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
     Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
@@ -304,7 +302,6 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
                     . fromEnum
                 )
         fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
-
 viewIO fmt _addr _st = unknownFormat fmt
 
 readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
