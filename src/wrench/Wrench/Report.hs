@@ -25,7 +25,7 @@ import Wrench.Translator (TranslatorResult (..))
 
 substituteBrackets :: (Text -> Text) -> Text -> Text
 substituteBrackets f input =
-    let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
+    let regex = "\\{([^}]*)\\}" :: Text
         matches = getAllTextMatches (input =~ regex)
         changes =
             map
@@ -37,13 +37,13 @@ substituteBrackets f input =
      in foldr (\(old, new) st -> T.replace old new st) input changes
 
 data ReportConf = ReportConf
-    { rcName :: Maybe String
+    { rcName :: Maybe Text
     -- ^ Optional name of the report.
     -- Example: Just "My Report"
     , rcSlice :: ReportSlice
     -- ^ Specifies which part of the report to select.
     -- Example: HeadSlice 10
-    , rcAssert :: Maybe String
+    , rcAssert :: Maybe Text
     -- ^ Optional assertion string to compare the report against.
     -- Example: Just "Expected output"
     , rcView :: Maybe Text
@@ -60,35 +60,35 @@ prepareReport
     records
     rc@ReportConf{rcName, rcSlice, rcAssert, rcView} =
         let header = maybe "" ("# " <>) rcName
-            details = if verbose then show rc else ""
+            details = if verbose then T.pack (show rc) else ""
             sliced = selectSlice rcSlice records
             stateViews = case rcView of
                 Nothing -> ""
                 Just rvView' ->
-                    concat
-                        $ filter (not . null)
+                    T.concat
+                        $ filter (not . T.null)
                         $ map
                             ( \case
                                 TState{tInstructionCount, tState} ->
                                     prepareStateView rvView' trResult finalState tInstructionCount tState
-                                (TError err) -> "ERROR: " <> toString err <> "\n"
-                                (TWarn warn) -> "WARN: " <> toString warn <> "\n"
+                                (TError err) -> "ERROR: " <> err <> "\n"
+                                (TWarn warn) -> "WARN: " <> warn <> "\n"
                             )
                             sliced
 
             assertReport =
-                let actual = nospaces $ toText stateViews
-                    expect = maybe "" (nospaces . toText) rcAssert
+                let actual = nospaces stateViews
+                    expect = maybe "" nospaces rcAssert
                  in if isNothing rcAssert || actual == expect
                         then ""
-                        else "ASSERTION FAIL, expect:\n" <> toString expect
-         in ( null assertReport
-            , unlines
-                $ map (T.strip . toText)
-                $ filter (not . null) [header, details, stateViews, assertReport]
+                        else "ASSERTION FAIL, expect:\n" <> expect
+         in ( T.null assertReport
+            , T.unlines
+                $ map T.strip
+                $ filter (not . T.null) [header, details, stateViews, assertReport]
             )
         where
-            nospaces = unlines . map T.strip . lines . T.strip
+            nospaces = T.unlines . map T.strip . T.lines . T.strip
 
 -----------------------------------------------------------
 
@@ -128,10 +128,10 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             } = dumpStats
         AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
         resolver v = case T.splitOn ":" v of
-            ["sim", "instruction-count"] -> show instrCount
-            ["layout", "sections-size"] -> show dsSectionsTotalBytes
-            ["layout", "text-sections-size"] -> show dsTextSectionsBytes
-            ["layout", "data-sections-size"] -> show dsDataSectionsBytes
+            ["sim", "instruction-count"] -> T.pack (show instrCount)
+            ["layout", "sections-size"] -> T.pack (show dsSectionsTotalBytes)
+            ["layout", "text-sections-size"] -> T.pack (show dsTextSectionsBytes)
+            ["layout", "data-sections-size"] -> T.pack (show dsDataSectionsBytes)
             ["layout", "text-ranges"] -> renderIntervalsHex dsTextIntervals
             ["layout", "text-ranges", fmt] -> rangesFmt fmt dsTextIntervals
             ["layout", "data-ranges"] -> renderIntervalsHex dsDataIntervals
@@ -153,7 +153,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
         rangesFmt "dec" = renderIntervals
         rangesFmt "hex" = renderIntervalsHex
         rangesFmt fmt = const (unknownFormat fmt)
-     in toString $ substituteBrackets resolver line
+     in substituteBrackets resolver line
 
 -- | Render a full address-space table: one row per declared section, IO
 --   cluster, or @x@ (anything else) span. Auto-sized columns, hex addresses
@@ -207,9 +207,9 @@ renderMemoryTable dumpStats mem =
                 cov = if bytes > 0 then (accessedBytes * 100) `div` bytes else 0
              in ( kind
                 , formatRange lo hi
-                , show bytes
+                , T.pack (show bytes)
                 , renderAccessed accessedHere
-                , show cov <> "%"
+                , T.pack (show cov) <> "%"
                 )
 
         headerRow :: (Text, Text, Text, Text, Text)
@@ -252,7 +252,7 @@ defaultView labels st "pc:label" =
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
 defaultView _labels st "instruction" =
-    Just $ either error (show . snd) (readInstruction (memoryDump st) (programCounter st))
+    Just $ either error (T.pack . show . snd) (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
@@ -267,21 +267,21 @@ viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
-    Just (is, os) -> show is <> " >>> " <> show (reverse os)
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Just (is, os) -> T.pack (show is) <> " >>> " <> T.pack (show (reverse os))
+    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
 viewIO "hex" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
             $ T.intercalate
                 ""
-                [ show (map word32ToHex is)
+                [ T.pack (show (map word32ToHex is))
                 , " >>> "
-                , show (reverse (map word32ToHex os))
+                , T.pack (show (reverse (map word32ToHex os)))
                 ]
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
 viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
-    Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Just (is, os) -> fixEscapes (T.pack (show is)) <> " >>> " <> fixEscapes (T.pack (show (reverse os)))
+    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
     where
         sym =
             map
@@ -293,16 +293,16 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
                   )
                     . fromEnum
                 )
-        fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
+        fixEscapes = T.replace "\\NUL" "\\0"
 viewIO fmt _addr _st = unknownFormat fmt
 
-readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
+readAddr t = fromMaybe (error $ T.pack "can't parse memory address: " <> t) $ readMaybe (toString t)
 
-viewRegister "dec" = show
-viewRegister "hex" = toText . word32ToHex
+viewRegister "dec" = T.pack . show
+viewRegister "hex" = T.pack . word32ToHex
 viewRegister f = \_ -> unknownFormat f
 
-errorView v = error $ "view error: " <> v
+errorView v = error $ T.pack "view error: " <> v
 
 unknownView v = "[unknown-view <" <> v <> ">]"
 
