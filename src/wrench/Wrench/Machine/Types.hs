@@ -163,7 +163,6 @@ data Trace st isa
       --   point in the trace).
       TState
         { tInstructionCount :: !Int
-        , tNextInstruction :: !(Maybe isa)
         , tPrevInstruction :: !(Maybe isa)
         , tState :: !st
         }

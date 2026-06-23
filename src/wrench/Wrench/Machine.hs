@@ -17,48 +17,37 @@ data Simulation st isa = Simulation
     , takePartOnStateRecordLimit :: Int
     }
 
-fetchNextInstruction :: (Machine st isa w) => st -> Maybe isa
-fetchNextInstruction st =
-    case evalState instructionFetch st of
-        Right (_, instruction) -> Just instruction
-        Left _ -> Nothing
-
-tellState :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
-tellState prevInstruction = do
-    Simulation{machineState} <- get
-    let nextInstruction = fetchNextInstruction machineState
-
-    modify
-        $ \sim'@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
-            if stateRecordCount >= stateRecordLimits
-                then
-                    let n = stateRecordLimits `div` takePartOnStateRecordLimit
-                        rest = drop n log
-                        rest' =
-                            filter
-                                ( \case
-                                    TState{} -> False
-                                    _ -> True
-                                )
-                                rest
-                        dropped = length rest - length rest'
-                        warn = "Dropped " <> show dropped <> " states"
-                     in sim'
-                            { log = take n log <> rest' <> [TWarn warn]
-                            , stateRecordCount = stateRecordCount - dropped
-                            }
-                else
-                    sim'
-                        { log =
-                            TState
-                                { tInstructionCount = instructionCount
-                                , tNextInstruction = nextInstruction
-                                , tPrevInstruction = prevInstruction
-                                , tState = machineState
-                                }
-                                : log
-                        , stateRecordCount = stateRecordCount + 1
+tellState :: Maybe isa -> st -> State (Simulation st isa) ()
+tellState prevInstruction machineState = modify
+    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
+        if stateRecordCount >= stateRecordLimits
+            then
+                let n = stateRecordLimits `div` takePartOnStateRecordLimit
+                    rest = drop n log
+                    rest' =
+                        filter
+                            ( \case
+                                TState{} -> False
+                                _ -> True
+                            )
+                            rest
+                    dropped = length rest - length rest'
+                    warn = "Dropped " <> show dropped <> " states"
+                 in sim
+                        { log = take n log <> rest' <> [TWarn warn]
+                        , stateRecordCount = stateRecordCount - dropped
                         }
+            else
+                sim
+                    { log =
+                        TState
+                            { tInstructionCount = instructionCount
+                            , tPrevInstruction = prevInstruction
+                            , tState = machineState
+                            }
+                            : log
+                    , stateRecordCount = stateRecordCount + 1
+                    }
 
 tellError msg = modify $ \sim@Simulation{log} ->
     sim{log = TError msg : log}
@@ -72,41 +61,33 @@ simulate sim =
     let Simulation{log, machineState} = execState simulate' sim
      in (reverse log, machineState)
 
-simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) (Either Text isa)
-simulateInstructionStep = do
-    sim@Simulation{machineState, instructionCount} <- get
-    case runState instructionFetch machineState of
-        (Right (pc, instruction), machineStateAfterFetch) -> do
-            let machineStateAfterExecute =
-                    execState
-                        (instructionExecute pc instruction)
-                        machineStateAfterFetch
-            put
-                sim
-                    { machineState = machineStateAfterExecute
-                    , instructionCount = instructionCount + 1
-                    }
-            return $ Right instruction
-        (Left err, _) -> return $ Left err
+simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
+simulateInstructionStep =
+    modify $ \sim@Simulation{machineState, instructionCount} ->
+        sim
+            { machineState = execState instructionStep machineState
+            , instructionCount = instructionCount + 1
+            }
 
 simulate' :: (Machine st isa w) => State (Simulation st isa) ()
 simulate' = do
-    tellState Nothing
+    Simulation{machineState} <- get
+    tellState Nothing machineState
     go
   where
     go = do
-        Simulation{instructionCount, instructionLimits} <- get
+        Simulation{machineState, instructionCount, instructionLimits} <- get
         if instructionCount >= instructionLimits
             then tellError "Simulation limit reached"
-            else do
-                result <- simulateInstructionStep
-                case result of
-                    Right instruction -> do
-                        tellState (Just instruction)
-                        go
-                    Left err
-                        | err == halted -> return ()
-                        | otherwise -> tellError err
+            else case evalState instructionFetch machineState of
+                Right (_, instruction) -> do
+                    simulateInstructionStep
+                    Simulation{machineState = stateAfter} <- get
+                    tellState (Just instruction) stateAfter
+                    go
+                Left err
+                    | err == halted -> return ()
+                    | otherwise -> tellError err
 
 powerOn ::
     (Machine st isa w, MachineWord w) =>

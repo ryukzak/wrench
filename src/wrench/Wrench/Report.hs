@@ -69,8 +69,8 @@ prepareReport
                         $ filter (not . null)
                         $ map
                             ( \case
-                                trace@TState{} ->
-                                    prepareStateView rvView' trResult finalState trace
+                                TState{tInstructionCount, tPrevInstruction, tState} ->
+                                    prepareStateView rvView' trResult finalState tInstructionCount tPrevInstruction tState
                                 (TError err) -> "ERROR: " <> toString err <> "\n"
                                 (TWarn warn) -> "WARN: " <> toString warn <> "\n"
                             )
@@ -118,7 +118,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tInstructionCount, tNextInstruction, tPrevInstruction, tState} =
+prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount prevInstruction st =
     let DumpStats
             { dsSectionsTotalBytes
             , dsTextSectionsBytes
@@ -130,13 +130,18 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tIns
         showMaybeInstruction Nothing = "-"
         showMaybeInstruction (Just instruction) = show instruction
         resolver v = case T.splitOn ":" v of
-            ["sim", "instruction-count"] -> show tInstructionCount
-            ["instruction"] -> showMaybeInstruction tNextInstruction
-            ["instruction_next"] -> showMaybeInstruction tNextInstruction
-            ["next_instruction"] -> showMaybeInstruction tNextInstruction
-            ["instruction_prev"] -> showMaybeInstruction tPrevInstruction
-            ["prev_instruction"] -> showMaybeInstruction tPrevInstruction
-            ["last_instruction"] -> showMaybeInstruction tPrevInstruction
+            ["sim", "instruction-count"] -> show instrCount
+            ["instruction"] ->
+                let currentInstruction = reprState labels st "instruction"
+                    isHaltInstruction instruction =
+                        let renderedInstruction = T.pack (show instruction)
+                         in renderedInstruction == "Halt" || "ctrlOp = Halt" `T.isInfixOf` renderedInstruction
+                 in case prevInstruction of
+                        Just instruction
+                            | isHaltInstruction instruction && currentInstruction == show instruction -> "-"
+                        _ -> currentInstruction
+            ["prev_instruction"] -> showMaybeInstruction prevInstruction
+            ["last_instruction"] -> showMaybeInstruction prevInstruction
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes
             ["layout", "data-sections-size"] -> show dsDataSectionsBytes
@@ -157,7 +162,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState TState{tIns
             ["isa-specific"] -> fromMaybe "" (summaryView labels finalState "isa-specific")
             _ -> case summaryView labels finalState v of
                 Just txt -> txt
-                Nothing -> reprState labels tState v
+                Nothing -> reprState labels st v
         rangesFmt "dec" = renderIntervals
         rangesFmt "hex" = renderIntervalsHex
         rangesFmt fmt = const (unknownFormat fmt)
