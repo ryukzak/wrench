@@ -69,16 +69,16 @@ instance Read Isa where
 
 data Result mem w = Result
     { rTrace :: Text
-    , rLabels :: HashMap String w
+    , rLabels :: HashMap Text w
     , rSuccess :: Bool
     , rDump :: mem
     }
     deriving (Show)
 
-prettyLabels :: (MachineWord w) => HashMap String w -> String
+prettyLabels :: (MachineWord w) => HashMap Text w -> String
 prettyLabels rLabels =
     intercalate "\n"
-        $ map (\(l, w) -> show w <> ":\t" <> l)
+        $ map (\(l, w) -> show w <> ":\t" <> toString l)
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()

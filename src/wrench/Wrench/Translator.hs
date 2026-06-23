@@ -5,6 +5,7 @@ module Wrench.Translator (
     TranslatorResult (..),
 ) where
 
+import Data.Text qualified as T 
 import Relude
 import Relude.Extra
 import Text.Megaparsec (parse)
@@ -17,7 +18,7 @@ import Wrench.Translator.Types
 
 data TranslatorResult mem w = TranslatorResult
     { dump :: !mem
-    , labels :: !(HashMap String w)
+    , labels :: !(HashMap Text w)
     , dumpStats :: !DumpStats
     }
     deriving (Show)
@@ -25,14 +26,14 @@ data TranslatorResult mem w = TranslatorResult
 data St w
     = St
     { sOffset :: !w
-    , sLabels :: ![(String, w)]
+    , sLabels :: ![(Text, w)]
     }
     deriving (Show)
 
 evaluateLabels ::
     (ByteSize isa, MachineWord w) =>
-    [Section isa w String]
-    -> Either String (HashMap String w)
+    [Section isa w Text]
+    -> Either Text (HashMap Text w)
 evaluateLabels sections =
     let processCode st'@St{sOffset, sLabels} token =
             case token of
@@ -43,7 +44,7 @@ evaluateLabels sections =
                 { sOffset = sOffset + toEnum (byteSize dtValue)
                 , sLabels = (dtLabel, sOffset) : sLabels
                 }
-        offsetError org offset = error $ ".org directive set " <> show org <> " but we already at " <> show offset
+        offsetError org offset = error $ T.pack ".org directive set " <> show org <> " but we already at " <> show offset
         St{sLabels = labels} =
             foldl'
                 ( \st@St{sOffset} -> \case
@@ -60,9 +61,9 @@ evaluateLabels sections =
                 sections
         collect [] dict = Right dict
         collect ((n, v) : ls) dict
-            | n `member` dict = Left $ "Duplicate label: " <> n
+            | n `member` dict = Left $ T.pack "Duplicate label: " <> n
             | otherwise = collect ls (insert n v dict)
-     in collect labels (fromList [] :: HashMap String w)
+     in collect labels (fromList [] :: HashMap Text w)
 
 translate ::
     forall isa_ w.
@@ -81,7 +82,7 @@ translate memorySize fn src =
     case parse asmParser fn src of
         Right sections ->
             case evaluateLabels sections of
-                Left err -> Left $ toText err
+                Left err -> Left err
                 (Right labels) ->
                     let resolveLabel l = (labels !? l)
                         code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)

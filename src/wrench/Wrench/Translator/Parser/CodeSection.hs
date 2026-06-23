@@ -12,7 +12,7 @@ import Wrench.Translator.Types
 codeSection ::
     (MnemonicParser isa) =>
     String
-    -> Parser (Section isa w String)
+    -> Parser (Section isa w Text)
 codeSection cstart = do
     string ".text" >> eol' cstart
     items <-

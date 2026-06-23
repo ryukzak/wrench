@@ -9,7 +9,7 @@ import Wrench.Machine.Types
 data Simulation st isa = Simulation
     { log :: [Trace st isa]
     , machineState :: st
-    , pc2label :: HashMap Int String
+    , pc2label :: HashMap Int Text
     , instructionCount :: Int
     , instructionLimits :: Int
     , stateRecordCount :: Int
@@ -80,7 +80,7 @@ powerOn ::
     (Machine st isa w, MachineWord w) =>
     Int
     -> Int
-    -> HashMap String w
+    -> HashMap Text w
     -> st
     -> Either Text ([Trace st isa], st)
 powerOn instructionLimits stateRecordLimits labels machineInitState = do

@@ -134,7 +134,7 @@ class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
     ioStreams :: st -> IntMap ([w], [w])
-    reprState :: HashMap String w -> st -> Text -> Text
+    reprState :: HashMap Text w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
     -- | Per-run summary views, resolved from the simulator's *final* state
@@ -143,7 +143,7 @@ class StateInterspector st m isa w | st -> m isa w where
     --   step, where the per-state value would be off by one. Returns
     --   'Nothing' when the variable isn't a summary view, in which case the
     --   resolver falls through to the per-state 'reprState'.
-    summaryView :: HashMap String w -> st -> Text -> Maybe Text
+    summaryView :: HashMap Text w -> st -> Text -> Maybe Text
     summaryView _labels _st _var = Nothing
 
 class Machine st isa w | st -> isa w where

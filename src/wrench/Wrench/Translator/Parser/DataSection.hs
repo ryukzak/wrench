@@ -12,7 +12,7 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
-dataSection :: (Read w) => String -> Parser (Section isa w String)
+dataSection :: (Read w) => String -> Parser (Section isa w Text)
 dataSection cstart = do
     string ".data" >> eol' cstart
     items <-
@@ -26,7 +26,7 @@ dataSection cstart = do
                 )
     return $ Data (sectionOrg items) $ sectionItems items
 
-dataSectionItemM :: (Read w) => String -> Parser (DataToken w String)
+dataSectionItemM :: (Read w) => String -> Parser (DataToken w Text)
 dataSectionItemM cstart = do
     n <- label
     hspace1

@@ -135,13 +135,13 @@ sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) a
 prettyDump ::
     forall w isa.
     (ByteSize isa, MachineWord w, Show isa) =>
-    HashMap String w
+    HashMap Text w
     -> IntMap (Cell isa w)
     -> String
 prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
     where
         offset2label :: HashMap Int String
-        offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
+        offset2label = fromList $ map (\(a, b) -> (fromEnum b, toString a)) $ toPairs labels
         instruction offset n i =
             let place = "mem[" <> show offset <> ".." <> show (offset + n - 1) <> "]"
                 label = maybe "" (" \t@" <>) (offset2label !? offset)
@@ -166,7 +166,8 @@ prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
             let curValues = takeWhile ((== label) . snd . fst) values
                 b = fst $ fst $ Unsafe.last curValues
                 restValues = dropWhile ((== label) . snd . fst) values
-             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> maybe "" (("\t@" <>) . show) label)
+                labelStr = maybe "" (("\t@" <>) . show) label
+             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> labelStr)
                     : merge restValues
         hexValues values | all ((== 0) . snd) values && length values >= 16 = "( 00 )"
         hexValues values = toString $ unwords $ map (toText . word8ToHex . snd) values
