@@ -25,7 +25,7 @@ import Wrench.Translator (TranslatorResult (..))
 
 substituteBrackets :: (Text -> Text) -> Text -> Text
 substituteBrackets f input =
-     let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
+    let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
         matches = getAllTextMatches (input =~ regex)
         changes =
             map
@@ -243,7 +243,7 @@ splitByAccess accessedAll lo hi =
 
 defaultView ::
     (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
-    HashMap String w
+    HashMap Text w
     -> st
     -> Text
     -> Maybe Text
