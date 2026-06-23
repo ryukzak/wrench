@@ -25,7 +25,7 @@ import Wrench.Translator (TranslatorResult (..))
 
 substituteBrackets :: (Text -> Text) -> Text -> Text
 substituteBrackets f input =
-    let regex = "\\{([^}]*)\\}" :: Text
+     let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
         matches = getAllTextMatches (input =~ regex)
         changes =
             map
