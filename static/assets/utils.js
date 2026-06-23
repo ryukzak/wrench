@@ -10,7 +10,7 @@ export function setupCopyButton(buttonId, sourceElementId) {
     const codeContent = sourceElement.querySelector('.code-content')
     if (codeContent) {
       const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(line => line.textContent)
-      text = lines.join('')
+      text = lines.join('\n')
     }
 
     await navigator.clipboard.writeText(text)
