@@ -5,7 +5,7 @@ module Wrench.Translator (
     TranslatorResult (..),
 ) where
 
-import Data.Text qualified as T 
+import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Text.Megaparsec (parse)
