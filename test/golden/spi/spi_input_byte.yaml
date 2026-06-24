@@ -19,7 +19,7 @@ spi:
     input:
       - at: 0
         byte: 0xA5
-      - at: 64
+      - at: 8
         byte: 0
 reports:
   - name: Check SPI byte input
@@ -33,8 +33,8 @@ reports:
       spi_clock[0]: {spi:0:clock}
       spi_pins[0]: {spi:0:pins}
     assert: |
-      spi_miso[0]: [] >>> [(165,0)]
-      spi_mosi[0]: [] >>> [(165,32),(0,64)]
-      spi_status[0]: miso_ready
-      spi_clock[0]: 64
+      spi_miso[0]: [] >>> [(165,0),(0,8)]
+      spi_mosi[0]: [] >>> [(165,8),(0,16)]
+      spi_status[0]: miso_empty
+      spi_clock[0]: 16
       spi_pins[0]: cs=1 clk=0 mosi=0 miso=0

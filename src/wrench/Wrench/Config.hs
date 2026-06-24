@@ -24,6 +24,7 @@ readConfig path = runExceptT $ do
     conf@Config{cMemoryMappedIo, cSpi} <- case result of
         Left e -> throwE $ prettyPrintParseException e
         Right conf -> return conf
+    maybe (return ()) (validateSpiInputs . flattenSpiInputs) cSpi
     let conf' =
             (conf <> def)
                 { cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo
@@ -46,8 +47,8 @@ data Config = Config
     -- ^ (generated) Flattened memory-mapped IO configuration, mapping addresses to pairs of input and output lists.
     , cSpi :: Maybe (HashMap String SpiConfig)
     -- ^ Optional SPI configuration, mapping device id to scheduled input values.
-    , cSpiFlat :: Maybe (IntMap [(Int, Int)])
-    -- ^ (generated) Flattened SPI configuration, mapping device id to (value, tick) pairs.
+    , cSpiFlat :: Maybe (IntMap [(Int, Int, Int)])
+    -- ^ (generated) Flattened SPI configuration, mapping device id to (value, tick, bit count) triples.
     , cSpiModeFlat :: Maybe (IntMap SpiClockModeConf)
     -- ^ (generated) Flattened SPI mode number per device.
     , cSpiPinsFlat :: Maybe (IntMap SpiPinsConfFlat)
@@ -179,15 +180,64 @@ instance FromJSON SpiInput where
             [] -> fail "spi.input entry must define exactly one of: byte|bytes|word"
             _ -> fail "spi.input entry has multiple payload fields; use only one of: byte|bytes|word"
 
-flattenSpiInputs :: HashMap String SpiConfig -> IntMap [(Int, Int)]
+flattenSpiInputs :: HashMap String SpiConfig -> IntMap [(Int, Int, Int)]
 flattenSpiInputs spi =
     fromList
         $ map (\(addr, cfg@SpiConfig{scInput}) -> (Unsafe.read addr, concatMap (flattenInput cfg) scInput))
         $ toPairs spi
     where
-        flattenInput _cfg (SpiByteAt at byte) = [(byte, at)]
-        flattenInput _cfg (SpiBytesAt at bytes) = zip bytes [at ..]
-        flattenInput _cfg (SpiWordAt at word) = [(word, at)]
+        flattenInput _cfg (SpiByteAt at byte) = [(byte, at, spiByteBits)]
+        flattenInput _cfg (SpiBytesAt at bytes) =
+            zipWith (\i byte -> (byte, at + i * spiByteBits, spiByteBits)) [0 ..] bytes
+        flattenInput _cfg (SpiWordAt at word) = [(word, at, spiWordBits)]
+
+spiByteBits :: Int
+spiByteBits = 8
+
+spiWordBits :: Int
+spiWordBits = 32
+
+validateSpiInputs :: (Monad m) => IntMap [(Int, Int, Int)] -> ExceptT String m ()
+validateSpiInputs spi =
+    mapM_ validateDeviceInputs (toPairs spi)
+
+validateDeviceInputs :: (Monad m) => (Int, [(Int, Int, Int)]) -> ExceptT String m ()
+validateDeviceInputs (deviceId, inputs) = do
+    mapM_ (validateSpiInputValue deviceId) inputs
+    case findInputOverlap (sortOn inputTick inputs) of
+        Nothing -> return ()
+        Just (firstInput, secondInput) ->
+            throwE
+                $ "spi["
+                <> show deviceId
+                <> "].input: value at tick "
+                <> show (inputTick secondInput)
+                <> " overlaps value at tick "
+                <> show (inputTick firstInput)
+
+validateSpiInputValue :: (Monad m) => Int -> (Int, Int, Int) -> ExceptT String m ()
+validateSpiInputValue deviceId (value, tick, bits)
+    | bits == spiByteBits && (value < 0 || value > 255) =
+        throwE
+            $ "spi["
+            <> show deviceId
+            <> "].input: byte value at tick "
+            <> show tick
+            <> " is out of range"
+    | otherwise = return ()
+
+findInputOverlap :: [(Int, Int, Int)] -> Maybe ((Int, Int, Int), (Int, Int, Int))
+findInputOverlap [] = Nothing
+findInputOverlap [_] = Nothing
+findInputOverlap (firstInput : secondInput : rest)
+    | inputTick secondInput < inputEndTick firstInput = Just (firstInput, secondInput)
+    | otherwise = findInputOverlap (secondInput : rest)
+
+inputTick :: (Int, Int, Int) -> Int
+inputTick (_, tick, _) = tick
+
+inputEndTick :: (Int, Int, Int) -> Int
+inputEndTick (_, tick, bits) = tick + bits
 
 flattenSpiModes :: HashMap String SpiConfig -> IntMap SpiClockModeConf
 flattenSpiModes spi =

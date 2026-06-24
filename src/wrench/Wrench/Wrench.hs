@@ -10,7 +10,7 @@ module Wrench.Wrench (
 ) where
 
 import Data.Default (Default (..), def)
-import Data.IntMap.Strict qualified as IM
+import Data.IntMap.Strict (traverseWithKey)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
@@ -162,9 +162,9 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        spiInputs = map (first int2mword) <$> fromMaybe mempty cSpiFlat
+        spiInputs = map mapSpiInput <$> fromMaybe mempty cSpiFlat
         spiModes = mapSpiMode <$> fromMaybe mempty cSpiModeFlat
-    spiPins <- IM.traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
+    spiPins <- traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
     validateSpiPinUsage spiPins
     let randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
         ioDump = mkIoMemWithSpi mIoStreams spiInputs spiModes spiPins dump
@@ -191,6 +191,8 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
                 toSign $ toEnum x
             | otherwise =
                 error $ "integer value out of machine word range: " <> show x
+
+        mapSpiInput (value, tick, bits) = (int2mword value, tick, bits)
 
         randomInts :: (Int, Int) -> StdGen -> [Int]
         randomInts range gen =

@@ -33,6 +33,7 @@ library
       Wrench.Isa.VliwIv
       Wrench.Machine
       Wrench.Machine.Memory
+      Wrench.Machine.Spi
       Wrench.Machine.Types
       Wrench.Misc
       Wrench.Report
@@ -106,6 +107,7 @@ executable wrench
       Wrench.Isa.VliwIv
       Wrench.Machine
       Wrench.Machine.Memory
+      Wrench.Machine.Spi
       Wrench.Machine.Types
       Wrench.Misc
       Wrench.Report

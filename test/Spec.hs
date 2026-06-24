@@ -78,6 +78,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/spi/spi_mode2.s" "test/golden/spi/spi_mode2.yaml"
                 , goldenSimulate RiscIv "test/golden/spi/spi_mode3.s" "test/golden/spi/spi_mode3.yaml"
                 , testSpiPinConflict
+                , testSpiInputOverlap
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/sb.s" "test/golden/risc-iv-32/sb.yaml"
                 , testGroup
@@ -269,6 +270,15 @@ testSpiPinConflict =
             Left "spi pin 144:0 is assigned more than once: spi[0]:cs, spi[1]:cs" -> return ()
             Left err -> assertFailure $ "unexpected error: " <> toString err
             Right _ -> assertFailure "expected SPI pin conflict error"
+
+testSpiInputOverlap :: TestTree
+testSpiInputOverlap =
+    testCase "SPI input overlap is rejected" $ do
+        result <- readConfig "test/golden/spi/spi_input_overlap.yaml"
+        case result of
+            Left "spi[0].input: value at tick 4 overlaps value at tick 0" -> return ()
+            Left err -> assertFailure $ "unexpected error: " <> err
+            Right _ -> assertFailure "expected SPI input overlap error"
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =

@@ -14,12 +14,12 @@ module Wrench.Report (
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
-import Data.Bifunctor qualified as Bi
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Text.Regex.TDFA
 import Wrench.Machine.Memory
+import Wrench.Machine.Spi
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..))
 
@@ -178,7 +178,7 @@ viewIO fmt _addr _st = unknownFormat fmt
 viewSpi :: (MachineWord w, StateInterspector st m isa w) => Text -> Text -> st -> Text
 viewSpi "miso" addr st = case spiDevices st !? readAddr addr of
     Just SpiDevice{spiMisoPending, spiMisoConsumed} ->
-        show spiMisoPending <> " >>> " <> show spiMisoConsumed
+        show (map pendingMisoForReport spiMisoPending) <> " >>> " <> show spiMisoConsumed
     Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi "mosi" addr st = case spiDevices st !? readAddr addr of
     Just SpiDevice{spiMosiLog} -> "[] >>> " <> show spiMosiLog
@@ -205,109 +205,8 @@ viewSpi "wave" addr st = case spiDevices st !? readAddr addr of
     Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi fmt _addr _st = unknownFormat fmt
 
-spiWaveText :: [SpiPinsSnapshot] -> Text
-spiWaveText [] = ""
-spiWaveText xs =
-    T.intercalate "\n\n" $ map renderWaveBlock $ waveBlocks spiWaveBlockWidth waveLines
-    where
-        waveLines =
-            [ ("TICK: ", tickLine xs)
-            , ("CS  : ", waveLine spsCsPin xs)
-            , ("CLK : ", waveLine spsClkPin xs)
-            , ("MOSI: ", waveLine spsMosiPin xs)
-            , ("MISO: ", waveLine spsMisoPin xs)
-            ]
-
-spiWaveBlockWidth :: Int
-spiWaveBlockWidth = spiWaveBlockTicks * spiWaveTickWidth
-
-spiWaveBlockTicks :: Int
-spiWaveBlockTicks = 25
-
-spiWaveTickWidth :: Int
-spiWaveTickWidth = 4
-
-spiWaveTickLabelStep :: Int
-spiWaveTickLabelStep = 5
-
-waveBlocks :: Int -> [(Text, Text)] -> [[(Text, Text)]]
-waveBlocks width lines'
-    | all (T.null . snd) lines' = []
-    | otherwise =
-        let block = map (Bi.second (T.take width)) lines'
-            rest = map (Bi.second (T.drop width)) lines'
-         in block : waveBlocks width rest
-
-renderWaveBlock :: [(Text, Text)] -> Text
-renderWaveBlock block =
-    T.intercalate
-        "\n"
-        [name <> line | (name, line) <- block]
-
-tickLine :: [SpiPinsSnapshot] -> Text
-tickLine xs =
-    T.concat [tickCell tick | tick <- waveTicks xs]
-
-tickCell :: Int -> Text
-tickCell tick
-    | tick `mod` spiWaveTickLabelStep == 0 = T.take spiWaveTickWidth $ show tick <> T.replicate spiWaveTickWidth " "
-    | otherwise = T.replicate spiWaveTickWidth " "
-
-waveTicks :: [SpiPinsSnapshot] -> [Int]
-waveTicks [] = []
-waveTicks (firstSnapshot : rest) =
-    [spsTick firstSnapshot .. spsTick (lastSnapshot firstSnapshot rest)]
-
-waveLine :: (SpiPinsSnapshot -> Bool) -> [SpiPinsSnapshot] -> Text
-waveLine _ [] = ""
-waveLine pin (firstSnapshot : rest) =
-    T.concat $ waveLineCells pin firstSnapshot (snapshotsByTick (firstSnapshot : rest))
-
-waveLineCells :: (SpiPinsSnapshot -> Bool) -> SpiPinsSnapshot -> [[SpiPinsSnapshot]] -> [Text]
-waveLineCells _ _ [] = []
-waveLineCells pin previous (snapshots : rest) =
-    let bits = map pin snapshots
-        cell = waveCell (pin previous) bits
-        previous' = lastSnapshot previous snapshots
-     in cell : waveLineCells pin previous' rest
-
-snapshotsByTick :: [SpiPinsSnapshot] -> [[SpiPinsSnapshot]]
-snapshotsByTick [] = []
-snapshotsByTick xs =
-    [filter (\snapshot -> spsTick snapshot == tick) xs | tick <- waveTicks xs]
-
-lastSnapshot :: SpiPinsSnapshot -> [SpiPinsSnapshot] -> SpiPinsSnapshot
-lastSnapshot previous [] = previous
-lastSnapshot _ (snapshot : rest) = lastSnapshot snapshot rest
-
-waveCell :: Bool -> [Bool] -> Text
-waveCell firstBit bits =
-    T.pack $ take spiWaveTickWidth $ drawBits (firstBit : bits)
-
-drawBits :: [Bool] -> String
-drawBits [] = []
-drawBits [bit] = repeat $ levelChar bit
-drawBits (a : b : rest)
-    | a == b = levelChar a : drawBits (b : rest)
-    | otherwise = levelChar a : edgeChar a b : drawBits (b : rest)
-
-levelChar :: Bool -> Char
-levelChar True = '‾'
-levelChar False = '_'
-
-edgeChar :: Bool -> Bool -> Char
-edgeChar False True = '/'
-edgeChar True False = '\\'
-edgeChar _ _ = '_'
-
-spiStatusText :: Int -> SpiDevice w -> Text
-spiStatusText clock SpiDevice{spiMisoPending, spiMisoShift} =
-    misoStatus
-    where
-        misoStatus = if any ((<= clock) . snd) spiMisoPending || isJust spiMisoShift then "miso_ready" else "miso_empty"
-
-spiDeviceClock :: Int -> SpiDevice w -> Int
-spiDeviceClock _hwClock SpiDevice{spiSoftClock} = spiSoftClock
+pendingMisoForReport :: (w, Int, Int) -> (w, Int)
+pendingMisoForReport (value, tick, _) = (value, tick)
 
 pinBit :: Bool -> Text
 pinBit True = "1"

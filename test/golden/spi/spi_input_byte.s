@@ -6,7 +6,7 @@ spi_pins:       .word  0x90
 
 _start:
     ; This test focuses on config format `input: [{at, byte}]`
-    ; Program reads words until it receives NULL
+    ; Program reads bytes until it receives NULL
     lui      t0, %hi(spi_pins)
     addi     t0, t0, %lo(spi_pins)
     lw       t0, 0(t0)
@@ -17,8 +17,8 @@ _start:
     ; Start transfer
     sw       zero, 0(t1)      ; cs=0, clk=0, mosi=0
 
-word_loop:
-    addi     t3, zero, 32
+byte_loop:
+    addi     t3, zero, 8
     addi     t4, zero, 0
 
 bit_loop:
@@ -39,7 +39,7 @@ bit_loop:
     bnez     t3, bit_loop
 
     beq      t4, zero, done
-    j        word_loop
+    j        byte_loop
 
     ; End transfer
 done:

@@ -241,7 +241,7 @@ data SpiPinsSnapshot = SpiPinsSnapshot
     deriving (Eq, Show)
 
 data SpiDevice w = SpiDevice
-    { spiMisoPending :: [(w, Int)]
+    { spiMisoPending :: [(w, Int, Int)]
     , spiMisoConsumed :: [(w, Int)]
     , spiMosiLog :: [(w, Int)]
     , spiClockMode :: SpiClockMode
@@ -252,6 +252,7 @@ data SpiDevice w = SpiDevice
     , spiMisoPin :: Bool
     , spiMosiShift :: w
     , spiMosiBits :: Int
+    , spiMosiFrameBits :: Int
     , spiMisoShift :: Maybe (SpiMisoShift w)
     , spiSoftClock :: Int
     , spiWaveLog :: [SpiPinsSnapshot]
@@ -265,7 +266,7 @@ mkIoMemWithSpi ::
     forall w isa.
     (ByteSizeT w, Num w) =>
     IntMap ([w], [w])
-    -> IntMap [(w, Int)]
+    -> IntMap [(w, Int, Int)]
     -> IntMap SpiClockMode
     -> IntMap SpiPinsConf
     -> Mem isa w
@@ -295,6 +296,7 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
                                 , spiMisoPin = False
                                 , spiMosiShift = 0
                                 , spiMosiBits = 0
+                                , spiMosiFrameBits = byteSizeT @w * 8
                                 , spiMisoShift = Nothing
                                 , spiSoftClock = 0
                                 , spiWaveLog =
