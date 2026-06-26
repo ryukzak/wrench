@@ -140,11 +140,11 @@ prettyDump ::
     -> String
 prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
     where
-        offset2label :: HashMap Int String
-        offset2label = fromList $ map (\(a, b) -> (fromEnum b, toString a)) $ toPairs labels
+        offset2label :: HashMap Int Text
+        offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
         instruction offset n i =
             let place = "mem[" <> show offset <> ".." <> show (offset + n - 1) <> "]"
-                label = maybe "" (" \t@" <>) (offset2label !? offset)
+                label = maybe "" ((" \t@" <>) . toString) (offset2label !? offset)
              in place <> ": \t" <> show i <> label
         pretty [] = []
         pretty ((offset, Instruction i) : cs) =
