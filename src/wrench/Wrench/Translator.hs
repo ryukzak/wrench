@@ -5,7 +5,7 @@ module Wrench.Translator (
     TranslatorResult (..),
 ) where
 
-import Data.Text qualified as T
+import Data.Text()
 import Relude
 import Relude.Extra
 import Text.Megaparsec (parse)
@@ -44,7 +44,7 @@ evaluateLabels sections =
                 { sOffset = sOffset + toEnum (byteSize dtValue)
                 , sLabels = (dtLabel, sOffset) : sLabels
                 }
-        offsetError org offset = error $ T.pack ".org directive set " <> show org <> " but we already at " <> show offset
+        offsetError org offset = error $ ".org directive set " <> show org <> " but we already at " <> show offset
         St{sLabels = labels} =
             foldl'
                 ( \st@St{sOffset} -> \case
@@ -61,7 +61,7 @@ evaluateLabels sections =
                 sections
         collect [] dict = Right dict
         collect ((n, v) : ls) dict
-            | n `member` dict = Left $ T.pack "Duplicate label: " <> n
+            | n `member` dict = Left $ "Duplicate label: " <> n
             | otherwise = collect ls (insert n v dict)
      in collect labels (fromList [] :: HashMap Text w)
 
