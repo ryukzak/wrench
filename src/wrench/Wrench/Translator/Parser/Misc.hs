@@ -84,7 +84,7 @@ name :: Parser Text
 name = do
     x <- letterChar <|> char '_'
     xs <- many (letterChar <|> digitChar <|> char '_')
-    return $ T.pack (x : xs)
+    return $ toText (x : xs)
 
 comment :: String -> Parser String
 comment cstart = do
