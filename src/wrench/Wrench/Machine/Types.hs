@@ -244,7 +244,7 @@ renderIntervals = renderIntervalsWith show
 
 -- | Hex-formatted ranges (@0xNN@ lowercase, no padding).
 renderIntervalsHex :: Intervals -> Text
-renderIntervalsHex = renderIntervalsWith (\n -> "0x" <> T.pack (showHex n ""))
+renderIntervalsHex = renderIntervalsWith (\n -> "0x" <> toText (showHex n ""))
 
 -- | Membership test: is @addr@ inside any interval?
 inIntervals :: Int -> Intervals -> Bool
