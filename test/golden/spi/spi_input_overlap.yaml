@@ -4,6 +4,7 @@ memory_size: 512
 spi:
   0:
     mode: 0
+    role: slave
     cs_bit:
       address: 0x90
       bit: 0

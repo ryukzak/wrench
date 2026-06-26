@@ -30,6 +30,8 @@ module Wrench.Machine.Types (
     lShiftR,
 ) where
 
+import Data.Aeson (FromJSON (..), genericParseJSON)
+import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Bits
 import Data.Default (Default, def)
 import Data.IntMap.Strict qualified as IM
@@ -219,6 +221,16 @@ data SpiMisoShift w = SpiMisoShift
 data SpiClockMode = SpiMode0 | SpiMode1 | SpiMode2 | SpiMode3
     deriving (Eq, Show)
 
+instance FromJSON SpiClockMode where
+    parseJSON value = do
+        mode <- parseJSON value
+        case (mode :: Int) of
+            0 -> pure SpiMode0
+            1 -> pure SpiMode1
+            2 -> pure SpiMode2
+            3 -> pure SpiMode3
+            _ -> fail "invalid spi mode, expected 0|1|2|3"
+
 data SpiPinsConf = SpiPinsConf
     { spCsAddr :: Int
     , spCsBit :: Int
@@ -229,7 +241,10 @@ data SpiPinsConf = SpiPinsConf
     , spMisoAddr :: Int
     , spMisoBit :: Int
     }
-    deriving (Eq, Show)
+    deriving (Eq, Generic, Show)
+
+instance FromJSON SpiPinsConf where
+    parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
 data SpiPinsSnapshot = SpiPinsSnapshot
     { spsTick :: Int

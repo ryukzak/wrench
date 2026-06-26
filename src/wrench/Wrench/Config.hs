@@ -1,8 +1,12 @@
 module Wrench.Config (
     Config (..),
-    SpiClockModeConf (..),
-    SpiPortBitConf (..),
-    SpiPinsConfFlat (..),
+    SignalPin (..),
+    SpiConfig (..),
+    SpiConfs,
+    SpiRole (..),
+    flattenSpiInputs,
+    flattenSpiModes,
+    flattenSpiPins,
     readConfig,
 ) where
 
@@ -13,6 +17,7 @@ import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import Wrench.Machine.Types (SpiClockMode, SpiPinsConf (..))
 import Wrench.Report
 
 throwE :: (Monad m) => e -> ExceptT e m a
@@ -24,13 +29,10 @@ readConfig path = runExceptT $ do
     conf@Config{cMemoryMappedIo, cSpi} <- case result of
         Left e -> throwE $ prettyPrintParseException e
         Right conf -> return conf
-    maybe (return ()) (validateSpiInputs . flattenSpiInputs) cSpi
+    maybe (return ()) validateSpiConfigs cSpi
     let conf' =
             (conf <> def)
                 { cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo
-                , cSpiFlat = fmap flattenSpiInputs cSpi
-                , cSpiModeFlat = fmap flattenSpiModes cSpi
-                , cSpiPinsFlat = fmap flattenSpiPins cSpi
                 }
     return conf'
 
@@ -45,14 +47,8 @@ data Config = Config
     -- ^ Optional memory-mapped IO configuration, mapping stream address (decimal or hex format) to lists of inputs.
     , cMemoryMappedIoFlat :: Maybe (IntMap ([Int], [Int]))
     -- ^ (generated) Flattened memory-mapped IO configuration, mapping addresses to pairs of input and output lists.
-    , cSpi :: Maybe (HashMap String SpiConfig)
+    , cSpi :: Maybe SpiConfs
     -- ^ Optional SPI configuration, mapping device id to scheduled input values.
-    , cSpiFlat :: Maybe (IntMap [(Int, Int, Int)])
-    -- ^ (generated) Flattened SPI configuration, mapping device id to (value, tick, bit count) triples.
-    , cSpiModeFlat :: Maybe (IntMap SpiClockModeConf)
-    -- ^ (generated) Flattened SPI mode number per device.
-    , cSpiPinsFlat :: Maybe (IntMap SpiPinsConfFlat)
-    -- ^ (generated) Flattened SPI pin/register layout per device.
     , cReports :: Maybe [ReportConf]
     -- ^ Optional list of report configurations.
     , cSeed :: Maybe Int
@@ -68,9 +64,6 @@ instance Default Config where
             , cMemoryMappedIo = Nothing
             , cMemoryMappedIoFlat = Nothing
             , cSpi = Nothing
-            , cSpiFlat = Nothing
-            , cSpiModeFlat = Nothing
-            , cSpiPinsFlat = Nothing
             , cReports =
                 Just
                     [ ReportConf
@@ -90,9 +83,6 @@ instance Semigroup Config where
             , cMemoryMappedIo = cMemoryMappedIo a <|> cMemoryMappedIo b
             , cMemoryMappedIoFlat = cMemoryMappedIoFlat a <|> cMemoryMappedIoFlat b
             , cSpi = cSpi a <|> cSpi b
-            , cSpiFlat = cSpiFlat a <|> cSpiFlat b
-            , cSpiModeFlat = cSpiModeFlat a <|> cSpiModeFlat b
-            , cSpiPinsFlat = cSpiPinsFlat a <|> cSpiPinsFlat b
             , cLimit = cLimit a
             , cReports = cReports a <|> cReports b
             , cSeed = cSeed a <|> cSeed b
@@ -117,12 +107,15 @@ flattenIoStream memory_mapped_io =
     where
         flatInputs = concatMap (\case Num n -> [n]; Chars ns _ -> ns)
 
+type SpiConfs = HashMap String SpiConfig
+
 data SpiConfig = SpiConfig
-    { scMode :: SpiClockModeConf
-    , scCsBit :: SpiPortBitConf
-    , scClkBit :: SpiPortBitConf
-    , scMosiBit :: SpiPortBitConf
-    , scMisoBit :: SpiPortBitConf
+    { scMode :: SpiClockMode
+    , scRole :: SpiRole
+    , scCsBit :: SignalPin
+    , scClkBit :: SignalPin
+    , scMosiBit :: SignalPin
+    , scMisoBit :: SignalPin
     , scInput :: [SpiInput]
     }
     deriving (Generic, Show)
@@ -130,38 +123,25 @@ data SpiConfig = SpiConfig
 instance FromJSON SpiConfig where
     parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
-data SpiClockModeConf = SpiCfgMode0 | SpiCfgMode1 | SpiCfgMode2 | SpiCfgMode3
+data SpiRole = SpiSlave | SpiMaster
     deriving (Eq, Show)
 
-instance FromJSON SpiClockModeConf where
+instance FromJSON SpiRole where
     parseJSON value = do
-        mode <- parseJSON value
-        case (mode :: Int) of
-            0 -> pure SpiCfgMode0
-            1 -> pure SpiCfgMode1
-            2 -> pure SpiCfgMode2
-            3 -> pure SpiCfgMode3
-            _ -> fail "invalid spi mode, expected 0|1|2|3"
+        role <- parseJSON value
+        case (role :: Text) of
+            "slave" -> pure SpiSlave
+            "master" -> pure SpiMaster
+            _ -> fail "invalid spi role, expected slave|master"
 
-data SpiPinsConfFlat = SpiPinsConfFlat
-    { spfCsBit :: SpiPortBitConf
-    , spfClkBit :: SpiPortBitConf
-    , spfMosiBit :: SpiPortBitConf
-    , spfMisoBit :: SpiPortBitConf
+data SignalPin = SignalPin
+    { spAddress :: Int
+    , spBit :: Int
     }
     deriving (Eq, Generic, Show)
 
-instance FromJSON SpiPinsConfFlat where
-    parseJSON = genericParseJSON $ aesonDrop 3 snakeCase
-
-data SpiPortBitConf = SpiPortBitConf
-    { spbcAddress :: Int
-    , spbcBit :: Int
-    }
-    deriving (Eq, Generic, Show)
-
-instance FromJSON SpiPortBitConf where
-    parseJSON = genericParseJSON $ aesonDrop 4 snakeCase
+instance FromJSON SignalPin where
+    parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
 data SpiInput
     = SpiByteAt Int Int
@@ -180,7 +160,7 @@ instance FromJSON SpiInput where
             [] -> fail "spi.input entry must define exactly one of: byte|bytes|word"
             _ -> fail "spi.input entry has multiple payload fields; use only one of: byte|bytes|word"
 
-flattenSpiInputs :: HashMap String SpiConfig -> IntMap [(Int, Int, Int)]
+flattenSpiInputs :: SpiConfs -> IntMap [(Int, Int, Int)]
 flattenSpiInputs spi =
     fromList
         $ map (\(addr, cfg@SpiConfig{scInput}) -> (Unsafe.read addr, concatMap (flattenInput cfg) scInput))
@@ -196,6 +176,21 @@ spiByteBits = 8
 
 spiWordBits :: Int
 spiWordBits = 32
+
+validateSpiConfigs :: (Monad m) => SpiConfs -> ExceptT String m ()
+validateSpiConfigs spi = do
+    mapM_ validateSpiRole (toPairs spi)
+    validateSpiInputs (flattenSpiInputs spi)
+
+validateSpiRole :: (Monad m) => (String, SpiConfig) -> ExceptT String m ()
+validateSpiRole (deviceId, SpiConfig{scRole}) =
+    case scRole of
+        SpiSlave -> return ()
+        SpiMaster ->
+            throwE
+                $ "spi["
+                <> deviceId
+                <> "]: role=master is not supported yet; use role=slave"
 
 validateSpiInputs :: (Monad m) => IntMap [(Int, Int, Int)] -> ExceptT String m ()
 validateSpiInputs spi =
@@ -239,21 +234,25 @@ inputTick (_, tick, _) = tick
 inputEndTick :: (Int, Int, Int) -> Int
 inputEndTick (_, tick, bits) = tick + bits
 
-flattenSpiModes :: HashMap String SpiConfig -> IntMap SpiClockModeConf
+flattenSpiModes :: SpiConfs -> IntMap SpiClockMode
 flattenSpiModes spi =
     fromList $ map (\(addr, SpiConfig{scMode}) -> (Unsafe.read addr, scMode)) $ toPairs spi
 
-flattenSpiPins :: HashMap String SpiConfig -> IntMap SpiPinsConfFlat
+flattenSpiPins :: SpiConfs -> IntMap SpiPinsConf
 flattenSpiPins spi =
     fromList
         $ map
             ( \(addr, SpiConfig{scCsBit, scClkBit, scMosiBit, scMisoBit}) ->
                 ( Unsafe.read addr
-                , SpiPinsConfFlat
-                    { spfCsBit = scCsBit
-                    , spfClkBit = scClkBit
-                    , spfMosiBit = scMosiBit
-                    , spfMisoBit = scMisoBit
+                , SpiPinsConf
+                    { spCsAddr = spAddress scCsBit
+                    , spCsBit = spBit scCsBit
+                    , spClkAddr = spAddress scClkBit
+                    , spClkBit = spBit scClkBit
+                    , spMosiAddr = spAddress scMosiBit
+                    , spMosiBit = spBit scMosiBit
+                    , spMisoAddr = spAddress scMisoBit
+                    , spMisoBit = spBit scMisoBit
                     }
                 )
             )

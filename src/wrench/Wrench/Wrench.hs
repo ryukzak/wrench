@@ -10,7 +10,6 @@ module Wrench.Wrench (
 ) where
 
 import Data.Default (Default (..), def)
-import Data.IntMap.Strict (traverseWithKey)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
@@ -157,14 +156,15 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cSpiFlat, cSpiModeFlat, cSpiPinsFlat, cReports, cSeed} src = do
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cSpi, cReports, cSeed} src = do
     trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
-    let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        spiInputs = map mapSpiInput <$> fromMaybe mempty cSpiFlat
-        spiModes = mapSpiMode <$> fromMaybe mempty cSpiModeFlat
-    spiPins <- traverseWithKey mapSpiPins $ fromMaybe mempty cSpiPinsFlat
+    let spiConfig = fromMaybe mempty cSpi
+        mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
+        spiInputs = map mapSpiInput <$> flattenSpiInputs spiConfig
+        spiModes = flattenSpiModes spiConfig
+    spiPins <- fromList <$> mapM mapSpiPins (toPairs $ flattenSpiPins spiConfig)
     validateSpiPinUsage spiPins
     let randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
         ioDump = mkIoMemWithSpi mIoStreams spiInputs spiModes spiPins dump
@@ -199,37 +199,17 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             let (val, gen') = uniformR range gen
              in val : randomInts range gen'
 
-        mapSpiMode = \case
-            SpiCfgMode0 -> Wrench.Machine.Types.SpiMode0
-            SpiCfgMode1 -> Wrench.Machine.Types.SpiMode1
-            SpiCfgMode2 -> Wrench.Machine.Types.SpiMode2
-            SpiCfgMode3 -> Wrench.Machine.Types.SpiMode3
-
-        mapSpiPins deviceId SpiPinsConfFlat{spfCsBit, spfClkBit, spfMosiBit, spfMisoBit} = do
-            let cs = spfCsBit
-                clk = spfClkBit
-                mosi = spfMosiBit
-                miso = spfMisoBit
-                maxBit = byteSizeT @w * 8 - 1
+        mapSpiPins (deviceId, pins@SpiPinsConf{spCsBit, spClkBit, spMosiBit, spMisoBit}) = do
+            let maxBit = byteSizeT @w * 8 - 1
                 validBit b = 0 <= b && b <= maxBit
                 withBit msg b = if validBit b then Right () else Left msg
 
-            withBit ("spi[" <> show deviceId <> "]: cs bit is out of range") (spbcBit cs)
-            withBit ("spi[" <> show deviceId <> "]: clk bit is out of range") (spbcBit clk)
-            withBit ("spi[" <> show deviceId <> "]: mosi bit is out of range") (spbcBit mosi)
-            withBit ("spi[" <> show deviceId <> "]: miso bit is out of range") (spbcBit miso)
+            withBit ("spi[" <> show deviceId <> "]: cs bit is out of range") spCsBit
+            withBit ("spi[" <> show deviceId <> "]: clk bit is out of range") spClkBit
+            withBit ("spi[" <> show deviceId <> "]: mosi bit is out of range") spMosiBit
+            withBit ("spi[" <> show deviceId <> "]: miso bit is out of range") spMisoBit
 
-            pure
-                SpiPinsConf
-                    { spCsAddr = spbcAddress cs
-                    , spCsBit = spbcBit cs
-                    , spClkAddr = spbcAddress clk
-                    , spClkBit = spbcBit clk
-                    , spMosiAddr = spbcAddress mosi
-                    , spMosiBit = spbcBit mosi
-                    , spMisoAddr = spbcAddress miso
-                    , spMisoBit = spbcBit miso
-                    }
+            pure (deviceId, pins)
 
         validateSpiPinUsage :: IntMap SpiPinsConf -> Either Text ()
         validateSpiPinUsage spiPins =

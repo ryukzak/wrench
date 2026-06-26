@@ -51,6 +51,7 @@ For example, this maps one SPI device to addresses `0x90` and `0x94`:
 spi:
   0:
     mode: 0
+    role: slave
     cs_bit:
       address: 0x90
       bit: 0
@@ -79,6 +80,7 @@ Example config:
 spi:
   0:
     mode: 0
+    role: slave
     cs_bit:
       address: 0x90
       bit: 0
@@ -100,6 +102,7 @@ spi:
 ### Required field
 
 - `mode`: one of `0`, `1`, `2`, `3`
+- `role`: currently `slave`
 - `cs_bit`, `clk_bit`, `mosi_bit`, `miso_bit`
 
 ### Pin mapping
