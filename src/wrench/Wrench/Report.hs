@@ -60,7 +60,7 @@ prepareReport
     records
     rc@ReportConf{rcName, rcSlice, rcAssert, rcView} =
         let header = maybe "" ("# " <>) rcName
-            details = if verbose then T.pack (show rc) else ""
+            details = if verbose then show rc else ""
             sliced = selectSlice rcSlice records
             stateViews = case rcView of
                 Nothing -> ""
@@ -128,10 +128,10 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             } = dumpStats
         AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
         resolver v = case T.splitOn ":" v of
-            ["sim", "instruction-count"] -> T.pack (show instrCount)
-            ["layout", "sections-size"] -> T.pack (show dsSectionsTotalBytes)
-            ["layout", "text-sections-size"] -> T.pack (show dsTextSectionsBytes)
-            ["layout", "data-sections-size"] -> T.pack (show dsDataSectionsBytes)
+            ["sim", "instruction-count"] -> show instrCount
+            ["layout", "sections-size"] -> show dsSectionsTotalBytes
+            ["layout", "text-sections-size"] -> show dsTextSectionsBytes
+            ["layout", "data-sections-size"] -> show dsDataSectionsBytes
             ["layout", "text-ranges"] -> renderIntervalsHex dsTextIntervals
             ["layout", "text-ranges", fmt] -> rangesFmt fmt dsTextIntervals
             ["layout", "data-ranges"] -> renderIntervalsHex dsDataIntervals
@@ -191,7 +191,7 @@ renderMemoryTable dumpStats mem =
         hexW = max 3 (length (showHex (max 0 (memSize - 1)) ""))
         addrStr a =
             let h = showHex a ""
-             in "0x" <> T.pack (replicate (hexW - length h) '0') <> T.pack h
+             in "0x" <> toText (replicate (hexW - length h) '0') <> toText h
 
         formatRange lo hi = addrStr lo <> ".." <> addrStr hi
 
@@ -207,9 +207,9 @@ renderMemoryTable dumpStats mem =
                 cov = if bytes > 0 then (accessedBytes * 100) `div` bytes else 0
              in ( kind
                 , formatRange lo hi
-                , T.pack (show bytes)
+                , show bytes
                 , renderAccessed accessedHere
-                , T.pack (show cov) <> "%"
+                , show cov <> "%"
                 )
 
         headerRow :: (Text, Text, Text, Text, Text)
@@ -252,7 +252,7 @@ defaultView labels st "pc:label" =
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
 defaultView _labels st "instruction" =
-    Just $ either error (T.pack . show . snd) (readInstruction (memoryDump st) (programCounter st))
+    Just $ either error (show . snd) (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
@@ -267,21 +267,21 @@ viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
-    Just (is, os) -> T.pack (show is) <> " >>> " <> T.pack (show (reverse os))
-    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
+    Just (is, os) -> show is <> " >>> " <> show (reverse os)
+    Nothing -> error ("incorrect IO address: " <> show addr)
 viewIO "hex" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
             $ T.intercalate
                 ""
-                [ T.pack (show (map word32ToHex is))
+                [ show (map word32ToHex is)
                 , " >>> "
-                , T.pack (show (reverse (map word32ToHex os)))
+                , show (reverse (map word32ToHex os))
                 ]
-    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
+    Nothing -> error ("incorrect IO address: " <> show addr)
 viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
-    Just (is, os) -> fixEscapes (T.pack (show is)) <> " >>> " <> fixEscapes (T.pack (show (reverse os)))
-    Nothing -> error $ T.pack ("incorrect IO address: " <> show addr)
+    Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
+    Nothing -> error ("incorrect IO address: " <> show addr)
     where
         sym =
             map
@@ -296,13 +296,13 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
         fixEscapes = T.replace "\\NUL" "\\0"
 viewIO fmt _addr _st = unknownFormat fmt
 
-readAddr t = fromMaybe (error $ T.pack "can't parse memory address: " <> t) $ readMaybe (toString t)
+readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe (toString t)
 
-viewRegister "dec" = T.pack . show
-viewRegister "hex" = T.pack . word32ToHex
+viewRegister "dec" = show
+viewRegister "hex" = toText . word32ToHex
 viewRegister f = \_ -> unknownFormat f
 
-errorView v = error $ T.pack "view error: " <> v
+errorView v = error $ "view error: " <> v
 
 unknownView v = "[unknown-view <" <> v <> ">]"
 
