@@ -145,10 +145,10 @@ viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap 
 viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
-viewIO "dec" addr st = case ioStreams st !? readAddr addr of
+viewIO "dec" addr st = case iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
     Nothing -> error $ "incorrect IO address: " <> show addr
-viewIO "hex" addr st = case ioStreams st !? readAddr addr of
+viewIO "hex" addr st = case iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
             $ T.intercalate
@@ -158,7 +158,7 @@ viewIO "hex" addr st = case ioStreams st !? readAddr addr of
                 , show (reverse (map word32ToHex os))
                 ]
     Nothing -> error $ "incorrect IO address: " <> show addr
-viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
+viewIO "sym" addr st = case bimap sym sym <$> iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
@@ -176,20 +176,20 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
 viewIO fmt _addr _st = unknownFormat fmt
 
 viewSpi :: (MachineWord w, StateInterspector st m isa w) => Text -> Text -> st -> Text
-viewSpi "miso" addr st = case spiDevices st !? readAddr addr of
+viewSpi "miso" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just SpiDevice{spiMisoPending, spiMisoConsumed} ->
         show (map pendingMisoForReport spiMisoPending) <> " >>> " <> show spiMisoConsumed
     Nothing -> error $ "incorrect SPI address: " <> show addr
-viewSpi "mosi" addr st = case spiDevices st !? readAddr addr of
+viewSpi "mosi" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just SpiDevice{spiMosiLog} -> "[] >>> " <> show spiMosiLog
     Nothing -> error $ "incorrect SPI address: " <> show addr
-viewSpi "status" addr st = case spiDevices st !? readAddr addr of
+viewSpi "status" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just device -> spiStatusText (spiDeviceClock (machineClock st) device) device
     Nothing -> error $ "incorrect SPI address: " <> show addr
-viewSpi "clock" addr st = case spiDevices st !? readAddr addr of
+viewSpi "clock" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just device -> show $ spiDeviceClock (machineClock st) device
     Nothing -> error $ "incorrect SPI address: " <> show addr
-viewSpi "pins" addr st = case spiDevices st !? readAddr addr of
+viewSpi "pins" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} ->
         "cs="
             <> pinBit spiCsPin
@@ -200,7 +200,7 @@ viewSpi "pins" addr st = case spiDevices st !? readAddr addr of
             <> " miso="
             <> pinBit spiMisoPin
     Nothing -> error $ "incorrect SPI address: " <> show addr
-viewSpi "wave" addr st = case spiDevices st !? readAddr addr of
+viewSpi "wave" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
     Just SpiDevice{spiWaveLog} -> spiWaveText spiWaveLog
     Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi fmt _addr _st = unknownFormat fmt

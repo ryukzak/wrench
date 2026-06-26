@@ -269,8 +269,7 @@ getCarryFlag = carryFlag <$> get
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{ram} = ram
-    ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
-    spiDevices State{ram = IoMem{mSpiDevices}} = mSpiDevices
+    ioDevices State{ram} = ioMemDevices ram
     machineClock State{ram = IoMem{mClock}} = mClock
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

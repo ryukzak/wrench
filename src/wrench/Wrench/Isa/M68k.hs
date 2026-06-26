@@ -409,8 +409,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
-    ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    spiDevices State{mem = IoMem{mSpiDevices}} = mSpiDevices
+    ioDevices State{mem} = ioMemDevices mem
     machineClock State{mem = IoMem{mClock}} = mClock
     reprState labels st v
         | Just v' <- defaultView labels st v = v'

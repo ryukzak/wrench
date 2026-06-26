@@ -3,6 +3,7 @@ module Wrench.Machine.Types (
     Machine (..),
     Mem (..),
     IoMem (..),
+    IoDevices (..),
     SpiClockMode (..),
     SpiPinsConf (..),
     SpiPinsSnapshot (..),
@@ -10,6 +11,7 @@ module Wrench.Machine.Types (
     SpiDevice (..),
     mkIoMem,
     mkIoMemWithSpi,
+    ioMemDevices,
     tickIoMem,
     Cell (..),
     InitState (..),
@@ -166,9 +168,7 @@ class InitState mem st | st -> mem where
 class StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
-    ioStreams :: st -> IntMap ([w], [w])
-    spiDevices :: st -> IntMap (SpiDevice w)
-    spiDevices _ = mempty
+    ioDevices :: st -> IoDevices w
     machineClock :: st -> Int
     machineClock _ = 0
     reprState :: HashMap String w -> st -> Text -> Text
@@ -210,6 +210,19 @@ data IoMem isa w = IoMem
     , mIoByteToWord :: IntMap Int
     }
     deriving (Eq, Show)
+
+data IoDevices w = IoDevices
+    { iodStreams :: IntMap ([w], [w])
+    , iodSpiDevices :: IntMap (SpiDevice w)
+    }
+    deriving (Eq, Show)
+
+ioMemDevices :: IoMem isa w -> IoDevices w
+ioMemDevices IoMem{mIoStreams, mSpiDevices} =
+    IoDevices
+        { iodStreams = mIoStreams
+        , iodSpiDevices = mSpiDevices
+        }
 
 data SpiMisoShift w = SpiMisoShift
     { smsWord :: w
