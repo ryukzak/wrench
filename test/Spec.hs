@@ -1,5 +1,6 @@
 import Data.Default
 import Data.Text (replace, toTitle)
+import Data.Text qualified as T
 import Relude
 import System.FilePath
 import Test.Tasty (TestTree, testGroup)
@@ -292,7 +293,7 @@ goldenTranslate' isa fn =
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 1000 fn src of
             Right (TranslatorResult dump labels _stats) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
+                return $ encodeUtf8 $ T.intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 

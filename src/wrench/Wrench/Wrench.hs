@@ -69,15 +69,15 @@ instance Read Isa where
 
 data Result mem w = Result
     { rTrace :: Text
-    , rLabels :: HashMap String w
+    , rLabels :: HashMap Text w
     , rSuccess :: Bool
     , rDump :: mem
     }
     deriving (Show)
 
-prettyLabels :: (MachineWord w) => HashMap String w -> String
+prettyLabels :: (MachineWord w) => HashMap Text w -> Text
 prettyLabels rLabels =
-    intercalate "\n"
+    T.intercalate "\n"
         $ map (\(l, w) -> show w <> ":\t" <> l)
         $ sortOn snd (toPairs rLabels)
 
@@ -132,9 +132,9 @@ wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
         Left e -> wrenchError e
     where
         translationResult rLabels rDump = do
-            putStrLn $ prettyLabels rLabels
+            putText $ prettyLabels rLabels
             putStrLn "---"
-            putStrLn $ prettyDump rLabels rDump
+            putText $ prettyDump rLabels rDump
         wrenchError e = do
             putStrLn $ "error (" <> isa <> "): " <> toString e
             exitFailure

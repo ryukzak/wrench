@@ -23,7 +23,7 @@ import Wrench.Machine.Types
 import Prelude qualified
 
 class DerefMnemonic m w where
-    derefMnemonic :: (String -> Maybe w) -> w -> m (Ref w) -> m w
+    derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w
 
 data Section isa w l
     = Code
@@ -43,9 +43,9 @@ instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
 derefSection ::
     forall isa w.
     (ByteSize (isa (Ref w)), DerefMnemonic isa w, MachineWord w, Show (isa w)) =>
-    (String -> Maybe w)
+    (Text -> Maybe w)
     -> w
-    -> Section (isa (Ref w)) w String
+    -> Section (isa (Ref w)) w Text
     -> Section (isa w) w w
 derefSection f offset code@Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
@@ -101,7 +101,7 @@ instance (ByteSize isa) => ByteSize (CodeToken isa l) where
     byteSize _ = 0
 
 data Ref w
-    = Ref (w -> w) String
+    = Ref (w -> w) Text
     | ValueR (w -> w) w
 
 instance (Eq w) => Eq (Ref w) where
@@ -110,14 +110,14 @@ instance (Eq w) => Eq (Ref w) where
     _ == _ = False
 
 instance (Show w) => Show (Ref w) where
-    show (Ref _ l) = l
+    show (Ref _ l) = toString l
     show (ValueR f x) = show $ f x
 
 -- | Resolve a 'Ref' against a label table. Strict: forces the lookup and the
 --   resulting value to WHNF before returning. Call sites should use @$!@ so
 --   that an unresolved label aborts translation rather than producing a thunk
 --   that only blows up later if something happens to read it.
-deref' :: (String -> Maybe w) -> Ref w -> w
+deref' :: (Text -> Maybe w) -> Ref w -> w
 deref' f (Ref prepare l) = case f l of
     Just w -> let !v = prepare w in v
     Nothing -> error ("Can't resolve label: " <> show l)

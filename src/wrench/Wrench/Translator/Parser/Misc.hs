@@ -80,11 +80,11 @@ hexNum = do
 
 eol' cstart = hspace >> void (eol <|> comment cstart)
 
-name :: Parser String
+name :: Parser Text
 name = do
     x <- letterChar <|> char '_'
     xs <- many (letterChar <|> digitChar <|> char '_')
-    return $ x : xs
+    return $ toText (x : xs)
 
 comment :: String -> Parser String
 comment cstart = do
@@ -94,7 +94,7 @@ comment cstart = do
 nothing :: (Monad m) => m a -> m (Maybe b)
 nothing p = p >> return Nothing
 
-label :: Parser String
+label :: Parser Text
 label = try $ do
     n <- name
     void $ single ':'

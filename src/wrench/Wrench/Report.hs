@@ -37,13 +37,13 @@ substituteBrackets f input =
      in foldr (\(old, new) st -> T.replace old new st) input changes
 
 data ReportConf = ReportConf
-    { rcName :: Maybe String
+    { rcName :: Maybe Text
     -- ^ Optional name of the report.
     -- Example: Just "My Report"
     , rcSlice :: ReportSlice
     -- ^ Specifies which part of the report to select.
     -- Example: HeadSlice 10
-    , rcAssert :: Maybe String
+    , rcAssert :: Maybe Text
     -- ^ Optional assertion string to compare the report against.
     -- Example: Just "Expected output"
     , rcView :: Maybe Text
@@ -65,30 +65,30 @@ prepareReport
             stateViews = case rcView of
                 Nothing -> ""
                 Just rvView' ->
-                    concat
-                        $ filter (not . null)
+                    T.concat
+                        $ filter (not . T.null)
                         $ map
                             ( \case
                                 TState{tInstructionCount, tState} ->
                                     prepareStateView rvView' trResult finalState tInstructionCount tState
-                                (TError err) -> "ERROR: " <> toString err <> "\n"
-                                (TWarn warn) -> "WARN: " <> toString warn <> "\n"
+                                (TError err) -> "ERROR: " <> err <> "\n"
+                                (TWarn warn) -> "WARN: " <> warn <> "\n"
                             )
                             sliced
 
             assertReport =
-                let actual = nospaces $ toText stateViews
-                    expect = maybe "" (nospaces . toText) rcAssert
+                let actual = nospaces stateViews
+                    expect = maybe "" nospaces rcAssert
                  in if isNothing rcAssert || actual == expect
                         then ""
-                        else "ASSERTION FAIL, expect:\n" <> toString expect
-         in ( null assertReport
-            , unlines
-                $ map (T.strip . toText)
-                $ filter (not . null) [header, details, stateViews, assertReport]
+                        else "ASSERTION FAIL, expect:\n" <> expect
+         in ( T.null assertReport
+            , T.unlines
+                $ map T.strip
+                $ filter (not . T.null) [header, details, stateViews, assertReport]
             )
         where
-            nospaces = unlines . map T.strip . lines . T.strip
+            nospaces = T.unlines . map T.strip . T.lines . T.strip
 
 -----------------------------------------------------------
 
@@ -153,7 +153,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
         rangesFmt "dec" = renderIntervals
         rangesFmt "hex" = renderIntervalsHex
         rangesFmt fmt = const (unknownFormat fmt)
-     in toString $ substituteBrackets resolver line
+     in substituteBrackets resolver line
 
 -- | Render a full address-space table: one row per declared section, IO
 --   cluster, or @x@ (anything else) span. Auto-sized columns, hex addresses
@@ -191,7 +191,7 @@ renderMemoryTable dumpStats mem =
         hexW = max 3 (length (showHex (max 0 (memSize - 1)) ""))
         addrStr a =
             let h = showHex a ""
-             in "0x" <> T.pack (replicate (hexW - length h) '0') <> T.pack h
+             in "0x" <> toText (replicate (hexW - length h) '0') <> toText h
 
         formatRange lo hi = addrStr lo <> ".." <> addrStr hi
 
@@ -243,7 +243,7 @@ splitByAccess accessedAll lo hi =
 
 defaultView ::
     (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
-    HashMap String w
+    HashMap Text w
     -> st
     -> Text
     -> Maybe Text
@@ -268,7 +268,7 @@ viewMemory a b mem =
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Nothing -> error ("incorrect IO address: " <> show addr)
 viewIO "hex" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
@@ -278,10 +278,10 @@ viewIO "hex" addr st = case ioStreams st !? readAddr addr of
                 , " >>> "
                 , show (reverse (map word32ToHex os))
                 ]
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Nothing -> error ("incorrect IO address: " <> show addr)
 viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
     Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
-    Nothing -> error $ "incorrect IO address: " <> show addr
+    Nothing -> error ("incorrect IO address: " <> show addr)
     where
         sym =
             map
@@ -293,10 +293,10 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
                   )
                     . fromEnum
                 )
-        fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
+        fixEscapes = T.replace "\\NUL" "\\0"
 viewIO fmt _addr _st = unknownFormat fmt
 
-readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
+readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe (toString t)
 
 viewRegister "dec" = show
 viewRegister "hex" = toText . word32ToHex
