@@ -201,7 +201,7 @@ viewSpi "pins" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
             <> pinBit spiMisoPin
     Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi "wave" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
-    Just SpiDevice{spiWaveLog} -> spiWaveText spiWaveLog
+    Just device -> spiWaveText (readAddr addr) device
     Nothing -> error $ "incorrect SPI address: " <> show addr
 viewSpi fmt _addr _st = unknownFormat fmt
 

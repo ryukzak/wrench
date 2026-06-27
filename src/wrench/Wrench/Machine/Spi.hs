@@ -12,7 +12,6 @@ module Wrench.Machine.Spi (
     writeSpiWord,
 ) where
 
-import Data.Bifunctor qualified as Bi
 import Data.Bits (Bits (..))
 import Data.Text qualified as T
 import Relude
@@ -260,24 +259,18 @@ shiftMosi clock mosiBit device@SpiDevice{spiMosiShift, spiMosiBits, spiMosiFrame
                     }
             else device{spiMosiShift = nextWord, spiMosiBits = nextBits}
 
-spiWaveText :: [SpiPinsSnapshot] -> Text
-spiWaveText [] = ""
-spiWaveText xs =
-    T.intercalate "\n\n" $ map renderWaveBlock $ waveBlocks spiWaveBlockWidth waveLines
+spiWaveText :: Int -> SpiDevice w -> Text
+spiWaveText deviceId device@SpiDevice{spiWaveLog} =
+    T.intercalate "\n\n"
+        $ masterLines
+        : map renderTransferBlock (spiWaveTransferBlocks device spiWaveLog)
     where
-        waveLines =
-            [ ("TICK: ", tickLine xs)
-            , ("CS  : ", waveLine spsCsPin xs)
-            , ("CLK : ", waveLine spsClkPin xs)
-            , ("MOSI: ", waveLine spsMosiPin xs)
-            , ("MISO: ", waveLine spsMisoPin xs)
-            ]
-
-spiWaveBlockWidth :: Int
-spiWaveBlockWidth = spiWaveBlockTicks * spiWaveTickWidth
-
-spiWaveBlockTicks :: Int
-spiWaveBlockTicks = 25
+        masterLines =
+            T.intercalate
+                "\n"
+                [ "MASTER: program"
+                , "SLAVE : spi[" <> show deviceId <> "]"
+                ]
 
 spiWaveTickWidth :: Int
 spiWaveTickWidth = 4
@@ -285,27 +278,73 @@ spiWaveTickWidth = 4
 spiWaveTickLabelStep :: Int
 spiWaveTickLabelStep = 5
 
-waveBlocks :: Int -> [(Text, Text)] -> [[(Text, Text)]]
-waveBlocks width lines'
-    | all (T.null . snd) lines' = []
-    | otherwise =
-        let block = map (Bi.second (T.take width)) lines'
-            rest = map (Bi.second (T.drop width)) lines'
-         in block : waveBlocks width rest
+renderTransferBlock :: [SpiPinsSnapshot] -> Text
+renderTransferBlock [] = ""
+renderTransferBlock xs =
+    renderWaveLines
+        [ ("TICK: ", tickLine xs)
+        , ("CS  : ", waveLine spsCsPin xs)
+        , ("CLK : ", waveLine spsClkPin xs)
+        , ("MOSI: ", waveLine spsMosiPin xs)
+        , ("MISO: ", waveLine spsMisoPin xs)
+        ]
 
-renderWaveBlock :: [(Text, Text)] -> Text
-renderWaveBlock block =
+renderWaveLines :: [(Text, Text)] -> Text
+renderWaveLines lines' =
     T.intercalate
         "\n"
-        [name <> line | (name, line) <- block]
+        [name <> line | (name, line) <- lines']
+
+spiWaveTransferBlocks :: SpiDevice w -> [SpiPinsSnapshot] -> [[SpiPinsSnapshot]]
+spiWaveTransferBlocks _ [] = []
+spiWaveTransferBlocks device xs =
+    map (snapshotsForTransfer xs) (transferRanges device xs)
+
+transferRanges :: SpiDevice w -> [SpiPinsSnapshot] -> [(Int, Int)]
+transferRanges _ [] = []
+transferRanges device xs@(firstSnapshot : _) =
+    case spiTransferEnds device of
+        [] -> [(firstTick, lastTick)]
+        ends -> transferRangesFromEnds firstTick (fixLastEnd lastTick ends)
+    where
+        firstTick = spsTick firstSnapshot
+        lastTick = spsTick (lastSnapshot firstSnapshot xs)
+
+spiTransferEnds :: SpiDevice w -> [Int]
+spiTransferEnds SpiDevice{spiMosiLog} =
+    sort $ ordNub $ map snd spiMosiLog
+
+fixLastEnd :: Int -> [Int] -> [Int]
+fixLastEnd _ [] = []
+fixLastEnd lastTick [endTick] = [max endTick lastTick]
+fixLastEnd lastTick (endTick : rest) = endTick : fixLastEnd lastTick rest
+
+transferRangesFromEnds :: Int -> [Int] -> [(Int, Int)]
+transferRangesFromEnds _ [] = []
+transferRangesFromEnds startTick (endTick : rest) =
+    (startTick, max startTick endTick) : transferRangesFromEnds endTick rest
+
+snapshotsForTransfer :: [SpiPinsSnapshot] -> (Int, Int) -> [SpiPinsSnapshot]
+snapshotsForTransfer [] _ = []
+snapshotsForTransfer xs@(firstSnapshot : _) (startTick, endTick) =
+    startSnapshot : filter inside xs
+    where
+        endTick' = max startTick endTick
+        inside snapshot = startTick <= spsTick snapshot && spsTick snapshot <= endTick'
+        beforeStart = filter ((< startTick) . spsTick) xs
+        startSnapshot = (lastSnapshot firstSnapshot beforeStart){spsTick = startTick}
 
 tickLine :: [SpiPinsSnapshot] -> Text
-tickLine xs =
-    T.concat [tickCell tick | tick <- waveTicks xs]
+tickLine [] = ""
+tickLine xs@(firstSnapshot : _) =
+    T.concat [tickCell firstTick tick | tick <- waveTicks xs]
+    where
+        firstTick = spsTick firstSnapshot
 
-tickCell :: Int -> Text
-tickCell tick
-    | tick `mod` spiWaveTickLabelStep == 0 = T.take spiWaveTickWidth $ show tick <> T.replicate spiWaveTickWidth " "
+tickCell :: Int -> Int -> Text
+tickCell firstTick tick
+    | tick == firstTick || tick `mod` spiWaveTickLabelStep == 0 =
+        T.take spiWaveTickWidth $ show tick <> T.replicate spiWaveTickWidth " "
     | otherwise = T.replicate spiWaveTickWidth " "
 
 waveTicks :: [SpiPinsSnapshot] -> [Int]
@@ -316,7 +355,7 @@ waveTicks (firstSnapshot : rest) =
 waveLine :: (SpiPinsSnapshot -> Bool) -> [SpiPinsSnapshot] -> Text
 waveLine _ [] = ""
 waveLine pin (firstSnapshot : rest) =
-    T.concat $ waveLineCells pin firstSnapshot (snapshotsByTick (firstSnapshot : rest))
+    T.concat $ waveLineCells pin firstSnapshot (snapshotsByTick firstSnapshot rest)
 
 waveLineCells :: (SpiPinsSnapshot -> Bool) -> SpiPinsSnapshot -> [[SpiPinsSnapshot]] -> [Text]
 waveLineCells _ _ [] = []
@@ -326,10 +365,9 @@ waveLineCells pin previous (snapshots : rest) =
         previous' = lastSnapshot previous snapshots
      in cell : waveLineCells pin previous' rest
 
-snapshotsByTick :: [SpiPinsSnapshot] -> [[SpiPinsSnapshot]]
-snapshotsByTick [] = []
-snapshotsByTick xs =
-    [filter (\snapshot -> spsTick snapshot == tick) xs | tick <- waveTicks xs]
+snapshotsByTick :: SpiPinsSnapshot -> [SpiPinsSnapshot] -> [[SpiPinsSnapshot]]
+snapshotsByTick firstSnapshot snapshots =
+    [filter (\snapshot -> spsTick snapshot == tick) snapshots | tick <- waveTicks (firstSnapshot : snapshots)]
 
 lastSnapshot :: SpiPinsSnapshot -> [SpiPinsSnapshot] -> SpiPinsSnapshot
 lastSnapshot previous [] = previous
