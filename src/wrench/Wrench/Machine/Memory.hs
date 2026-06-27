@@ -15,6 +15,7 @@ module Wrench.Machine.Memory (
 
 import Data.Bits (FiniteBits, finiteBitSize)
 import Data.Default (Default, def)
+import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra
@@ -137,14 +138,14 @@ prettyDump ::
     (ByteSize isa, MachineWord w, Show isa) =>
     HashMap Text w
     -> IntMap (Cell isa w)
-    -> String
-prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
+    -> Text
+prettyDump labels mem = T.intercalate "\n" $ pretty $ toPairs mem
     where
         offset2label :: HashMap Int Text
         offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
         instruction offset n i =
             let place = "mem[" <> show offset <> ".." <> show (offset + n - 1) <> "]"
-                label = maybe "" ((" \t@" <>) . toString) (offset2label !? offset)
+                label = maybe "" (" \t@" <>) (offset2label !? offset)
              in place <> ": \t" <> show i <> label
         pretty [] = []
         pretty ((offset, Instruction i) : cs) =
@@ -156,7 +157,7 @@ prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
             let values = map (second (\case (Value v) -> v; _ -> error "impossible")) $ takeWhile (isValue . snd) cs
                 cs' = dropWhile (isValue . snd) cs
              in prettyData values : pretty cs'
-        prettyData values = intercalate "\n" $ merge $ mark Nothing values
+        prettyData values = T.intercalate "\n" $ merge $ mark Nothing values
         mark _label [] = []
         mark label ((a, value) : values) =
             let label' = ((offset2label !? a) <|> label)
@@ -166,11 +167,10 @@ prettyDump labels mem = intercalate "\n" $ pretty $ toPairs mem
             let curValues = takeWhile ((== label) . snd . fst) values
                 b = fst $ fst $ Unsafe.last curValues
                 restValues = dropWhile ((== label) . snd . fst) values
-                labelStr = maybe "" (("\t@" <>) . show) label
-             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> labelStr)
+             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> maybe "" (\l -> "\t@\"" <> l <> "\"") label)
                     : merge restValues
         hexValues values | all ((== 0) . snd) values && length values >= 16 = "( 00 )"
-        hexValues values = toString $ unwords $ map (toText . word8ToHex . snd) values
+        hexValues values = unwords $ map (toText . word8ToHex . snd) values
 
 word8ToHex w =
     let hex = showHex w ""

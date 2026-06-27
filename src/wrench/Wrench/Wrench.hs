@@ -75,10 +75,10 @@ data Result mem w = Result
     }
     deriving (Show)
 
-prettyLabels :: (MachineWord w) => HashMap Text w -> String
+prettyLabels :: (MachineWord w) => HashMap Text w -> Text
 prettyLabels rLabels =
-    intercalate "\n"
-        $ map (\(l, w) -> show w <> ":\t" <> toString l)
+    T.intercalate "\n"
+        $ map (\(l, w) -> show w <> ":\t" <> l)
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
@@ -132,9 +132,9 @@ wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
         Left e -> wrenchError e
     where
         translationResult rLabels rDump = do
-            putStrLn $ prettyLabels rLabels
+            putText $ prettyLabels rLabels
             putStrLn "---"
-            putStrLn $ prettyDump rLabels rDump
+            putText $ prettyDump rLabels rDump
         wrenchError e = do
             putStrLn $ "error (" <> isa <> "): " <> toString e
             exitFailure
