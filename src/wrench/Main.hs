@@ -37,7 +37,7 @@ options =
                 <> help "ISA"
                 <> showDefault
                 <> metavar "ISA"
-                <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)"
+                <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv, wasm32)"
             )
         <*> optional
             ( strOption

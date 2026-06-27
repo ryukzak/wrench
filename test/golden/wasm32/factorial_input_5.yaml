@@ -1,0 +1,31 @@
+name: "assert factorial(5) == 120"
+limit: 2000
+memory_size: 0x1000
+memory_mapped_io:
+  0x80: [5]
+  0x84: []
+reports:
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [120]
+  - name: Runtime statistics
+    slice: last
+    view: |
+      wasm32:operand-stack-max: {wasm32:operand-stack-max}
+      wasm32:frames-max:        {wasm32:frames-max}
+      wasm32:control-stack-max: {wasm32:control-stack-max}
+      {isa-specific}
+    assert: |
+      wasm32:operand-stack-max: 3
+      wasm32:frames-max:        2
+      wasm32:control-stack-max: 2
+      wasm32:operand-stack-max: 3
+      wasm32:frames-max:        2
+      wasm32:control-stack-max: 2

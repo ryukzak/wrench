@@ -10,7 +10,7 @@ An example is a pair of files in the same folder:
 Examples:
 
 | Source | Config |
-|--------|--------|
+| ------ | ------ |
 | `hello.s` | `hello.yaml` |
 | `factorial.s` | `factorial-5.yaml` |
 | `get-put-char.s` | `get-put-char-87.yaml`, `get-put-char-ABCD.yaml` |

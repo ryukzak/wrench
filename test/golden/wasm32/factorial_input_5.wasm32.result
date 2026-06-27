@@ -1,0 +1,12 @@
+---
+# Check results
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [120]
+---
+# Runtime statistics
+wasm32:operand-stack-max: 3
+wasm32:frames-max:        2
+wasm32:control-stack-max: 2
+wasm32:operand-stack-max: 3
+wasm32:frames-max:        2
+wasm32:control-stack-max: 2

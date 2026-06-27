@@ -1,0 +1,17 @@
+0:	_start
+13:	write_twice
+---
+mem[0..4]: 	I32Const 128 	@_start
+mem[5..5]: 	I32Load
+mem[6..10]: 	Call 13
+mem[11..11]: 	Halt
+mem[12..12]: 	Return
+mem[13..17]: 	I32Const 132 	@write_twice
+mem[18..19]: 	LocalGet 0
+mem[20..20]: 	I32Store
+mem[21..25]: 	I32Const 132
+mem[26..27]: 	LocalGet 0
+mem[28..28]: 	I32Store
+mem[29..29]: 	Return
+mem[30..999]: 	( 00 )
+---

@@ -1,0 +1,15 @@
+0:	_start
+19:	logical_not
+---
+mem[0..4]: 	I32Const 132 	@_start
+mem[5..9]: 	I32Const 128
+mem[10..10]: 	I32Load
+mem[11..15]: 	Call 19
+mem[16..16]: 	I32Store
+mem[17..17]: 	Halt
+mem[18..18]: 	Return
+mem[19..20]: 	LocalGet 0 	@logical_not
+mem[21..21]: 	I32Eqz
+mem[22..22]: 	Return
+mem[23..999]: 	( 00 )
+---

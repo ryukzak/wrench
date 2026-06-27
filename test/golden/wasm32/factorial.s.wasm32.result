@@ -1,0 +1,47 @@
+0:	_start
+19:	factorial
+---
+mem[0..4]: 	I32Const 132 	@_start
+mem[5..9]: 	I32Const 128
+mem[10..10]: 	I32Load
+mem[11..15]: 	Call 19
+mem[16..16]: 	I32Store
+mem[17..17]: 	Halt
+mem[18..18]: 	Return
+mem[19..20]: 	LocalGet 0 	@factorial
+mem[21..25]: 	I32Const 0
+mem[26..26]: 	I32LtS
+mem[27..28]: 	If 0
+mem[29..33]: 	I32Const (-1)
+mem[34..34]: 	Return
+mem[35..35]: 	End
+mem[36..37]: 	LocalGet 0
+mem[38..42]: 	I32Const 12
+mem[43..43]: 	I32GtS
+mem[44..45]: 	If 1
+mem[46..50]: 	I32Const (-858993460)
+mem[51..51]: 	Return
+mem[52..52]: 	End
+mem[53..57]: 	I32Const 1
+mem[58..59]: 	LocalSet 1
+mem[60..61]: 	Block 2
+mem[62..63]: 	Loop 3
+mem[64..65]: 	LocalGet 0
+mem[66..70]: 	I32Const 1
+mem[71..71]: 	I32LeS
+mem[72..73]: 	BrIf 2
+mem[74..75]: 	LocalGet 1
+mem[76..77]: 	LocalGet 0
+mem[78..78]: 	I32Mul
+mem[79..80]: 	LocalSet 1
+mem[81..82]: 	LocalGet 0
+mem[83..87]: 	I32Const 1
+mem[88..88]: 	I32Sub
+mem[89..90]: 	LocalSet 0
+mem[91..92]: 	Br 3
+mem[93..93]: 	End
+mem[94..94]: 	End
+mem[95..96]: 	LocalGet 1
+mem[97..97]: 	Return
+mem[98..999]: 	( 00 )
+---

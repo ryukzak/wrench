@@ -50,6 +50,7 @@ Wrench currently supports the following architectures, each with its own instruc
 - [M68k](./m68k.md) - Motorola 68000-inspired architecture
 - [RISC-IV](./risc-iv.md) - RISC-V-inspired 32-bit architecture
 - [VLIW-IV](./vliw-iv.md) - RISC-V-inspired VLIW 32-bit architecture
+- [Wasm32](./wasm32.md) - WebAssembly-inspired 32-bit stack-based architecture
 
 ## Assembly Program Structure
 
@@ -142,6 +143,7 @@ For ISA-specific details (instructions, registers, etc.), refer to the respectiv
 - [F32a](./f32a.md) - Stack-based architecture
 - [M68k](./m68k.md) - Motorola 68000-inspired architecture
 - [VLIW-IV](./vliw-iv.md) - RISC-V-inspired VLIW 32-bit architecture
+- [Wasm32](./wasm32.md) - WebAssembly-inspired stack-based architecture
 
 If you can't find certain details in the documentation, the [source code](/src/wrench/Wrench/Isa) contains the most up-to-date information.
 

@@ -1,0 +1,28 @@
+0:	_start
+19:	normalize_char
+---
+mem[0..4]: 	I32Const 132 	@_start
+mem[5..9]: 	I32Const 128
+mem[10..10]: 	I32Load
+mem[11..15]: 	Call 19
+mem[16..16]: 	I32Store
+mem[17..17]: 	Halt
+mem[18..18]: 	Return
+mem[19..20]: 	LocalGet 0 	@normalize_char
+mem[21..25]: 	I32Const 88
+mem[26..26]: 	I32Eq
+mem[27..28]: 	If 0
+mem[29..33]: 	I32Const (-1)
+mem[34..34]: 	Return
+mem[35..35]: 	End
+mem[36..37]: 	LocalGet 0
+mem[38..42]: 	I32Const 89
+mem[43..43]: 	I32Eq
+mem[44..45]: 	If 1
+mem[46..50]: 	I32Const (-858993460)
+mem[51..51]: 	Return
+mem[52..52]: 	End
+mem[53..54]: 	LocalGet 0
+mem[55..55]: 	Return
+mem[56..999]: 	( 00 )
+---
