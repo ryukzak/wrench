@@ -2,7 +2,9 @@
 
 Wrench has one universal SPI model for all architectures. It is implemented as software bitbang, so you should control SPI manually
 
-## Quick Terms
+Also worth reading: [SPI](https://ru.wikipedia.org/wiki/Serial_Peripheral_Interface)
+
+## Quick Terms And Ports
 
 - `MOSI` = `Master Out, Slave In`  
   Bit line from master to slave
@@ -14,18 +16,17 @@ Wrench has one universal SPI model for all architectures. It is implemented as s
 In this emulator, the **master** is the side that generates `CLK` transitions.
 So assembly program, which toggles `CLK` via memory-mapped pins, acts as the SPI master.
 
-## SPI Device Ports
-
-In general SPI devices looks like this:
+The configured SPI model acts as the slave device:
 
 ```text
-                  +----------------------------+
-   MOSI --------->|                            |
-   CLK  --------->|        SPI DEVICE          |
-   CS   --------->|                            |
-                  |                            |
-   MISO <---------|                            |
-                  +----------------------------+
+ +----------------------+                         +------------------------+
+ |  PROGRAM             |                         |  SPI DEVICE            |
+ |  master              |                         |  slave                 |
+ |                      |  MOSI ----------------> |                        |
+ |  writes CS/CLK/MOSI  |  CLK  ----------------> |  receives CS/CLK/MOSI  |
+ |                      |  CS   ----------------> |                        |
+ |  reads MISO          |  MISO <---------------- |  returns input bits    |
+ +----------------------+                         +------------------------+
 ```
 
 Signal meaning in the model:
@@ -234,14 +235,6 @@ CLK : ______/‾‾\__/‾‾\_______
 MOSI: _______________________
 MISO: _/‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 ```
-
-In wave output:
-
-- `TICK` marks every fifth SPI tick
-- `_` means low level
-- `‾` means high level
-- `/` means rising edge
-- `\` means falling edge
 
 Example:
 
