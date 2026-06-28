@@ -12,6 +12,7 @@ data Config = Config
     , cWrenchArgs :: [String]
     , cStoragePath :: FilePath
     , cVariantsPath :: FilePath
+    , cExamplesPath :: FilePath
     , cLogLimit :: Int
     , cVariants :: [String]
     }
@@ -23,6 +24,7 @@ initConfig = do
     (cWrenchPath : cWrenchArgs) <- maybe ["stack", "exec", "wrench", "--"] (splitOn " ") <$> lookupEnv "WRENCH_EXEC"
     cStoragePath <- fromMaybe "uploads" <$> lookupEnv "STORAGE_PATH"
     cVariantsPath <- fromMaybe "variants" <$> lookupEnv "VARIANTS"
+    cExamplesPath <- fromMaybe "examples" <$> lookupEnv "EXAMPLES_PATH"
     cLogLimit <- maybe 10000 Unsafe.read <$> lookupEnv "LOG_LIMIT"
     cVariants <- listVariants cVariantsPath
 
@@ -33,6 +35,7 @@ initConfig = do
             , cWrenchArgs
             , cStoragePath
             , cVariantsPath
+            , cExamplesPath
             , cLogLimit
             , cVariants
             }

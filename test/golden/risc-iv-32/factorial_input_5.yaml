@@ -17,3 +17,21 @@ reports:
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [120]
+  - name: stats
+    slice: last
+    view: |
+      sim:instruction-count: {sim:instruction-count}
+      layout:sections-size: {layout:sections-size}
+      layout:text-sections-size: {layout:text-sections-size}
+      layout:data-sections-size: {layout:data-sections-size}
+      mem:instr-ranges: {mem:instr-ranges}
+      mem:data-ranges: {mem:data-ranges}
+      mem:io-ranges: {mem:io-ranges}
+    assert: |
+      sim:instruction-count: 42
+      layout:sections-size: 128
+      layout:text-sections-size: 120
+      layout:data-sections-size: 8
+      mem:instr-ranges: 0x8..0x37, 0x6c..0x7f
+      mem:data-ranges: 0x0..0x7
+      mem:io-ranges: 0x80..0x87

@@ -135,8 +135,24 @@ def run_python_test_cases(verbose):
             case.check_assert(variant.reference)
 
 
-def generate_wrench_test_cases(conf_name, case):
+EXECUTION_STATS_REPORT = """  - name: Execution statistics
+    slice: last
+    view: |
+      sim:instruction-count: {sim:instruction-count}
+      layout:sections-size:  {layout:sections-size} (text {layout:text-sections-size} / data {layout:data-sections-size})
+      mem:instr-ranges:      {mem:instr-ranges}
+      mem:data-ranges:       {mem:data-ranges}
+      mem:io-ranges:         {mem:io-ranges}
+
+      {isa-specific}
+
+      {memory:table}
+"""
+
+
+def generate_wrench_test_cases(conf_name, case, with_stats=False):
     conf_name = case.assert_string(conf_name)
+    stats_report = EXECUTION_STATS_REPORT if with_stats else ""
     return f"""name: "{conf_name}"
 limit: {case.limit}
 memory_size: 0x1000
@@ -151,7 +167,7 @@ reports:
 {case.yaml_view()}
     assert: |
 {case.yaml_assert()}
-"""
+{stats_report}"""
 
 
 ###########################################################
@@ -182,7 +198,7 @@ def generate_wrench_variant_test_cases(path):
             fn = f"{path}/{name}/{idx}.yaml"
             with open(fn, "w") as f:
                 print(fn)
-                f.write(generate_wrench_test_cases(name, case))
+                f.write(generate_wrench_test_cases(name, case, with_stats=True))
 
 
 def inf_shuffle(xs):
@@ -192,11 +208,11 @@ def inf_shuffle(xs):
 
 
 def fun_shuffle(xs):
-    a, b, c, d, e = xs
+    a, b, c, d, e, vliw = xs
     xs = [a, b, d]
     random.shuffle(xs)
     a, b, d = xs
-    return a, b, c, d, e
+    return a, b, c, d, e, vliw
 
 
 def gen_variants(cases):
@@ -206,7 +222,8 @@ def gen_variants(cases):
         inf_shuffle(categories["Bitwise Operations"]),
         inf_shuffle(categories["Complex Tasks"]),
         inf_shuffle(categories["Mathematics"]),
-        inf_shuffle(["acc32", "f18a", "m68k", "risc-iv"]),
+        inf_shuffle(["acc32", "f32a", "m68k", "risc-iv"]),
+        inf_shuffle(categories["VLIW"]),
     ):
         yield fun_shuffle(e)
 
@@ -214,16 +231,16 @@ def gen_variants(cases):
 def generate_variants(n, fn):
     variants = [next(gen_variants(TEST_CASES)) for _ in range(n)]
     distribution = {}
-    for a, b, c, d, e in variants:
-        distribution[(a, b, c, d, e)] = distribution.get((a, b, c, d, e), 0) + 1
+    for row in variants:
+        distribution[row] = distribution.get(row, 0) + 1
     grouped_by_rep = {}
     for k, v in distribution.items():
         grouped_by_rep[v] = grouped_by_rep.get(v, 0) + 1
     print("Generate random variants to csv file:", grouped_by_rep)
     with open(fn, "w") as f:
-        f.write("acc32,f32a,m68k,risc-iv,scheme\n")
-        for a, b, c, d, e in variants:
-            f.write(f"{a},{b},{c},{d},{e}\n")
+        f.write("acc32,f32a,m68k,risc-iv,scheme,vliw\n")
+        for row in variants:
+            f.write(",".join(row) + "\n")
 
 
 if __name__ == "__main__":

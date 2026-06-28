@@ -9,6 +9,8 @@ module Wrench.Machine.Memory (
     word32ToHex,
     prepareDump,
     prettyDump,
+    DumpStats (..),
+    computeDumpStats,
 ) where
 
 import Numeric (showHex)
@@ -19,7 +21,23 @@ import Wrench.Machine.Spi
 import Wrench.Machine.Types
 import Wrench.Translator.Types
 
-prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> Mem isa w
+-- | Translation-time memory layout statistics, surfaced to report views via the
+--   @layout:*@ namespace.
+data DumpStats = DumpStats
+    { dsSectionsTotalBytes :: !Int
+    -- ^ Sum of byte sizes of all sections (no .org gaps).
+    , dsTextSectionsBytes :: !Int
+    -- ^ Sum of byte sizes of code (text) sections only.
+    , dsDataSectionsBytes :: !Int
+    -- ^ Sum of byte sizes of data sections only.
+    , dsTextIntervals :: !Intervals
+    -- ^ Address ranges of all code (text) sections.
+    , dsDataIntervals :: !Intervals
+    -- ^ Address ranges of all data sections.
+    }
+    deriving (Eq, Show)
+
+prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> Either Text (Mem isa w)
 prepareDump memorySize sections =
     let addSection cells offset dump =
             let dump' = zip [offset ..] cells
@@ -56,15 +74,59 @@ prepareDump memorySize sections =
         placeholder = map (,Value 0) [0 .. memorySize - 1]
      in if dumpSize > memorySize
             then
-                error $ "error: can not fit translation results in memory, need: " <> show dumpSize <> " available: " <> show memorySize
+                Left
+                    $ "program does not fit in memory: it needs "
+                    <> show dumpSize
+                    <> " bytes, but memory_size is "
+                    <> show memorySize
+                    <> " bytes. Increase memory_size in the configuration."
             else
-                Mem
-                    { memorySize
-                    , memoryData = fromList (placeholder <> fromSections)
-                    }
+                Right
+                    Mem
+                        { memorySize
+                        , memoryData = fromList (placeholder <> fromSections)
+                        }
+
+-- | Translation-time layout summary derived from the section list.
+computeDumpStats :: (ByteSize isa, ByteSizeT w) => [Section isa w l] -> DumpStats
+computeDumpStats sections =
+    let textBytes = sum [byteSize s | s@Code{} <- sections]
+        dataBytes = sum [byteSize s | s@Data{} <- sections]
+        sectionRanges = walkSectionRanges 0 sections
+        textIntervals =
+            foldr
+                (\(s, lo) acc -> if isText s && byteSize s > 0 then recordRange lo (byteSize s) acc else acc)
+                emptyIntervals
+                sectionRanges
+        dataIntervals =
+            foldr
+                (\(s, lo) acc -> if isData s && byteSize s > 0 then recordRange lo (byteSize s) acc else acc)
+                emptyIntervals
+                sectionRanges
+     in DumpStats
+            { dsSectionsTotalBytes = textBytes + dataBytes
+            , dsTextSectionsBytes = textBytes
+            , dsDataSectionsBytes = dataBytes
+            , dsTextIntervals = textIntervals
+            , dsDataIntervals = dataIntervals
+            }
 
 isValue Value{} = True
 isValue _ = False
+
+isText, isData :: Section isa w l -> Bool
+isText Code{} = True
+isText _ = False
+isData Data{} = True
+isData _ = False
+
+-- | Resolve each section's starting offset (respecting @.org@) and pair it
+--   with the section itself, in source order.
+walkSectionRanges :: (ByteSize isa, ByteSizeT w) => Int -> [Section isa w l] -> [(Section isa w l, Int)]
+walkSectionRanges _ [] = []
+walkSectionRanges offset (s : rest) =
+    let start = fromMaybe offset (org s)
+     in (s, start) : walkSectionRanges (start + byteSize s) rest
 
 sliceMem :: [Int] -> IntMap (Cell isa w) -> [(Int, Cell isa w)]
 sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) addrs
@@ -117,18 +179,31 @@ word32ToHex w =
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
 class Memory m isa w | m -> isa w where
-    readInstruction :: m -> Int -> Either Text isa
+    readInstruction :: m -> Int -> Either Text (m, isa)
     readWord :: m -> Int -> Either Text (m, w)
     readByte :: m -> Int -> Either Text (m, Word8)
     writeWord :: m -> Int -> w -> Either Text m
     writeByte :: m -> Int -> Word8 -> Either Text m
     dumpCells :: m -> IntMap (Cell isa w)
 
+    -- | Total addressable bytes.
+    memCapacity :: m -> Int
+
+    -- | Configured memory-mapped IO port starts (each spans one machine word).
+    --   Default empty for memories without IO.
+    ioPorts :: m -> [Int]
+    ioPorts _ = []
+
+    -- | Runtime address ranges touched by reads/writes/instruction-fetches.
+    --   Default for memories that don't track (e.g. bare 'Mem') is empty.
+    accessLog :: m -> AccessLog
+    accessLog _ = emptyAccessLog
+
 instance
     (ByteSize isa, MachineWord w) =>
     Memory (Mem isa w) isa w
     where
-    readInstruction Mem{memoryData} idx =
+    readInstruction mem@Mem{memoryData} idx =
         case memoryData !? idx of
             Just (Instruction i)
                 | all
@@ -137,7 +212,7 @@ instance
                         _ -> False
                     )
                     [idx + 1 .. idx + byteSize i - 1] ->
-                    Right i
+                    Right (mem, i)
                 | otherwise -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
             Just InstructionPart -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
             Just (Value _) -> Left $ "memory[" <> show idx <> "]: can't read instruction from data cell"
@@ -171,6 +246,8 @@ instance
 
     dumpCells Mem{memoryData} = memoryData
 
+    memCapacity Mem{memorySize} = memorySize
+
 ioPortInstructionCollision ::
     forall w isa. (ByteSize isa, ByteSizeT w) => IoMem isa w -> Int -> isa -> Bool
 ioPortInstructionCollision io addr instr =
@@ -196,16 +273,24 @@ ioWordKeys :: forall w isa. IoMem isa w -> [Int]
 ioWordKeys IoMem{mIoKeys, mSpiDevices} =
     mIoKeys <> spiWordKeys mSpiDevices
 
+noteInstrAccess, noteDataAccess, noteIoAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
+noteInstrAccess addr len io =
+    io{mAccessLog = (mAccessLog io){alInstr = recordRange addr len (alInstr (mAccessLog io))}}
+noteDataAccess addr len io =
+    io{mAccessLog = (mAccessLog io){alData = recordRange addr len (alData (mAccessLog io))}}
+noteIoAccess addr len io =
+    io{mAccessLog = (mAccessLog io){alIo = recordRange addr len (alIo (mAccessLog io))}}
+
 instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
             Just _ -> Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
             Nothing -> case readInstruction mIoCells idx of
                 Left err -> Left err
-                Right instr
+                Right (_mIoCells', instr)
                     | ioPortInstructionCollision io idx instr ->
                         Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
-                    | otherwise -> Right instr
+                    | otherwise -> Right (noteInstrAccess idx (byteSize instr) io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
         | Just wordIdx <- mIoByteToWord !? idx = do
@@ -215,7 +300,7 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
         | Just result <- readSpiByte io idx = result
     readByte io@IoMem{mIoCells} idx = do
         (mIoCells', v) <- readByte mIoCells idx
-        return (io{mIoCells = mIoCells'}, v)
+        return (noteDataAccess idx 1 io{mIoCells = mIoCells'}, v)
 
     readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
     readWord io idx
@@ -225,20 +310,20 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
             Just ([], _) -> Left $ "iomemory[" <> show idx <> "]: input is depleted"
             Just (i : is, os) -> do
                 let io' = io{mIoStreams = insert idx (is, os) mIoStreams}
-                Right (io', i)
+                Right (noteIoAccess idx (byteSizeT @w) io', i)
             Nothing -> do
                 (mIoCells', w) <- readWord mIoCells idx
-                return (io{mIoCells = mIoCells'}, w)
+                return (noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}, w)
 
     writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't write word to input port"
     writeWord io idx word
         | Just result <- writeSpiWord io idx word = result
     writeWord io idx word =
         case mIoStreams io !? idx of
-            Just (is, os) -> Right io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
+            Just (is, os) -> Right $ noteIoAccess idx (byteSizeT @w) io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeWord (mIoCells io) idx word
-                return io{mIoCells = mIoCells'}
+                return $ noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}
 
     writeByte io idx _byte
         | ioPortByteCollision io idx =
@@ -247,9 +332,13 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
         | Just result <- writeSpiByte io idx byte = result
     writeByte io idx byte =
         case mIoStreams io !? idx of
-            Just (is, os) -> Right io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
+            Just (is, os) -> Right $ noteIoAccess idx 1 io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeByte (mIoCells io) idx byte
-                return io{mIoCells = mIoCells'}
+                return $ noteDataAccess idx 1 io{mIoCells = mIoCells'}
 
     dumpCells = memoryData . mIoCells
+
+    memCapacity = memCapacity . mIoCells
+    ioPorts = mIoKeys
+    accessLog = mAccessLog

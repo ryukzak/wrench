@@ -9,6 +9,8 @@ module Wrench.Isa.VliwIv (
     MachineState (..),
     VliwIvState,
     Register (..),
+    VliwLoadAcc,
+    emptyVliwLoad,
 ) where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -30,9 +32,8 @@ import Wrench.Machine.Types (
     fromSign,
     halted,
     ioMemDevices,
-    lShiftR,
-    signBitAnd,
  )
+import Wrench.Machine.Word (fitSigned, lShiftR)
 import Wrench.Report
 import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
 import Wrench.Translator.Parser.Types
@@ -171,6 +172,75 @@ data Isa w l = Isa
     , ctrlOp :: ControlOp w l
     }
     deriving (Show)
+
+-- * Load-level accumulator
+
+-- | Per-run histogram of how many slots were active in each executed bundle.
+--   @vlByLoad@ maps active-slot count (0..4) to the number of bundles with
+--   that load. Used by the @vliw:*@ report variables to summarise how well
+--   the program exploits the four-wide pipeline.
+newtype VliwLoadAcc = VliwLoadAcc {vlByLoad :: IntMap Int}
+    deriving (Eq, Show)
+
+emptyVliwLoad :: VliwLoadAcc
+emptyVliwLoad = VliwLoadAcc mempty
+
+isMemActive :: MemoryOp w l -> Bool
+isMemActive NopM = False
+isMemActive _ = True
+
+isAluActive :: AluOp w l -> Bool
+isAluActive NopA = False
+isAluActive _ = True
+
+isCtrlActive :: ControlOp w l -> Bool
+isCtrlActive NopC = False
+isCtrlActive _ = True
+
+bundleActiveCount :: Isa w l -> Int
+bundleActiveCount Isa{memOp, alu1Op, alu2Op, ctrlOp} =
+    bool 0 1 (isMemActive memOp)
+        + bool 0 1 (isAluActive alu1Op)
+        + bool 0 1 (isAluActive alu2Op)
+        + bool 0 1 (isCtrlActive ctrlOp)
+
+recordBundle :: Isa w l -> VliwLoadAcc -> VliwLoadAcc
+recordBundle isa (VliwLoadAcc m) =
+    VliwLoadAcc $ alter (Just . maybe 1 (+ 1)) (bundleActiveCount isa) m
+
+vliwLoadPercent :: VliwLoadAcc -> Int
+vliwLoadPercent (VliwLoadAcc m) =
+    let total = sum m
+        active = sum [k * n | (k, n) <- toPairs m]
+     in if total == 0 then 0 else (active * 100) `div` (total * 4)
+
+-- | Average number of active slots (processing units) used per executed
+--   bundle, rendered with two decimal places. An empty histogram renders as
+--   @"0.00"@.
+vliwAvgLoad :: VliwLoadAcc -> Text
+vliwAvgLoad (VliwLoadAcc m) =
+    let total = sum m
+        active = sum [k * n | (k, n) <- toPairs m]
+     in if total == 0
+            then "0.00"
+            else
+                let scaled = (active * 100) `div` total
+                    whole = scaled `div` 100
+                    frac = scaled `mod` 100
+                 in show whole <> "." <> (if frac < 10 then "0" else "") <> show frac
+
+-- | Render the per-load histogram as @"K:N (P%)"@ pairs separated by commas,
+--   one per non-empty bucket. @K@ is the active-slot count, @N@ is the
+--   number of bundles in that bucket, @P@ is its percent share of executed
+--   bundles. Empty buckets are omitted; an empty histogram renders as @"-"@.
+renderBundlesByLoad :: VliwLoadAcc -> Text
+renderBundlesByLoad (VliwLoadAcc m) =
+    let nonZero = [(k, n) | k <- [0 .. 4 :: Int], let n = lookupDefault 0 k m, n > 0]
+        total = sum (map snd nonZero)
+        pct n = if total == 0 then 0 else (n * 100) `div` total
+        fmt (k, n) =
+            (show k :: Text) <> ":" <> show n <> " (" <> show (pct n) <> "%)"
+     in if null nonZero then "-" else T.intercalate ", " (map fmt nonZero)
 
 -- * Parser Helpers
 
@@ -342,7 +412,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             }
 
 instance ByteSize (Isa w l) where
-    byteSize _ = 11
+    byteSize _ = 14
 
 comma = hspace >> string "," >> hspace
 
@@ -373,6 +443,7 @@ data MachineState mem w = State
     , stopped :: Bool
     , internalError :: Maybe Text
     , randoms :: [Int]
+    , vliwLoad :: !VliwLoadAcc
     }
     deriving (Show)
 
@@ -393,7 +464,7 @@ setPc addr = modify $ \st -> st{pc = addr}
 nextPc :: forall w. State (MachineState (IoMem (Isa w w) w) w) ()
 nextPc = do
     State{pc} <- get
-    setPc (pc + 11) -- Bundle size 11 bytes
+    setPc (pc + 14) -- Bundle size 14 bytes
 
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -452,6 +523,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , stopped = False
             , internalError = Nothing
             , randoms = randomStream
+            , vliwLoad = emptyVliwLoad
             }
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
@@ -469,18 +541,38 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
-    instructionFetch =
-        get
-            <&> ( \case
-                    State{stopped = True} -> Left halted
-                    State{internalError = Just err} -> Left err
-                    State{pc, mem} -> do
-                        instruction <- readInstruction mem pc
-                        return (pc, instruction)
-                )
+    summaryView _labels State{vliwLoad} v = case T.splitOn ":" v of
+        ["vliw", "load-percent"] -> Just (show (vliwLoadPercent vliwLoad) <> "%")
+        ["vliw", "avg-load"] -> Just (vliwAvgLoad vliwLoad)
+        ["vliw", "bundles-by-load"] -> Just (renderBundlesByLoad vliwLoad)
+        ["isa-specific"] ->
+            Just
+                $ "vliw:load-percent:    "
+                <> show (vliwLoadPercent vliwLoad)
+                <> "%\n"
+                <> "vliw:avg-load:        "
+                <> vliwAvgLoad vliwLoad
+                <> "\n"
+                <> "vliw:bundles-by-load: "
+                <> renderBundlesByLoad vliwLoad
+        _ -> Nothing
 
-    instructionExecute _pc Isa{memOp, alu1Op, alu2Op, ctrlOp} = do
+instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+    instructionFetch = do
+        st <- get
+        case st of
+            State{stopped = True} -> return $ Left halted
+            State{internalError = Just err} -> return $ Left err
+            State{pc, mem} ->
+                case readInstruction mem pc of
+                    Left err -> return $ Left err
+                    Right (mem', instruction) -> do
+                        put st{mem = mem'}
+                        return $ Right (pc, instruction)
+
+    instructionExecute _pc bundle@Isa{memOp, alu1Op, alu2Op, ctrlOp} = do
+        -- Tally per-bundle slot usage for the vliw:* report variables.
+        modify $ \st -> st{vliwLoad = recordBundle bundle (vliwLoad st)}
         -- Phase 1: Read all source operands and compute results (without modifying state)
         memResult <- computeMem memOp
         alu1OpResult <- computeAlu alu1Op
@@ -518,21 +610,21 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             computeMem NopM = return Nothing
             computeMem (Lw lwRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
-                w <- getWord $ fromEnum (mrOffset + rs1')
+                w <- getWord $ fromEnum (fitSigned 11 mrOffset + rs1')
                 return $ Just (lwRd, w)
             computeMem (Lb lbRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
-                b <- getByte $ fromEnum (mrOffset + rs1')
+                b <- getByte $ fromEnum (fitSigned 11 mrOffset + rs1')
                 return $ Just (lbRd, fromIntegral (fromIntegral b :: Int8))
             computeMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg swRs2
                 mrReg' <- getReg mrReg
-                setWord (fromEnum (mrReg' + mrOffset)) rs2'
+                setWord (fromEnum (mrReg' + fitSigned 11 mrOffset)) rs2'
                 return Nothing
             computeMem (Sb sbRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg sbRs2
                 mrReg' <- getReg mrReg
-                setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
+                setByte (fromEnum (mrReg' + fitSigned 11 mrOffset)) $ fromIntegral rs2'
                 return Nothing
 
             -- Apply memory operation result
@@ -545,7 +637,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             computeAlu NopA = return Nothing
             computeAlu (Addi addiRd addiRs1 addiK) = do
                 rs1' <- getReg addiRs1
-                return $ Just (addiRd, rs1' + (addiK `signBitAnd` 0x00000FFF))
+                return $ Just (addiRd, rs1' + fitSigned 17 addiK)
             computeAlu (Add addRd addRs1 addRs2) = aluOpCompute addRd addRs1 addRs2 id id (+)
             computeAlu (Sub subRd subRs1 subRs2) = aluOpCompute subRd subRs1 subRs2 id id (-)
             computeAlu (Mul mulRd mulRs1 mulRs2) = aluOpCompute mulRd mulRs1 mulRs2 id id (*)
@@ -571,7 +663,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             computeAlu (Xor xorRd xorRs1 xorRs2) = aluOpCompute xorRd xorRs1 xorRs2 id id xor
             computeAlu (Slti sltiRd sltiRs1 sltiK) = do
                 rs1' <- getReg sltiRs1
-                return $ Just (sltiRd, if rs1' < sltiK then 1 else 0)
+                return $ Just (sltiRd, if rs1' < fitSigned 17 sltiK then 1 else 0)
             computeAlu (Lui luiRd luiK) = return $ Just (luiRd, (luiK .&. 0x000FFFFF) `shiftL` 12)
             computeAlu (Mv mvRd mvRs) = do
                 val <- getReg mvRs
@@ -591,26 +683,26 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             execCtrl NopC = return False
             execCtrl (J jK) = do
                 State{pc} <- get
-                setPc (pc + fromEnum jK)
+                setPc (pc + fromEnum (fitSigned 20 jK))
                 return True
             execCtrl (Jal jalRd jalK) = do
                 State{pc} <- get
-                setReg jalRd (toEnum pc + 11)
-                setPc (pc + fromEnum jalK)
+                setReg jalRd (toEnum pc + 14)
+                setPc (pc + fromEnum (fitSigned 15 jalK))
                 return True
             execCtrl (Jr jrRs) = do
                 rs' <- getReg jrRs
                 setPc (fromEnum rs')
                 return True
-            execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 beqzK (== 0)
-            execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 bnezK (/= 0)
-            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 bgtK (>)
-            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 bleK (<=)
-            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 bgtuK (>)
-            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 bleuK (<=)
-            execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 beqK (==)
-            execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 bneK (/=)
-            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 bltK (<)
+            execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 (fitSigned 15 beqzK) (== 0)
+            execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 (fitSigned 15 bnezK) (/= 0)
+            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 (fitSigned 10 bgtK) (>)
+            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 (fitSigned 10 bleK) (<=)
+            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 (fitSigned 10 bgtuK) (>)
+            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 (fitSigned 10 bleuK) (<=)
+            execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 (fitSigned 10 beqK) (==)
+            execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 (fitSigned 10 bneK) (/=)
+            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 (fitSigned 10 bltK) (<)
             execCtrl Halt = do
                 modify $ \st -> st{stopped = True}
                 return True

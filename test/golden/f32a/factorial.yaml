@@ -18,3 +18,18 @@ reports:
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [24]
+  - name: Stack utilization
+    slice: last
+    view: |
+      f32a:data-stack-max: {f32a:data-stack-max}
+      f32a:return-stack-max: {f32a:return-stack-max}
+    assert: |
+      f32a:data-stack-max: 5
+      f32a:return-stack-max: 3
+  - name: isa-specific
+    slice: last
+    view: |
+      {isa-specific}
+    assert: |
+      f32a:data-stack-max:   5
+      f32a:return-stack-max: 3

@@ -65,6 +65,11 @@
           'test-cases-result-empty-tag',
         )
         handleEmptyContent(
+          'execution-stats-text-element',
+          'accordion-collapse-execution-stats',
+          'execution-stats-empty-tag',
+        )
+        handleEmptyContent(
           'simulation-log-text-element',
           'accordion-collapse-simulation-log',
           'simulation-log-empty-tag',
@@ -124,6 +129,12 @@
         class="hover:bg-[var(--c-orange)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
         target="_blank"
         >[variants]</a
+      >
+      <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
+      <a
+        href="/examples"
+        class="hover:bg-[var(--c-green)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-green)] hover:text-[var(--c-black)] cursor-pointer"
+        >[examples]</a
       >
       <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
       <button
@@ -193,16 +204,18 @@
               data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
             >
-              <h2
-                id="accordion-collapse-heading-assembler"
-                class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
-                data-accordion-target="#accordion-collapse-body-assembler"
-                aria-expanded="true"
-                aria-controls="accordion-collapse-body-assembler"
-              >
-                <span class="flex-1 select-none">assembler_code =</span>
+              <h2 id="accordion-collapse-heading-assembler">
+                <button
+                  class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+                  type="button"
+                  data-accordion-target="#accordion-collapse-body-assembler"
+                  aria-expanded="true"
+                  aria-controls="accordion-collapse-body-assembler"
+                >
+                  <span class="flex-1 select-none">assembler_code =</span>
+                </button>
               </h2>
-              <div
+              <section
                 id="accordion-collapse-body-assembler"
                 class="hidden"
                 aria-labelledby="accordion-collapse-heading-assembler"
@@ -213,7 +226,7 @@
                 >
                   {{assembler_code}}
                 </div>
-              </div>
+              </section>
             </div>
           </div>
 
@@ -237,16 +250,18 @@
               data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
               data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
             >
-              <h2
-                id="accordion-collapse-heading-simulation-config"
-                class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
-                data-accordion-target="#accordion-collapse-body-simulation-config"
-                aria-expanded="false"
-                aria-controls="accordion-collapse-body-simulation-config"
-              >
-                <span class="flex-1 select-none">simulation_config =</span>
+              <h2 id="accordion-collapse-heading-simulation-config">
+                <button
+                  class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+                  type="button"
+                  data-accordion-target="#accordion-collapse-body-simulation-config"
+                  aria-expanded="false"
+                  aria-controls="accordion-collapse-body-simulation-config"
+                >
+                  <span class="flex-1 select-none">simulation_config =</span>
+                </button>
               </h2>
-              <div
+              <section
                 id="accordion-collapse-body-simulation-config"
                 class="hidden"
                 aria-labelledby="accordion-collapse-heading-simulation-config"
@@ -257,7 +272,7 @@
                 >
                   {{yaml_content}}
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
@@ -281,16 +296,18 @@
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
-          <h2
-            id="accordion-collapse-heading-simulation-log"
-            class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
-            data-accordion-target="#accordion-collapse-body-simulation-log"
-            aria-expanded="false"
-            aria-controls="accordion-collapse-body-simulation-log"
-          >
-            <span class="flex-1 select-none">simulation_log =</span>
+          <h2 id="accordion-collapse-heading-simulation-log">
+            <button
+              class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+              type="button"
+              data-accordion-target="#accordion-collapse-body-simulation-log"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-simulation-log"
+            >
+              <span class="flex-1 select-none">simulation_log =</span>
+            </button>
           </h2>
-          <div
+          <section
             id="accordion-collapse-body-simulation-log"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-simulation-log"
@@ -298,7 +315,7 @@
             <div id="simulation-log-text-element" class="pb-4 overflow-x-auto">
               {{result}}
             </div>
-          </div>
+          </section>
         </div>
         <div
           id="simulation-log-empty-tag"
@@ -322,16 +339,18 @@
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
-          <h2
-            id="accordion-collapse-heading-test-cases-result"
-            class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
-            data-accordion-target="#accordion-collapse-body-test-cases-result"
-            aria-expanded="false"
-            aria-controls="accordion-collapse-body-test-cases-result"
-          >
-            <span class="flex-1 select-none">failed_test_case =</span>
+          <h2 id="accordion-collapse-heading-test-cases-result">
+            <button
+              class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+              type="button"
+              data-accordion-target="#accordion-collapse-body-test-cases-result"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-test-cases-result"
+            >
+              <span class="flex-1 select-none">failed_test_case =</span>
+            </button>
           </h2>
-          <div
+          <section
             id="accordion-collapse-body-test-cases-result"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-test-cases-result"
@@ -342,7 +361,7 @@
             >
               {{test_cases_result}}
             </div>
-          </div>
+          </section>
         </div>
         <div
           id="test-cases-result-empty-tag"
@@ -352,22 +371,62 @@
           <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
         </div>
         <div
+          id="accordion-collapse-execution-stats"
+          data-accordion="collapse"
+          class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
+          data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
+          data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
+        >
+          <h2 id="accordion-collapse-heading-execution-stats">
+            <button
+              class="flex justify-between items-center hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+              type="button"
+              data-accordion-target="#accordion-collapse-body-execution-stats"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-execution-stats"
+            >
+              <span class="flex-1 select-none">execution_stats =</span>
+            </button>
+          </h2>
+          <section
+            id="accordion-collapse-body-execution-stats"
+            class="hidden"
+            aria-labelledby="accordion-collapse-heading-execution-stats"
+          >
+            <div
+              id="execution-stats-text-element"
+              class="pb-4 rounded-lg overflow-x-auto"
+            >
+              {{execution_stats}}
+            </div>
+          </section>
+        </div>
+        <div
+          id="execution-stats-empty-tag"
+          class="hidden bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
+        >
+          execution_stats = ""
+          <span class="text-[var(--c-grey)]"> /* nothing returned */</span>
+        </div>
+        <div
           id="accordion-collapse-dump"
           data-accordion="collapse"
           class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg"
           data-inactive-classes="vim-folded text-[var(--c-orange-low-saturation)]"
           data-active-classes="text-[var(--c-orange-low-saturation)] bg-transparent"
         >
-          <h2
-            id="accordion-collapse-heading-dump"
-            class="flex justify-between hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
-            data-accordion-target="#accordion-collapse-body-dump"
-            aria-expanded="false"
-            aria-controls="accordion-collapse-body-dump"
-          >
-            <span class="flex-1 select-none">dump =</span>
+          <h2 id="accordion-collapse-heading-dump">
+            <button
+              class="flex justify-between hover:bg-[var(--c-white)] hover:opacity-80 w-full text-[var(--c-orange-low-saturation)] hover:text-[var(--c-black)] text-left hover:cursor-pointer vim-folded"
+              type="button"
+              data-accordion-target="#accordion-collapse-body-dump"
+              aria-expanded="false"
+              aria-controls="accordion-collapse-body-dump"
+            >
+              <span class="flex-1 select-none">dump =</span>
+            </button>
           </h2>
-          <div
+          <section
             id="accordion-collapse-body-dump"
             class="hidden"
             aria-labelledby="accordion-collapse-heading-dump"
@@ -375,7 +434,7 @@
             <div id="dump-text-element" class="pb-4 rounded-lg overflow-x-auto">
               {{dump}}
             </div>
-          </div>
+          </section>
         </div>
         <div
           id="dump-empty-tag"

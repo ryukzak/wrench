@@ -88,3 +88,12 @@
 # result
 numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [120]
+---
+# stats
+sim:instruction-count: 42
+layout:sections-size: 128
+layout:text-sections-size: 120
+layout:data-sections-size: 8
+mem:instr-ranges: 0x8..0x37, 0x6c..0x7f
+mem:data-ranges: 0x0..0x7
+mem:io-ranges: 0x80..0x87

@@ -4,3 +4,13 @@ numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [31,72,101,108,108,111,10,0,87,111,114,108,100,33]
 symio[0x80]: "" >>> ""
 symio[0x84]: "" >>> "?Hello\n\0World!"
+---
+# vliw-load
+vliw:load-percent:    81%
+vliw:avg-load:        3.24
+vliw:bundles-by-load: 1:3 (9%), 3:16 (48%), 4:14 (42%)
+---
+# isa-specific
+vliw:load-percent:    81%
+vliw:avg-load:        3.24
+vliw:bundles-by-load: 1:3 (9%), 3:16 (48%), 4:14 (42%)

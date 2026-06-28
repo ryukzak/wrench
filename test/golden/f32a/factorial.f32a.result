@@ -1442,3 +1442,11 @@ T A S 0x00000000 0x00000084 0x00000000 R 0
 # Result
 numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [24]
+---
+# Stack utilization
+f32a:data-stack-max: 5
+f32a:return-stack-max: 3
+---
+# isa-specific
+f32a:data-stack-max:   5
+f32a:return-stack-max: 3

@@ -31,9 +31,8 @@ import Wrench.Machine.Types (
     fromSign,
     halted,
     ioMemDevices,
-    lShiftR,
-    signBitAnd,
  )
+import Wrench.Machine.Word (lShiftR, signBitAnd)
 import Wrench.Report
 import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
 import Wrench.Translator.Parser.Types
@@ -459,15 +458,17 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             _ -> errorView v
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
-    instructionFetch =
-        get
-            <&> ( \case
-                    State{stopped = True} -> Left halted
-                    State{internalError = Just err} -> Left err
-                    State{pc, mem} -> do
-                        instruction <- readInstruction mem pc
-                        return (pc, instruction)
-                )
+    instructionFetch = do
+        st <- get
+        case st of
+            State{stopped = True} -> return $ Left halted
+            State{internalError = Just err} -> return $ Left err
+            State{pc, mem} ->
+                case readInstruction mem pc of
+                    Left err -> return $ Left err
+                    Right (mem', instruction) -> do
+                        put st{mem = mem'}
+                        return $ Right (pc, instruction)
 
     instructionExecute _pc instruction =
         case instruction of

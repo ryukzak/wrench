@@ -51,6 +51,13 @@ if docker pull "$RELEASE_IMAGE" >/dev/null 2>&1; then
     exit 1
 fi
 
+if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64,linux/arm64 \
+        --output type=tar,dest=/dev/null - >/dev/null 2>&1; then
+    echo "Error: buildx is not configured for multi-platform build (linux/amd64,linux/arm64)." >&2
+    echo "Fix: docker buildx create --name multi --driver docker-container --use" >&2
+    exit 1
+fi
+
 CURRENT_VERSION=$(grep '^version:' package.yaml | sed -E 's/version: //')
 echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml

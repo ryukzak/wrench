@@ -20,6 +20,26 @@ Comments in RISC-IV assembly code are denoted by the `;` character.
 
 Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf)
 
+### Register Usage Conventions
+
+Although most registers can technically be used for any purposes, the following conventions are recommended
+
+| Register(s) | Purpose                                                                       | Convention   |
+| ----------- | ----------------------------------------------------------------------------- | ------------ |
+| `Zero`      | Constant zero value. Writes are ignored                                       | Preserved    |
+| `Ra`        | Return address for function calls                                             | Caller-saved |
+| `Sp`        | Stack pointer                                                                 | Callee-saved |
+| `Gp`        | Global pointer. Points to a region containing frequently accessed global data | Callee-saved |
+| `Tp`        | Thread pointer. Reserved for thread-local data                                | Callee-saved |
+| `A0-A7`     | Function arguments and return values                                          | Caller-saved |
+| `T0-T6`     | Temporary registers for intermediate calculations                             | Caller-saved |
+| `S0Fp`      | Frame pointer or saved register                                               | Callee-saved |
+| `S1-S11`    | Saved registers for long-lived values                                         | Callee-saved |
+
+**Caller-saved** registers may be freely modified by the called function. If the caller needs their values after a function call, it must save and restore them
+
+**Callee-saved** registers must retain their values across function calls. A function that modifies a callee-saved register must restore its original value before returning
+
 ## Immediate Value Relocation Directives
 
 The RISC-IV assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats:

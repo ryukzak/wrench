@@ -1,0 +1,17 @@
+---
+# result
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [7]
+---
+# memory-map
+Kind  Range         Bytes  Accessed                    Coverage
+text  0x000..0x027     40  0x000..0x027                    100%
+data  0x028..0x02b      4  0x028..0x02b                    100%
+x     0x02c..0x07f     84  -                                 0%
+io    0x080..0x087      8  0x080..0x087                    100%
+x     0x088..0x08f      8  -                                 0%
+text  0x090..0x0e3     84  0x090..0x0e3                    100%
+data  0x0e4..0x0f9     22  0x0e4..0x0ee, 0x0f5..0x0f9       72%
+x     0x0fa..0x1fb    258  -                                 0%
+x     0x1fc..0x1ff      4  0x1fc..0x1ff                    100%
+x     0x200..0x2ff    256  -                                 0%

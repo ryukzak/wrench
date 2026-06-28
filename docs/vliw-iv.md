@@ -7,7 +7,7 @@ The VLIW ISA is a simple register-based instruction set inspired by VLIW (Very L
 The VLIW architecture is a 32-bit VLIW (Very Long Instruction Word) architecture inspired by RISC-V and classic VLIW designs. It features:
 
 - 32 general-purpose registers (including one hardwired zero register — writes to `Zero` are silently ignored)
-- Fixed-length 11-byte (90-bit) instruction bundles, divided into 4 slots for parallel execution
+- Fixed-length 14-byte (112-bit) instruction bundles, divided into 4 slots for parallel execution
 - Load-store architecture (memory access only through specific instructions in dedicated slots)
 - Simple addressing modes
 - Memory-mapped I/O
@@ -44,14 +44,42 @@ addi a0, a0, %lo(address) / nop / nop / nop ; Add lower 12 bits to a0
 
 ## Instructions
 
-Instruction size: 11 bytes (90-bit bundle).
+Instruction size: 14 bytes (112-bit bundle).
 
 ```text
-[SLOT 0]   alu 1: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
-[SLOT 1]   alu 2: 20 bits     <opcode:5><r1:5><r2:5><r3:5>
-[SLOT 2]   memory: 36 bits    <opcode:4><addr:32>
-[SLOT 3]   control: 14 bits   <opcode:4><offset or offset+register:10>
+Bundle: [ALU1:32] [ALU2:32] [MEM:24] [CTRL:24]
+
+[ALU1/ALU2]:
+  [opcode:5] [rd:5] [rs1:5] [rs2:5] [reserved:12]   ; add sub mul mulh div rem sll srl sra and or xor
+  [opcode:5] [rd:5] [rs1:5] [imm_sign:17]           ; addi slti
+  [opcode:5] [rd:5] [imm_unsign:22]                 ; lui
+  [opcode:5] [rd:5] [rs1:5] [reserved:17]           ; mv
+  [opcode:5] [reserved:27]                          ; nop
+[MEM] (24 bits):
+  [opcode:3] [rd:5]  [base:5] [offset_sign:11]      ; lw lb        (reg = rd)
+  [opcode:3] [rs2:5] [base:5] [offset_sign:11]      ; sw sb        (reg = rs2)
+  [opcode:3] [reserved:21]                          ; nop
+[CTRL] (24 bits):
+  [opcode:4] [rs1:5] [rs2:5] [offset_sign:10]       ; beq bne blt bgt ble bgtu bleu
+  [opcode:4] [rs1:5] [offset_sign:15]               ; beqz bnez
+  [opcode:4] [rd:5]  [offset_sign:15]               ; jal
+  [opcode:4] [rs:5]  [reserved:15]                  ; jr
+  [opcode:4] [offset_sign:20]                       ; j
+  [opcode:4] [reserved:20]                          ; nop halt
 ```
+
+The two ALU slots are 32 bits each; MEM and CTRL are 24 bits each, for a 112-bit (14-byte)
+bundle. The opcode occupies the high bits of its slot, sized to the number of operations the slot
+defines: 5 bits for ALU (17 ops), 4 for CTRL (14 ops), 3 for MEM (5 ops). Register fields
+follow the opcode; the remaining low bits hold the immediate/offset.
+
+Every immediate and offset is **silently truncated** to its field width: the value is reduced
+to the low bits of the field and sign-extended (`lui`'s `imm_unsign` is zero-extended), with no
+error if it does not fit. So `addi`/`slti` see a 17-bit signed immediate, branches a 10-bit
+signed offset, `beqz`/`bnez`/`jal` a 15-bit one, `j` a 20-bit one, and memory ops an 11-bit
+one. `lui` keeps only the low 20 bits (after the `<< 12` shift the upper bits of the 22-bit
+field cannot be represented in a 32-bit word). The `%lo` (12-bit) and `%hi` (20-bit) relocation
+values fit within these fields unchanged.
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 
@@ -75,8 +103,8 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add a 12-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the addition.
-    - **Operation:** `rd <- rs1 + signext(k[11:0])`
+    - **Description:** Add a 17-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to the 17-bit `imm_sign` field and sign-extended to 32 bits before the addition.
+    - **Operation:** `rd <- rs1 + signext(k[16:0])`
 
 - **Add**
     - **Syntax:** `add <rd>, <rs1>, <rs2>`
@@ -183,7 +211,7 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
 - **Jump and Link**
     - **Syntax:** `jal <rd>, <k>`
     - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
-    - **Operation:** `rd <- pc + 11, pc <- pc + k`  // Adjusted for bundle size
+    - **Operation:** `rd <- pc + 14, pc <- pc + k`  // Adjusted for bundle size
 
 - **Jump Register**
     - **Syntax:** `jr <rs>`
@@ -248,3 +276,35 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
 - `<reg>:dec`, `<reg>:hex` -- View the value of a specific register in decimal or hexadecimal format.
 
 Available registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `S1`, `A0`, `A1`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `S2`, `S3`, `S4`, `S5`, `S6`, `S7`, `S8`, `S9`, `S10`, `S11`, `T3`, `T4`, `T5`, `T6`.
+
+### Slot utilization (parallelism)
+
+Each VLIW bundle has four execution slots (memory, ALU1, ALU2, control). A slot containing the corresponding `nop` is idle; everything else counts as active. The simulator tallies how many slots each executed bundle used and exposes three summary view variables. They're typically used with `slice: last` because the values are run-totals.
+
+- `vliw:load-percent` -- average slot utilization across the run, as an integer percent. `(active_slots * 100) / (bundles * 4)`. `25%` means each bundle used one slot on average; `100%` means every slot of every bundle was active.
+- `vliw:avg-load` -- average number of active processing units (slots) per executed bundle, rendered with two decimals. `active_slots / bundles`, a value in `0.00`–`4.00`. This is the same measure as `vliw:load-percent` expressed as units-per-bundle instead of a percent of the four-wide width.
+- `vliw:bundles-by-load` -- histogram rendered as comma-separated `K:N (P%)` entries, one per non-empty bucket. `K` is the active-slot count, `N` is the number of bundles in that bucket, `P` is its percent share of all executed bundles. Empty buckets are skipped. A peak at 1 means a serial program; a peak at 3-4 means the compiler / programmer is exploiting the pipeline.
+
+Example -- print a load summary at the end of the simulation:
+
+```yaml
+reports:
+    - name: vliw-load
+      slice: last
+      view: |
+        vliw:load-percent:    {vliw:load-percent}
+        vliw:avg-load:        {vliw:avg-load}
+        vliw:bundles-by-load: {vliw:bundles-by-load}
+```
+
+For `hello.s` running on this ISA the summary reads:
+
+```text
+vliw:load-percent:    81%
+vliw:avg-load:        3.24
+vliw:bundles-by-load: 1:3 (9%), 3:16 (48%), 4:14 (42%)
+```
+
+— 14 fully-packed bundles (`4:14 (42%)`), 16 three-wide (`3:16 (48%)`), 3 with a single active slot (`1:3 (9%)`), no idle or two-slot bundles, for an average of `3.24` active units per bundle.
+
+All three lines are also emitted together by the generic `{isa-specific}` summary block, which lets a single report template stay uniform across ISAs.

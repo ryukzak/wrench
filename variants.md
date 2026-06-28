@@ -38,7 +38,7 @@ def read_line(s, buf_size):
 
 
 def cstr(s, buf_size):
-    """Make content for buffer with pascal string (default value for cell: `_`)."""
+    """Make content for buffer with C string (default value for cell: `_`)."""
     assert len(s) + 1 <= buf_size
     buf = s + "\0" + ("_" * (buf_size - len(s) - 1))
     return "".join(itertools.takewhile(lambda c: c != "\0", s)), buf
@@ -102,10 +102,16 @@ Variants:
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
 - VLIW
+    - [affine2d_transform](#affine2d_transform)
+    - [complex_multiply](#complex_multiply)
+    - [determinant_2x2_stream](#determinant_2x2_stream)
     - [determinant_3x3](#determinant_3x3)
     - [djb2_hash](#djb2_hash)
     - [fnv32_1_hash](#fnv32_1_hash)
     - [fnv32_1a_hash](#fnv32_1a_hash)
+    - [linear_filter](#linear_filter)
+    - [sdbm_hash](#sdbm_hash)
+    - [sum_and_sum_squares](#sum_and_sum_squares)
 - _Examples_
     - [dup](#dup)
     - [factorial](#factorial)
@@ -1541,6 +1547,102 @@ assert upper_case_pstr('world\n') == ('WORLD', '')
 
 ## VLIW
 
+### `affine2d_transform`
+
+```python
+def affine2d_transform(*xs):
+    """Input: first word N, then N pairs: x, y.
+
+    Output for every pair: u = 3*x + 2*y + 5, v = -x + 4*y - 7.
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+    for i in range(n):
+        x = xs[1 + 2 * i]
+        y = xs[2 + 2 * i]
+        u = 3 * x + 2 * y + 5
+        v = -x + 4 * y - 7
+        if (
+            u < -0x80000000
+            or u > 0x7FFFFFFF
+            or v < -0x80000000
+            or v > 0x7FFFFFFF
+        ):
+            return [0xCCCCCCCC]
+        result.extend([u, v])
+
+    return result
+
+
+assert affine2d_transform(0) == []
+assert affine2d_transform(1, 1, 2) == [12, 0]
+assert affine2d_transform(2, 0, 0, 3, -1) == [5, -7, 12, -14]
+assert affine2d_transform(3, -2, 5, 10, 0, -1, -1) == [9, 15, 35, -17, 0, -10]
+```
+
+### `complex_multiply`
+
+```python
+def complex_multiply(*xs):
+    """Input: four words: a, b, c, d.
+
+    Need to multiply two complex numbers: (a + b*i) * (c + d*i).
+    Output: real and imaginary parts.
+    """
+    a, b, c, d = xs
+    real = a * c - b * d
+    imag = a * d + b * c
+
+    if (
+        real < -0x80000000
+        or real > 0x7FFFFFFF
+        or imag < -0x80000000
+        or imag > 0x7FFFFFFF
+    ):
+        return [0xCCCCCCCC]
+
+    return [real, imag]
+
+
+assert complex_multiply(1, 2, 3, 4) == [-5, 10]
+assert complex_multiply(0, 0, 5, -7) == [0, 0]
+assert complex_multiply(-1, 2, 3, -4) == [5, 10]
+assert complex_multiply(123, 456, 7, 8) == [-2787, 4176]
+```
+
+### `determinant_2x2_stream`
+
+```python
+def determinant_2x2_stream(*xs):
+    """Input: first word N, then N matrices: a, b, c, d.
+
+    Output: N values of determinant where det = a*d - b*c.
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+    for i in range(n):
+        base = 1 + 4 * i
+        a, b, c, d = xs[base : base + 4]
+        det = a * d - b * c
+        if det < -0x80000000 or det > 0x7FFFFFFF:
+            return [0xCCCCCCCC]
+        result.append(det)
+
+    return result
+
+
+assert determinant_2x2_stream(0) == []
+assert determinant_2x2_stream(1, 1, 2, 3, 4) == [-2]
+assert determinant_2x2_stream(2, 1, 0, 0, 1, 2, 3, 5, 7) == [1, -1]
+assert determinant_2x2_stream(3, 0, 0, 0, 0, -1, 2, 3, -4, 7, -5, 4, 8) == [0, -2, 76]
+```
+
 ### `determinant_3x3`
 
 ```python
@@ -1642,6 +1744,99 @@ def fnv32_1a_hash(xs):
 assert fnv32_1a_hash('a\0') == 3826002220
 assert fnv32_1a_hash('abc\0') == 440920331
 assert fnv32_1a_hash('Computers are awesome!\0') == 4243580747
+```
+
+### `linear_filter`
+
+```python
+def linear_filter(*xs):
+    """
+    Input: first word N (length of array), then N values of X.
+    Output: N values of Y where Y[i] = 3*X[i] + 2*X[i-1] + X[i-2]
+    with X[-1] = X[-2] = 0
+    (so Y[0] = 3*X[0], Y[1] = 3*X[1] + 2*X[0]).
+    """
+    n = xs[0]
+    x = list(xs[1 : n + 1])
+
+    result = []
+    for i in range(n):
+        x_i = x[i]
+        x_i1 = x[i - 1] if i >= 1 else 0
+        x_i2 = x[i - 2] if i >= 2 else 0
+        y_i = 3 * x_i + 2 * x_i1 + x_i2
+        result.append(y_i)
+
+    return result
+
+
+assert linear_filter(0) == []
+assert linear_filter(1, 5) == [15]
+assert linear_filter(2, 5, 10) == [15, 40]
+assert linear_filter(3, 1, 2, 3) == [3, 8, 14]
+assert linear_filter(5, 1, 2, 3, 4, 5) == [3, 8, 14, 20, 26]
+```
+
+### `sdbm_hash`
+
+```python
+def sdbm_hash(xs):
+    """Input: stream of chars forming c string style (end with 0)
+
+    Need to calculate SDBM 32 bit hash of input string.
+    """
+    it = 0
+    hash_value = 0
+    while ord(xs[it]) > 0:
+        c = ord(xs[it])
+        hash_value = (
+            c + (hash_value << 6) + (hash_value << 16) - hash_value
+        ) & 0xFFFFFFFF
+        it += 1
+
+    return hash_value
+
+
+assert sdbm_hash('\0') == 0
+assert sdbm_hash('a\0') == 97
+assert sdbm_hash('abc\0') == 807794786
+assert sdbm_hash('Computers are awesome!\0') == 79142482
+```
+
+### `sum_and_sum_squares`
+
+```python
+def sum_and_sum_squares(*xs):
+    """Input: first word N, then N values.
+
+    Output: two words: sum(X) and sum(x*x for x in X).
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    total = 0
+    square_total = 0
+    for i in range(n):
+        x = xs[1 + i]
+        total += x
+        square_total += x * x
+
+    if (
+        total < -0x80000000
+        or total > 0x7FFFFFFF
+        or square_total < -0x80000000
+        or square_total > 0x7FFFFFFF
+    ):
+        return [0xCCCCCCCC]
+
+    return [total, square_total]
+
+
+assert sum_and_sum_squares(0) == [0, 0]
+assert sum_and_sum_squares(3, 1, 2, 3) == [6, 14]
+assert sum_and_sum_squares(4, -2, 5, 0, -3) == [0, 38]
+assert sum_and_sum_squares(5, 10, 20, 30, 40, 50) == [150, 5500]
 ```
 
 ## _Examples_

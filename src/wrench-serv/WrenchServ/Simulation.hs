@@ -70,6 +70,7 @@ data SimulationResult = SimulationResult
     , srStatusLog :: Text
     , srTestCaseStatus :: Text
     , srTestCase :: Text
+    , srStats :: Text
     , srSuccess :: Bool
     }
     deriving (Generic, Show)
@@ -92,6 +93,7 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
                 "\n"
                 ["$ date", show currentTime, "$ wrench --version", wrenchVersion, srCmd, show srExitCode, toText srError]
         stdoutText = toText out
+        srStats = extractStats stdoutText
         srOutput =
             if T.length stdoutText > cLogLimit
                 then "LOG TOO LONG, CROPPED\n\n" <> T.drop (T.length stdoutText - cLogLimit) stdoutText
@@ -117,4 +119,15 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
             , srStatusLog
             , srTestCase
             , srTestCaseStatus
+            , srStats
             }
+
+-- | Pull the @Execution statistics@ report block out of wrench's stdout.
+-- Report blocks are @---@-separated and prefixed with @# <name>@ (see
+-- 'Wrench.Wrench.wrench'); we return the body of that block with the
+-- header line dropped, or @""@ if the config produced no stats report.
+extractStats :: Text -> Text
+extractStats out =
+    let header = "# Execution statistics"
+        section = find (T.isPrefixOf header . T.strip) $ map T.strip $ T.splitOn "---" out
+     in maybe "" (T.strip . T.drop (T.length header) . T.strip) section

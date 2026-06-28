@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <!-- restyled by huji, proud 🦎🪽✨⬆️☁️ -->
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="#1a1a1a" name="theme-color" />
+    <title>Wrench Examples</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script defer type="module" src="/assets/utils.js"></script>
+    <link rel="stylesheet" href="/assets/ascii.css" />
+
+    {{tracker}}
+  </head>
+
+  <body
+    class="flex justify-center items-start bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
+  >
+    <script type="module">
+      import { setupThemeToggle } from '/assets/utils.js'
+
+      document.addEventListener('DOMContentLoaded', () => {
+        setupThemeToggle('invert-theme-button')
+      })
+    </script>
+    <div class="p-8 rounded-lg w-full max-w-[80vw]">
+      <div class="mb-4 w-full text-center">
+        <a
+          class="hover:bg-[var(--c-white)] text-[var(--c-white)] hover:text-[var(--c-black)] text-6xl cursor-pointer"
+          href="/"
+          >Wrench Examples</a
+        >
+      </div>
+
+      <div class="mb-8 text-center">
+        <a
+          href="/"
+          class="hover:bg-[var(--c-blue)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
+          >[submit]</a
+        >
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
+        <a
+          href="https://github.com/ryukzak/wrench"
+          class="hover:bg-[var(--c-purple)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-purple)] hover:text-[var(--c-black)] cursor-pointer"
+          target="_blank"
+          >[github]</a
+        >
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
+        <a
+          href="https://github.com/ryukzak/wrench/tree/master/docs"
+          class="hover:bg-[var(--c-fuschia)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] cursor-pointer"
+          target="_blank"
+          >[isa_docs]</a
+        >
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
+        <a
+          href="https://github.com/ryukzak/wrench/blob/master/variants.md"
+          class="hover:bg-[var(--c-orange)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
+          target="_blank"
+          >[variants]</a
+        >
+        <span class="hidden lg:inline text-[var(-c-grey)]">|</span>
+        <button
+          type="button"
+          id="invert-theme-button"
+          class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
+        >
+          [invert_theme]
+        </button>
+      </div>
+
+      <p class="mb-6 text-[var(--c-grey)]">
+        /* Example programs from the repository. Source code is available
+        <a
+          href="https://github.com/ryukzak/wrench/tree/master/example"
+          class="hover:bg-[var(--c-fuschia)] text-[var(--c-fuschia)] hover:text-[var(--c-black)] cursor-pointer"
+          target="_blank"
+          >[here]</a
+        >. */
+      </p>
+
+      <div class="bg-[var(--c-dark-grey)] p-6 rounded-lg">
+        {{examples}}
+      </div>
+
+      <!-- prettier-ignore -->
+      <div class="mt-8 text-[var(--c-grey)] text-center">/* {{version}} */</div>
+    </div>
+  </body>
+</html>

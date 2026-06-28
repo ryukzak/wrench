@@ -19,7 +19,7 @@ data Simulation st isa = Simulation
 
 tellState :: st -> State (Simulation st isa) ()
 tellState machineState = modify
-    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit} ->
+    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
         if stateRecordCount >= stateRecordLimits
             then
                 let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
@@ -27,7 +27,7 @@ tellState machineState = modify
                     rest' =
                         filter
                             ( \case
-                                TState _ -> False
+                                TState{} -> False
                                 _ -> True
                             )
                             rest
@@ -39,17 +39,21 @@ tellState machineState = modify
                         }
             else
                 sim
-                    { log = TState machineState : log
+                    { log = TState{tInstructionCount = instructionCount + 1, tState = machineState} : log
                     , stateRecordCount = stateRecordCount + 1
                     }
 
 tellError msg = modify $ \sim@Simulation{log} ->
     sim{log = TError msg : log}
 
-simulate :: (Machine st isa w) => Simulation st isa -> [Trace st isa]
+-- | Run the simulation and return both the recorded trace log and the final
+--   machine state. The final state carries the complete runtime accumulators
+--   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
+--   pre-step and therefore don't include the last instruction's accesses.
+simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
 simulate sim =
-    let Simulation{log} = execState simulate' sim
-     in reverse log
+    let Simulation{log, machineState} = execState simulate' sim
+     in (reverse log, machineState)
 
 simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
 simulateInstructionStep =
@@ -78,7 +82,7 @@ powerOn ::
     -> Int
     -> HashMap String w
     -> st
-    -> Either Text [Trace st isa]
+    -> Either Text ([Trace st isa], st)
 powerOn instructionLimits stateRecordLimits labels machineInitState = do
     let pc2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
     Right

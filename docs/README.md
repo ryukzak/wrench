@@ -290,6 +290,51 @@ General state view expressions implemented for all ISAs:
 - `memory:<a>:<b>` -- Print memory dump between addresses `<a>` and `<b>`.
 - `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- Print input-output stream state for the specific address in decimal, symbol, or hexadecimal format. Printable char codes: [32, 126]. Also `\0`, `\n` will be printed as is. Other non-printable characters will be replaced with `?`.
 
+Execution and memory statistics. These are typically used with `slice: last` to emit one final summary line; the values are the totals for the whole run.
+
+- `sim:instruction-count` -- Number of instructions executed so far. With `slice: all` it shows the running step counter (1, 2, ...); with `slice: last` it shows the total for the run.
+- `layout:sections-size` -- Sum of byte sizes of all sections (no gaps from `.org`).
+- `layout:text-sections-size`, `layout:data-sections-size` -- Same, split by section kind.
+- `layout:text-ranges` -- Address ranges of all declared `.text` sections (e.g. `0x0..0x27, 0x40..0x5b`). Hex by default; `:dec` / `:hex` suffix to override.
+- `layout:data-ranges` -- Address ranges of all declared `.data` sections. Same `:dec`/`:hex` suffix.
+- `mem:instr-ranges` -- Address ranges of instruction fetches at runtime, rendered as comma-separated `lo..hi` clusters (e.g. `0x0..0x4b, 0x8c..0xbf`). Addresses are hex by default; append `:dec` or `:hex` to override (e.g. `{mem:instr-ranges:dec}` -> `0..75, 140..191`).
+- `mem:data-ranges` -- Address ranges of data reads and writes (merged into one set). Same `:dec`/`:hex` suffix.
+- `mem:io-ranges` -- Address ranges of memory-mapped IO accesses. Same `:dec`/`:hex` suffix.
+- `memory:table` -- Multi-line address-space table that puts the above together: one row per declared `text`/`data` section, one per IO cluster, and `x` rows for free regions (split at access boundaries, so the stack gets its own row). Columns: `Kind`, `Range`, `Bytes`, `Accessed`, `Coverage`. The `Bytes` column sums to `memory_size` as a built-in sanity check.
+- `isa-specific` -- ISA-specific summary block. Each architecture fills it with its own stat lines (e.g. `vliw:load-percent` + `vliw:avg-load` + `vliw:bundles-by-load` on vliw-iv; `f32a:data-stack-max` + `f32a:return-stack-max` on f32a); architectures without any render an empty block. Lets one report template stay uniform across ISAs without emitting `[unknown-view]` for the variables that don't apply.
+
+Example -- print a stats summary after the simulation finishes:
+
+```yaml
+reports:
+    - name: stats
+      slice: last
+      view: |
+        sim:instruction-count:     {sim:instruction-count}
+        layout:sections-size:      {layout:sections-size}
+        layout:text-sections-size: {layout:text-sections-size}
+        layout:data-sections-size: {layout:data-sections-size}
+        mem:instr-ranges:          {mem:instr-ranges}
+        mem:data-ranges:           {mem:data-ranges}
+        mem:io-ranges:             {mem:io-ranges}
+```
+
+Comparing `layout:*-size` with `mem:*-ranges` reveals which declared bytes the program actually touched and which addresses it accessed outside any declared section -- the stack region is a typical example.
+
+For the same picture in one shot, use `{memory:table}` -- it walks the whole address space and renders one row per section / IO cluster / free span. A typical output looks like:
+
+```text
+Kind  Range         Bytes  Accessed                    Coverage
+text  0x000..0x027     40  0x000..0x027                    100%
+data  0x028..0x02b      4  0x028..0x02b                    100%
+x     0x02c..0x07f     84  -                                 0%
+io    0x080..0x087      8  0x080..0x087                    100%
+text  0x090..0x0e3     84  0x090..0x0e3                    100%
+data  0x0e4..0x0f9     22  0x0e4..0x0ee, 0x0f5..0x0f9       72%   <- partial: middle bytes untouched
+x     0x1fc..0x1ff      4  0x1fc..0x1ff                    100%  <- undeclared use (stack)
+x     0x200..0x2ff    256  -                                 0%
+```
+
 For ISA-specific state views, see the respective architecture documentation.
 
 ##### `assert`

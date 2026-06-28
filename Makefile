@@ -72,10 +72,10 @@ test-examples: build
 	stack exec wrench -- --isa m68k       example/m68k/not.s                -c example/m68k/not-true.yaml
 	stack exec wrench -- --isa m68k       example/m68k/get-put-char.s       -c example/m68k/get-put-char-87.yaml
 	stack exec wrench -- --isa m68k       example/m68k/hello.s              -c example/m68k/hello.yaml
-	stack exec wrench -- --isa m68k       example/m68k/hello-byte.s         -c example/m68k/hello.yaml
+	stack exec wrench -- --isa m68k       example/m68k/hello-byte.s         -c example/m68k/hello-byte.yaml
 	stack exec wrench -- --isa m68k       example/m68k/factorial.s          -c example/m68k/factorial-5.yaml
-	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive.s -c example/m68k/factorial-5.yaml
-	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive-2.s -c example/m68k/factorial-5.yaml
+	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive.s -c example/m68k/factorial-recursive.yaml
+	stack exec wrench -- --isa m68k       example/m68k/factorial-recursive-2.s -c example/m68k/factorial-recursive-2.yaml
 
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/hello.s           -c example/vliw-iv/hello.yaml
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/factorial.s       -c example/vliw-iv/factorial-5.yaml

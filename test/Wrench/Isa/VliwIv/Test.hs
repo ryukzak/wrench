@@ -105,7 +105,7 @@ tests =
                         st0{pc = 50}
              in do
                     pc @?= 150
-                    (regs !? Ra) @?= Just 61 -- 50 + 11 (bundle size)
+                    (regs !? Ra) @?= Just 64 -- 50 + 14 (bundle size)
         , testCase "Control flow: Jr (jump register)" $ do
             let State{pc} =
                     simulate
@@ -123,7 +123,7 @@ tests =
                     simulate
                         "nop / nop / nop / beqz a0, 50"
                         (withRegs [(A0, 5)])
-             in pc @?= 11 -- Advanced by bundle size
+             in pc @?= 14 -- Advanced by bundle size
         , testCase "Control flow: Bnez (branch if not equal to zero) - taken" $ do
             let State{pc} =
                     simulate
@@ -141,7 +141,7 @@ tests =
                     simulate
                         "nop / nop / nop / bgt a0, a1, 50"
                         (withRegs [(A0, 5), (A1, 10)])
-             in pc @?= 11
+             in pc @?= 14
         , testCase "Control flow: Ble (branch if less than or equal) - taken" $ do
             let State{pc} =
                     simulate
@@ -212,6 +212,32 @@ tests =
             translate "addi a1, a0, 3 / nop / nop / nop" @?= True
             translate "nop / nop / lw a1, 20(a0) / j 100" @?= True
             translate "add a2, a0, a1 / sub a3, a0, a1 / sw a1, 0(a0) / halt" @?= True
+        , testGroup
+            "Constant field truncation (silent)"
+            -- A constant that does not fit its documented slot field is reduced to
+            -- the low bits of that field and sign-extended; nothing errors.
+            [ testCase "addi: 17-bit signed immediate field" $ do
+                let State{regs} =
+                        simulate
+                            "addi a0, zero, 0x1FFFF / nop / nop / nop"
+                            st0
+                 in (regs !? A0) @?= Just (-1) -- all 17 bits set -> -1
+            , testCase "beq: 10-bit signed offset field" $ do
+                let State{pc} =
+                        simulate
+                            "nop / nop / nop / beq a0, a1, 0x401"
+                            (withRegs [(A0, 0), (A1, 0)])
+                 in pc @?= 1 -- 0x401 truncated to low 10 bits = 1
+            , testCase "lw: 11-bit signed offset field" $ do
+                let st1 = withRegs [(A0, 20)]
+                    mem1 = either error id $ do
+                        m1 <- writeByte (mem st1) 20 0x11
+                        m2 <- writeByte m1 21 0x22
+                        m3 <- writeByte m2 22 0x33
+                        writeByte m3 23 0x44
+                    State{regs} = simulate "nop / nop / lw a1, 0x800(a0) / nop" st1{mem = mem1}
+                 in (regs !? A1) @?= Just 0x44332211 -- offset 0x800 truncates to 0 -> reads [a0]
+            ]
         ]
 
 -- Test helper: Initial state for most tests
@@ -224,6 +250,7 @@ st0 =
         , stopped = False
         , internalError = Nothing
         , randoms = []
+        , vliwLoad = emptyVliwLoad
         }
 
 withRegs :: [(Register, Int32)] -> VliwIvState Int32

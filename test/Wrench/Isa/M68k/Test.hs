@@ -111,8 +111,23 @@ tests =
             translate "cmp.l D1, D0" @?= Right (Cmp Long (DirectDataReg D1) (DirectDataReg D0))
             translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ ValueR id 10) (DirectDataReg D0))
             translate "cmp.l (A1), D0" @?= Right (Cmp Long (IndirectAddrReg 0 A1 Nothing) (DirectDataReg D0))
+            -- movea is the one instruction that legitimately accepts An as source.
+            translate "movea.l A2, A0" @?= Right (MoveA Long (DirectAddrReg A2) (DirectAddrReg A0))
             translate "jsr 0x20" @?= Right (Jsr (ValueR id 0x20))
             translate "rts" @?= Right Rts
+        , testCase "An as source rejected outside movea (issue #143)" $ do
+            -- Address Register Direct is not a valid source mode for these
+            -- instructions; the parser must fail rather than silently
+            -- consuming @A2@ as a label.
+            let parsesM68k :: String -> Either String (Isa Int32 (Ref Int32))
+                parsesM68k = translate
+            isLeft (parsesM68k "move.l A2, D0") @?= True
+            isLeft (parsesM68k "add.l A0, D1") @?= True
+            isLeft (parsesM68k "sub.l A0, D1") @?= True
+            isLeft (parsesM68k "cmp.l A0, D0") @?= True
+            isLeft (parsesM68k "and.l A0, D1") @?= True
+            -- @movea@ still accepts An as source.
+            isRight (parsesM68k "movea.l A2, A0") @?= True
         , testCase "Read byte from memory by address register" $ do
             let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do

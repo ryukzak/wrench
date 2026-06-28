@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="#1a1a1a" name="theme-color" />
+    <title>Wrench - In Progress</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/assets/ascii.css" />
+
+    {{tracker}}
+  </head>
+
+  <body
+    class="flex justify-center items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
+  >
+    <script>
+      const storedTheme = localStorage.getItem('prefers-color-scheme')
+      if (storedTheme) {
+        document.body.classList.toggle('dark', storedTheme === 'dark')
+      } else if (window.matchMedia) {
+        document.body.classList.toggle(
+          'dark',
+          window.matchMedia('(prefers-color-scheme: dark)').matches,
+        )
+      }
+    </script>
+
+    <div class="p-8 rounded-lg w-full max-w-[80vw]">
+      <h1 class="mb-6 text-4xl text-center">Simulation in progress...</h1>
+
+      <div class="mb-4 text-center">
+        <button
+          type="button"
+          onclick="location.reload()"
+          class="hover:bg-[var(--c-white)] text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
+        >
+          [refresh]
+        </button>
+      </div>
+
+      <pre
+        id="log"
+        class="bg-[var(--c-dark-grey)] p-4 rounded text-sm overflow-auto whitespace-pre-wrap"
+      >{{log}}</pre>
+    </div>
+
+    <script>
+      const log = document.getElementById('log').textContent
+      if (!log.includes('ERROR:')) {
+        const key = `inprogress-reloaded-${location.pathname}`
+        const delay = sessionStorage.getItem(key) ? 3000 : 200
+        sessionStorage.setItem(key, '1')
+        setTimeout(() => location.reload(), delay)
+      }
+    </script>
+  </body>
+</html>

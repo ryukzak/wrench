@@ -5,7 +5,7 @@ module Wrench.Machine.Memory.Test (tests) where
 import Data.Default (def)
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@=?))
+import Test.Tasty.HUnit (assertFailure, testCase, (@=?), (@?=))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 
@@ -18,6 +18,14 @@ tests :: TestTree
 tests =
     testGroup
         "Machine.Memory"
+        [ memoryOpsTests
+        , accessLogTests
+        ]
+
+memoryOpsTests :: TestTree
+memoryOpsTests =
+    testGroup
+        "memory ops"
         [ testCase "Read words" $ do
             let mem :: Mem Isa Int32
                 mem =
@@ -115,47 +123,165 @@ tests =
             Left "iomemory[17]: instruction in memory corrupted" @=? readInstruction piomem 17
             True @=? isRight (readInstruction piomem 18)
         ]
-    where
-        iomem :: IoMem Isa Int32
-        iomem =
-            mkIoMem
-                (fromList [(4, ([0x04030201, 2, 3], [0, 9, 8]))])
-                ( Mem
-                    { memorySize = 12
-                    , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
-                    }
-                )
-        piomem :: IoMem Isa Int32
-        piomem =
-            mkIoMem
-                ( fromList
-                    [ (4, ([1, 2, 3], [0, 9, 8]))
-                    , (14, ([1, 2, 3], [0, 9, 8]))
+
+-- | A 12-byte memory with a single 4-byte IO port at offset 4.
+iomem :: IoMem Isa Int32
+iomem =
+    mkIoMem
+        (fromList [(4, ([0x04030201, 2, 3], [0, 9, 8]))])
+        ( Mem
+            { memorySize = 12
+            , memoryData = fromList $ map (\x -> (fromEnum x, Value x)) [0 .. 11]
+            }
+        )
+
+-- | A 19-byte memory mixing instructions, instruction parts, and two IO ports.
+piomem :: IoMem Isa Int32
+piomem =
+    mkIoMem
+        ( fromList
+            [ (4, ([1, 2, 3], [0, 9, 8]))
+            , (14, ([1, 2, 3], [0, 9, 8]))
+            ]
+        )
+        ( Mem
+            { memorySize = 19
+            , memoryData =
+                fromList
+                    [ (0, Instruction (Isa 2))
+                    , (1, InstructionPart)
+                    , (2, Instruction (Isa 2))
+                    , (3, InstructionPart)
+                    , (4, Instruction (Isa 2)) -- io
+                    , (5, InstructionPart) -- io
+                    , (6, Instruction (Isa 3)) -- io
+                    , (7, InstructionPart) -- io
+                    , (8, InstructionPart)
+                    , (9, Instruction (Isa 1))
+                    , (10, Instruction (Isa 5))
+                    , (11, InstructionPart)
+                    , (12, InstructionPart)
+                    , (13, InstructionPart)
+                    , (14, InstructionPart) -- io
+                    , (15, Instruction (Isa 1)) -- io
+                    , (16, Instruction (Isa 1)) -- io
+                    , (17, Instruction (Isa 1)) -- io
+                    , (18, Instruction (Isa 1))
                     ]
-                )
-                ( Mem
-                    { memorySize = 19
-                    , memoryData =
-                        fromList
-                            [ (0, Instruction (Isa 2))
-                            , (1, InstructionPart)
-                            , (2, Instruction (Isa 2))
-                            , (3, InstructionPart)
-                            , (4, Instruction (Isa 2)) -- io
-                            , (5, InstructionPart) -- io
-                            , (6, Instruction (Isa 3)) -- io
-                            , (7, InstructionPart) -- io
-                            , (8, InstructionPart)
-                            , (9, Instruction (Isa 1))
-                            , (10, Instruction (Isa 5))
-                            , (11, InstructionPart)
-                            , (12, InstructionPart)
-                            , (13, InstructionPart)
-                            , (14, InstructionPart) -- io
-                            , (15, Instruction (Isa 1)) -- io
-                            , (16, Instruction (Isa 1)) -- io
-                            , (17, Instruction (Isa 1)) -- io
-                            , (18, Instruction (Isa 1))
-                            ]
-                    }
-                )
+            }
+        )
+
+-- | Memory with declared content only in [0..7]; addresses [8..15] are
+--   placeholder zeroes left for stack / heap. Used to test that runtime
+--   accesses outside the "declared" region are still recorded.
+sparseMem :: IoMem Isa Int32
+sparseMem =
+    mkIoMem
+        mempty
+        ( Mem
+            { memorySize = 16
+            , memoryData =
+                fromList
+                    $ map (\x -> (fromEnum x, Value x)) [0 .. 7]
+                    <> map (,Value 0) [8 .. 15]
+            }
+        )
+
+-- | Helper: run a memory op and pull the AccessLog out of the updated memory.
+logAfter :: (Memory m isa w) => (m -> Either Text (m, a)) -> m -> Either Text AccessLog
+logAfter op m = case op m of
+    Left e -> Left e
+    Right (m', _) -> Right (accessLog m')
+
+logAfterWrite :: (Memory m isa w) => (m -> Either Text m) -> m -> Either Text AccessLog
+logAfterWrite op m = case op m of
+    Left e -> Left e
+    Right m' -> Right (accessLog m')
+
+accessLogTests :: TestTree
+accessLogTests =
+    testGroup
+        "AccessLog tracking"
+        [ testGroup
+            "fresh memory starts empty"
+            [ testCase "alInstr = -" $ renderIntervals (alInstr (accessLog iomem)) @?= "-"
+            , testCase "alData  = -" $ renderIntervals (alData (accessLog iomem)) @?= "-"
+            , testCase "alIo    = -" $ renderIntervals (alIo (accessLog iomem)) @?= "-"
+            ]
+        , testGroup
+            "data accesses"
+            [ testCase "readWord on plain memory records alData"
+                $ (renderIntervals . alData <$> logAfter (`readWord` 0) iomem)
+                @?= Right "0..3"
+            , testCase "readByte on plain memory records 1-byte alData"
+                $ (renderIntervals . alData <$> logAfter (`readByte` 9) iomem)
+                @?= Right "9..9"
+            , testCase "writeWord on plain memory records alData"
+                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeWord m 0 0xDEADBEEF) iomem)
+                @?= Right "0..3"
+            , testCase "writeByte on plain memory records alData"
+                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 9 0xFF) iomem)
+                @?= Right "9..9"
+            , testCase "adjacent writes coalesce into one range" $ do
+                let go0 = writeByte sparseMem 8 0x01
+                    go1 = go0 >>= \m -> writeByte m 9 0x02
+                    go2 = go1 >>= \m -> writeByte m 10 0x03
+                case go2 of
+                    Right m -> renderIntervals (alData (accessLog m)) @?= "8..10"
+                    Left e -> assertFailure (toString e)
+            ]
+        , testGroup
+            "IO accesses"
+            [ testCase "readWord on IO port records alIo, not alData" $ do
+                case readWord iomem 4 of
+                    Right (m', _) -> do
+                        renderIntervals (alIo (accessLog m')) @?= "4..7"
+                        renderIntervals (alData (accessLog m')) @?= "-"
+                    Left e -> assertFailure (toString e)
+            , testCase "writeWord on IO port records alIo" $ do
+                case writeWord iomem 4 0x12345678 of
+                    Right m' -> renderIntervals (alIo (accessLog m')) @?= "4..7"
+                    Left e -> assertFailure (toString e)
+            , testCase "mixed data + io accesses stay in separate buckets" $ do
+                case readWord iomem 0 of
+                    Right (m1, _) -> case readWord m1 4 of
+                        Right (m2, _) -> do
+                            renderIntervals (alData (accessLog m2)) @?= "0..3"
+                            renderIntervals (alIo (accessLog m2)) @?= "4..7"
+                            renderIntervals (alInstr (accessLog m2)) @?= "-"
+                        Left e -> assertFailure (toString e)
+                    Left e -> assertFailure (toString e)
+            ]
+        , testGroup
+            "instruction fetches"
+            [ testCase "readInstruction records the byte span in alInstr" $ do
+                case readInstruction piomem 0 of
+                    Right (m', _) -> renderIntervals (alInstr (accessLog m')) @?= "0..1"
+                    Left e -> assertFailure (toString e)
+            , testCase "two adjacent fetches coalesce" $ do
+                case readInstruction piomem 0 of
+                    Right (m1, _) -> case readInstruction m1 2 of
+                        Right (m2, _) -> renderIntervals (alInstr (accessLog m2)) @?= "0..3"
+                        Left e -> assertFailure (toString e)
+                    Left e -> assertFailure (toString e)
+            ]
+        , testGroup
+            "accesses outside declared content are still tracked"
+            -- sparseMem has "declared" content in 0..7 and zero-padding in 8..15.
+            -- The runtime tracker only cares whether the address is in IO or
+            -- memory — it doesn't know about "declared" sections — so writes
+            -- beyond the active section still show up in alData.
+            [ testCase "write at the start of the unused tail"
+                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 8 0x42) sparseMem)
+                @?= Right "8..8"
+            , testCase "write near the very end"
+                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 15 0xFF) sparseMem)
+                @?= Right "15..15"
+            , testCase "in-bounds + out-of-section coalesce by adjacency" $ do
+                case writeByte sparseMem 7 0x01 of
+                    Right m1 -> case writeByte m1 8 0x02 of
+                        Right m2 -> renderIntervals (alData (accessLog m2)) @?= "7..8"
+                        Left e -> assertFailure (toString e)
+                    Left e -> assertFailure (toString e)
+            ]
+        ]

@@ -42,7 +42,7 @@ instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
 
 derefSection ::
     forall isa w.
-    (ByteSize (isa (Ref w)), DerefMnemonic isa w, MachineWord w) =>
+    (ByteSize (isa (Ref w)), DerefMnemonic isa w, MachineWord w, Show (isa w)) =>
     (String -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w String
@@ -56,6 +56,14 @@ derefSection f offset code@Code{codeTokens} =
                 map
                     ( \(offset', m) ->
                         let m' = derefMnemonic f offset' m
+                            -- Force every Ref-derived field of m' to WHNF so that
+                            -- an unresolved label aborts translation here, not
+                            -- lazily at execution when something happens to read
+                            -- the value (see issue #143). Walking @show@ visits
+                            -- every constructor field, which is enough since
+                            -- @w@ is a machine word and forcing it to WHNF is
+                            -- already full evaluation.
+                            !_ = length (show m' :: String)
                          in Mnemonic m'
                     )
                     marked
@@ -105,9 +113,15 @@ instance (Show w) => Show (Ref w) where
     show (Ref _ l) = l
     show (ValueR f x) = show $ f x
 
+-- | Resolve a 'Ref' against a label table. Strict: forces the lookup and the
+--   resulting value to WHNF before returning. Call sites should use @$!@ so
+--   that an unresolved label aborts translation rather than producing a thunk
+--   that only blows up later if something happens to read it.
 deref' :: (String -> Maybe w) -> Ref w -> w
-deref' f (Ref prepare l) = prepare <$> fromMaybe (error ("Can't resolve label: " <> show l)) $ f l
-deref' _f (ValueR prepare x) = prepare x
+deref' f (Ref prepare l) = case f l of
+    Just w -> let !v = prepare w in v
+    Nothing -> error ("Can't resolve label: " <> show l)
+deref' _f (ValueR prepare x) = let !v = prepare x in v
 
 data DataToken w l = DataToken
     { dtLabel :: !l

@@ -1,5 +1,5 @@
 name: wrench
-version: 0.0.4.5
+version: 0.0.4.7
 github: "ryukzak/wrench"
 license: BSD-3-Clause
 author: "Aleksandr Penskoi"
@@ -42,6 +42,7 @@ dependencies:
   - aeson-casing
   - base >= 4.7 && < 5
   - data-default
+  - data-interval
   - filepath
   - gitrev
   - megaparsec

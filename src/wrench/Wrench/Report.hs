@@ -15,6 +15,7 @@ module Wrench.Report (
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Text qualified as T
+import Numeric (showHex)
 import Relude
 import Relude.Extra
 import Text.Regex.TDFA
@@ -56,6 +57,7 @@ instance FromJSON ReportConf where
 prepareReport
     trResult@TranslatorResult{}
     verbose
+    finalState
     records
     rc@ReportConf{rcName, rcSlice, rcAssert, rcView} =
         let header = maybe "" ("# " <>) rcName
@@ -68,7 +70,8 @@ prepareReport
                         $ filter (not . null)
                         $ map
                             ( \case
-                                (TState st) -> prepareStateView rvView' trResult st
+                                TState{tInstructionCount, tState} ->
+                                    prepareStateView rvView' trResult finalState tInstructionCount tState
                                 (TError err) -> "ERROR: " <> toString err <> "\n"
                                 (TWarn warn) -> "WARN: " <> toString warn <> "\n"
                             )
@@ -116,8 +119,128 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels} st =
-    toString $ substituteBrackets (reprState labels st) line
+prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount st =
+    let DumpStats
+            { dsSectionsTotalBytes
+            , dsTextSectionsBytes
+            , dsDataSectionsBytes
+            , dsTextIntervals
+            , dsDataIntervals
+            } = dumpStats
+        AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
+        resolver v = case T.splitOn ":" v of
+            ["sim", "instruction-count"] -> show instrCount
+            ["layout", "sections-size"] -> show dsSectionsTotalBytes
+            ["layout", "text-sections-size"] -> show dsTextSectionsBytes
+            ["layout", "data-sections-size"] -> show dsDataSectionsBytes
+            ["layout", "text-ranges"] -> renderIntervalsHex dsTextIntervals
+            ["layout", "text-ranges", fmt] -> rangesFmt fmt dsTextIntervals
+            ["layout", "data-ranges"] -> renderIntervalsHex dsDataIntervals
+            ["layout", "data-ranges", fmt] -> rangesFmt fmt dsDataIntervals
+            ["mem", "instr-ranges"] -> renderIntervalsHex alInstr
+            ["mem", "instr-ranges", fmt] -> rangesFmt fmt alInstr
+            ["mem", "data-ranges"] -> renderIntervalsHex alData
+            ["mem", "data-ranges", fmt] -> rangesFmt fmt alData
+            ["mem", "io-ranges"] -> renderIntervalsHex alIo
+            ["mem", "io-ranges", fmt] -> rangesFmt fmt alIo
+            ["memory", "table"] -> renderMemoryTable dumpStats (memoryDump finalState)
+            -- ISA-specific summary block: each architecture fills it with its
+            -- own stats (vliw:*, f32a:*, ...); ISAs without any render "".
+            -- Lets a single report template stay uniform across ISAs.
+            ["isa-specific"] -> fromMaybe "" (summaryView labels finalState "isa-specific")
+            _ -> case summaryView labels finalState v of
+                Just txt -> txt
+                Nothing -> reprState labels st v
+        rangesFmt "dec" = renderIntervals
+        rangesFmt "hex" = renderIntervalsHex
+        rangesFmt fmt = const (unknownFormat fmt)
+     in toString $ substituteBrackets resolver line
+
+-- | Render a full address-space table: one row per declared section, IO
+--   cluster, or @x@ (anything else) span. Auto-sized columns, hex addresses
+--   widened to fit @memory_size@.
+renderMemoryTable ::
+    forall m isa w.
+    (MachineWord w, Memory m isa w) =>
+    DumpStats
+    -> m
+    -> Text
+renderMemoryTable dumpStats mem =
+    let memSize = memCapacity mem
+        ports = ioPorts mem
+        wordSize = byteSizeT @w
+        AccessLog{alInstr, alData, alIo} = accessLog mem
+        DumpStats{dsTextIntervals, dsDataIntervals} = dumpStats
+        ioIntervals = foldr (`recordRange` wordSize) emptyIntervals ports
+        accessedAll = alInstr `intervalsUnion` alData `intervalsUnion` alIo
+
+        -- Declared section rows: one per text/data/io cluster (in-section
+        -- coverage is shown via multi-cluster Accessed in the row).
+        textRows = [("text", lo, hi) | (lo, hi) <- intervalsToList dsTextIntervals]
+        dataRows = [("data", lo, hi) | (lo, hi) <- intervalsToList dsDataIntervals]
+        ioRows = [("io", lo, hi) | (lo, hi) <- intervalsToList ioIntervals]
+
+        -- Free rows: complement of (text ∪ data ∪ io) within [0, memSize-1],
+        -- split further at access boundaries (so the stack gets its own row).
+        sectionsAll = dsTextIntervals `intervalsUnion` dsDataIntervals `intervalsUnion` ioIntervals
+        boundedMem = intervalsRange 0 (memSize - 1)
+        freeRegions = boundedMem `intervalsDifference` sectionsAll
+        freeRows = concatMap (uncurry (splitByAccess accessedAll)) (intervalsToList freeRegions)
+
+        spans = sortOn (\(_, lo, _) -> lo) (textRows <> dataRows <> ioRows <> freeRows)
+
+        hexW = max 3 (length (showHex (max 0 (memSize - 1)) ""))
+        addrStr a =
+            let h = showHex a ""
+             in "0x" <> T.pack (replicate (hexW - length h) '0') <> T.pack h
+
+        formatRange lo hi = addrStr lo <> ".." <> addrStr hi
+
+        renderAccessed intervals = case intervalsToList intervals of
+            [] -> "-"
+            pairs -> T.intercalate ", " [formatRange lo hi | (lo, hi) <- pairs]
+
+        buildRow (kind, lo, hi) =
+            let bytes = hi - lo + 1
+                accessedHere = accessedAll `intervalsIntersect` intervalsRange lo hi
+                accessedBytes = intervalsSize accessedHere
+                cov :: Int
+                cov = if bytes > 0 then (accessedBytes * 100) `div` bytes else 0
+             in ( kind
+                , formatRange lo hi
+                , show bytes
+                , renderAccessed accessedHere
+                , show cov <> "%"
+                )
+
+        headerRow :: (Text, Text, Text, Text, Text)
+        headerRow = ("Kind", "Range", "Bytes", "Accessed", "Coverage")
+        allRows = headerRow : map buildRow spans
+
+        colWidth f = foldr (max . T.length . f) 0 allRows
+        wKind = colWidth (\(k, _, _, _, _) -> k)
+        wRange = colWidth (\(_, r, _, _, _) -> r)
+        wBytes = colWidth (\(_, _, b, _, _) -> b)
+        wAcc = colWidth (\(_, _, _, a, _) -> a)
+        wCov = colWidth (\(_, _, _, _, c) -> c)
+
+        padR n s = s <> T.replicate (n - T.length s) " "
+        padL n s = T.replicate (n - T.length s) " " <> s
+
+        renderRow (k, r, b, a, c) =
+            T.intercalate "  " [padR wKind k, padR wRange r, padL wBytes b, padR wAcc a, padL wCov c]
+     in T.intercalate "\n" (map renderRow allRows)
+
+-- | Split a free range @[lo, hi]@ at access boundaries — each accessed cluster
+--   and each unaccessed gap becomes its own @x@ row.
+splitByAccess :: Intervals -> Int -> Int -> [(Text, Int, Int)]
+splitByAccess accessedAll lo hi =
+    let inRange = intervalsToList (accessedAll `intervalsIntersect` intervalsRange lo hi)
+        go cursor [] = [("x", cursor, hi) | cursor <= hi]
+        go cursor ((alo, ahi) : rest)
+            | cursor < alo = ("x", cursor, alo - 1) : ("x", alo, ahi) : go (ahi + 1) rest
+            | otherwise = ("x", alo, ahi) : go (ahi + 1) rest
+     in go lo inRange
 
 defaultView ::
     (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
@@ -130,7 +253,7 @@ defaultView labels st "pc:label" =
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
 defaultView _labels st "instruction" =
-    Just $ either error show (readInstruction (memoryDump st) (programCounter st))
+    Just $ either error (show . snd) (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
