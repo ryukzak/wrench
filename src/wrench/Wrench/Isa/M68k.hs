@@ -406,11 +406,14 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , cFlag = False
             }
 
+instance MachineTime (MachineState (IoMem (Isa w w) w) w) where
+    getTime State{mem} = getTime mem
+    setTime time st@State{mem} = st{mem = setTime time mem}
+
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioDevices State{mem} = ioMemDevices mem
-    machineClock State{mem = IoMem{mClock}} = mClock
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
@@ -559,8 +562,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         instruction <- readInstruction mem pc
                         return (pc, instruction)
                 )
-
-    afterInstructionStep = modify $ \st@State{mem} -> st{mem = tickIoMem mem}
 
     instructionExecute _pc instruction = do
         case instruction of

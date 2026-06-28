@@ -257,6 +257,10 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
+instance MachineTime (MachineState (IoMem (Isa w w) w) w) where
+    getTime State{ram} = getTime ram
+    setTime time st@State{ram} = st{ram = setTime time ram}
+
 setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setP addr = modify $ \st -> st{p = addr}
 
@@ -344,7 +348,6 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{p} = p
     memoryDump State{ram} = ram
     ioDevices State{ram} = ioMemDevices ram
-    machineClock State{ram = IoMem{mClock}} = mClock
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
@@ -376,8 +379,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         instruction <- readInstruction ram p
                         return (p, instruction)
                 )
-
-    afterInstructionStep = modify $ \st@State{ram} -> st{ram = tickIoMem ram}
 
     instructionExecute _pc instruction =
         case instruction of

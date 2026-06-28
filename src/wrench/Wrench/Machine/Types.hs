@@ -1,6 +1,7 @@
 module Wrench.Machine.Types (
     Trace (..),
     Machine (..),
+    MachineTime (..),
     Mem (..),
     IoMem (..),
     IoDevices (..),
@@ -12,7 +13,6 @@ module Wrench.Machine.Types (
     mkIoMem,
     mkIoMemWithSpi,
     ioMemDevices,
-    tickIoMem,
     Cell (..),
     InitState (..),
     StateInterspector (..),
@@ -165,16 +165,22 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
-class StateInterspector st m isa w | st -> m isa w where
+class MachineTime st where
+    getTime :: st -> Int
+    setTime :: Int -> st -> st
+    tickTime :: st -> st
+    tickTime st = setTime (getTime st + 1) st
+
+class (MachineTime st) => StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
     ioDevices :: st -> IoDevices w
     machineClock :: st -> Int
-    machineClock _ = 0
+    machineClock = getTime
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
-class Machine st isa w | st -> isa w where
+class (MachineTime st) => Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
     instructionStep = do
@@ -183,7 +189,7 @@ class Machine st isa w | st -> isa w where
         afterInstructionStep
     instructionExecute :: Int -> isa -> State st ()
     afterInstructionStep :: State st ()
-    afterInstructionStep = return ()
+    afterInstructionStep = modify tickTime
 
 halted :: Text
 halted = "halted"
@@ -348,8 +354,9 @@ mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }
 
-tickIoMem :: IoMem isa w -> IoMem isa w
-tickIoMem io@IoMem{mClock} = io{mClock = mClock + 1}
+instance MachineTime (IoMem isa w) where
+    getTime IoMem{mClock} = mClock
+    setTime time io = io{mClock = time}
 
 data Cell isa w
     = Instruction isa
