@@ -1,0 +1,35 @@
+name: "SPI mode 1 echo"
+limit: 2000
+memory_size: 0x1000
+spi:
+  0:
+    mode: 1
+    role: slave
+    cs_bit:
+      address: 0x90
+      bit: 0
+    clk_bit:
+      address: 0x90
+      bit: 1
+    mosi_bit:
+      address: 0x90
+      bit: 2
+    miso_bit:
+      address: 0x94
+      bit: 0
+    input:
+      - at: 0
+        word: 0xA5
+      - at: 32
+        word: 0
+reports:
+  - name: SPI mode 1
+    slice: last
+    filter:
+      - state
+    view: |
+      spi_miso[0]: {spi:0:miso}
+      spi_mosi[0]: {spi:0:mosi}
+      spi_status[0]: {spi:0:status}
+      spi_clock[0]: {spi:0:clock}
+      spi_pins[0]: {spi:0:pins}

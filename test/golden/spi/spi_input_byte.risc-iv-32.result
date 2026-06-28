@@ -1,0 +1,7 @@
+---
+# Check SPI byte input
+spi_miso[0]: [] >>> [(165,0),(0,8)]
+spi_mosi[0]: [] >>> [(165,8),(0,16)]
+spi_status[0]: miso_empty
+spi_clock[0]: 16
+spi_pins[0]: cs=1 clk=0 mosi=0 miso=0

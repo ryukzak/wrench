@@ -27,9 +27,11 @@ import Wrench.Machine.Types (
     InitState (..),
     IoMem (..),
     Machine (..),
+    MachineTime (..),
     StateInterspector (..),
     fromSign,
     halted,
+    ioMemDevices,
  )
 import Wrench.Machine.Word (fitSigned, lShiftR)
 import Wrench.Report
@@ -445,6 +447,10 @@ data MachineState mem w = State
     }
     deriving (Show)
 
+instance MachineTime (MachineState (IoMem (Isa w w) w) w) where
+    getTime State{mem} = getTime mem
+    setTime time st@State{mem} = st{mem = setTime time mem}
+
 getRandoms :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) [Int]
 getRandoms n = do
     State{randoms} <- get
@@ -523,7 +529,7 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
-    ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
+    ioDevices State{mem} = ioMemDevices mem
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{regs} v =

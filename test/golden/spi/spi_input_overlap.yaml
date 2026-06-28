@@ -1,0 +1,24 @@
+limit: 10
+memory_size: 512
+
+spi:
+  0:
+    mode: 0
+    role: slave
+    cs_bit:
+      address: 0x90
+      bit: 0
+    clk_bit:
+      address: 0x90
+      bit: 1
+    mosi_bit:
+      address: 0x90
+      bit: 2
+    miso_bit:
+      address: 0x94
+      bit: 0
+    input:
+      - at: 0
+        byte: 0x11
+      - at: 4
+        byte: 0x22

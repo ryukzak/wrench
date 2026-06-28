@@ -1,9 +1,18 @@
 module Wrench.Machine.Types (
     Trace (..),
     Machine (..),
+    MachineTime (..),
     Mem (..),
     IoMem (..),
+    IoDevices (..),
+    SpiClockMode (..),
+    SpiPinsConf (..),
+    SpiPinsSnapshot (..),
+    SpiMisoShift (..),
+    SpiDevice (..),
     mkIoMem,
+    mkIoMemWithSpi,
+    ioMemDevices,
     Cell (..),
     InitState (..),
     StateInterspector (..),
@@ -30,15 +39,18 @@ module Wrench.Machine.Types (
     halted,
 ) where
 
+import Data.Aeson (FromJSON (..), genericParseJSON)
+import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Bits
 import Data.Default (Default, def)
+import Data.IntMap.Strict qualified as IM
 import Data.Interval qualified as I
 import Data.IntervalSet (IntervalSet)
 import Data.IntervalSet qualified as IS
 import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
-import Relude.Extra (keys)
+import Relude.Extra (keys, toPairs)
 
 -- * State
 
@@ -130,10 +142,18 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
-class StateInterspector st m isa w | st -> m isa w where
+class MachineTime st where
+    getTime :: st -> Int
+    setTime :: Int -> st -> st
+    tickTime :: st -> st
+    tickTime st = setTime (getTime st + 1) st
+
+class (MachineTime st) => StateInterspector st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
-    ioStreams :: st -> IntMap ([w], [w])
+    ioDevices :: st -> IoDevices w
+    machineClock :: st -> Int
+    machineClock = getTime
     reprState :: HashMap String w -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
@@ -146,13 +166,16 @@ class StateInterspector st m isa w | st -> m isa w where
     summaryView :: HashMap String w -> st -> Text -> Maybe Text
     summaryView _labels _st _var = Nothing
 
-class Machine st isa w | st -> isa w where
+class (MachineTime st) => Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
     instructionStep = do
         (pc, instruction) <- either (error . ("internal error: " <>)) id <$> instructionFetch
         instructionExecute pc instruction
+        afterInstructionStep
     instructionExecute :: Int -> isa -> State st ()
+    afterInstructionStep :: State st ()
+    afterInstructionStep = modify tickTime
 
 halted :: Text
 halted = "halted"
@@ -177,24 +200,158 @@ data Mem isa w = Mem
 
 data IoMem isa w = IoMem
     { mIoStreams :: IntMap ([w], [w])
+    , mSpiDevices :: IntMap (SpiDevice w)
+    , mClock :: Int
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
+    , mSpiKeys :: [Int]
     , mIoByteToWord :: IntMap Int
     , mAccessLog :: !AccessLog
     -- ^ Tracks the address ranges touched at runtime, surfaced via @mem:*@.
     }
     deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
-mkIoMem streams cells =
+data IoDevices w = IoDevices
+    { iodStreams :: IntMap ([w], [w])
+    , iodSpiDevices :: IntMap (SpiDevice w)
+    }
+    deriving (Eq, Show)
+
+ioMemDevices :: IoMem isa w -> IoDevices w
+ioMemDevices IoMem{mIoStreams, mSpiDevices} =
+    IoDevices
+        { iodStreams = mIoStreams
+        , iodSpiDevices = mSpiDevices
+        }
+
+data SpiMisoShift w = SpiMisoShift
+    { smsWord :: w
+    , smsBitIndex :: Int
+    , smsTick :: Int
+    }
+    deriving (Eq, Show)
+
+data SpiClockMode = SpiMode0 | SpiMode1 | SpiMode2 | SpiMode3
+    deriving (Eq, Show)
+
+instance FromJSON SpiClockMode where
+    parseJSON value = do
+        mode <- parseJSON value
+        case (mode :: Int) of
+            0 -> pure SpiMode0
+            1 -> pure SpiMode1
+            2 -> pure SpiMode2
+            3 -> pure SpiMode3
+            _ -> fail "invalid spi mode, expected 0|1|2|3"
+
+data SpiPinsConf = SpiPinsConf
+    { spCsAddr :: Int
+    , spCsBit :: Int
+    , spClkAddr :: Int
+    , spClkBit :: Int
+    , spMosiAddr :: Int
+    , spMosiBit :: Int
+    , spMisoAddr :: Int
+    , spMisoBit :: Int
+    }
+    deriving (Eq, Generic, Show)
+
+instance FromJSON SpiPinsConf where
+    parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
+
+data SpiPinsSnapshot = SpiPinsSnapshot
+    { spsTick :: Int
+    , spsCsPin :: Bool
+    , spsClkPin :: Bool
+    , spsMosiPin :: Bool
+    , spsMisoPin :: Bool
+    }
+    deriving (Eq, Show)
+
+data SpiDevice w = SpiDevice
+    { spiMisoPending :: [(w, Int, Int)]
+    , spiMisoConsumed :: [(w, Int)]
+    , spiMosiLog :: [(w, Int)]
+    , spiClockMode :: SpiClockMode
+    , spiPins :: SpiPinsConf
+    , spiCsPin :: Bool
+    , spiClkPin :: Bool
+    , spiMosiPin :: Bool
+    , spiMisoPin :: Bool
+    , spiMosiShift :: w
+    , spiMosiBits :: Int
+    , spiMosiFrameBits :: Int
+    , spiMisoShift :: Maybe (SpiMisoShift w)
+    , spiSoftClock :: Int
+    , spiWaveLog :: [SpiPinsSnapshot]
+    }
+    deriving (Eq, Show)
+
+mkIoMem :: forall w isa. (ByteSizeT w, Num w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+mkIoMem streams = mkIoMemWithSpi streams mempty mempty mempty
+
+mkIoMemWithSpi ::
+    forall w isa.
+    (ByteSizeT w, Num w) =>
+    IntMap ([w], [w])
+    -> IntMap [(w, Int, Int)]
+    -> IntMap SpiClockMode
+    -> IntMap SpiPinsConf
+    -> Mem isa w
+    -> IoMem isa w
+mkIoMemWithSpi streams spiInputs spiModes spiPins cells =
     IoMem
         { mIoStreams = streams
+        , mSpiDevices =
+            IM.fromList
+                $ map
+                    ( \(deviceId, misoData) ->
+                        let mode = fromMaybe SpiMode0 (spiModes IM.!? deviceId)
+                            pins =
+                                fromMaybe
+                                    (error $ "internal error: missing SPI pin mapping for " <> show deviceId)
+                                    (spiPins IM.!? deviceId)
+                         in ( deviceId
+                            , SpiDevice
+                                { spiMisoPending = misoData
+                                , spiMisoConsumed = []
+                                , spiMosiLog = []
+                                , spiClockMode = mode
+                                , spiPins = pins
+                                , spiCsPin = True
+                                , spiClkPin = False
+                                , spiMosiPin = False
+                                , spiMisoPin = False
+                                , spiMosiShift = 0
+                                , spiMosiBits = 0
+                                , spiMosiFrameBits = byteSizeT @w * 8
+                                , spiMisoShift = Nothing
+                                , spiSoftClock = 0
+                                , spiWaveLog =
+                                    [ SpiPinsSnapshot
+                                        { spsTick = 0
+                                        , spsCsPin = True
+                                        , spsClkPin = False
+                                        , spsMosiPin = False
+                                        , spsMisoPin = False
+                                        }
+                                    ]
+                                }
+                            )
+                    )
+                    (toPairs spiInputs)
+        , mClock = 0
         , mIoCells = cells
         , mIoKeys = keys streams
+        , mSpiKeys = keys spiInputs
         , mAccessLog = emptyAccessLog
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }
+
+instance MachineTime (IoMem isa w) where
+    getTime IoMem{mClock} = mClock
+    setTime time io = io{mClock = time}
 
 data Cell isa w
     = Instruction isa

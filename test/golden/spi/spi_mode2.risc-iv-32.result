@@ -1,0 +1,7 @@
+---
+# SPI mode 2
+spi_miso[0]: [] >>> [(165,0),(0,32)]
+spi_mosi[0]: [] >>> [(165,32),(0,64)]
+spi_status[0]: miso_empty
+spi_clock[0]: 64
+spi_pins[0]: cs=1 clk=1 mosi=0 miso=0

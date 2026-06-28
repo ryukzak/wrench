@@ -224,6 +224,10 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
+instance MachineTime (MachineState (IoMem (Isa w w) w) w) where
+    getTime State{ram} = getTime ram
+    setTime time st@State{ram} = st{ram = setTime time ram}
+
 setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
@@ -270,7 +274,7 @@ getCarryFlag = carryFlag <$> get
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{ram} = ram
-    ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
+    ioDevices State{ram} = ioMemDevices ram
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{acc, overflowFlag, carryFlag} v =

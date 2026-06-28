@@ -20,6 +20,7 @@ import Relude
 import Relude.Extra
 import Text.Regex.TDFA
 import Wrench.Machine.Memory
+import Wrench.Machine.Spi
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..))
 
@@ -260,16 +261,17 @@ defaultView labels st v =
         ["memory", a, b] -> Just $ viewMemory a b $ dumpCells $ memoryDump st
         ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
         ["io", a, fmt] -> Just $ viewIO fmt a st
+        ["spi", a, fmt] -> Just $ viewSpi fmt a st
         _ -> Nothing
 
 viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
 viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
-viewIO "dec" addr st = case ioStreams st !? readAddr addr of
+viewIO "dec" addr st = case iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)
     Nothing -> error $ "incorrect IO address: " <> show addr
-viewIO "hex" addr st = case ioStreams st !? readAddr addr of
+viewIO "hex" addr st = case iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) ->
         T.replace "\"" ""
             $ T.intercalate
@@ -279,7 +281,7 @@ viewIO "hex" addr st = case ioStreams st !? readAddr addr of
                 , show (reverse (map word32ToHex os))
                 ]
     Nothing -> error $ "incorrect IO address: " <> show addr
-viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
+viewIO "sym" addr st = case bimap sym sym <$> iodStreams (ioDevices st) !? readAddr addr of
     Just (is, os) -> fixEscapes (show is) <> " >>> " <> fixEscapes (show (reverse os))
     Nothing -> error $ "incorrect IO address: " <> show addr
     where
@@ -295,6 +297,43 @@ viewIO "sym" addr st = case bimap sym sym <$> ioStreams st !? readAddr addr of
                 )
         fixEscapes = T.replace "\\NUL" "\\0" . (toText :: String -> Text)
 viewIO fmt _addr _st = unknownFormat fmt
+
+viewSpi :: (MachineWord w, StateInterspector st m isa w) => Text -> Text -> st -> Text
+viewSpi "miso" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just SpiDevice{spiMisoPending, spiMisoConsumed} ->
+        show (map pendingMisoForReport spiMisoPending) <> " >>> " <> show spiMisoConsumed
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "mosi" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just SpiDevice{spiMosiLog} -> "[] >>> " <> show spiMosiLog
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "status" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just device -> spiStatusText (spiDeviceClock (machineClock st) device) device
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "clock" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just device -> show $ spiDeviceClock (machineClock st) device
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "pins" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just SpiDevice{spiCsPin, spiClkPin, spiMosiPin, spiMisoPin} ->
+        "cs="
+            <> pinBit spiCsPin
+            <> " clk="
+            <> pinBit spiClkPin
+            <> " mosi="
+            <> pinBit spiMosiPin
+            <> " miso="
+            <> pinBit spiMisoPin
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi "wave" addr st = case iodSpiDevices (ioDevices st) !? readAddr addr of
+    Just device -> spiWaveText (readAddr addr) device
+    Nothing -> error $ "incorrect SPI address: " <> show addr
+viewSpi fmt _addr _st = unknownFormat fmt
+
+pendingMisoForReport :: (w, Int, Int) -> (w, Int)
+pendingMisoForReport (value, tick, _) = (value, tick)
+
+pinBit :: Bool -> Text
+pinBit True = "1"
+pinBit False = "0"
 
 readAddr t = fromMaybe (error $ "can't parse memory address: " <> t) $ readMaybe $ toString t
 

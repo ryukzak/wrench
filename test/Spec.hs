@@ -70,6 +70,15 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_nothing.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/ble_bleu.s" "test/golden/risc-iv-32/ble_bleu.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_input_byte.s" "test/golden/spi/spi_input_byte.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_input_bytes.s" "test/golden/spi/spi_input_bytes.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_wave.s" "test/golden/spi/spi_wave.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_mode0.s" "test/golden/spi/spi_mode0.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_mode1.s" "test/golden/spi/spi_mode1.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_mode2.s" "test/golden/spi/spi_mode2.yaml"
+                , goldenSimulate RiscIv "test/golden/spi/spi_mode3.s" "test/golden/spi/spi_mode3.yaml"
+                , testSpiPinConflict
+                , testSpiInputOverlap
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/sb.s" "test/golden/risc-iv-32/sb.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/multi_sections.s" "test/golden/risc-iv-32/multi_sections.yaml"
@@ -252,6 +261,25 @@ generatedTest' isa sname vname n = testGroup sname testCases
 
 generatedTest :: Isa -> String -> Int -> TestTree
 generatedTest isa name = generatedTest' isa name name
+
+testSpiPinConflict :: TestTree
+testSpiPinConflict =
+    testCase "SPI pin conflict is rejected" $ do
+        src <- decodeUtf8 <$> readFileBS "test/golden/spi/spi_mode0.s"
+        conf <- either (error . toText) id <$> readConfig "test/golden/spi/spi_pin_conflict.yaml"
+        case wrench @(RiscIvState Int32) def{input = "test/golden/spi/spi_mode0.s"} conf src of
+            Left "spi pin 144:0 is assigned more than once: spi[0]:cs, spi[1]:cs" -> return ()
+            Left err -> assertFailure $ "unexpected error: " <> toString err
+            Right _ -> assertFailure "expected SPI pin conflict error"
+
+testSpiInputOverlap :: TestTree
+testSpiInputOverlap =
+    testCase "SPI input overlap is rejected" $ do
+        result <- readConfig "test/golden/spi/spi_input_overlap.yaml"
+        case result of
+            Left "spi[0].input: value at tick 4 overlaps value at tick 0" -> return ()
+            Left err -> assertFailure $ "unexpected error: " <> err
+            Right _ -> assertFailure "expected SPI input overlap error"
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =

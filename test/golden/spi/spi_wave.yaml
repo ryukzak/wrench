@@ -1,0 +1,39 @@
+name: "SPI wave report echo"
+limit: 2000
+memory_size: 0x1000
+spi:
+  0:
+    mode: 0
+    role: slave
+    cs_bit:
+      address: 0x90
+      bit: 5
+    clk_bit:
+      address: 0x90
+      bit: 6
+    mosi_bit:
+      address: 0x90
+      bit: 7
+    miso_bit:
+      address: 0x94
+      bit: 3
+    input:
+      - at: 0
+        word: 0xA5
+      - at: 32
+        bytes: [0x12, 0x34, 0x56, 0x78]
+      - at: 64
+        word: 0
+reports:
+  - name: Check SPI wave report
+    slice: last
+    filter:
+      - state
+    view: |
+      spi_miso[0]: {spi:0:miso}
+      spi_mosi[0]: {spi:0:mosi}
+      spi_status[0]: {spi:0:status}
+      spi_clock[0]: {spi:0:clock}
+      spi_pins[0]: {spi:0:pins}
+      spi_wave[0]:
+      {spi:0:wave}

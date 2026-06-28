@@ -13,12 +13,11 @@ module Wrench.Machine.Memory (
     computeDumpStats,
 ) where
 
-import Data.Bits (FiniteBits, finiteBitSize)
-import Data.Default (Default, def)
 import Numeric (showHex)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import Wrench.Machine.Spi
 import Wrench.Machine.Types
 import Wrench.Translator.Types
 
@@ -250,24 +249,29 @@ instance
     memCapacity Mem{memorySize} = memorySize
 
 ioPortInstructionCollision ::
-    forall w isa. (ByteSize isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
-ioPortInstructionCollision IoMem{mIoKeys} addr instr =
+    forall w isa. (ByteSize isa, ByteSizeT w) => IoMem isa w -> Int -> isa -> Bool
+ioPortInstructionCollision io addr instr =
     let !n = byteSize instr
-        wn = finiteBitSize (def :: w) `div` 8
-        !result = any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) mIoKeys
+        wn = byteSizeT @w
+        !result =
+            any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + wn - 1)) (ioWordKeys @w io)
      in result
 
-ioPortWordCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortWordCollision IoMem{mIoKeys} addr =
-    let n = finiteBitSize (def :: w) `div` 8
-     in any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + n - 1)) mIoKeys
+ioPortWordCollision :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Bool
+ioPortWordCollision io addr =
+    let n = byteSizeT @w
+     in any (\idx -> (idx - n + 1 <= addr && addr <= idx - 1) || (idx + 1 <= addr && addr <= idx + n - 1)) (ioWordKeys @w io)
 
-ioPortByteCollision :: forall w isa. (Default w, FiniteBits w) => IoMem isa w -> Int -> Bool
-ioPortByteCollision IoMem{mIoKeys} addr =
-    let n = finiteBitSize (def :: w) `div` 8
+ioPortByteCollision :: forall w isa. (ByteSizeT w) => IoMem isa w -> Int -> Bool
+ioPortByteCollision io addr =
+    let n = byteSizeT @w
         mkParts idx = [idx + 1 .. idx + n - 1]
-        parts = concatMap mkParts mIoKeys
+        parts = concatMap mkParts (ioWordKeys @w io)
      in (addr `elem` parts)
+
+ioWordKeys :: forall w isa. IoMem isa w -> [Int]
+ioWordKeys IoMem{mIoKeys, mSpiDevices} =
+    mIoKeys <> spiWordKeys mSpiDevices
 
 noteInstrAccess, noteDataAccess, noteIoAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
 noteInstrAccess addr len io =
@@ -292,11 +296,15 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
         | Just wordIdx <- mIoByteToWord !? idx = do
             (io', word) <- readWord io wordIdx
             return (io', wordSplit word Unsafe.!! (idx - wordIdx))
+    readByte io idx
+        | Just result <- readSpiByte io idx = result
     readByte io@IoMem{mIoCells} idx = do
         (mIoCells', v) <- readByte mIoCells idx
         return (noteDataAccess idx 1 io{mIoCells = mIoCells'}, v)
 
     readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
+    readWord io idx
+        | Just result <- readSpiWord io idx = result
     readWord io@IoMem{mIoStreams, mIoCells} idx = do
         case mIoStreams !? idx of
             Just ([], _) -> Left $ "iomemory[" <> show idx <> "]: input is depleted"
@@ -308,6 +316,8 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
                 return (noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}, w)
 
     writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't write word to input port"
+    writeWord io idx word
+        | Just result <- writeSpiWord io idx word = result
     writeWord io idx word =
         case mIoStreams io !? idx of
             Just (is, os) -> Right $ noteIoAccess idx (byteSizeT @w) io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
@@ -318,6 +328,8 @@ instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMe
     writeByte io idx _byte
         | ioPortByteCollision io idx =
             Left $ "iomemory[" <> show idx <> "]: can't write byte to input port"
+    writeByte io idx byte
+        | Just result <- writeSpiByte io idx byte = result
     writeByte io idx byte =
         case mIoStreams io !? idx of
             Just (is, os) -> Right $ noteIoAccess idx 1 io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
