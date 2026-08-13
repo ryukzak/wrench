@@ -42,7 +42,7 @@ handler_overflow:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 multiply:
-    31 >r                \ for R = 31
+    31 >r                    \ for R = 31
 multiply_do:
     +*                       \ mres-high:acc-old:n:[]
     \ mres-low in a
@@ -54,7 +54,7 @@ multiply_do:
     \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 divide:
-    31 >r                \ for R = 31
+    31 >r                    \ for R = 31
 divide_do:
     +/
 
@@ -81,7 +81,7 @@ continue_factorial:
 
     a! !b                    \ []
     a @b                     \ n:acc:[]
-    0 0              \ 0:0:n:acc:[]
+    0 0                      \ 0:0:n:acc:[]
     divide                   \ quot:rem:n:acc:[]
     over >r >r drop r> r>    \ rem:quot:n:acc:[]
     if continue_factorial2
@@ -90,13 +90,13 @@ continue_factorial:
 continue_factorial2:
     @p tmp_prev              \ prev_acc:quot:n:acc[]
 
-    inv 1 + +            \ quot-prev_acc:n:acc[]
+    inv 1 + +                \ quot-prev_acc:n:acc[]
 
     if continue_factorial3
     handler_overflow
 
 continue_factorial3:
-    -1 +                 \ n-1:acc
+    -1 +                     \ n-1:acc
     factorial_while ;
 
 factorial_finish:

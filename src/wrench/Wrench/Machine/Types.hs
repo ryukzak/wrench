@@ -253,8 +253,8 @@ inIntervals addr (Intervals s) = IS.member (toInteger addr) s
 -- | Total number of bytes covered by all intervals.
 intervalsSize :: Intervals -> Int
 intervalsSize (Intervals s) =
-    fromInteger
-        $ sum
+    fromInteger $
+        sum
             [ hi - lo
             | i <- IS.toAscList s
             , I.Finite lo <- [I.lowerBound i]

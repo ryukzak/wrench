@@ -11,6 +11,7 @@ module Wrench.Wrench (
 
 import Data.Default (Default (..), def)
 import Data.Text qualified as T
+import Prelude (Read (..))
 import Relude
 import Relude.Extra
 import System.Random (StdGen, mkStdGen, uniformR)
@@ -28,7 +29,6 @@ import Wrench.Report
 import Wrench.Translator
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
-import Prelude (Read (..))
 
 data Options = Options
     { input :: FilePath
@@ -172,8 +172,8 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
         isSuccess = all fst reports
         reportTexts = map snd reports
 
-    return
-        $ Result
+    return $
+        Result
             { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
             , rLabels = labels
             , rSuccess = isSuccess

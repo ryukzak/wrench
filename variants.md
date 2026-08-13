@@ -1565,12 +1565,7 @@ def affine2d_transform(*xs):
         y = xs[2 + 2 * i]
         u = 3 * x + 2 * y + 5
         v = -x + 4 * y - 7
-        if (
-            u < -0x80000000
-            or u > 0x7FFFFFFF
-            or v < -0x80000000
-            or v > 0x7FFFFFFF
-        ):
+        if u < -0x80000000 or u > 0x7FFFFFFF or v < -0x80000000 or v > 0x7FFFFFFF:
             return [0xCCCCCCCC]
         result.extend([u, v])
 

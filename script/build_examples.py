@@ -73,11 +73,7 @@ def discover_examples(example_root: Path) -> list[Example]:
 
         for s in sources:
             s_stem = Path(s).stem
-            matched = [
-                y
-                for y, task in yaml_task.items()
-                if s_stem == task
-            ]
+            matched = [y for y, task in yaml_task.items() if s_stem == task]
             for y in sorted(matched):
                 examples.append(Example(isa_dir, s, y, example_root))
     return examples
@@ -140,9 +136,7 @@ def crop_log(text: str, limit: int) -> str:
     return "LOG TOO LONG, CROPPED\n\n" + text[-limit:]
 
 
-def render_status_log(
-    *, version: str, cmd: str, exit_code: int, stderr: str
-) -> str:
+def render_status_log(*, version: str, cmd: str, exit_code: int, stderr: str) -> str:
     return "\n".join(
         [
             "$ wrench --version",

@@ -181,9 +181,9 @@ sparseMem =
         ( Mem
             { memorySize = 16
             , memoryData =
-                fromList
-                    $ map (\x -> (fromEnum x, Value x)) [0 .. 7]
-                    <> map (,Value 0) [8 .. 15]
+                fromList $
+                    map (\x -> (fromEnum x, Value x)) [0 .. 7]
+                        <> map (,Value 0) [8 .. 15]
             }
         )
 
@@ -210,18 +210,18 @@ accessLogTests =
             ]
         , testGroup
             "data accesses"
-            [ testCase "readWord on plain memory records alData"
-                $ (renderIntervals . alData <$> logAfter (`readWord` 0) iomem)
-                @?= Right "0..3"
-            , testCase "readByte on plain memory records 1-byte alData"
-                $ (renderIntervals . alData <$> logAfter (`readByte` 9) iomem)
-                @?= Right "9..9"
-            , testCase "writeWord on plain memory records alData"
-                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeWord m 0 0xDEADBEEF) iomem)
-                @?= Right "0..3"
-            , testCase "writeByte on plain memory records alData"
-                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 9 0xFF) iomem)
-                @?= Right "9..9"
+            [ testCase "readWord on plain memory records alData" $
+                (renderIntervals . alData <$> logAfter (`readWord` 0) iomem)
+                    @?= Right "0..3"
+            , testCase "readByte on plain memory records 1-byte alData" $
+                (renderIntervals . alData <$> logAfter (`readByte` 9) iomem)
+                    @?= Right "9..9"
+            , testCase "writeWord on plain memory records alData" $
+                (renderIntervals . alData <$> logAfterWrite (\m -> writeWord m 0 0xDEADBEEF) iomem)
+                    @?= Right "0..3"
+            , testCase "writeByte on plain memory records alData" $
+                (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 9 0xFF) iomem)
+                    @?= Right "9..9"
             , testCase "adjacent writes coalesce into one range" $ do
                 let go0 = writeByte sparseMem 8 0x01
                     go1 = go0 >>= \m -> writeByte m 9 0x02
@@ -271,12 +271,12 @@ accessLogTests =
             -- The runtime tracker only cares whether the address is in IO or
             -- memory — it doesn't know about "declared" sections — so writes
             -- beyond the active section still show up in alData.
-            [ testCase "write at the start of the unused tail"
-                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 8 0x42) sparseMem)
-                @?= Right "8..8"
-            , testCase "write near the very end"
-                $ (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 15 0xFF) sparseMem)
-                @?= Right "15..15"
+            [ testCase "write at the start of the unused tail" $
+                (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 8 0x42) sparseMem)
+                    @?= Right "8..8"
+            , testCase "write near the very end" $
+                (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 15 0xFF) sparseMem)
+                    @?= Right "15..15"
             , testCase "in-bounds + out-of-section coalesce by adjacency" $ do
                 case writeByte sparseMem 7 0x01 of
                     Right m1 -> case writeByte m1 8 0x02 of

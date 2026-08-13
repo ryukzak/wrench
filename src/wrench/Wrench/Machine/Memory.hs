@@ -62,8 +62,8 @@ prepareDump memorySize sections =
                                 DWord ws -> concatMap wordSplit ws
                 )
         fromSections =
-            snd
-                $ foldl'
+            snd $
+                foldl'
                     ( \(offset, dump) ->
                         ( \case
                             Code{org, codeTokens} -> addSection (processCode codeTokens) (fromMaybe offset org) dump
@@ -76,12 +76,12 @@ prepareDump memorySize sections =
         placeholder = map (,Value 0) [0 .. memorySize - 1]
      in if dumpSize > memorySize
             then
-                Left
-                    $ "program does not fit in memory: it needs "
-                    <> show dumpSize
-                    <> " bytes, but memory_size is "
-                    <> show memorySize
-                    <> " bytes. Increase memory_size in the configuration."
+                Left $
+                    "program does not fit in memory: it needs "
+                        <> show dumpSize
+                        <> " bytes, but memory_size is "
+                        <> show memorySize
+                        <> " bytes. Increase memory_size in the configuration."
             else
                 Right
                     Mem

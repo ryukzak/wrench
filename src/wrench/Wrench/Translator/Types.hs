@@ -18,9 +18,9 @@ module Wrench.Translator.Types (
     derefSection,
 ) where
 
+import Prelude qualified
 import Relude
 import Wrench.Machine.Types
-import Prelude qualified
 
 class DerefMnemonic m w where
     derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w

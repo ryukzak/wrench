@@ -1,6 +1,6 @@
-; Exercises the {memory:table} report — two text and two data sections,
-; partial coverage of the second data section (b_str declared but never read),
-; a stack region, and gaps between sections.
+     ; Exercises the {memory:table} report — two text and two data sections,
+     ; partial coverage of the second data section (b_str declared but never read),
+     ; a stack region, and gaps between sections.
 
     .text
 _start:
@@ -21,7 +21,7 @@ _start:
     halt
 
     .data
-input_ptr:   .word  0x80
+input_ptr:       .word  0x80
 
     ; Skip past the memory-mapped IO range (0x80..0x87).
     .text
@@ -57,7 +57,7 @@ read_c:
     jr       ra
 
     .data
-output_ptr:  .word  0x84
-a_str:       .byte  'aaaaaaa'
-b_str:       .byte  'bbbbbb'
-c_str:       .byte  'ccccc'
+output_ptr:      .word  0x84
+a_str:           .byte  'aaaaaaa'
+b_str:           .byte  'bbbbbb'
+c_str:           .byte  'ccccc'

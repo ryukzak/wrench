@@ -109,8 +109,8 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
                 , "==="
                 , srCmd
                 ]
-    return
-        $ SimulationResult
+    return $
+        SimulationResult
             { srExitCode
             , srSuccess = srExitCode == ExitSuccess
             , srOutput
