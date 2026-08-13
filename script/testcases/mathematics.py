@@ -4,6 +4,8 @@ from testcases.core import (
     Word2Word,
     Words2Words,
     limit_to_int32,
+    max_int32,
+    min_int32,
     overflow_error_value,
 )
 
@@ -352,6 +354,220 @@ TEST_CASES["sum_word_pstream"] = TestCase(
     ],
     reference=sum_word_pstream,
     reference_cases=[],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def power(base, exp):
+    """Compute base raised to the power of a non-negative exponent.
+
+    - exp < 0: return -1
+    - Overflow (result outside int32 range): return 0xCCCCCCCC
+
+    Args:
+        base (int): The base value.
+        exp (int): The non-negative exponent.
+
+    Returns:
+        list: A one-element list with the result.
+    """
+    if exp < 0:
+        return [-1]
+    result = 1
+    for _ in range(exp):
+        result *= base
+        if result > max_int32 or result < min_int32:
+            return [overflow_error_value]
+    return [result]
+
+
+power_ref = power
+
+TEST_CASES["power"] = TestCase(
+    simple=power,
+    cases=[
+        Words2Words([2, 10], [1024]),
+        Words2Words([3, 5], [243]),
+        Words2Words([5, 0], [1]),
+        Words2Words([0, 5], [0]),
+    ],
+    reference=power_ref,
+    reference_cases=[
+        Words2Words([2, -1], [-1]),
+        Words2Words([1, 100], [1]),
+        Words2Words([10, 9], [1000000000]),
+        Words2Words([10, 10], [overflow_error_value]),
+        Words2Words([2, 30], [1073741824]),
+        Words2Words([2, 31], [overflow_error_value]),
+        Words2Words([-2, 31], [-2147483648]),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def collatz_length(n):
+    """Count the number of steps to reach 1 in the Collatz sequence.
+
+    Starting from n, apply:
+    - n even: n = n // 2
+    - n odd: n = 3 * n + 1
+    Repeat until n == 1; return the number of steps.
+
+    Note: intermediate values may temporarily exceed 32 bits for some inputs.
+
+    - n <= 0: return -1
+    - n == 1: return 0
+
+    Args:
+        n (int): The starting value.
+
+    Returns:
+        int: The number of steps to reach 1, or -1 for invalid input.
+    """
+    if n <= 0:
+        return -1
+    steps = 0
+    while n != 1:
+        if n % 2 == 0:
+            n //= 2
+        else:
+            n = 3 * n + 1
+        steps += 1
+    return steps
+
+
+collatz_length_ref = collatz_length
+
+TEST_CASES["collatz_length"] = TestCase(
+    simple=collatz_length,
+    cases=[
+        Word2Word(1, 0),
+        Word2Word(2, 1),
+        Word2Word(6, 8),
+        Word2Word(10, 6),
+    ],
+    reference=collatz_length_ref,
+    reference_cases=[
+        Word2Word(-1, -1),
+        Word2Word(0, -1),
+        Word2Word(3, 7),
+        Word2Word(4, 2),
+        Word2Word(5, 5),
+        Word2Word(27, 111, limit=3000),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def _gcd_helper(a, b):
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def lcm(a, b):
+    """Compute the least common multiple (LCM) of two positive integers.
+
+    - a <= 0 or b <= 0: return -1
+    - Overflow: return 0xCCCCCCCC
+
+    Args:
+        a (int): First positive integer.
+        b (int): Second positive integer.
+
+    Returns:
+        list: A one-element list with the LCM.
+    """
+    if a <= 0 or b <= 0:
+        return [-1]
+    g = _gcd_helper(a, b)
+    result = (a // g) * b
+    if result > max_int32:
+        return [overflow_error_value]
+    return [result]
+
+
+lcm_ref = lcm
+
+TEST_CASES["lcm"] = TestCase(
+    simple=lcm,
+    cases=[
+        Words2Words([4, 6], [12]),
+        Words2Words([12, 18], [36]),
+        Words2Words([7, 5], [35]),
+        Words2Words([1, 100], [100]),
+    ],
+    reference=lcm_ref,
+    reference_cases=[
+        Words2Words([0, 5], [-1]),
+        Words2Words([-1, 5], [-1]),
+        Words2Words([48, 0], [-1]),
+        Words2Words([6, 4], [12]),
+        Words2Words([2147483647, 1], [2147483647]),
+        Words2Words([100000, 100001], [overflow_error_value]),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def integer_sqrt(n):
+    """Compute the integer square root (floor of sqrt(n)).
+
+    - n < 0: return -1
+    - n == 0: return 0
+
+    Args:
+        n (int): The non-negative integer.
+
+    Returns:
+        int: floor(sqrt(n)), or -1 for negative input.
+    """
+    if n < 0:
+        return -1
+    x = int(n**0.5)
+    while x * x > n:
+        x -= 1
+    while (x + 1) * (x + 1) <= n:
+        x += 1
+    return x
+
+
+integer_sqrt_ref = integer_sqrt
+
+TEST_CASES["integer_sqrt"] = TestCase(
+    simple=integer_sqrt,
+    cases=[
+        Word2Word(0, 0),
+        Word2Word(1, 1),
+        Word2Word(4, 2),
+        Word2Word(9, 3),
+        Word2Word(16, 4),
+        Word2Word(25, 5),
+    ],
+    reference=integer_sqrt_ref,
+    reference_cases=[
+        Word2Word(-1, -1),
+        Word2Word(2, 1),
+        Word2Word(15, 3),
+        Word2Word(17, 4),
+        Word2Word(2147483647, 46340),
+    ],
     is_variant=True,
     category="Mathematics",
 )

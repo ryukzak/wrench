@@ -75,9 +75,7 @@ Also we have the following helper functions not from builtins:
 
 ```python
 """
-    + "\n\n".join(
-        inspect.getsource(e) for e in [read_line, cstr, pstr, cbuf, pbuf]
-    )
+    + "\n\n".join(inspect.getsource(e) for e in [read_line, cstr, pstr, cbuf, pbuf])
     + "```\n"
 )
 
