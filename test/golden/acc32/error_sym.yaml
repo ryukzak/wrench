@@ -8,7 +8,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction}	{pc:label} {Acc}
+      {pc}:	{instruction:next}	{pc:label} {Acc}
   - name: Result
     slice: last
     view: |

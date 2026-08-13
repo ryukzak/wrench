@@ -204,6 +204,7 @@ tests =
                 , goldenSimulate VliwIv "test/golden/vliw-iv/lui_addi.s" "test/golden/vliw-iv/lui_addi.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/sb.s" "test/golden/vliw-iv/sb.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/hello.s" "test/golden/vliw-iv/hello.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/halt.s" "test/golden/vliw-iv/halt.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate VliwIv "test/golden/vliw-iv/factorial.s" "test/golden/vliw-iv/factorial_input_5.yaml"

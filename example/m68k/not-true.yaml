@@ -9,7 +9,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}
       {A0} {A1} {D0} {D1}
   - name: Result
     slice: last

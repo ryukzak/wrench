@@ -17,4 +17,6 @@ A0 1 A1 -1
 A0 1 A1 -1
 112:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = A1, bleuRs2 = Zero, bleuK = -42}}	
 A0 1 A1 -1
-126:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+126:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	
+A0 1 A1 -1
+126:	-

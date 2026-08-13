@@ -87,6 +87,7 @@
 [120, 4]       746:	Isa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
 [120, 132]       760:	Isa {memOp = Sw {swRs2 = A0, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
 [120, 132]       774:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+[120, 132]       774:	-
 ---
 # result
 numio[0x80]: [] >>> []

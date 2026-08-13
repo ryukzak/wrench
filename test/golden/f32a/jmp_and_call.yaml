@@ -4,7 +4,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}
   - name: Check results
     slice: last
     filter:

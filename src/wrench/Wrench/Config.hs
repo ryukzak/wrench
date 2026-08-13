@@ -55,7 +55,7 @@ instance Default Config where
                         { rcName = Just "Executed Instruction Log"
                         , rcSlice = AllSlice
                         , rcAssert = Nothing
-                        , rcView = Just "{pc}: {instruction} {pc:label}\n"
+                        , rcView = Just "{pc}: {instruction:next} {pc:label}\n"
                         }
                     ]
             , cSeed = Nothing

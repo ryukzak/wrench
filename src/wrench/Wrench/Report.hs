@@ -69,8 +69,8 @@ prepareReport
                         $ filter (not . T.null)
                         $ map
                             ( \case
-                                TState{tInstructionCount, tState} ->
-                                    prepareStateView rvView' trResult finalState tInstructionCount tState
+                                TState{tInstructionCount, tPrevInstruction, tState} ->
+                                    prepareStateView rvView' trResult finalState tInstructionCount tPrevInstruction tState
                                 (TError err) -> "ERROR: " <> err <> "\n"
                                 (TWarn warn) -> "WARN: " <> warn <> "\n"
                             )
@@ -118,7 +118,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount st =
+prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount prevInstr st =
     let DumpStats
             { dsSectionsTotalBytes
             , dsTextSectionsBytes
@@ -127,7 +127,13 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             , dsDataIntervals
             } = dumpStats
         AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
+        showNextInstruction =
+            if isHalted st
+                then "-"
+                else either (const "-") (show . snd) (readInstruction (memoryDump st) (programCounter st))
         resolver v = case T.splitOn ":" v of
+            ["instruction", "prev"] -> maybe "-" show prevInstr
+            ["instruction", "next"] -> showNextInstruction
             ["sim", "instruction-count"] -> show instrCount
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes
@@ -251,8 +257,6 @@ defaultView labels st "pc:label" =
     Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
-defaultView _labels st "instruction" =
-    Just $ either error (show . snd) (readInstruction (memoryDump st) (programCounter st))
 defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"

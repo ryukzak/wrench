@@ -9,7 +9,7 @@ reports:
     slice: all
     view: |
       A B T S BUF {A:hex} {B:hex} {T:hex} {S:hex} {memory:0x88:0x92}
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}
   - name: Result
     slice: last
     filter:

@@ -9,7 +9,7 @@ reports:
     slice: all
     view: |
       T A S {T:hex} {A:hex} {S:hex} R {R}
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}
   - name: Result
     slice: last
     view: |

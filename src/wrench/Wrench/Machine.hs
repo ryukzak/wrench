@@ -17,8 +17,8 @@ data Simulation st isa = Simulation
     , takePartOnStateRecordLimit :: Int
     }
 
-tellState :: st -> State (Simulation st isa) ()
-tellState machineState = modify $
+tellState :: Maybe isa -> st -> State (Simulation st isa) ()
+tellState prevInstr machineState = modify $
     \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
         if stateRecordCount >= stateRecordLimits
             then
@@ -39,7 +39,7 @@ tellState machineState = modify $
                         }
             else
                 sim
-                    { log = TState{tInstructionCount = instructionCount + 1, tState = machineState} : log
+                    { log = TState{tInstructionCount = instructionCount, tPrevInstruction = prevInstr, tState = machineState} : log
                     , stateRecordCount = stateRecordCount + 1
                     }
 
@@ -49,10 +49,11 @@ tellError msg = modify $ \sim@Simulation{log} ->
 -- | Run the simulation and return both the recorded trace log and the final
 --   machine state. The final state carries the complete runtime accumulators
 --   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
---   pre-step and therefore don't include the last instruction's accesses.
+--   after each step, so the last entry captures the result of the halt
+--   instruction too.
 simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
 simulate sim =
-    let Simulation{log, machineState} = execState simulate' sim
+    let Simulation{log, machineState} = execState (simulate' Nothing) sim
      in (reverse log, machineState)
 
 simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
@@ -63,17 +64,19 @@ simulateInstructionStep =
             , instructionCount = instructionCount + 1
             }
 
-simulate' :: (Machine st isa w) => State (Simulation st isa) ()
-simulate' = do
+simulate' :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
+simulate' prevInstr = do
     Simulation{machineState, instructionCount, instructionLimits} <- get
     if instructionCount >= instructionLimits
         then tellError "Simulation limit reached"
         else case evalState instructionFetch machineState of
-            Right _ -> do
-                tellState machineState
+            Right (_, instr) -> do
+                tellState prevInstr machineState
                 simulateInstructionStep
-                simulate'
-            Left err | err == halted -> return ()
+                simulate' (Just instr)
+            Left err | err == halted -> do
+                Simulation{machineState = stateAfter} <- get
+                tellState prevInstr stateAfter
             Left err -> tellError err
 
 powerOn ::
