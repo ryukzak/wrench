@@ -10,7 +10,7 @@ _start:
 
     lit buf a!               \ a for buf address
 
-    14                   \ hardcoded counter on T
+    14                       \ hardcoded counter on T
 
 while:
     dup

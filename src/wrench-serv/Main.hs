@@ -163,8 +163,8 @@ submitForm conf@Config{cStoragePath, cVariantsPath} cookie task@SimulationReques
             -- report block injected into each generated variant config). Headed by
             -- the case's status line so the report page can show stats per case.
             let statsLog =
-                    T.intercalate "\n\n---\n\n"
-                        $ map
+                    T.intercalate "\n\n---\n\n" $
+                        map
                             ( \(SimulationResult{srTestCaseStatus, srStats}) ->
                                 "# " <> T.takeWhile (/= '\n') srTestCaseStatus <> "\n" <> srStats
                             )

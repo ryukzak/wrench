@@ -18,8 +18,8 @@ data Simulation st isa = Simulation
     }
 
 tellState :: st -> State (Simulation st isa) ()
-tellState machineState = modify
-    $ \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
+tellState machineState = modify $
+    \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
         if stateRecordCount >= stateRecordLimits
             then
                 let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
@@ -85,8 +85,8 @@ powerOn ::
     -> Either Text ([Trace st isa], st)
 powerOn instructionLimits stateRecordLimits labels machineInitState = do
     let pc2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
-    Right
-        $ simulate
+    Right $
+        simulate
             Simulation
                 { log = []
                 , machineState = machineInitState

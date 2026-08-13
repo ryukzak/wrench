@@ -147,8 +147,8 @@ trackPosthogEvent Config{} event = do
     let payload = encode $ posthogEvent posthogApiKey event
     request <- HTTP.parseRequest "POST https://eu.i.posthog.com/i/v0/e"
     let request' =
-            HTTP.setRequestBody (HTTP.RequestBodyLBS payload)
-                $ HTTP.setRequestHeader "Content-Type" ["application/json"] request
+            HTTP.setRequestBody (HTTP.RequestBodyLBS payload) $
+                HTTP.setRequestHeader "Content-Type" ["application/json"] request
     catch
         (void $ HTTP.httpNoBody request')
         (\(e :: SomeException) -> putStrLn $ "Posthog tracking error: " ++ show e)

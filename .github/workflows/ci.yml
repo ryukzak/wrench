@@ -11,9 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: haskell-actions/run-fourmolu@v12
+      - uses: haskell-actions/run-fourmolu@v13
         with:
-          version: "0.17.0.0"
+          version: "0.20.1.0"
 
   html-formatting:
     timeout-minutes: 5

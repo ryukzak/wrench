@@ -119,13 +119,13 @@ initialStateWithMem pc regs instr memWrites =
                 def
                 ( Mem
                     { memoryData =
-                        fromList
-                            $ [(i, Value 0) | i <- [0 .. 255]]
-                            <> [ (pc, Instruction instr)
-                               , (pc + 1, InstructionPart)
-                               , (pc + 2, InstructionPart)
-                               , (pc + 3, InstructionPart)
-                               ]
+                        fromList $
+                            [(i, Value 0) | i <- [0 .. 255]]
+                                <> [ (pc, Instruction instr)
+                                   , (pc + 1, InstructionPart)
+                                   , (pc + 2, InstructionPart)
+                                   , (pc + 3, InstructionPart)
+                                   ]
                     , memorySize = 256
                     }
                 )

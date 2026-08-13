@@ -271,8 +271,8 @@ viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Nothing -> error ("incorrect IO address: " <> show addr)
 viewIO "hex" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) ->
-        T.replace "\"" ""
-            $ T.intercalate
+        T.replace "\"" "" $
+            T.intercalate
                 ""
                 [ show (map word32ToHex is)
                 , " >>> "
