@@ -190,7 +190,7 @@ reports:
   - name: "Execution trace"
     slice: all
     view: |
-      {pc}: {instruction} {pc:label}
+      {pc}: {instruction:next} {pc:label}
 
   - name: "Result verification"
     slice: last
@@ -247,7 +247,7 @@ reports:
     - name: Step-by-step log
       slice: all
       view: |
-        {pc}: {instruction} {pc:label}
+        {pc}: {instruction:next} {pc:label}
   ```
 
 Each report configuration can include the following fields:
@@ -286,13 +286,14 @@ General state view expressions implemented for all ISAs:
 
 - `pc:dec`, `pc:hex` -- Print program counter in decimal or hexadecimal format.
 - `pc:label` -- Print `@label-name` if current program counter is assigned with a label.
-- `instruction` -- Print current instruction.
+- `instruction:next` -- Print the next instruction to execute, or `-` when the machine has halted.
+- `instruction:prev` -- Print the instruction that was just executed, or `-` for the initial state (before any instruction has run).
 - `memory:<a>:<b>` -- Print memory dump between addresses `<a>` and `<b>`.
 - `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- Print input-output stream state for the specific address in decimal, symbol, or hexadecimal format. Printable char codes: [32, 126]. Also `\0`, `\n` will be printed as is. Other non-printable characters will be replaced with `?`.
 
 Execution and memory statistics. These are typically used with `slice: last` to emit one final summary line; the values are the totals for the whole run.
 
-- `sim:instruction-count` -- Number of instructions executed so far. With `slice: all` it shows the running step counter (1, 2, ...); with `slice: last` it shows the total for the run.
+- `sim:instruction-count` -- Number of instructions executed so far. With `slice: all` it shows the running step counter (0, 1, 2, ...); with `slice: last` it shows the total for the run.
 - `layout:sections-size` -- Sum of byte sizes of all sections (no gaps from `.org`).
 - `layout:text-sections-size`, `layout:data-sections-size` -- Same, split by section kind.
 - `layout:text-ranges` -- Address ranges of all declared `.text` sections (e.g. `0x0..0x27, 0x40..0x5b`). Hex by default; `:dec` / `:hex` suffix to override.

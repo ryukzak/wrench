@@ -5,4 +5,4 @@ reports:
     slice: all
     view: |
       A0 {A0} A1 {A1}
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}

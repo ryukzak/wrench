@@ -1,15 +1,23 @@
-name: "assert hello(*()) == ('Hello\n\0World',)"
+name: "vliw halt: side-effects in halt bundle are captured in final state"
 limit: 1000
 memory_size: 0x1000
 memory_mapped_io:
-  0x80: []
-  0x84: []
+    0x80: []
+    0x84: []
 reports:
-  - name: Check results
-    slice: all
-    view: |
-      at {pc} T0: {T0}
-    assert: |
-      at 0 T0: 0
-      at 14 T0: 1
-      at 14 T0: 2
+    - name: Check results
+      slice: all
+      view: |
+          at {pc} T0: {T0}
+      assert: |
+          at 0 T0: 0
+          at 14 T0: 1
+          at 14 T0: 2
+    - name: Check instruction prev/next
+      slice: all
+      view: |
+          prev: {instruction:prev} next: {instruction:next}
+      assert: |
+          prev: - next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+          prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC} next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt}
+          prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt} next: -

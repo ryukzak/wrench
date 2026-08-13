@@ -430,6 +430,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
+    isHalted State{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
     reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =

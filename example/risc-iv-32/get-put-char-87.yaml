@@ -9,7 +9,7 @@ reports:
     slice: all
     view: |
       {T0} {T1} {T2}
-      {pc}:	{instruction}	{pc:label}
+      {pc}:	{instruction:next}	{pc:label}
   - name: Check results
     slice: last
     view: |

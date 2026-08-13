@@ -146,6 +146,8 @@ class StateInterspector st m isa w | st -> m isa w where
     summaryView :: HashMap Text w -> st -> Text -> Maybe Text
     summaryView _labels _st _var = Nothing
 
+    isHalted :: st -> Bool
+
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))
     instructionStep :: State st ()
@@ -158,11 +160,12 @@ halted :: Text
 halted = "halted"
 
 data Trace st isa
-    = -- | A captured machine state, tagged with the 1-indexed instruction step
-      --   number it sits before (i.e. the @sim:instruction-count@ value at this
-      --   point in the trace).
+    = -- | A captured machine state after executing @tInstructionCount@ instructions.
+      --   @tPrevInstruction@ is the instruction that was just executed to reach
+      --   this state (@Nothing@ for the initial state before any execution).
       TState
         { tInstructionCount :: !Int
+        , tPrevInstruction :: !(Maybe isa)
         , tState :: !st
         }
     | TError Text

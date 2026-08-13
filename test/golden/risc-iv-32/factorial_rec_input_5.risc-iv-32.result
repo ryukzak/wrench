@@ -87,6 +87,7 @@
 [120, 104]       180:	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 [120, 132]       184:	Sw {rs2 = A0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 [120, 132]       188:	Halt
+[120, 132]       188:	-
 ---
 # result
 numio[0x80]: [] >>> []

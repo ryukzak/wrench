@@ -7,6 +7,7 @@
 36:	LoadAddr 8	 -1
 41:	StoreInd 12	 111
 46:	Halt	 111
+46:	-	 111
 ---
 # Result
 numio[0x80]: [] >>> []

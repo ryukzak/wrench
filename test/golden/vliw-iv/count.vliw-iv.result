@@ -45,6 +45,7 @@
 424:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Add {addRd = T2, addRs1 = T2, addRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000002 0x00000014 0x00000008 @count
 438:	Isa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T2, bgtRs2 = T5, bgtK = 28}}	0x00000000 0x00000002 0x00000016 0x00000008 
 466:	Isa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	0x00000000 0x00000002 0x00000016 0x00000008 @end
+466:	-	0x00000000 0x00000002 0x00000016 0x00000008 @end
 ---
 # Result
 mem[4..7]: 	02 00 00 00

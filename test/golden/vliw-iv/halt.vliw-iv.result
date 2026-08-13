@@ -1,0 +1,10 @@
+---
+# Check results
+at 0 T0: 0
+at 14 T0: 1
+at 14 T0: 2
+---
+# Check instruction prev/next
+prev: - next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC} next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt}
+prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt} next: -

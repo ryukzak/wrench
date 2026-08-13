@@ -8,7 +8,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}: {instruction} {pc:label} carry: {C} eam: {EAM} stack: {stack:hex}
+      {pc}: {instruction:next} {pc:label} carry: {C} eam: {EAM} stack: {stack:hex}
     assert: |
       0: Lit 2 @_start carry: 0 eam: 0 stack:
       5: Lit (-2)  carry: 0 eam: 0 stack: 0x00000002
@@ -29,3 +29,4 @@ reports:
       52: Add  carry: 1 eam: 1 stack: 0x00000000:0x00000002
       53: Drop  carry: 0 eam: 1 stack: 0x00000003
       54: Halt  carry: 0 eam: 1 stack:
+      54: -  carry: 0 eam: 1 stack:

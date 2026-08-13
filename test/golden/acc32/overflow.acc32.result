@@ -12,3 +12,4 @@
 40:	Bcs 46	 Acc: 0 Overflow: 0 Carry: 1
 46:	Clc	@clean_carry Acc: 0 Overflow: 0 Carry: 1
 47:	Halt	 Acc: 0 Overflow: 0 Carry: 0
+47:	-	 Acc: 0 Overflow: 0 Carry: 0
