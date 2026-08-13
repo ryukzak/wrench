@@ -58,6 +58,7 @@ jobs:
           enable-stack: true
           stack-version: "latest"
           stack-no-global: true
+          ghc-version: "9.10.3"
 
       - name: Test
         run: make test
@@ -114,6 +115,7 @@ jobs:
           enable-stack: true
           stack-version: "latest"
           stack-no-global: true
+          ghc-version: "9.10.3"
 
       - run: make gen-stack-deps
       - run: git diff --exit-code
@@ -156,6 +158,7 @@ jobs:
           enable-stack: true
           stack-version: "latest"
           stack-no-global: true
+          ghc-version: "9.10.3"
 
       - name: Build binary
         run: |
