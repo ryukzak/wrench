@@ -1,7 +1,7 @@
 ###########################################################
 # Stage 1: Build the Haskell builder image with deps
 
-FROM haskell:9.10.1-bullseye AS wrench-builder
+FROM haskell:9.10.3-bookworm AS wrench-builder
 
 RUN apt-get update && apt-get install -y \
     libgmp-dev \

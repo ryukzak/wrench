@@ -96,6 +96,28 @@ jobs:
       - run: python script/variants.py
       - run: git diff --exit-code
 
+  is-stack-deps-actual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/cache@v5
+        name: Cache ~/.stack
+        with:
+          path: ${{ '~/.stack' }}
+          key: ${{ runner.os }}-wrench-with-test-${{ hashFiles('.stack-deps.txt') }}
+
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
+
+      - run: make gen-stack-deps
+      - run: git diff --exit-code
+
   build-binaries:
     needs:
       - wrench
@@ -194,6 +216,7 @@ jobs:
     needs:
       - wrench
       - is-variants-and-tests-actual
+      - is-stack-deps-actual
       - haskell-lint
     if: github.ref == 'refs/heads/master'
     timeout-minutes: 30
