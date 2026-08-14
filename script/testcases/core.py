@@ -1,6 +1,5 @@
-from collections import namedtuple
 import itertools
-
+from collections import namedtuple
 
 TEST_CASES = {}
 
@@ -93,7 +92,9 @@ def limit_to_int32(f):
 
 
 class Words2Words:
-    def __init__(self, xs, ys, rest=[], limit=2000):
+    def __init__(self, xs, ys, rest=None, limit=2000):
+        if rest is None:
+            rest = []
         self.xs = xs
         self.ys = ys
         self.rest = rest
@@ -128,15 +129,15 @@ class Words2Words:
     def yaml_assert(self):
         return "\n".join(
             [
-                f"      numio[0x80]: [{','.join(map(lambda x: str(uint32_to_int32(x)), self.rest))}] >>> []",
-                f"      numio[0x84]: [] >>> [{','.join(map(lambda x: str(uint32_to_int32(x)), self.ys))}]",
+                f"      numio[0x80]: [{','.join(str(uint32_to_int32(x)) for x in self.rest)}] >>> []",
+                f"      numio[0x84]: [] >>> [{','.join(str(uint32_to_int32(x)) for x in self.ys)}]",
             ]
         )
 
 
 class CharSequence2Word(Words2Words):
     def __init__(self, x, y, limit=2000):
-        super(CharSequence2Word, self).__init__(
+        super().__init__(
             [ord(it) for it in list(x)], [y], limit=limit
         )
         self.x = x
@@ -155,7 +156,7 @@ class CharSequence2Word(Words2Words):
 
 class Word2Word(Words2Words):
     def __init__(self, x, y, limit=2000):
-        super(Word2Word, self).__init__([x], [y], limit=limit)
+        super().__init__([x], [y], limit=limit)
         self.x = x
         self.y = y
 
@@ -172,21 +173,23 @@ class Word2Word(Words2Words):
 
 class Bool2Bool(Word2Word):
     def __init__(self, x, y, limit=2000):
-        super(Bool2Bool, self).__init__(1 if x else 0, 1 if y else 0, limit=limit)
+        super().__init__(1 if x else 0, 1 if y else 0, limit=limit)
 
     def assert_string(self, name):
-        x = True if self.x == 1 else False
-        y = True if self.y == 1 else False
+        x = self.x == 1
+        y = self.y == 1
         return f"assert {name}({x}) == {y}"
 
     def check_assert(self, f):
-        x = True if self.x == 1 else False
-        y = True if self.y == 1 else False
+        x = self.x == 1
+        y = self.y == 1
         assert f(x) == y, f"actual: {f(x)}, expect: {y}"
 
 
 class String2String:
-    def __init__(self, input, output, rest="", mem_view=[], limit=2000):
+    def __init__(self, input, output, rest="", mem_view=None, limit=2000):
+        if mem_view is None:
+            mem_view = []
         self.input = input
         self.output = output
         self.rest = rest

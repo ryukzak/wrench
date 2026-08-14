@@ -25,7 +25,7 @@ RUN echo "Building with VERSION_SUFFIX=${VERSION_SUFFIX}" && \
 ###########################################################
 # Stage 2.2: Generate variants
 
-FROM python:3.13-alpine3.21 AS wrench-variants
+FROM python:3.14-alpine3.24 AS wrench-variants
 
 WORKDIR /app
 COPY script /app

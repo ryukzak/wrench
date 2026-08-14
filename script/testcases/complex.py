@@ -1,13 +1,14 @@
-from testcases.core import (
-    TestCase,
-    overflow_error_value,
-    String2String,
-    Words2Words,
-    TEST_CASES,
-    read_line,
-    cstr,
-)
 import base64
+
+from testcases.core import (
+    TEST_CASES,
+    String2String,
+    TestCase,
+    Words2Words,
+    cstr,
+    overflow_error_value,
+    read_line,
+)
 
 ###########################################################
 
