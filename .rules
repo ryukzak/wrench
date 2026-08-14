@@ -27,35 +27,35 @@ wrench/
 After making **any** changes to Python scripts in the `script/` directory:
 
 ```bash
-make generate-variants format-python lint-fix-python
+make generate-variants format-py lint-fix-py
 ```
 
 This ensures:
 
 1. `generate-variants` - Regenerates variant test cases and documentation
-2. `format-python` - Formats Python code using ruff
-3. `lint-fix-python` - Fixes linting issues automatically
+2. `format-py` - Formats Python code using ruff
+3. `lint-fix-py` - Fixes linting issues automatically
 
 ### Haskell Development Workflow
 
-- If you have a problem with golden tests, run `make golden-fix` (but check their change relevance).
+- If you have a problem with golden tests, run `make test-accept` (but check their change relevance).
 
 After making changes to Haskell code:
 
 ```bash
-make format lint-fix test
+make format lint-fix test-hs
 ```
 
 ### Markdown Documentation Workflow
 
-- After changes in `*.md` files run `make markdown-fix`.
+- After changes in `*.md` files run `make format-md`.
 - Tables in `*.md` files should be formatted (column alignment).
 - Use 4 spaces for indentation in `*.md` files.
 
 After making changes to `*.md` or `.rules` files:
 
 ```bash
-make markdown-fix
+make format-md
 ```
 
 ### Complete Development Cycle
@@ -63,5 +63,8 @@ make markdown-fix
 For comprehensive changes affecting multiple file types:
 
 ```bash
-make fix  # Runs: lint-fix format update-golden markdown-fix
+make fix  # Runs: lint-fix format generate-variants generate-stack-deps test-hs test-examples
 ```
+
+Note: `test-accept` is intentionally excluded — golden file acceptance must be
+a deliberate step (`make test-accept`) so changes are reviewed before committing.
