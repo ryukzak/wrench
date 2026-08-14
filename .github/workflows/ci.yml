@@ -21,11 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Run Biome format
-        run: npx @biomejs/biome format static/
+      - name: Run Biome format check
+        run: make format-check-html
 
       - name: Run Biome lint
-        run: npx @biomejs/biome lint static/
+        run: make lint-html
 
   markdown-formatting:
     timeout-minutes: 5
@@ -61,7 +61,7 @@ jobs:
           ghc-version: "9.10.3"
 
       - name: Test
-        run: make test
+        run: make test-hs
 
       - name: Test examples
         run: make test-examples
@@ -70,14 +70,12 @@ jobs:
         run: make build
 
       - name: Build examples
-        run: python script/build_examples.py --fail-fast
+        run: make build-examples
 
       - uses: gacts/install-hurl@v1
 
       - name: Test server
-        run: |
-          mkdir variants
-          make test-serv
+        run: make test-server
 
   haskell-lint:
     timeout-minutes: 5
@@ -94,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: python script/variants.py
+      - run: make generate-variants
       - run: git diff --exit-code
 
   is-stack-deps-actual:
@@ -117,7 +115,7 @@ jobs:
           stack-no-global: true
           ghc-version: "9.10.3"
 
-      - run: make gen-stack-deps
+      - run: make generate-stack-deps
       - run: git diff --exit-code
 
   build-binaries:
