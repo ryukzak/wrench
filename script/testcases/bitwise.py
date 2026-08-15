@@ -362,3 +362,50 @@ TEST_CASES["rotate_left"] = TestCase(
     is_variant=True,
     category="Bitwise Operations",
 )
+
+
+###########################################################
+
+
+def rotate_right(val, n):
+    """Rotate a 32-bit integer to the right by n bits.
+
+    Bits that are shifted out from the right side are wrapped
+    around and placed back on the left side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate right.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 >> shift) | (val32 << (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+rotate_right_ref = rotate_right
+
+TEST_CASES["rotate_right"] = TestCase(
+    simple=rotate_right,
+    cases=[
+        Words2Words([2, 1], [1]),
+        Words2Words([0x12345678, 4], [-2128394905]),
+        Words2Words([1, 0], [1]),
+    ],
+    reference=rotate_right_ref,
+    reference_cases=[
+        Words2Words([1, 1], [-2147483648]),
+        Words2Words([-1, 8], [-1]),
+        Words2Words([1, 32], [1]),
+        Words2Words([-2147483648, 32], [-2147483648]),
+        Words2Words([0x0F0F0F0F, 4], [-252645136]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)

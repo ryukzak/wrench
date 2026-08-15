@@ -72,6 +72,7 @@ Variants:
     - [parity](#parity)
     - [reverse_bits](#reverse_bits)
     - [rotate_left](#rotate_left)
+    - [rotate_right](#rotate_right)
 - Complex Tasks
     - [base64_decoding](#base64_decoding)
     - [base64_encoding](#base64_encoding)
@@ -345,6 +346,36 @@ def rotate_left(val, n):
 assert rotate_left(1, 1) == [2]
 assert rotate_left(305419896, 4) == [591751041]
 assert rotate_left(1, 0) == [1]
+```
+
+### `rotate_right`
+
+```python
+def rotate_right(val, n):
+    """Rotate a 32-bit integer to the right by n bits.
+
+    Bits that are shifted out from the right side are wrapped
+    around and placed back on the left side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate right.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 >> shift) | (val32 << (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+assert rotate_right(2, 1) == [1]
+assert rotate_right(305419896, 4) == [-2128394905]
+assert rotate_right(1, 0) == [1]
 ```
 
 ## Complex Tasks
