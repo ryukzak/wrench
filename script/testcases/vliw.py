@@ -1,8 +1,8 @@
 from testcases.core import (
+    TEST_CASES,
     CharSequence2Word,
     TestCase,
     Words2Words,
-    TEST_CASES,
 )
 
 

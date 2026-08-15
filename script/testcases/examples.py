@@ -1,12 +1,12 @@
 from testcases.core import (
+    TEST_CASES,
+    Bool2Bool,
+    String2String,
     TestCase,
     Word2Word,
     Words2Words,
-    String2String,
-    Bool2Bool,
     limit_to_int32,
     overflow_error_value,
-    TEST_CASES,
 )
 
 

@@ -1,8 +1,8 @@
 from testcases.core import (
+    TEST_CASES,
     TestCase,
     Word2Word,
     max_int32,
-    TEST_CASES,
 )
 
 

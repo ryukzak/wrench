@@ -1,15 +1,15 @@
-from testcases.core import (
-    TestCase,
-    overflow_error_value,
-    String2String,
-    TEST_CASES,
-    read_line,
-    pbuf,
-    cbuf,
-    cstr,
-)
 import itertools
 
+from testcases.core import (
+    TEST_CASES,
+    String2String,
+    TestCase,
+    cbuf,
+    cstr,
+    overflow_error_value,
+    pbuf,
+    read_line,
+)
 
 ###########################################################
 

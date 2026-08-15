@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.14
 
 import inspect
 import itertools
 import os
 import random
 
-import testcases.bitwise  # noqa: F401
-import testcases.complex  # noqa: F401
-import testcases.examples  # noqa: F401
-import testcases.mathematics  # noqa: F401
-import testcases.string  # noqa: F401
+import testcases.bitwise
+import testcases.complex
+import testcases.examples
+import testcases.mathematics
+import testcases.string
 import testcases.vliw  # noqa: F401
 from testcases.core import (
     TEST_CASES,
@@ -76,7 +76,7 @@ Also we have the following helper functions not from builtins:
 ```python
 """
     + "\n\n".join(
-        map(lambda e: inspect.getsource(e), [read_line, cstr, pstr, cbuf, pbuf])
+        inspect.getsource(e) for e in [read_line, cstr, pstr, cbuf, pbuf]
     )
     + "```\n"
 )
@@ -124,7 +124,7 @@ def generate_variant_readme():
 
 
 def run_python_test_cases(verbose):
-    for name, variant in TEST_CASES.items():
+    for variant in TEST_CASES.values():
         for case in variant.cases:
             if verbose:
                 print(case.assert_string(variant.simple.__name__))
@@ -234,7 +234,7 @@ def generate_variants(n, fn):
     for row in variants:
         distribution[row] = distribution.get(row, 0) + 1
     grouped_by_rep = {}
-    for k, v in distribution.items():
+    for v in distribution.values():
         grouped_by_rep[v] = grouped_by_rep.get(v, 0) + 1
     print("Generate random variants to csv file:", grouped_by_rep)
     with open(fn, "w") as f:

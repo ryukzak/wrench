@@ -1,0 +1,5 @@
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+ignore = ["FLY002", "BLE001"]
