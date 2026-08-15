@@ -257,32 +257,64 @@ TEST_CASES["count_divisors"] = TestCase(
 ###########################################################
 
 
-def gcd(a, b):
-    """Find the greatest common divisor (GCD)"""
-    while b != 0:
-        a, b = b, a % b
-    return [abs(a)]
+def gcd_many(*input_words):
+    """Find the GCD of multiple integers.
+
+    Input format:
+        [count, value0, value1, ...]
+
+    The count must be positive and must match the number of values.
+
+    Args:
+        *input_words (int): Number of values followed by the values.
+
+    Returns:
+        list: A one-element list containing the GCD.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != count + 1:
+        return [-1]
+
+    result = abs(input_words[1])
+
+    for value in input_words[2:]:
+        a = result
+        b = abs(value)
+
+        while b != 0:
+            a, b = b, a % b
+
+        result = a
+
+    return [result]
 
 
-gcd_ref = gcd
+gcd_many_ref = gcd_many
 
-TEST_CASES["gcd"] = TestCase(
-    simple=gcd,
+TEST_CASES["gcd_many"] = TestCase(
+    simple=gcd_many,
     cases=[
-        Words2Words([48, 18], [6]),
-        Words2Words([56, 98], [14]),
+        Words2Words([2, 48, 18], [6]),
+        Words2Words([3, 12, 18, 24], [6]),
+        Words2Words([4, 48, 18, 30, 42], [6]),
     ],
-    reference=gcd_ref,
+    reference=gcd_many_ref,
     reference_cases=[
-        # What about negative value?
-        #        Words2Words([-1, 18], [-1]),
-        #        Words2Words([48, -1], [-1]),
-        #        Words2Words([48, 0], [-1]),
-        #        Words2Words([0, 18], [-1]),
+        Words2Words([2, 56, 98], [14]),
+        Words2Words([5, 100, 75, 50, 25, 125], [25]),
+        Words2Words([3, -48, 18, -30], [6]),
+        Words2Words([1, 42], [42]),
+        Words2Words([0], [-1]),
+        Words2Words([3, 12, 18], [-1]),
     ],
     is_variant=True,
     category="Mathematics",
 )
+
 
 ###########################################################
 
@@ -567,6 +599,76 @@ TEST_CASES["integer_sqrt"] = TestCase(
         Word2Word(15, 3),
         Word2Word(17, 4),
         Word2Word(2147483647, 46340),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def power_many(*input_words):
+    """Compute powers for multiple (base, exponent) pairs.
+
+    Input format:
+        [count, base0, exp0, base1, exp1, ...]
+
+    Each exponent must be non-negative. Results must fit in int32.
+
+    Args:
+        *input_words (int): Number of pairs followed by base/exponent pairs.
+
+    Returns:
+        list: One result for each pair.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != 1 + 2 * count:
+        return [-1]
+
+    results = []
+
+    for i in range(count):
+        base = input_words[1 + 2 * i]
+        exp = input_words[2 + 2 * i]
+
+        if exp < 0:
+            return [-1]
+
+        result = 1
+
+        for _ in range(exp):
+            result *= base
+
+            if result < min_int32 or result > max_int32:
+                return [overflow_error_value]
+
+        results.append(result)
+
+    return results
+
+
+power_many_ref = power_many
+
+TEST_CASES["power_many"] = TestCase(
+    simple=power_many,
+    cases=[
+        Words2Words([2, 2, 10, 3, 5], [1024, 243]),
+        Words2Words([3, 5, 0, 0, 5, 10, 2], [1, 0, 100]),
+        Words2Words([1, 7, 1], [7]),
+    ],
+    reference=power_many_ref,
+    reference_cases=[
+        Words2Words([4, 2, 3, 3, 4, 5, 0, 10, 1], [8, 81, 1, 10]),
+        Words2Words([2, -2, 3, -2, 4], [-8, 16]),
+        Words2Words([2, 2, 40, 3, 40], [overflow_error_value]),
+        Words2Words([1, 5, -1], [-1]),
+        Words2Words([0], [-1]),
+        Words2Words([2, 2, 3, 3], [-1]),
     ],
     is_variant=True,
     category="Mathematics",

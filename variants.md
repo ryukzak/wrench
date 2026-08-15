@@ -67,8 +67,10 @@ Variants:
     - [count_ones](#count_ones)
     - [count_trailing_zeros](#count_trailing_zeros)
     - [count_zero](#count_zero)
+    - [hamming_distance](#hamming_distance)
     - [is_binary_palindrome](#is_binary_palindrome)
     - [little_to_big_endian](#little_to_big_endian)
+    - [next_power_of_two](#next_power_of_two)
     - [parity](#parity)
     - [reverse_bits](#reverse_bits)
     - [rotate_left](#rotate_left)
@@ -80,6 +82,7 @@ Variants:
     - [brainfuck_interpreter](#brainfuck_interpreter)
     - [char_frequency](#char_frequency)
     - [format_string](#format_string)
+    - [reverse_words_cstr](#reverse_words_cstr)
     - [rle_compress](#rle_compress)
     - [rle_compress_bytes](#rle_compress_bytes)
     - [rle_decompress](#rle_decompress)
@@ -90,11 +93,12 @@ Variants:
     - [collatz_length](#collatz_length)
     - [count_divisors](#count_divisors)
     - [fibonacci](#fibonacci)
-    - [gcd](#gcd)
+    - [gcd_many](#gcd_many)
     - [integer_sqrt](#integer_sqrt)
     - [is_prime](#is_prime)
     - [lcm](#lcm)
     - [power](#power)
+    - [power_many](#power_many)
     - [sum_even_n](#sum_even_n)
     - [sum_n](#sum_n)
     - [sum_odd_n](#sum_odd_n)
@@ -111,6 +115,7 @@ Variants:
     - [lower_case_pstr](#lower_case_pstr)
     - [reverse_string_cstr](#reverse_string_cstr)
     - [reverse_string_pstr](#reverse_string_pstr)
+    - [strstr_cstr](#strstr_cstr)
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
 - VLIW
@@ -238,6 +243,30 @@ assert count_zero(7) == 29
 assert count_zero(247923789) == 19
 ```
 
+### `hamming_distance`
+
+```python
+def hamming_distance(a, b):
+    """Count the number of differing bits between two 32-bit integers.
+
+    The Hamming distance is the number of set bits in (a XOR b).
+
+    Args:
+        a (int): First 32-bit integer.
+        b (int): Second 32-bit integer.
+
+    Returns:
+        list: A one-element list containing the Hamming distance.
+    """
+    diff = (a ^ b) & 0xFFFFFFFF
+    return [diff.bit_count()]
+
+
+assert hamming_distance(0, 0) == [0]
+assert hamming_distance(0, 1) == [1]
+assert hamming_distance(4294967295, 0) == [32]
+```
+
 ### `is_binary_palindrome`
 
 ```python
@@ -271,6 +300,43 @@ def little_to_big_endian(n):
 
 assert little_to_big_endian(305419896) == 2018915346
 assert little_to_big_endian(2864434397) == 3721182122
+```
+
+### `next_power_of_two`
+
+```python
+def next_power_of_two(n):
+    """Return the smallest power of two greater than or equal to n.
+
+    Args:
+        n (int): A non-negative integer.
+
+    Returns:
+        list: A one-element list containing the next power of two.
+
+    Special cases:
+        n < 0: return -1.
+        n == 0: return 1.
+        Result greater than INT32_MAX: return overflow_error_value.
+    """
+    if n < 0:
+        return [-1]
+
+    if n <= 1:
+        return [1]
+
+    result = 1
+    while result < n:
+        result <<= 1
+        if result > max_int32:
+            return [overflow_error_value]
+
+    return [result]
+
+
+assert next_power_of_two(0) == [1]
+assert next_power_of_two(1) == [1]
+assert next_power_of_two(5) == [8]
 ```
 
 ### `parity`
@@ -858,6 +924,46 @@ assert format_string('%5d\n42\n') == ('   42', '')
 assert format_string('%-5d\n42\n') == ('42   ', '')
 ```
 
+### `reverse_words_cstr`
+
+```python
+def reverse_words_cstr(input):
+    """Reverse the order of words in a C string.
+
+    Words are separated by spaces. The characters inside each word
+    remain unchanged.
+
+    Examples:
+        "hello world" -> "world hello"
+        "one two three" -> "three two one"
+
+    The result must fit in a 0x40-byte C string.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        words = line.split(" ")
+        words = [word for word in words if word]
+
+        result = " ".join(reversed(words))
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert reverse_words_cstr('hello world\n') == ('world hello', '')
+assert reverse_words_cstr('one two three\n') == ('three two one', '')
+assert reverse_words_cstr('hello\n') == ('hello', '')
+```
+
 ### `rle_compress`
 
 ```python
@@ -1389,18 +1495,48 @@ assert fibonacci(5) == 5
 assert fibonacci(25) == 75025
 ```
 
-### `gcd`
+### `gcd_many`
 
 ```python
-def gcd(a, b):
-    """Find the greatest common divisor (GCD)"""
-    while b != 0:
-        a, b = b, a % b
-    return [abs(a)]
+def gcd_many(*input_words):
+    """Find the GCD of multiple integers.
+
+    Input format:
+        [count, value0, value1, ...]
+
+    The count must be positive and must match the number of values.
+
+    Args:
+        *input_words (int): Number of values followed by the values.
+
+    Returns:
+        list: A one-element list containing the GCD.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != count + 1:
+        return [-1]
+
+    result = abs(input_words[1])
+
+    for value in input_words[2:]:
+        a = result
+        b = abs(value)
+
+        while b != 0:
+            a, b = b, a % b
+
+        result = a
+
+    return [result]
 
 
-assert gcd(48, 18) == [6]
-assert gcd(56, 98) == [14]
+assert gcd_many(2, 48, 18) == [6]
+assert gcd_many(3, 12, 18, 24) == [6]
+assert gcd_many(4, 48, 18, 30, 42) == [6]
 ```
 
 ### `integer_sqrt`
@@ -1522,6 +1658,58 @@ assert power(2, 10) == [1024]
 assert power(3, 5) == [243]
 assert power(5, 0) == [1]
 assert power(0, 5) == [0]
+```
+
+### `power_many`
+
+```python
+def power_many(*input_words):
+    """Compute powers for multiple (base, exponent) pairs.
+
+    Input format:
+        [count, base0, exp0, base1, exp1, ...]
+
+    Each exponent must be non-negative. Results must fit in int32.
+
+    Args:
+        *input_words (int): Number of pairs followed by base/exponent pairs.
+
+    Returns:
+        list: One result for each pair.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != 1 + 2 * count:
+        return [-1]
+
+    results = []
+
+    for i in range(count):
+        base = input_words[1 + 2 * i]
+        exp = input_words[2 + 2 * i]
+
+        if exp < 0:
+            return [-1]
+
+        result = 1
+
+        for _ in range(exp):
+            result *= base
+
+            if result < min_int32 or result > max_int32:
+                return [overflow_error_value]
+
+        results.append(result)
+
+    return results
+
+
+assert power_many(2, 2, 10, 3, 5) == [1024, 243]
+assert power_many(3, 5, 0, 0, 5, 10, 2) == [1, 0, 100]
+assert power_many(1, 7, 1) == [7]
 ```
 
 ### `sum_even_n`
@@ -1958,6 +2146,59 @@ assert reverse_string_pstr('hello\n') == ('olleh', '')
 # and mem[0..31]: 05 6f 6c 6c 65 68 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert reverse_string_pstr('world!\n') == ('!dlrow', '')
 # and mem[0..31]: 06 21 64 6c 72 6f 77 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+```
+
+### `strstr_cstr`
+
+```python
+def strstr_cstr(input):
+    """Find a substring inside a C string.
+
+    Input format:
+        "haystack|needle\\n"
+
+    The '|' character separates the haystack from the needle.
+
+    Returns:
+        tuple: The zero-based index of the first occurrence of needle,
+        or -1 if needle is not found.
+
+    The input and strings are limited to the 0x20-byte C-string buffer.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        if "|" not in line:
+            return [-1], rest
+
+        haystack, needle = line.split("|", 1)
+
+        if len(haystack) + 1 > 0x20 or len(needle) + 1 > 0x20:
+            return [overflow_error_value], rest
+
+        # Empty needle matches at the beginning.
+        if needle == "":
+            return [0], rest
+
+        if len(needle) > len(haystack):
+            return [-1], rest
+
+        for i in range(len(haystack) - len(needle) + 1):
+            if haystack[i : i + len(needle)] == needle:
+                return [i], rest
+
+        return [-1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert strstr_cstr('hello world|world\n') == ([6], '')
+assert strstr_cstr('hello world|hello\n') == ([0], '')
+assert strstr_cstr('hello world|xyz\n') == ([-1], '')
 ```
 
 ### `upper_case_cstr`

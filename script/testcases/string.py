@@ -798,3 +798,110 @@ TEST_CASES["caesar_cipher"] = TestCase(
     is_variant=True,
     category="String Manipulation",
 )
+
+
+###########################################################
+
+
+def strstr_cstr(input):
+    """Find a substring inside a C string.
+
+    Input format:
+        "haystack|needle\\n"
+
+    The '|' character separates the haystack from the needle.
+
+    Returns:
+        tuple: The zero-based index of the first occurrence of needle,
+        or -1 if needle is not found.
+
+    The input and strings are limited to the 0x20-byte C-string buffer.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        if "|" not in line:
+            return [-1], rest
+
+        haystack, needle = line.split("|", 1)
+
+        if len(haystack) + 1 > 0x20 or len(needle) + 1 > 0x20:
+            return [overflow_error_value], rest
+
+        # Empty needle matches at the beginning.
+        if needle == "":
+            return [0], rest
+
+        if len(needle) > len(haystack):
+            return [-1], rest
+
+        for i in range(len(haystack) - len(needle) + 1):
+            if haystack[i : i + len(needle)] == needle:
+                return [i], rest
+
+        return [-1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+strstr_cstr_ref = strstr_cstr
+
+TEST_CASES["strstr_cstr"] = TestCase(
+    simple=strstr_cstr,
+    cases=[
+        String2String(
+            "hello world|world\n",
+            [6],
+            "",
+        ),
+        String2String(
+            "hello world|hello\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "hello world|xyz\n",
+            [-1],
+            "",
+        ),
+    ],
+    reference=strstr_cstr_ref,
+    reference_cases=[
+        String2String(
+            "banana|ana\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "aaaaa|aaa\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "hello|o\nNext line",
+            [4],
+            "Next line",
+        ),
+        String2String(
+            "hello|\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "short|longer\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "abc|bc\n",
+            [1],
+            "",
+        ),
+    ],
+    is_variant=True,
+    category="String Manipulation",
+)

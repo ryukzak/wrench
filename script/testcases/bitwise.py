@@ -4,6 +4,7 @@ from testcases.core import (
     Word2Word,
     Words2Words,
     max_int32,
+    overflow_error_value,
     uint32_to_int32,
 )
 
@@ -405,6 +406,100 @@ TEST_CASES["rotate_right"] = TestCase(
         Words2Words([1, 32], [1]),
         Words2Words([-2147483648, 32], [-2147483648]),
         Words2Words([0x0F0F0F0F, 4], [-252645136]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+###########################################################
+
+
+def hamming_distance(a, b):
+    """Count the number of differing bits between two 32-bit integers.
+
+    The Hamming distance is the number of set bits in (a XOR b).
+
+    Args:
+        a (int): First 32-bit integer.
+        b (int): Second 32-bit integer.
+
+    Returns:
+        list: A one-element list containing the Hamming distance.
+    """
+    diff = (a ^ b) & 0xFFFFFFFF
+    return [diff.bit_count()]
+
+
+hamming_distance_ref = hamming_distance
+
+TEST_CASES["hamming_distance"] = TestCase(
+    simple=hamming_distance,
+    cases=[
+        Words2Words([0, 0], [0]),
+        Words2Words([0, 1], [1]),
+        Words2Words([0xFFFFFFFF, 0], [32]),
+    ],
+    reference=hamming_distance_ref,
+    reference_cases=[
+        Words2Words([0xAAAAAAAA, 0x55555555], [32]),
+        Words2Words([0x12345678, 0x12345678], [0]),
+        Words2Words([0x12345678, 0x87654321], [14]),
+        Words2Words([-1, 0x7FFFFFFF], [1]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def next_power_of_two(n):
+    """Return the smallest power of two greater than or equal to n.
+
+    Args:
+        n (int): A non-negative integer.
+
+    Returns:
+        list: A one-element list containing the next power of two.
+
+    Special cases:
+        n < 0: return -1.
+        n == 0: return 1.
+        Result greater than INT32_MAX: return overflow_error_value.
+    """
+    if n < 0:
+        return [-1]
+
+    if n <= 1:
+        return [1]
+
+    result = 1
+    while result < n:
+        result <<= 1
+        if result > max_int32:
+            return [overflow_error_value]
+
+    return [result]
+
+
+next_power_of_two_ref = next_power_of_two
+
+TEST_CASES["next_power_of_two"] = TestCase(
+    simple=next_power_of_two,
+    cases=[
+        Words2Words([0], [1]),
+        Words2Words([1], [1]),
+        Words2Words([5], [8]),
+    ],
+    reference=next_power_of_two_ref,
+    reference_cases=[
+        Words2Words([2], [2]),
+        Words2Words([3], [4]),
+        Words2Words([1025], [2048]),
+        Words2Words([1073741824], [1073741824]),
+        Words2Words([1073741825], [overflow_error_value]),
+        Words2Words([-1], [-1]),
     ],
     is_variant=True,
     category="Bitwise Operations",

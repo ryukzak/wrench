@@ -1677,3 +1677,97 @@ TEST_CASES["char_frequency"] = TestCase(
     is_variant=True,
     category="Complex Tasks",
 )
+
+
+###########################################################
+
+
+def reverse_words_cstr(input):
+    """Reverse the order of words in a C string.
+
+    Words are separated by spaces. The characters inside each word
+    remain unchanged.
+
+    Examples:
+        "hello world" -> "world hello"
+        "one two three" -> "three two one"
+
+    The result must fit in a 0x40-byte C string.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        words = line.split(" ")
+        words = [word for word in words if word]
+
+        result = " ".join(reversed(words))
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+reverse_words_cstr_ref = reverse_words_cstr
+
+TEST_CASES["reverse_words_cstr"] = TestCase(
+    simple=reverse_words_cstr,
+    cases=[
+        String2String(
+            "hello world\n",
+            "world hello",
+            "",
+        ),
+        String2String(
+            "one two three\n",
+            "three two one",
+            "",
+        ),
+        String2String(
+            "hello\n",
+            "hello",
+            "",
+        ),
+    ],
+    reference=reverse_words_cstr_ref,
+    reference_cases=[
+        String2String(
+            "the quick brown fox\n",
+            "fox brown quick the",
+            "",
+        ),
+        String2String(
+            "one  two   three\n",
+            "three two one",
+            "",
+        ),
+        String2String(
+            "  hello world  \n",
+            "world hello",
+            "",
+        ),
+        String2String(
+            "\n",
+            "",
+            "",
+        ),
+        String2String(
+            "hello world\nNext line",
+            "world hello",
+            "Next line",
+        ),
+        String2String(
+            "a\n",
+            "a",
+            "",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)
