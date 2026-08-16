@@ -67,14 +67,22 @@ Variants:
     - [count_ones](#count_ones)
     - [count_trailing_zeros](#count_trailing_zeros)
     - [count_zero](#count_zero)
+    - [hamming_distance](#hamming_distance)
     - [is_binary_palindrome](#is_binary_palindrome)
     - [little_to_big_endian](#little_to_big_endian)
+    - [next_power_of_two](#next_power_of_two)
+    - [parity](#parity)
     - [reverse_bits](#reverse_bits)
+    - [rotate_left](#rotate_left)
+    - [rotate_right](#rotate_right)
 - Complex Tasks
     - [base64_decoding](#base64_decoding)
     - [base64_encoding](#base64_encoding)
+    - [bracket_validator](#bracket_validator)
     - [brainfuck_interpreter](#brainfuck_interpreter)
+    - [char_frequency](#char_frequency)
     - [format_string](#format_string)
+    - [reverse_words_cstr](#reverse_words_cstr)
     - [rle_compress](#rle_compress)
     - [rle_compress_bytes](#rle_compress_bytes)
     - [rle_decompress](#rle_decompress)
@@ -82,10 +90,15 @@ Variants:
     - [stack_based_calculator](#stack_based_calculator)
     - [text_word_counter](#text_word_counter)
 - Mathematics
+    - [collatz_length](#collatz_length)
     - [count_divisors](#count_divisors)
     - [fibonacci](#fibonacci)
-    - [gcd](#gcd)
+    - [gcd_many](#gcd_many)
+    - [integer_sqrt](#integer_sqrt)
     - [is_prime](#is_prime)
+    - [lcm](#lcm)
+    - [power](#power)
+    - [power_many](#power_many)
     - [sum_even_n](#sum_even_n)
     - [sum_n](#sum_n)
     - [sum_odd_n](#sum_odd_n)
@@ -93,12 +106,16 @@ Variants:
     - [sum_word_cstream](#sum_word_cstream)
     - [sum_word_pstream](#sum_word_pstream)
 - String Manipulation
+    - [caesar_cipher](#caesar_cipher)
     - [capital_case_cstr](#capital_case_cstr)
     - [capital_case_pstr](#capital_case_pstr)
     - [hello_user_cstr](#hello_user_cstr)
     - [hello_user_pstr](#hello_user_pstr)
+    - [lower_case_cstr](#lower_case_cstr)
+    - [lower_case_pstr](#lower_case_pstr)
     - [reverse_string_cstr](#reverse_string_cstr)
     - [reverse_string_pstr](#reverse_string_pstr)
+    - [strstr_cstr](#strstr_cstr)
     - [upper_case_cstr](#upper_case_cstr)
     - [upper_case_pstr](#upper_case_pstr)
 - VLIW
@@ -109,7 +126,11 @@ Variants:
     - [djb2_hash](#djb2_hash)
     - [fnv32_1_hash](#fnv32_1_hash)
     - [fnv32_1a_hash](#fnv32_1a_hash)
+    - [four_lane_mac](#four_lane_mac)
     - [linear_filter](#linear_filter)
+    - [matrix_2x2_vector_stream](#matrix_2x2_vector_stream)
+    - [min_max_sum](#min_max_sum)
+    - [pairwise_add_sub](#pairwise_add_sub)
     - [sdbm_hash](#sdbm_hash)
     - [sum_and_sum_squares](#sum_and_sum_squares)
 - _Examples_
@@ -222,6 +243,30 @@ assert count_zero(7) == 29
 assert count_zero(247923789) == 19
 ```
 
+### `hamming_distance`
+
+```python
+def hamming_distance(a, b):
+    """Count the number of differing bits between two 32-bit integers.
+
+    The Hamming distance is the number of set bits in (a XOR b).
+
+    Args:
+        a (int): First 32-bit integer.
+        b (int): Second 32-bit integer.
+
+    Returns:
+        list: A one-element list containing the Hamming distance.
+    """
+    diff = (a ^ b) & 0xFFFFFFFF
+    return [diff.bit_count()]
+
+
+assert hamming_distance(0, 0) == [0]
+assert hamming_distance(0, 1) == [1]
+assert hamming_distance(4294967295, 0) == [32]
+```
+
 ### `is_binary_palindrome`
 
 ```python
@@ -257,6 +302,68 @@ assert little_to_big_endian(305419896) == 2018915346
 assert little_to_big_endian(2864434397) == 3721182122
 ```
 
+### `next_power_of_two`
+
+```python
+def next_power_of_two(n):
+    """Return the smallest power of two greater than or equal to n.
+
+    Args:
+        n (int): A non-negative integer.
+
+    Returns:
+        list: A one-element list containing the next power of two.
+
+    Special cases:
+        n < 0: return -1.
+        n == 0: return 1.
+        Result greater than INT32_MAX: return overflow_error_value.
+    """
+    if n < 0:
+        return [-1]
+
+    if n <= 1:
+        return [1]
+
+    result = 1
+    while result < n:
+        result <<= 1
+        if result > max_int32:
+            return [overflow_error_value]
+
+    return [result]
+
+
+assert next_power_of_two(0) == [1]
+assert next_power_of_two(1) == [1]
+assert next_power_of_two(5) == [8]
+```
+
+### `parity`
+
+```python
+def parity(n):
+    """Compute bit parity of a 32-bit integer.
+
+    Returns 1 if the number of set bits is odd, 0 if even.
+
+    Args:
+        n (int): The 32-bit integer.
+
+    Returns:
+        int: 1 for odd parity, 0 if even parity.
+    """
+    count = (n & 0xFFFFFFFF).bit_count()
+    return count % 2
+
+
+assert parity(0) == 0
+assert parity(1) == 1
+assert parity(3) == 0
+assert parity(7) == 1
+assert parity(255) == 0
+```
+
 ### `reverse_bits`
 
 ```python
@@ -275,6 +382,66 @@ def reverse_bits(n):
 
 assert reverse_bits(1) == -2147483648
 assert reverse_bits(2) == 1073741824
+```
+
+### `rotate_left`
+
+```python
+def rotate_left(val, n):
+    """Rotate a 32-bit integer to the left by n bits.
+
+    Bits that are shifted out from the left side are wrapped
+    around and placed back on the right side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate left.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 << shift) | (val32 >> (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+assert rotate_left(1, 1) == [2]
+assert rotate_left(305419896, 4) == [591751041]
+assert rotate_left(1, 0) == [1]
+```
+
+### `rotate_right`
+
+```python
+def rotate_right(val, n):
+    """Rotate a 32-bit integer to the right by n bits.
+
+    Bits that are shifted out from the right side are wrapped
+    around and placed back on the left side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate right.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 >> shift) | (val32 << (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+assert rotate_right(2, 1) == [1]
+assert rotate_right(305419896, 4) == [-2128394905]
+assert rotate_right(1, 0) == [1]
 ```
 
 ## Complex Tasks
@@ -345,6 +512,59 @@ def base64_encoding(input):
 
 
 assert base64_encoding('Hello!\n') == ('SGVsbG8h', '')
+```
+
+### `bracket_validator`
+
+```python
+def bracket_validator(input):
+    """Validate (), [], and {} brackets in a line.
+
+    - Brackets must be properly nested and matched.
+    - Other characters are ignored.
+    - An empty line is valid.
+    - Returns 1 for valid brackets and -1 for invalid brackets.
+    - End of input -- new line.
+
+    Returns:
+        tuple: A tuple containing the validation result and remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        stack = []
+
+        pairs = {
+            ")": "(",
+            "]": "[",
+            "}": "{",
+        }
+
+        for char in line:
+            if char in "([{":
+                stack.append(char)
+
+            elif char in ")]}":
+                if not stack or stack[-1] != pairs[char]:
+                    return [-1], rest
+
+                stack.pop()
+
+        if stack:
+            return [-1], rest
+
+        return [1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert bracket_validator('([]{})\n') == ([1], '')
+assert bracket_validator('([{}])\n') == ([1], '')
+assert bracket_validator('([)]\n') == ([-1], '')
 ```
 
 ### `brainfuck_interpreter`
@@ -488,6 +708,69 @@ assert brainfuck_interpreter(',.\nA') == ('A', '')
 assert brainfuck_interpreter('<\n') == ([-1], '')
 ```
 
+### `char_frequency`
+
+```python
+def char_frequency(input):
+    """Count occurrences of each character in a line.
+
+    - Characters are counted in order of first appearance.
+    - Spaces are counted as normal characters.
+    - Maximum number of unique characters is 12.
+    - Output format: "<char>:<count> ..."
+    - Result must fit into a 0x40-byte C string.
+    - End of input -- new line.
+
+    Examples:
+        "hello" -> "h:1 e:1 l:2 o:1"
+        "aabbc" -> "a:2 b:2 c:1"
+
+    Returns:
+        tuple: A tuple containing the frequency string and remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    if not line:
+        return "", rest
+
+    try:
+        order = []
+        counts = {}
+
+        for char in line:
+            if char not in counts:
+                if len(order) >= 12:
+                    return [-1], rest
+
+                order.append(char)
+                counts[char] = 0
+
+            counts[char] += 1
+
+        parts = []
+
+        for char in order:
+            parts.append(f"{char}:{counts[char]}")
+
+        result = " ".join(parts)
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert char_frequency('hello\n') == ('h:1 e:1 l:2 o:1', '')
+assert char_frequency('aabbc\n') == ('a:2 b:2 c:1', '')
+assert char_frequency('\n') == ('', '')
+```
+
 ### `format_string`
 
 ```python
@@ -618,7 +901,7 @@ def format_string(input):
                 result = format_str
             else:
                 result = format_str % tuple(integers)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Calculate remaining input
             remaining = "\n".join(lines[line_idx:]) if line_idx < len(lines) else ""
             return [-1], remaining
@@ -639,6 +922,46 @@ def format_string(input):
 assert format_string('Num: %d\n42\n') == ('Num: 42', '')
 assert format_string('%5d\n42\n') == ('   42', '')
 assert format_string('%-5d\n42\n') == ('42   ', '')
+```
+
+### `reverse_words_cstr`
+
+```python
+def reverse_words_cstr(input):
+    """Reverse the order of words in a C string.
+
+    Words are separated by spaces. The characters inside each word
+    remain unchanged.
+
+    Examples:
+        "hello world" -> "world hello"
+        "one two three" -> "three two one"
+
+    The result must fit in a 0x40-byte C string.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        words = line.split(" ")
+        words = [word for word in words if word]
+
+        result = " ".join(reversed(words))
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert reverse_words_cstr('hello world\n') == ('world hello', '')
+assert reverse_words_cstr('one two three\n') == ('three two one', '')
+assert reverse_words_cstr('hello\n') == ('hello', '')
 ```
 
 ### `rle_compress`
@@ -1086,6 +1409,46 @@ assert text_word_counter('a,b.c a\n') == ('2 1 1', '')
 
 ## Mathematics
 
+### `collatz_length`
+
+```python
+def collatz_length(n):
+    """Count the number of steps to reach 1 in the Collatz sequence.
+
+    Starting from n, apply:
+    - n even: n = n // 2
+    - n odd: n = 3 * n + 1
+    Repeat until n == 1; return the number of steps.
+
+    Note: intermediate values may temporarily exceed 32 bits for some inputs.
+
+    - n <= 0: return -1
+    - n == 1: return 0
+
+    Args:
+        n (int): The starting value.
+
+    Returns:
+        int: The number of steps to reach 1, or -1 for invalid input.
+    """
+    if n <= 0:
+        return -1
+    steps = 0
+    while n != 1:
+        if n % 2 == 0:
+            n //= 2
+        else:
+            n = 3 * n + 1
+        steps += 1
+    return steps
+
+
+assert collatz_length(1) == 0
+assert collatz_length(2) == 1
+assert collatz_length(6) == 8
+assert collatz_length(10) == 6
+```
+
 ### `count_divisors`
 
 ```python
@@ -1132,18 +1495,81 @@ assert fibonacci(5) == 5
 assert fibonacci(25) == 75025
 ```
 
-### `gcd`
+### `gcd_many`
 
 ```python
-def gcd(a, b):
-    """Find the greatest common divisor (GCD)"""
-    while b != 0:
-        a, b = b, a % b
-    return [abs(a)]
+def gcd_many(*input_words):
+    """Find the GCD of multiple integers.
+
+    Input format:
+        [count, value0, value1, ...]
+
+    The count must be positive and must match the number of values.
+
+    Args:
+        *input_words (int): Number of values followed by the values.
+
+    Returns:
+        list: A one-element list containing the GCD.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != count + 1:
+        return [-1]
+
+    result = abs(input_words[1])
+
+    for value in input_words[2:]:
+        a = result
+        b = abs(value)
+
+        while b != 0:
+            a, b = b, a % b
+
+        result = a
+
+    return [result]
 
 
-assert gcd(48, 18) == [6]
-assert gcd(56, 98) == [14]
+assert gcd_many(2, 48, 18) == [6]
+assert gcd_many(3, 12, 18, 24) == [6]
+assert gcd_many(4, 48, 18, 30, 42) == [6]
+```
+
+### `integer_sqrt`
+
+```python
+def integer_sqrt(n):
+    """Compute the integer square root (floor of sqrt(n)).
+
+    - n < 0: return -1
+    - n == 0: return 0
+
+    Args:
+        n (int): The non-negative integer.
+
+    Returns:
+        int: floor(sqrt(n)), or -1 for negative input.
+    """
+    if n < 0:
+        return -1
+    x = int(n**0.5)
+    while x * x > n:
+        x -= 1
+    while (x + 1) * (x + 1) <= n:
+        x += 1
+    return x
+
+
+assert integer_sqrt(0) == 0
+assert integer_sqrt(1) == 1
+assert integer_sqrt(4) == 2
+assert integer_sqrt(9) == 3
+assert integer_sqrt(16) == 4
+assert integer_sqrt(25) == 5
 ```
 
 ### `is_prime`
@@ -1169,6 +1595,121 @@ assert is_prime(8) == 0
 assert is_prime(283) == 1
 assert is_prime(284) == 0
 assert is_prime(293) == 1
+```
+
+### `lcm`
+
+```python
+def lcm(a, b):
+    """Compute the least common multiple (LCM) of two positive integers.
+
+    - a <= 0 or b <= 0: return -1
+    - Overflow: return 0xCCCCCCCC
+
+    Args:
+        a (int): First positive integer.
+        b (int): Second positive integer.
+
+    Returns:
+        list: A one-element list with the LCM.
+    """
+    if a <= 0 or b <= 0:
+        return [-1]
+    g = _gcd_helper(a, b)
+    result = (a // g) * b
+    if result > max_int32:
+        return [overflow_error_value]
+    return [result]
+
+
+assert lcm(4, 6) == [12]
+assert lcm(12, 18) == [36]
+assert lcm(7, 5) == [35]
+assert lcm(1, 100) == [100]
+```
+
+### `power`
+
+```python
+def power(base, exp):
+    """Compute base raised to the power of a non-negative exponent.
+
+    - exp < 0: return -1
+    - Overflow (result outside int32 range): return 0xCCCCCCCC
+
+    Args:
+        base (int): The base value.
+        exp (int): The non-negative exponent.
+
+    Returns:
+        list: A one-element list with the result.
+    """
+    if exp < 0:
+        return [-1]
+    result = 1
+    for _ in range(exp):
+        result *= base
+        if result > max_int32 or result < min_int32:
+            return [overflow_error_value]
+    return [result]
+
+
+assert power(2, 10) == [1024]
+assert power(3, 5) == [243]
+assert power(5, 0) == [1]
+assert power(0, 5) == [0]
+```
+
+### `power_many`
+
+```python
+def power_many(*input_words):
+    """Compute powers for multiple (base, exponent) pairs.
+
+    Input format:
+        [count, base0, exp0, base1, exp1, ...]
+
+    Each exponent must be non-negative. Results must fit in int32.
+
+    Args:
+        *input_words (int): Number of pairs followed by base/exponent pairs.
+
+    Returns:
+        list: One result for each pair.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != 1 + 2 * count:
+        return [-1]
+
+    results = []
+
+    for i in range(count):
+        base = input_words[1 + 2 * i]
+        exp = input_words[2 + 2 * i]
+
+        if exp < 0:
+            return [-1]
+
+        result = 1
+
+        for _ in range(exp):
+            result *= base
+
+            if result < min_int32 or result > max_int32:
+                return [overflow_error_value]
+
+        results.append(result)
+
+    return results
+
+
+assert power_many(2, 2, 10, 3, 5) == [1024, 243]
+assert power_many(3, 5, 0, 0, 5, 10, 2) == [1, 0, 100]
+assert power_many(1, 7, 1) == [7]
 ```
 
 ### `sum_even_n`
@@ -1301,6 +1842,68 @@ assert sum_word_pstream(2, 1, -1) == [0, 0]
 
 ## String Manipulation
 
+### `caesar_cipher`
+
+```python
+def caesar_cipher(input):
+    """Apply a Caesar cipher to a line of text.
+
+    Input format:
+        <shift>\\n
+        <text>\\n
+
+    - Positive shift encrypts the text.
+    - Negative shift is also allowed.
+    - Only ASCII letters are shifted.
+    - Uppercase and lowercase letters preserve their case.
+    - Non-letter characters remain unchanged.
+    - Shift is taken modulo 26.
+
+    Returns:
+        tuple: A tuple containing the transformed string and remaining input.
+    """
+    lines = input.split("\n")
+
+    if len(lines) < 2:
+        return [-1], input
+
+    shift_line = lines[0]
+    text = lines[1]
+
+    try:
+        if not shift_line:
+            return [-1], "\n".join(lines[1:])
+
+        shift = int(shift_line)
+
+        if shift < -2147483648 or shift > 2147483647:
+            return [-1], "\n".join(lines[2:])
+
+        shift %= 26
+
+        result = []
+
+        for char in text:
+            if "a" <= char <= "z":
+                result.append(chr((ord(char) - ord("a") + shift) % 26 + ord("a")))
+            elif "A" <= char <= "Z":
+                result.append(chr((ord(char) - ord("A") + shift) % 26 + ord("A")))
+            else:
+                result.append(char)
+
+        remaining = "\n".join(lines[2:])
+
+        return "".join(result), remaining
+
+    except Exception:
+        return [-1], input
+
+
+assert caesar_cipher('3\nHello, World!\n') == ('Khoor, Zruog!', '')
+assert caesar_cipher('-3\nKhoor\n') == ('Hello', '')
+assert caesar_cipher('0\nHello\n') == ('Hello', '')
+```
+
 ### `capital_case_cstr`
 
 ```python
@@ -1429,6 +2032,64 @@ assert hello_user_pstr('Bob\n') == ('What is your name?\nHello, Bob!', '')
 # and mem[0..31]: 0b 48 65 6c 6c 6f 2c 20 42 6f 62 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
+### `lower_case_cstr`
+
+```python
+def lower_case_cstr(s):
+    """Convert a C string to lower case.
+
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input C string.
+
+    Returns:
+        tuple: A tuple containing the lower case string and the remaining input.
+    """
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return cstr(line.lower(), 0x20)[0], rest
+
+
+assert lower_case_cstr('HELLO\n') == ('hello', '')
+# and mem[0..31]: 68 65 6c 6c 6f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert lower_case_cstr('World\n') == ('world', '')
+# and mem[0..31]: 77 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+```
+
+### `lower_case_pstr`
+
+```python
+def lower_case_pstr(s):
+    """Convert a Pascal string to lower case.
+
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input string.
+
+    Returns:
+        tuple: A tuple containing the lower case string and the remaining input.
+    """
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.lower(), rest
+
+
+assert lower_case_pstr('HELLO\n') == ('hello', '')
+# and mem[0..31]: 05 68 65 6c 6c 6f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+assert lower_case_pstr('World\n') == ('world', '')
+# and mem[0..31]: 05 77 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+```
+
 ### `reverse_string_cstr`
 
 ```python
@@ -1485,6 +2146,59 @@ assert reverse_string_pstr('hello\n') == ('olleh', '')
 # and mem[0..31]: 05 6f 6c 6c 65 68 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert reverse_string_pstr('world!\n') == ('!dlrow', '')
 # and mem[0..31]: 06 21 64 6c 72 6f 77 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+```
+
+### `strstr_cstr`
+
+```python
+def strstr_cstr(input):
+    """Find a substring inside a C string.
+
+    Input format:
+        "haystack|needle\\n"
+
+    The '|' character separates the haystack from the needle.
+
+    Returns:
+        tuple: The zero-based index of the first occurrence of needle,
+        or -1 if needle is not found.
+
+    The input and strings are limited to the 0x20-byte C-string buffer.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        if "|" not in line:
+            return [-1], rest
+
+        haystack, needle = line.split("|", 1)
+
+        if len(haystack) + 1 > 0x20 or len(needle) + 1 > 0x20:
+            return [overflow_error_value], rest
+
+        # Empty needle matches at the beginning.
+        if needle == "":
+            return [0], rest
+
+        if len(needle) > len(haystack):
+            return [-1], rest
+
+        for i in range(len(haystack) - len(needle) + 1):
+            if haystack[i : i + len(needle)] == needle:
+                return [i], rest
+
+        return [-1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+assert strstr_cstr('hello world|world\n') == ([6], '')
+assert strstr_cstr('hello world|hello\n') == ([0], '')
+assert strstr_cstr('hello world|xyz\n') == ([-1], '')
 ```
 
 ### `upper_case_cstr`
@@ -1741,6 +2455,52 @@ assert fnv32_1a_hash('abc\0') == 440920331
 assert fnv32_1a_hash('Computers are awesome!\0') == 4243580747
 ```
 
+### `four_lane_mac`
+
+```python
+def four_lane_mac(*xs):
+    """Input: first word N, then N groups of eight values:
+
+    a0, a1, a2, a3, b0, b1, b2, b3
+
+    For every group calculate:
+        y0 = a0*b0
+        y1 = a1*b1
+        y2 = a2*b2
+        y3 = a3*b3
+
+    Output all results in the same order.
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        base = 1 + 8 * i
+
+        a0, a1, a2, a3 = xs[base : base + 4]
+        b0, b1, b2, b3 = xs[base + 4 : base + 8]
+
+        y0 = a0 * b0
+        y1 = a1 * b1
+        y2 = a2 * b2
+        y3 = a3 * b3
+
+        if any(x < -0x80000000 or x > 0x7FFFFFFF for x in [y0, y1, y2, y3]):
+            return [0xCCCCCCCC]
+
+        result.extend([y0, y1, y2, y3])
+
+    return result
+
+
+assert four_lane_mac(1, 1, 2, 3, 4, 5, 6, 7, 8) == [5, 12, 21, 32]
+assert four_lane_mac(2, 1, 2, 3, 4, 10, 20, 30, 40, -1, -2, -3, -4, 5, 6, 7, 8) == [10, 40, 90, 160, -5, -12, -21, -32]
+assert four_lane_mac(0) == []
+```
+
 ### `linear_filter`
 
 ```python
@@ -1770,6 +2530,142 @@ assert linear_filter(1, 5) == [15]
 assert linear_filter(2, 5, 10) == [15, 40]
 assert linear_filter(3, 1, 2, 3) == [3, 8, 14]
 assert linear_filter(5, 1, 2, 3, 4, 5) == [3, 8, 14, 20, 26]
+```
+
+### `matrix_2x2_vector_stream`
+
+```python
+def matrix_2x2_vector_stream(*xs):
+    """Input: first word N, then N matrices and vectors.
+
+    Each item contains:
+        a, b, c, d, x, y
+
+    Represents:
+        [a b] [x]
+        [c d] [y]
+
+    Calculate:
+        u = a*x + b*y
+        v = c*x + d*y
+
+    Output:
+        u0, v0, u1, v1, ...
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        base = 1 + 6 * i
+        a, b, c, d, x, y = xs[base : base + 6]
+
+        u = a * x + b * y
+        v = c * x + d * y
+
+        if u < -0x80000000 or u > 0x7FFFFFFF or v < -0x80000000 or v > 0x7FFFFFFF:
+            return [0xCCCCCCCC]
+
+        result.extend([u, v])
+
+    return result
+
+
+assert matrix_2x2_vector_stream(0) == []
+assert matrix_2x2_vector_stream(1, 1, 2, 3, 4, 5, 6) == [17, 39]
+assert matrix_2x2_vector_stream(2, 1, 0, 0, 1, 5, 6, 2, 3, 4, 5, 1, -1) == [5, 6, -1, -1]
+```
+
+### `min_max_sum`
+
+```python
+def min_max_sum(*xs):
+    """Input: first word N, then N values.
+
+    Output three words:
+        minimum value
+        maximum value
+        sum of all values
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    if n == 0:
+        return [0, 0, 0]
+
+    minimum = xs[1]
+    maximum = xs[1]
+    total = xs[1]
+
+    for i in range(1, n):
+        x = xs[1 + i]
+
+        minimum = min(minimum, x)
+
+        maximum = max(maximum, x)
+
+        total += x
+
+        if total < -0x80000000 or total > 0x7FFFFFFF:
+            return [0xCCCCCCCC]
+
+    return [minimum, maximum, total]
+
+
+assert min_max_sum(0) == [0, 0, 0]
+assert min_max_sum(1, 42) == [42, 42, 42]
+assert min_max_sum(4, 5, 2, 9, 1) == [1, 9, 17]
+assert min_max_sum(5, -2, 7, -3, 4, 1) == [-3, 7, 7]
+```
+
+### `pairwise_add_sub`
+
+```python
+def pairwise_add_sub(*xs):
+    """Input: first word N, then N pairs of values: a, b.
+
+    For every pair calculate:
+        sum  = a + b
+        diff = a - b
+
+    Output:
+        sum0, diff0, sum1, diff1, ...
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        a = xs[1 + 2 * i]
+        b = xs[2 + 2 * i]
+
+        total = a + b
+        diff = a - b
+
+        if (
+            total < -0x80000000
+            or total > 0x7FFFFFFF
+            or diff < -0x80000000
+            or diff > 0x7FFFFFFF
+        ):
+            return [0xCCCCCCCC]
+
+        result.extend([total, diff])
+
+    return result
+
+
+assert pairwise_add_sub(0) == []
+assert pairwise_add_sub(1, 10, 3) == [13, 7]
+assert pairwise_add_sub(2, 10, 3, 5, 8) == [13, 7, 13, -3]
+assert pairwise_add_sub(3, -5, 2, 100, -40, 7, 7) == [-3, -7, 60, 140, 14, 0]
 ```
 
 ### `sdbm_hash`

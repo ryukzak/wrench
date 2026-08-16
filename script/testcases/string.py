@@ -532,3 +532,376 @@ TEST_CASES["reverse_string_cstr"] = TestCase(
     is_variant=True,
     category="String Manipulation",
 )
+
+
+###########################################################
+
+
+def lower_case_cstr(s):
+    """Convert a C string to lower case.
+
+    - Result string should be represented as a correct C string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input C string.
+
+    Returns:
+        tuple: A tuple containing the lower case string and the remaining input.
+    """
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return cstr(line.lower(), 0x20)[0], rest
+
+
+TEST_CASES["lower_case_cstr"] = TestCase(
+    simple=lower_case_cstr,
+    cases=[
+        String2String(
+            "HELLO\n",
+            "hello",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("hello", 0x20))],
+        ),
+        String2String(
+            "World\n",
+            "world",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("world", 0x20))],
+        ),
+    ],
+    reference=lower_case_cstr,
+    reference_cases=[
+        String2String(
+            "Hello World!\n",
+            "hello world!",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("hello world!", 0x20))],
+        ),
+        String2String(
+            "HELLO\nworld",
+            "hello",
+            "world",
+            mem_view=[(0x00, 0x1F, cbuf("hello", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1234567890123456789012345678901",
+            "23",
+            mem_view=[(0x00, 0x1F, cbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+        String2String(
+            "HELLO\x00WORLD\n",
+            "hello",
+            "",
+            mem_view=[(0x00, 0x1F, cbuf("HELLO\x00WORLD", 0x20))],
+        ),
+    ],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+
+###########################################################
+
+
+def lower_case_pstr(s):
+    """Convert a Pascal string to lower case.
+
+    - Result string should be represented as a correct Pascal string.
+    - Buffer size for the message -- `0x20`, starts from `0x00`.
+    - End of input -- new line.
+    - Initial buffer values -- `_`.
+
+    Python example args:
+        s (str): The input string.
+
+    Returns:
+        tuple: A tuple containing the lower case string and the remaining input.
+    """
+    line, rest = read_line(s, 0x20)
+    if line is None:
+        return [overflow_error_value], rest
+    return line.lower(), rest
+
+
+TEST_CASES["lower_case_pstr"] = TestCase(
+    simple=lower_case_pstr,
+    cases=[
+        String2String(
+            "HELLO\n",
+            "hello",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("hello", 0x20))],
+        ),
+        String2String(
+            "World\n",
+            "world",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("world", 0x20))],
+        ),
+    ],
+    reference=lower_case_pstr,
+    reference_cases=[
+        String2String(
+            "Hello World!\n",
+            "hello world!",
+            "",
+            mem_view=[(0x00, 0x1F, pbuf("hello world!", 0x20))],
+        ),
+        String2String(
+            "HELLO\nworld",
+            "hello",
+            "world",
+            mem_view=[(0x00, 0x1F, pbuf("hello", 0x20))],
+        ),
+        String2String(
+            "1234567890123456789012345678901\n23",
+            "1234567890123456789012345678901",
+            "23",
+            mem_view=[(0x00, 0x1F, pbuf("1234567890123456789012345678901", 0x20))],
+        ),
+        String2String(
+            "12345678901234567890123456789012\n3", [overflow_error_value], "\n3"
+        ),
+    ],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+
+###########################################################
+
+
+def caesar_cipher(input):
+    """Apply a Caesar cipher to a line of text.
+
+    Input format:
+        <shift>\\n
+        <text>\\n
+
+    - Positive shift encrypts the text.
+    - Negative shift is also allowed.
+    - Only ASCII letters are shifted.
+    - Uppercase and lowercase letters preserve their case.
+    - Non-letter characters remain unchanged.
+    - Shift is taken modulo 26.
+
+    Returns:
+        tuple: A tuple containing the transformed string and remaining input.
+    """
+    lines = input.split("\n")
+
+    if len(lines) < 2:
+        return [-1], input
+
+    shift_line = lines[0]
+    text = lines[1]
+
+    try:
+        if not shift_line:
+            return [-1], "\n".join(lines[1:])
+
+        shift = int(shift_line)
+
+        if shift < -2147483648 or shift > 2147483647:
+            return [-1], "\n".join(lines[2:])
+
+        shift %= 26
+
+        result = []
+
+        for char in text:
+            if "a" <= char <= "z":
+                result.append(chr((ord(char) - ord("a") + shift) % 26 + ord("a")))
+            elif "A" <= char <= "Z":
+                result.append(chr((ord(char) - ord("A") + shift) % 26 + ord("A")))
+            else:
+                result.append(char)
+
+        remaining = "\n".join(lines[2:])
+
+        return "".join(result), remaining
+
+    except Exception:
+        return [-1], input
+
+
+TEST_CASES["caesar_cipher"] = TestCase(
+    simple=caesar_cipher,
+    cases=[
+        String2String(
+            "3\nHello, World!\n",
+            "Khoor, Zruog!",
+            "",
+        ),
+        String2String(
+            "-3\nKhoor\n",
+            "Hello",
+            "",
+        ),
+        String2String(
+            "0\nHello\n",
+            "Hello",
+            "",
+        ),
+    ],
+    reference=caesar_cipher,
+    reference_cases=[
+        String2String(
+            "1\nabc\nNext line",
+            "bcd",
+            "Next line",
+        ),
+        String2String(
+            "3\nXYZ xyz\n",
+            "ABC abc",
+            "",
+        ),
+        String2String(
+            "-1\nABC abc\n",
+            "ZAB zab",
+            "",
+        ),
+        String2String(
+            "26\nHello!\n",
+            "Hello!",
+            "",
+        ),
+        String2String(
+            "29\nHello!\n",
+            "Khoor!",
+            "",
+        ),
+        String2String(
+            "5\n123 !@#\n",
+            "123 !@#",
+            "",
+        ),
+        String2String(
+            "\nHello\n",
+            [-1],
+            "Hello\n",
+        ),
+        String2String(
+            "3\nHello\nNext\n",
+            "Khoor",
+            "Next\n",
+        ),
+    ],
+    is_variant=True,
+    category="String Manipulation",
+)
+
+
+###########################################################
+
+
+def strstr_cstr(input):
+    """Find a substring inside a C string.
+
+    Input format:
+        "haystack|needle\\n"
+
+    The '|' character separates the haystack from the needle.
+
+    Returns:
+        tuple: The zero-based index of the first occurrence of needle,
+        or -1 if needle is not found.
+
+    The input and strings are limited to the 0x20-byte C-string buffer.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        if "|" not in line:
+            return [-1], rest
+
+        haystack, needle = line.split("|", 1)
+
+        if len(haystack) + 1 > 0x20 or len(needle) + 1 > 0x20:
+            return [overflow_error_value], rest
+
+        # Empty needle matches at the beginning.
+        if needle == "":
+            return [0], rest
+
+        if len(needle) > len(haystack):
+            return [-1], rest
+
+        for i in range(len(haystack) - len(needle) + 1):
+            if haystack[i : i + len(needle)] == needle:
+                return [i], rest
+
+        return [-1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+strstr_cstr_ref = strstr_cstr
+
+TEST_CASES["strstr_cstr"] = TestCase(
+    simple=strstr_cstr,
+    cases=[
+        String2String(
+            "hello world|world\n",
+            [6],
+            "",
+        ),
+        String2String(
+            "hello world|hello\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "hello world|xyz\n",
+            [-1],
+            "",
+        ),
+    ],
+    reference=strstr_cstr_ref,
+    reference_cases=[
+        String2String(
+            "banana|ana\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "aaaaa|aaa\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "hello|o\nNext line",
+            [4],
+            "Next line",
+        ),
+        String2String(
+            "hello|\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "short|longer\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "abc|bc\n",
+            [1],
+            "",
+        ),
+    ],
+    is_variant=True,
+    category="String Manipulation",
+)

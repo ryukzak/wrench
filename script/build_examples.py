@@ -99,7 +99,12 @@ def find_unpaired(example_root: Path, examples: list[Example]) -> list[str]:
     for isa_dir in sorted(p.name for p in example_root.iterdir() if p.is_dir()):
         d = example_root / isa_dir
         for p in sorted(d.iterdir()):
-            if p.suffix == ".s" and (isa_dir, p.name) not in used_sources or p.suffix == ".yaml" and (isa_dir, p.name) not in used_configs:
+            if (
+                p.suffix == ".s"
+                and (isa_dir, p.name) not in used_sources
+                or p.suffix == ".yaml"
+                and (isa_dir, p.name) not in used_configs
+            ):
                 unpaired.append(f"{isa_dir}/{p.name}")
     return unpaired
 

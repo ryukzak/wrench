@@ -4,6 +4,8 @@ from testcases.core import (
     Word2Word,
     Words2Words,
     limit_to_int32,
+    max_int32,
+    min_int32,
     overflow_error_value,
 )
 
@@ -255,32 +257,64 @@ TEST_CASES["count_divisors"] = TestCase(
 ###########################################################
 
 
-def gcd(a, b):
-    """Find the greatest common divisor (GCD)"""
-    while b != 0:
-        a, b = b, a % b
-    return [abs(a)]
+def gcd_many(*input_words):
+    """Find the GCD of multiple integers.
+
+    Input format:
+        [count, value0, value1, ...]
+
+    The count must be positive and must match the number of values.
+
+    Args:
+        *input_words (int): Number of values followed by the values.
+
+    Returns:
+        list: A one-element list containing the GCD.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != count + 1:
+        return [-1]
+
+    result = abs(input_words[1])
+
+    for value in input_words[2:]:
+        a = result
+        b = abs(value)
+
+        while b != 0:
+            a, b = b, a % b
+
+        result = a
+
+    return [result]
 
 
-gcd_ref = gcd
+gcd_many_ref = gcd_many
 
-TEST_CASES["gcd"] = TestCase(
-    simple=gcd,
+TEST_CASES["gcd_many"] = TestCase(
+    simple=gcd_many,
     cases=[
-        Words2Words([48, 18], [6]),
-        Words2Words([56, 98], [14]),
+        Words2Words([2, 48, 18], [6]),
+        Words2Words([3, 12, 18, 24], [6]),
+        Words2Words([4, 48, 18, 30, 42], [6]),
     ],
-    reference=gcd_ref,
+    reference=gcd_many_ref,
     reference_cases=[
-        # What about negative value?
-        #        Words2Words([-1, 18], [-1]),
-        #        Words2Words([48, -1], [-1]),
-        #        Words2Words([48, 0], [-1]),
-        #        Words2Words([0, 18], [-1]),
+        Words2Words([2, 56, 98], [14]),
+        Words2Words([5, 100, 75, 50, 25, 125], [25]),
+        Words2Words([3, -48, 18, -30], [6]),
+        Words2Words([1, 42], [42]),
+        Words2Words([0], [-1]),
+        Words2Words([3, 12, 18], [-1]),
     ],
     is_variant=True,
     category="Mathematics",
 )
+
 
 ###########################################################
 
@@ -352,6 +386,290 @@ TEST_CASES["sum_word_pstream"] = TestCase(
     ],
     reference=sum_word_pstream,
     reference_cases=[],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def power(base, exp):
+    """Compute base raised to the power of a non-negative exponent.
+
+    - exp < 0: return -1
+    - Overflow (result outside int32 range): return 0xCCCCCCCC
+
+    Args:
+        base (int): The base value.
+        exp (int): The non-negative exponent.
+
+    Returns:
+        list: A one-element list with the result.
+    """
+    if exp < 0:
+        return [-1]
+    result = 1
+    for _ in range(exp):
+        result *= base
+        if result > max_int32 or result < min_int32:
+            return [overflow_error_value]
+    return [result]
+
+
+power_ref = power
+
+TEST_CASES["power"] = TestCase(
+    simple=power,
+    cases=[
+        Words2Words([2, 10], [1024]),
+        Words2Words([3, 5], [243]),
+        Words2Words([5, 0], [1]),
+        Words2Words([0, 5], [0]),
+    ],
+    reference=power_ref,
+    reference_cases=[
+        Words2Words([2, -1], [-1]),
+        Words2Words([1, 100], [1]),
+        Words2Words([10, 9], [1000000000]),
+        Words2Words([10, 10], [overflow_error_value]),
+        Words2Words([2, 30], [1073741824]),
+        Words2Words([2, 31], [overflow_error_value]),
+        Words2Words([-2, 31], [-2147483648]),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def collatz_length(n):
+    """Count the number of steps to reach 1 in the Collatz sequence.
+
+    Starting from n, apply:
+    - n even: n = n // 2
+    - n odd: n = 3 * n + 1
+    Repeat until n == 1; return the number of steps.
+
+    Note: intermediate values may temporarily exceed 32 bits for some inputs.
+
+    - n <= 0: return -1
+    - n == 1: return 0
+
+    Args:
+        n (int): The starting value.
+
+    Returns:
+        int: The number of steps to reach 1, or -1 for invalid input.
+    """
+    if n <= 0:
+        return -1
+    steps = 0
+    while n != 1:
+        if n % 2 == 0:
+            n //= 2
+        else:
+            n = 3 * n + 1
+        steps += 1
+    return steps
+
+
+collatz_length_ref = collatz_length
+
+TEST_CASES["collatz_length"] = TestCase(
+    simple=collatz_length,
+    cases=[
+        Word2Word(1, 0),
+        Word2Word(2, 1),
+        Word2Word(6, 8),
+        Word2Word(10, 6),
+    ],
+    reference=collatz_length_ref,
+    reference_cases=[
+        Word2Word(-1, -1),
+        Word2Word(0, -1),
+        Word2Word(3, 7),
+        Word2Word(4, 2),
+        Word2Word(5, 5),
+        Word2Word(27, 111, limit=3000),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def _gcd_helper(a, b):
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def lcm(a, b):
+    """Compute the least common multiple (LCM) of two positive integers.
+
+    - a <= 0 or b <= 0: return -1
+    - Overflow: return 0xCCCCCCCC
+
+    Args:
+        a (int): First positive integer.
+        b (int): Second positive integer.
+
+    Returns:
+        list: A one-element list with the LCM.
+    """
+    if a <= 0 or b <= 0:
+        return [-1]
+    g = _gcd_helper(a, b)
+    result = (a // g) * b
+    if result > max_int32:
+        return [overflow_error_value]
+    return [result]
+
+
+lcm_ref = lcm
+
+TEST_CASES["lcm"] = TestCase(
+    simple=lcm,
+    cases=[
+        Words2Words([4, 6], [12]),
+        Words2Words([12, 18], [36]),
+        Words2Words([7, 5], [35]),
+        Words2Words([1, 100], [100]),
+    ],
+    reference=lcm_ref,
+    reference_cases=[
+        Words2Words([0, 5], [-1]),
+        Words2Words([-1, 5], [-1]),
+        Words2Words([48, 0], [-1]),
+        Words2Words([6, 4], [12]),
+        Words2Words([2147483647, 1], [2147483647]),
+        Words2Words([100000, 100001], [overflow_error_value]),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def integer_sqrt(n):
+    """Compute the integer square root (floor of sqrt(n)).
+
+    - n < 0: return -1
+    - n == 0: return 0
+
+    Args:
+        n (int): The non-negative integer.
+
+    Returns:
+        int: floor(sqrt(n)), or -1 for negative input.
+    """
+    if n < 0:
+        return -1
+    x = int(n**0.5)
+    while x * x > n:
+        x -= 1
+    while (x + 1) * (x + 1) <= n:
+        x += 1
+    return x
+
+
+integer_sqrt_ref = integer_sqrt
+
+TEST_CASES["integer_sqrt"] = TestCase(
+    simple=integer_sqrt,
+    cases=[
+        Word2Word(0, 0),
+        Word2Word(1, 1),
+        Word2Word(4, 2),
+        Word2Word(9, 3),
+        Word2Word(16, 4),
+        Word2Word(25, 5),
+    ],
+    reference=integer_sqrt_ref,
+    reference_cases=[
+        Word2Word(-1, -1),
+        Word2Word(2, 1),
+        Word2Word(15, 3),
+        Word2Word(17, 4),
+        Word2Word(2147483647, 46340),
+    ],
+    is_variant=True,
+    category="Mathematics",
+)
+
+
+###########################################################
+
+
+def power_many(*input_words):
+    """Compute powers for multiple (base, exponent) pairs.
+
+    Input format:
+        [count, base0, exp0, base1, exp1, ...]
+
+    Each exponent must be non-negative. Results must fit in int32.
+
+    Args:
+        *input_words (int): Number of pairs followed by base/exponent pairs.
+
+    Returns:
+        list: One result for each pair.
+    """
+    if not input_words:
+        return [-1]
+
+    count = input_words[0]
+
+    if count <= 0 or len(input_words) != 1 + 2 * count:
+        return [-1]
+
+    results = []
+
+    for i in range(count):
+        base = input_words[1 + 2 * i]
+        exp = input_words[2 + 2 * i]
+
+        if exp < 0:
+            return [-1]
+
+        result = 1
+
+        for _ in range(exp):
+            result *= base
+
+            if result < min_int32 or result > max_int32:
+                return [overflow_error_value]
+
+        results.append(result)
+
+    return results
+
+
+power_many_ref = power_many
+
+TEST_CASES["power_many"] = TestCase(
+    simple=power_many,
+    cases=[
+        Words2Words([2, 2, 10, 3, 5], [1024, 243]),
+        Words2Words([3, 5, 0, 0, 5, 10, 2], [1, 0, 100]),
+        Words2Words([1, 7, 1], [7]),
+    ],
+    reference=power_many_ref,
+    reference_cases=[
+        Words2Words([4, 2, 3, 3, 4, 5, 0, 10, 1], [8, 81, 1, 10]),
+        Words2Words([2, -2, 3, -2, 4], [-8, 16]),
+        Words2Words([2, 2, 40, 3, 40], [overflow_error_value]),
+        Words2Words([1, 5, -1], [-1]),
+        Words2Words([0], [-1]),
+        Words2Words([2, 2, 3, 3], [-1]),
+    ],
     is_variant=True,
     category="Mathematics",
 )

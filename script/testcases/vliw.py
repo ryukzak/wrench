@@ -394,3 +394,259 @@ TEST_CASES["complex_multiply"] = TestCase(
     is_variant=True,
     category="VLIW",
 )
+
+
+###########################################################
+
+
+def four_lane_mac(*xs):
+    """Input: first word N, then N groups of eight values:
+
+    a0, a1, a2, a3, b0, b1, b2, b3
+
+    For every group calculate:
+        y0 = a0*b0
+        y1 = a1*b1
+        y2 = a2*b2
+        y3 = a3*b3
+
+    Output all results in the same order.
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        base = 1 + 8 * i
+
+        a0, a1, a2, a3 = xs[base : base + 4]
+        b0, b1, b2, b3 = xs[base + 4 : base + 8]
+
+        y0 = a0 * b0
+        y1 = a1 * b1
+        y2 = a2 * b2
+        y3 = a3 * b3
+
+        if any(x < -0x80000000 or x > 0x7FFFFFFF for x in [y0, y1, y2, y3]):
+            return [0xCCCCCCCC]
+
+        result.extend([y0, y1, y2, y3])
+
+    return result
+
+
+TEST_CASES["four_lane_mac"] = TestCase(
+    simple=four_lane_mac,
+    cases=[
+        Words2Words(
+            [1, 1, 2, 3, 4, 5, 6, 7, 8],
+            [5, 12, 21, 32],
+        ),
+        Words2Words(
+            [2, 1, 2, 3, 4, 10, 20, 30, 40, -1, -2, -3, -4, 5, 6, 7, 8],
+            [10, 40, 90, 160, -5, -12, -21, -32],
+        ),
+        Words2Words([0], []),
+    ],
+    reference=four_lane_mac,
+    reference_cases=[
+        Words2Words(
+            [1, -100, 200, -300, 400, 2, -3, 4, -5],
+            [-200, -600, -1200, -2000],
+        ),
+        Words2Words(
+            [1, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000],
+            [0xCCCCCCCC],
+        ),
+    ],
+    is_variant=True,
+    category="VLIW",
+)
+
+
+###########################################################
+
+
+def pairwise_add_sub(*xs):
+    """Input: first word N, then N pairs of values: a, b.
+
+    For every pair calculate:
+        sum  = a + b
+        diff = a - b
+
+    Output:
+        sum0, diff0, sum1, diff1, ...
+    """
+    n = xs[0]
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        a = xs[1 + 2 * i]
+        b = xs[2 + 2 * i]
+
+        total = a + b
+        diff = a - b
+
+        if (
+            total < -0x80000000
+            or total > 0x7FFFFFFF
+            or diff < -0x80000000
+            or diff > 0x7FFFFFFF
+        ):
+            return [0xCCCCCCCC]
+
+        result.extend([total, diff])
+
+    return result
+
+
+TEST_CASES["pairwise_add_sub"] = TestCase(
+    simple=pairwise_add_sub,
+    cases=[
+        Words2Words([0], []),
+        Words2Words([1, 10, 3], [13, 7]),
+        Words2Words([2, 10, 3, 5, 8], [13, 7, 13, -3]),
+        Words2Words([3, -5, 2, 100, -40, 7, 7], [-3, -7, 60, 140, 14, 0]),
+    ],
+    reference=pairwise_add_sub,
+    reference_cases=[
+        Words2Words([1, 0x7FFFFFFF, 1], [0xCCCCCCCC]),
+        Words2Words([1, -0x80000000, 1], [0xCCCCCCCC]),
+        Words2Words([2, 100, 200, -100, -200], [300, -100, -300, 100]),
+    ],
+    is_variant=True,
+    category="VLIW",
+)
+
+
+###########################################################
+
+
+def min_max_sum(*xs):
+    """Input: first word N, then N values.
+
+    Output three words:
+        minimum value
+        maximum value
+        sum of all values
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    if n == 0:
+        return [0, 0, 0]
+
+    minimum = xs[1]
+    maximum = xs[1]
+    total = xs[1]
+
+    for i in range(1, n):
+        x = xs[1 + i]
+
+        minimum = min(minimum, x)
+
+        maximum = max(maximum, x)
+
+        total += x
+
+        if total < -0x80000000 or total > 0x7FFFFFFF:
+            return [0xCCCCCCCC]
+
+    return [minimum, maximum, total]
+
+
+TEST_CASES["min_max_sum"] = TestCase(
+    simple=min_max_sum,
+    cases=[
+        Words2Words([0], [0, 0, 0]),
+        Words2Words([1, 42], [42, 42, 42]),
+        Words2Words([4, 5, 2, 9, 1], [1, 9, 17]),
+        Words2Words([5, -2, 7, -3, 4, 1], [-3, 7, 7]),
+    ],
+    reference=min_max_sum,
+    reference_cases=[
+        Words2Words([3, -100, 0, 50], [-100, 50, -50]),
+        Words2Words([2, 0x7FFFFFFF, 1], [0xCCCCCCCC]),
+        Words2Words([2, -0x80000000, -1], [0xCCCCCCCC]),
+    ],
+    is_variant=True,
+    category="VLIW",
+)
+
+
+###########################################################
+
+
+def matrix_2x2_vector_stream(*xs):
+    """Input: first word N, then N matrices and vectors.
+
+    Each item contains:
+        a, b, c, d, x, y
+
+    Represents:
+        [a b] [x]
+        [c d] [y]
+
+    Calculate:
+        u = a*x + b*y
+        v = c*x + d*y
+
+    Output:
+        u0, v0, u1, v1, ...
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        base = 1 + 6 * i
+        a, b, c, d, x, y = xs[base : base + 6]
+
+        u = a * x + b * y
+        v = c * x + d * y
+
+        if u < -0x80000000 or u > 0x7FFFFFFF or v < -0x80000000 or v > 0x7FFFFFFF:
+            return [0xCCCCCCCC]
+
+        result.extend([u, v])
+
+    return result
+
+
+TEST_CASES["matrix_2x2_vector_stream"] = TestCase(
+    simple=matrix_2x2_vector_stream,
+    cases=[
+        Words2Words([0], []),
+        Words2Words(
+            [1, 1, 2, 3, 4, 5, 6],
+            [17, 39],
+        ),
+        Words2Words(
+            [2, 1, 0, 0, 1, 5, 6, 2, 3, 4, 5, 1, -1],
+            [5, 6, -1, -1],
+        ),
+    ],
+    reference=matrix_2x2_vector_stream,
+    reference_cases=[
+        Words2Words(
+            [1, 2, -1, 3, 4, 10, 20],
+            [0, 110],
+        ),
+        Words2Words(
+            [1, 50000, 50000, 50000, 50000, 50000, 50000],
+            [0xCCCCCCCC],
+        ),
+    ],
+    is_variant=True,
+    category="VLIW",
+)

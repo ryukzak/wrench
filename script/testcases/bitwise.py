@@ -2,7 +2,10 @@ from testcases.core import (
     TEST_CASES,
     TestCase,
     Word2Word,
+    Words2Words,
     max_int32,
+    overflow_error_value,
+    uint32_to_int32,
 )
 
 
@@ -269,6 +272,234 @@ TEST_CASES["is_binary_palindrome"] = TestCase(
         Word2Word(0x0F0F0F0F, 0),
         Word2Word(-1, 1),
         Word2Word(-2, 0),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def parity(n):
+    """Compute bit parity of a 32-bit integer.
+
+    Returns 1 if the number of set bits is odd, 0 if even.
+
+    Args:
+        n (int): The 32-bit integer.
+
+    Returns:
+        int: 1 for odd parity, 0 if even parity.
+    """
+    count = (n & 0xFFFFFFFF).bit_count()
+    return count % 2
+
+
+parity_ref = parity
+
+TEST_CASES["parity"] = TestCase(
+    simple=parity,
+    cases=[
+        Word2Word(0, 0),
+        Word2Word(1, 1),
+        Word2Word(3, 0),
+        Word2Word(7, 1),
+        Word2Word(0xFF, 0),
+    ],
+    reference=parity_ref,
+    reference_cases=[
+        Word2Word(-1, 0),
+        Word2Word(-2, 1),
+        Word2Word(0x12345678, 1),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def rotate_left(val, n):
+    """Rotate a 32-bit integer to the left by n bits.
+
+    Bits that are shifted out from the left side are wrapped
+    around and placed back on the right side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate left.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 << shift) | (val32 >> (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+rotate_left_ref = rotate_left
+
+TEST_CASES["rotate_left"] = TestCase(
+    simple=rotate_left,
+    cases=[
+        Words2Words([1, 1], [2]),
+        Words2Words([0x12345678, 4], [0x23456781]),
+        Words2Words([1, 0], [1]),
+    ],
+    reference=rotate_left_ref,
+    reference_cases=[
+        Words2Words([-2147483648, 1], [1]),
+        Words2Words([-1, 8], [-1]),
+        Words2Words([1, 32], [1]),
+        Words2Words([-2147483648, 32], [-2147483648]),
+        Words2Words([0x0F0F0F0F, 4], [-252645136]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def rotate_right(val, n):
+    """Rotate a 32-bit integer to the right by n bits.
+
+    Bits that are shifted out from the right side are wrapped
+    around and placed back on the left side. The rotation amount
+    is taken modulo 32, so rotating by 32 bits leaves the value unchanged.
+
+    Args:
+        val (int): The 32-bit integer to rotate.
+        n (int): Number of bits to rotate right.
+
+    Returns:
+        list: A one-element list containing the rotated 32-bit value.
+    """
+    val32 = val & 0xFFFFFFFF
+    shift = n & 0x1F
+    if shift == 0:
+        return [uint32_to_int32(val32)]
+    result = ((val32 >> shift) | (val32 << (32 - shift))) & 0xFFFFFFFF
+    return [uint32_to_int32(result)]
+
+
+rotate_right_ref = rotate_right
+
+TEST_CASES["rotate_right"] = TestCase(
+    simple=rotate_right,
+    cases=[
+        Words2Words([2, 1], [1]),
+        Words2Words([0x12345678, 4], [-2128394905]),
+        Words2Words([1, 0], [1]),
+    ],
+    reference=rotate_right_ref,
+    reference_cases=[
+        Words2Words([1, 1], [-2147483648]),
+        Words2Words([-1, 8], [-1]),
+        Words2Words([1, 32], [1]),
+        Words2Words([-2147483648, 32], [-2147483648]),
+        Words2Words([0x0F0F0F0F, 4], [-252645136]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+###########################################################
+
+
+def hamming_distance(a, b):
+    """Count the number of differing bits between two 32-bit integers.
+
+    The Hamming distance is the number of set bits in (a XOR b).
+
+    Args:
+        a (int): First 32-bit integer.
+        b (int): Second 32-bit integer.
+
+    Returns:
+        list: A one-element list containing the Hamming distance.
+    """
+    diff = (a ^ b) & 0xFFFFFFFF
+    return [diff.bit_count()]
+
+
+hamming_distance_ref = hamming_distance
+
+TEST_CASES["hamming_distance"] = TestCase(
+    simple=hamming_distance,
+    cases=[
+        Words2Words([0, 0], [0]),
+        Words2Words([0, 1], [1]),
+        Words2Words([0xFFFFFFFF, 0], [32]),
+    ],
+    reference=hamming_distance_ref,
+    reference_cases=[
+        Words2Words([0xAAAAAAAA, 0x55555555], [32]),
+        Words2Words([0x12345678, 0x12345678], [0]),
+        Words2Words([0x12345678, 0x87654321], [14]),
+        Words2Words([-1, 0x7FFFFFFF], [1]),
+    ],
+    is_variant=True,
+    category="Bitwise Operations",
+)
+
+
+###########################################################
+
+
+def next_power_of_two(n):
+    """Return the smallest power of two greater than or equal to n.
+
+    Args:
+        n (int): A non-negative integer.
+
+    Returns:
+        list: A one-element list containing the next power of two.
+
+    Special cases:
+        n < 0: return -1.
+        n == 0: return 1.
+        Result greater than INT32_MAX: return overflow_error_value.
+    """
+    if n < 0:
+        return [-1]
+
+    if n <= 1:
+        return [1]
+
+    result = 1
+    while result < n:
+        result <<= 1
+        if result > max_int32:
+            return [overflow_error_value]
+
+    return [result]
+
+
+next_power_of_two_ref = next_power_of_two
+
+TEST_CASES["next_power_of_two"] = TestCase(
+    simple=next_power_of_two,
+    cases=[
+        Words2Words([0], [1]),
+        Words2Words([1], [1]),
+        Words2Words([5], [8]),
+    ],
+    reference=next_power_of_two_ref,
+    reference_cases=[
+        Words2Words([2], [2]),
+        Words2Words([3], [4]),
+        Words2Words([1025], [2048]),
+        Words2Words([1073741824], [1073741824]),
+        Words2Words([1073741825], [overflow_error_value]),
+        Words2Words([-1], [-1]),
     ],
     is_variant=True,
     category="Bitwise Operations",

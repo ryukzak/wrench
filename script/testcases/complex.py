@@ -319,6 +319,7 @@ TEST_CASES["stack_based_calculator"] = TestCase(
     category="Complex Tasks",
 )
 
+
 ###########################################################
 
 
@@ -1288,7 +1289,7 @@ def format_string(input):
                 result = format_str
             else:
                 result = format_str % tuple(integers)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Calculate remaining input
             remaining = "\n".join(lines[line_idx:]) if line_idx < len(lines) else ""
             return [-1], remaining
@@ -1436,6 +1437,335 @@ TEST_CASES["format_string"] = TestCase(
             "%d\n10\nLeftover\n",
             "10",
             "Leftover\n",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)
+
+
+###########################################################
+
+
+def bracket_validator(input):
+    """Validate (), [], and {} brackets in a line.
+
+    - Brackets must be properly nested and matched.
+    - Other characters are ignored.
+    - An empty line is valid.
+    - Returns 1 for valid brackets and -1 for invalid brackets.
+    - End of input -- new line.
+
+    Returns:
+        tuple: A tuple containing the validation result and remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        stack = []
+
+        pairs = {
+            ")": "(",
+            "]": "[",
+            "}": "{",
+        }
+
+        for char in line:
+            if char in "([{":
+                stack.append(char)
+
+            elif char in ")]}":
+                if not stack or stack[-1] != pairs[char]:
+                    return [-1], rest
+
+                stack.pop()
+
+        if stack:
+            return [-1], rest
+
+        return [1], rest
+
+    except Exception:
+        return [-1], rest
+
+
+TEST_CASES["bracket_validator"] = TestCase(
+    simple=bracket_validator,
+    cases=[
+        String2String(
+            "([]{})\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "([{}])\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "([)]\n",
+            [-1],
+            "",
+        ),
+    ],
+    reference=bracket_validator,
+    reference_cases=[
+        String2String(
+            "\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "hello (world)\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "((()))\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "{[()]}\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "(\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            ")\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "([)]\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "((]\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "abc\nNext line",
+            [1],
+            "Next line",
+        ),
+        String2String(
+            "A" * 65 + "\n",
+            [overflow_error_value],
+            "A\n",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)
+
+
+###########################################################
+
+
+def char_frequency(input):
+    """Count occurrences of each character in a line.
+
+    - Characters are counted in order of first appearance.
+    - Spaces are counted as normal characters.
+    - Maximum number of unique characters is 12.
+    - Output format: "<char>:<count> ..."
+    - Result must fit into a 0x40-byte C string.
+    - End of input -- new line.
+
+    Examples:
+        "hello" -> "h:1 e:1 l:2 o:1"
+        "aabbc" -> "a:2 b:2 c:1"
+
+    Returns:
+        tuple: A tuple containing the frequency string and remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    if not line:
+        return "", rest
+
+    try:
+        order = []
+        counts = {}
+
+        for char in line:
+            if char not in counts:
+                if len(order) >= 12:
+                    return [-1], rest
+
+                order.append(char)
+                counts[char] = 0
+
+            counts[char] += 1
+
+        parts = []
+
+        for char in order:
+            parts.append(f"{char}:{counts[char]}")
+
+        result = " ".join(parts)
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+TEST_CASES["char_frequency"] = TestCase(
+    simple=char_frequency,
+    cases=[
+        String2String(
+            "hello\n",
+            "h:1 e:1 l:2 o:1",
+            "",
+        ),
+        String2String(
+            "aabbc\n",
+            "a:2 b:2 c:1",
+            "",
+        ),
+        String2String(
+            "\n",
+            "",
+            "",
+        ),
+    ],
+    reference=char_frequency,
+    reference_cases=[
+        String2String(
+            "banana\n",
+            "b:1 a:3 n:2",
+            "",
+        ),
+        String2String(
+            "abc abc\n",
+            "a:2 b:2 c:2  :1",
+            "",
+        ),
+        String2String(
+            "aaaa\nNext line",
+            "a:4",
+            "Next line",
+        ),
+        String2String(
+            "a b c d e f g h i j k\n",
+            "a:1  :10 b:1 c:1 d:1 e:1 f:1 g:1 h:1 i:1 j:1 k:1",
+            "",
+        ),
+        String2String(
+            "abcdefghijklmnop\n",
+            [-1],
+            "",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)
+
+
+###########################################################
+
+
+def reverse_words_cstr(input):
+    """Reverse the order of words in a C string.
+
+    Words are separated by spaces. The characters inside each word
+    remain unchanged.
+
+    Examples:
+        "hello world" -> "world hello"
+        "one two three" -> "three two one"
+
+    The result must fit in a 0x40-byte C string.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    try:
+        words = line.split(" ")
+        words = [word for word in words if word]
+
+        result = " ".join(reversed(words))
+
+        if len(result) + 1 > 0x40:
+            return [overflow_error_value], rest
+
+        return cstr(result, 0x40)[0], rest
+
+    except Exception:
+        return [-1], rest
+
+
+reverse_words_cstr_ref = reverse_words_cstr
+
+TEST_CASES["reverse_words_cstr"] = TestCase(
+    simple=reverse_words_cstr,
+    cases=[
+        String2String(
+            "hello world\n",
+            "world hello",
+            "",
+        ),
+        String2String(
+            "one two three\n",
+            "three two one",
+            "",
+        ),
+        String2String(
+            "hello\n",
+            "hello",
+            "",
+        ),
+    ],
+    reference=reverse_words_cstr_ref,
+    reference_cases=[
+        String2String(
+            "the quick brown fox\n",
+            "fox brown quick the",
+            "",
+        ),
+        String2String(
+            "one  two   three\n",
+            "three two one",
+            "",
+        ),
+        String2String(
+            "  hello world  \n",
+            "world hello",
+            "",
+        ),
+        String2String(
+            "\n",
+            "",
+            "",
+        ),
+        String2String(
+            "hello world\nNext line",
+            "world hello",
+            "Next line",
+        ),
+        String2String(
+            "a\n",
+            "a",
+            "",
         ),
     ],
     is_variant=True,

@@ -137,9 +137,7 @@ class Words2Words:
 
 class CharSequence2Word(Words2Words):
     def __init__(self, x, y, limit=2000):
-        super().__init__(
-            [ord(it) for it in list(x)], [y], limit=limit
-        )
+        super().__init__([ord(it) for it in list(x)], [y], limit=limit)
         self.x = x
         self.y = y
 

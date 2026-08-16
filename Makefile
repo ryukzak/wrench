@@ -194,6 +194,8 @@ docker-push-edge:
 
 fix: lint-fix format generate test-accept test-examples test-server
 
+fix-variant: format-py lint-fix-py generate-variants
+
 clean:
 	stack clean
 	fd .result | xargs rm -v
