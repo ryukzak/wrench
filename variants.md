@@ -82,6 +82,8 @@ Variants:
     - [brainfuck_interpreter](#brainfuck_interpreter)
     - [char_frequency](#char_frequency)
     - [format_string](#format_string)
+    - [glob_match](#glob_match)
+    - [infix_to_rpn](#infix_to_rpn)
     - [reverse_words_cstr](#reverse_words_cstr)
     - [rle_compress](#rle_compress)
     - [rle_compress_bytes](#rle_compress_bytes)
@@ -131,6 +133,7 @@ Variants:
     - [matrix_2x2_vector_stream](#matrix_2x2_vector_stream)
     - [min_max_sum](#min_max_sum)
     - [pairwise_add_sub](#pairwise_add_sub)
+    - [rgb_to_grayscale](#rgb_to_grayscale)
     - [sdbm_hash](#sdbm_hash)
     - [sum_and_sum_squares](#sum_and_sum_squares)
 - _Examples_
@@ -922,6 +925,165 @@ def format_string(input):
 assert format_string('Num: %d\n42\n') == ('Num: 42', '')
 assert format_string('%5d\n42\n') == ('   42', '')
 assert format_string('%-5d\n42\n') == ('42   ', '')
+```
+
+### `glob_match`
+
+```python
+def glob_match(input):
+    """Match a text against a glob pattern.
+
+    Input format:
+        <pattern>\\n
+        <text>\\n
+
+    - `?` matches exactly one character.
+    - `*` matches any sequence of characters, including an empty one.
+    - Any other character matches only itself.
+    - Buffer size for every line -- `0x20`, starts from `0x00`.
+    - Returns 1 when the text matches the pattern and 0 otherwise.
+    - A recursive solution with backtracking is recommended.
+
+    Python example args:
+        input (str): The input string with two lines.
+
+    Returns:
+        tuple: A tuple containing the match result and the remaining input.
+    """
+    pattern, rest = read_line(input, 0x20)
+
+    if pattern is None:
+        return [overflow_error_value], rest
+
+    text, rest = read_line(rest, 0x20)
+
+    if text is None:
+        return [overflow_error_value], rest
+
+    def match(p, t):
+        if p == "":
+            return t == ""
+
+        if p[0] == "*":
+            return match(p[1:], t) or (t != "" and match(p, t[1:]))
+
+        if t == "":
+            return False
+
+        if p[0] == "?" or p[0] == t[0]:
+            return match(p[1:], t[1:])
+
+        return False
+
+    return [1 if match(pattern, text) else 0], rest
+
+
+assert glob_match('a*c\nabc\n') == ([1], '')
+assert glob_match('a?c\nabc\n') == ([1], '')
+assert glob_match('a?c\nabbc\n') == ([0], '')
+assert glob_match('*.txt\nfile.txt\n') == ([1], '')
+```
+
+### `infix_to_rpn`
+
+```python
+def infix_to_rpn(input):
+    """Convert an infix expression into Reverse Polish Notation.
+
+    The recommended algorithm is the shunting-yard algorithm: numbers go
+    directly to the output, operators are pushed to a stack and popped
+    from it according to their priority.
+
+    Examples:
+    - "1 + 2 * 3" -> "1 2 3 * +"
+    - "(1 + 2) * 3" -> "1 2 + 3 *"
+
+    - Allowed tokens: non-negative decimal numbers, `+`, `-`, `*`, `/`,
+      parentheses and spaces.
+    - Priority: `*` and `/` are higher than `+` and `-`, operators with
+      the same priority are left associative.
+    - Output tokens are separated by exactly one space.
+    - Result string should be represented as a correct C string.
+    - Buffer size for the result -- `0x40`, starts from `0x00`.
+    - End of input -- new line.
+    - Unknown character or unbalanced parentheses: return -1.
+
+    Python example args:
+        input (str): The input string till new line.
+
+    Returns:
+        tuple: A tuple containing the RPN string and the remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    priority = {"+": 1, "-": 1, "*": 2, "/": 2}
+
+    result = ""
+    ops = []
+    i = 0
+
+    while i < len(line):
+        char = line[i]
+
+        if char == " ":
+            i += 1
+
+        elif "0" <= char <= "9":
+            j = i
+            while j < len(line) and "0" <= line[j] <= "9":
+                j += 1
+
+            result += line[i:j] + " "
+            i = j
+
+        elif char in priority:
+            while ops and ops[-1] != "(" and priority[ops[-1]] >= priority[char]:
+                result += ops.pop() + " "
+
+            ops.append(char)
+            i += 1
+
+        elif char == "(":
+            ops.append(char)
+            i += 1
+
+        elif char == ")":
+            while ops and ops[-1] != "(":
+                result += ops.pop() + " "
+
+            if not ops:
+                return [-1], rest
+
+            ops.pop()
+            i += 1
+
+        else:
+            return [-1], rest
+
+    while ops:
+        op = ops.pop()
+
+        if op == "(":
+            return [-1], rest
+
+        result += op + " "
+
+    # The last space is extra: in the buffer it is replaced by `\0`.
+    result = result[:-1]
+
+    if len(result) + 1 > 0x40:
+        return [overflow_error_value], rest
+
+    return cstr(result, 0x40)[0], rest
+
+
+assert infix_to_rpn('1 + 2\n') == ('1 2 +', '')
+assert infix_to_rpn('1 + 2 * 3\n') == ('1 2 3 * +', '')
+assert infix_to_rpn('(1 + 2) * 3\n') == ('1 2 + 3 *', '')
+assert infix_to_rpn('10 - 2 - 3\n') == ('10 2 - 3 -', '')
 ```
 
 ### `reverse_words_cstr`
@@ -2666,6 +2828,46 @@ assert pairwise_add_sub(0) == []
 assert pairwise_add_sub(1, 10, 3) == [13, 7]
 assert pairwise_add_sub(2, 10, 3, 5, 8) == [13, 7, 13, -3]
 assert pairwise_add_sub(3, -5, 2, 100, -40, 7, 7) == [-3, -7, 60, 140, 14, 0]
+```
+
+### `rgb_to_grayscale`
+
+```python
+def rgb_to_grayscale(*xs):
+    """Input: first word N, then N pixels packed as 0x00RRGGBB.
+
+    For each pixel calculate the grayscale value with fixed point weights:
+
+        gray = (77 * R + 150 * G + 29 * B) >> 8
+
+    Output: N gray values (0..255).
+
+    - N < 0: return -1.
+    - The highest byte of a pixel is ignored.
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        pixel = xs[1 + i]
+
+        r = (pixel >> 16) & 0xFF
+        g = (pixel >> 8) & 0xFF
+        b = pixel & 0xFF
+
+        result.append((77 * r + 150 * g + 29 * b) >> 8)
+
+    return result
+
+
+assert rgb_to_grayscale(0) == []
+assert rgb_to_grayscale(2, 0, 16777215) == [0, 255]
+assert rgb_to_grayscale(3, 16711680, 65280, 255) == [76, 149, 28]
+assert rgb_to_grayscale(2, 8421504, 1056816) == [128, 29]
 ```
 
 ### `sdbm_hash`
