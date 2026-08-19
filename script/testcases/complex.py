@@ -1771,3 +1771,315 @@ TEST_CASES["reverse_words_cstr"] = TestCase(
     is_variant=True,
     category="Complex Tasks",
 )
+
+
+###########################################################
+
+
+def glob_match(input):
+    """Match a text against a glob pattern.
+
+    Input format:
+        <pattern>\\n
+        <text>\\n
+
+    - `?` matches exactly one character.
+    - `*` matches any sequence of characters, including an empty one.
+    - Any other character matches only itself.
+    - Buffer size for every line -- `0x20`, starts from `0x00`.
+    - Returns 1 when the text matches the pattern and 0 otherwise.
+    - A recursive solution with backtracking is recommended.
+
+    Python example args:
+        input (str): The input string with two lines.
+
+    Returns:
+        tuple: A tuple containing the match result and the remaining input.
+    """
+    pattern, rest = read_line(input, 0x20)
+
+    if pattern is None:
+        return [overflow_error_value], rest
+
+    text, rest = read_line(rest, 0x20)
+
+    if text is None:
+        return [overflow_error_value], rest
+
+    def match(p, t):
+        if p == "":
+            return t == ""
+
+        if p[0] == "*":
+            return match(p[1:], t) or (t != "" and match(p, t[1:]))
+
+        if t == "":
+            return False
+
+        if p[0] == "?" or p[0] == t[0]:
+            return match(p[1:], t[1:])
+
+        return False
+
+    return [1 if match(pattern, text) else 0], rest
+
+
+TEST_CASES["glob_match"] = TestCase(
+    simple=glob_match,
+    cases=[
+        String2String(
+            "a*c\nabc\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "a?c\nabc\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "a?c\nabbc\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "*.txt\nfile.txt\n",
+            [1],
+            "",
+            limit=4000,
+        ),
+    ],
+    reference=glob_match,
+    reference_cases=[
+        String2String(
+            "\n\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "\nabc\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "*\n\n",
+            [1],
+            "",
+        ),
+        String2String(
+            "*a\nbbb\n",
+            [0],
+            "",
+        ),
+        String2String(
+            "*.txt\nfile.txtx\n",
+            [0],
+            "",
+            limit=4000,
+        ),
+        String2String(
+            "a*b*c\naxxbyyc\n",
+            [1],
+            "",
+            limit=4000,
+        ),
+        String2String(
+            "a*a*a\naaaaaaaaaa\n",
+            [1],
+            "",
+            limit=4000,
+        ),
+        String2String(
+            "abc\nabc\nNext line",
+            [1],
+            "Next line",
+        ),
+        String2String(
+            "A" * 32 + "\nabc\n",
+            [overflow_error_value],
+            "\nabc\n",
+        ),
+        String2String(
+            "a*\n" + "B" * 32 + "\n",
+            [overflow_error_value],
+            "\n",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)
+
+
+###########################################################
+
+
+def infix_to_rpn(input):
+    """Convert an infix expression into Reverse Polish Notation.
+
+    The recommended algorithm is the shunting-yard algorithm: numbers go
+    directly to the output, operators are pushed to a stack and popped
+    from it according to their priority.
+
+    Examples:
+    - "1 + 2 * 3" -> "1 2 3 * +"
+    - "(1 + 2) * 3" -> "1 2 + 3 *"
+
+    - Allowed tokens: non-negative decimal numbers, `+`, `-`, `*`, `/`,
+      parentheses and spaces.
+    - Priority: `*` and `/` are higher than `+` and `-`, operators with
+      the same priority are left associative.
+    - Output tokens are separated by exactly one space.
+    - Result string should be represented as a correct C string.
+    - Buffer size for the result -- `0x40`, starts from `0x00`.
+    - End of input -- new line.
+    - Unknown character or unbalanced parentheses: return -1.
+
+    Python example args:
+        input (str): The input string till new line.
+
+    Returns:
+        tuple: A tuple containing the RPN string and the remaining input.
+    """
+    line, rest = read_line(input, 0x40)
+
+    if line is None:
+        return [overflow_error_value], rest
+
+    priority = {"+": 1, "-": 1, "*": 2, "/": 2}
+
+    result = ""
+    ops = []
+    i = 0
+
+    while i < len(line):
+        char = line[i]
+
+        if char == " ":
+            i += 1
+
+        elif "0" <= char <= "9":
+            j = i
+            while j < len(line) and "0" <= line[j] <= "9":
+                j += 1
+
+            result += line[i:j] + " "
+            i = j
+
+        elif char in priority:
+            while ops and ops[-1] != "(" and priority[ops[-1]] >= priority[char]:
+                result += ops.pop() + " "
+
+            ops.append(char)
+            i += 1
+
+        elif char == "(":
+            ops.append(char)
+            i += 1
+
+        elif char == ")":
+            while ops and ops[-1] != "(":
+                result += ops.pop() + " "
+
+            if not ops:
+                return [-1], rest
+
+            ops.pop()
+            i += 1
+
+        else:
+            return [-1], rest
+
+    while ops:
+        op = ops.pop()
+
+        if op == "(":
+            return [-1], rest
+
+        result += op + " "
+
+    # The last space is extra: in the buffer it is replaced by `\0`.
+    result = result[:-1]
+
+    if len(result) + 1 > 0x40:
+        return [overflow_error_value], rest
+
+    return cstr(result, 0x40)[0], rest
+
+
+infix_to_rpn_ref = infix_to_rpn
+
+TEST_CASES["infix_to_rpn"] = TestCase(
+    simple=infix_to_rpn,
+    cases=[
+        String2String(
+            "1 + 2\n",
+            "1 2 +",
+            "",
+        ),
+        String2String(
+            "1 + 2 * 3\n",
+            "1 2 3 * +",
+            "",
+        ),
+        String2String(
+            "(1 + 2) * 3\n",
+            "1 2 + 3 *",
+            "",
+        ),
+        String2String(
+            "10 - 2 - 3\n",
+            "10 2 - 3 -",
+            "",
+        ),
+    ],
+    reference=infix_to_rpn_ref,
+    reference_cases=[
+        String2String(
+            "2 * (3 + 4) / 5\n",
+            "2 3 4 + * 5 /",
+            "",
+        ),
+        String2String(
+            "((12))\n",
+            "12",
+            "",
+        ),
+        String2String(
+            "1+2*3-4/5\n",
+            "1 2 3 * + 4 5 / -",
+            "",
+        ),
+        String2String(
+            "42\nNext line",
+            "42",
+            "Next line",
+        ),
+        String2String(
+            "\n",
+            "",
+            "",
+        ),
+        String2String(
+            "(1\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "1)\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "1 $ 2\n",
+            [-1],
+            "",
+        ),
+        String2String(
+            "A" * 65 + "\n",
+            [overflow_error_value],
+            "A\n",
+        ),
+    ],
+    is_variant=True,
+    category="Complex Tasks",
+)

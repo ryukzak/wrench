@@ -650,3 +650,71 @@ TEST_CASES["matrix_2x2_vector_stream"] = TestCase(
     is_variant=True,
     category="VLIW",
 )
+
+
+###########################################################
+
+
+def rgb_to_grayscale(*xs):
+    """Input: first word N, then N pixels packed as 0x00RRGGBB.
+
+    For each pixel calculate the grayscale value with fixed point weights:
+
+        gray = (77 * R + 150 * G + 29 * B) >> 8
+
+    Output: N gray values (0..255).
+
+    - N < 0: return -1.
+    - The highest byte of a pixel (alpha) should be zero, otherwise return -1.
+    """
+    n = xs[0]
+
+    if n < 0:
+        return [-1]
+
+    result = []
+
+    for i in range(n):
+        pixel = xs[1 + i]
+
+        if (pixel >> 24) & 0xFF != 0:
+            return [-1]
+
+        r = (pixel >> 16) & 0xFF
+        g = (pixel >> 8) & 0xFF
+        b = pixel & 0xFF
+
+        result.append((77 * r + 150 * g + 29 * b) >> 8)
+
+    return result
+
+
+TEST_CASES["rgb_to_grayscale"] = TestCase(
+    simple=rgb_to_grayscale,
+    cases=[
+        Words2Words([0], []),
+        Words2Words([2, 0x000000, 0xFFFFFF], [0, 255]),
+        Words2Words(
+            [3, 0xFF0000, 0x00FF00, 0x0000FF],
+            [76, 149, 28],
+        ),
+        Words2Words(
+            [2, 0x808080, 0x102030],
+            [128, 29],
+        ),
+    ],
+    reference=rgb_to_grayscale,
+    reference_cases=[
+        Words2Words([-1], [-1]),
+        Words2Words([1, 0x345678], [79]),
+        Words2Words([1, 0x010101], [1]),
+        Words2Words([1, 0x12345678], [-1]),
+        Words2Words([1, -1], [-1]),
+        Words2Words(
+            [4, 0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ),
+    ],
+    is_variant=True,
+    category="VLIW",
+)
