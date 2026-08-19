@@ -35,7 +35,7 @@ RUN [ "python", "/app/variants.py" ]
 ###########################################################
 # Stage 2.3: Pre-render example reports
 
-FROM debian:bullseye-slim AS wrench-examples
+FROM debian:bookworm-slim AS wrench-examples
 
 RUN apt-get update && apt-get install -y python3 libgmp10 libc6-dev ca-certificates locales \
     && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
@@ -59,7 +59,7 @@ RUN python3 /app/build_examples.py \
 ###########################################################
 # Stage 3: Create a minimal runtime container
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y libgmp10 libc6-dev locales ca-certificates \
     && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \

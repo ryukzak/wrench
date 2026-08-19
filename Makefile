@@ -190,6 +190,9 @@ docker-push-edge:
 	docker buildx build --build-arg VERSION_SUFFIX=EDGE --platform linux/amd64,linux/arm64 --push \
 		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
+docker-run-server: docker-build
+	docker run -it --rm $(IMAGE_NAME) wrench-serv
+
 # Meta
 
 fix: lint-fix format generate test-accept test-examples test-server
