@@ -665,7 +665,7 @@ def rgb_to_grayscale(*xs):
     Output: N gray values (0..255).
 
     - N < 0: return -1.
-    - The highest byte of a pixel is ignored.
+    - The highest byte of a pixel (alpha) should be zero, otherwise return -1.
     """
     n = xs[0]
 
@@ -676,6 +676,9 @@ def rgb_to_grayscale(*xs):
 
     for i in range(n):
         pixel = xs[1 + i]
+
+        if (pixel >> 24) & 0xFF != 0:
+            return [-1]
 
         r = (pixel >> 16) & 0xFF
         g = (pixel >> 8) & 0xFF
@@ -703,8 +706,10 @@ TEST_CASES["rgb_to_grayscale"] = TestCase(
     reference=rgb_to_grayscale,
     reference_cases=[
         Words2Words([-1], [-1]),
-        Words2Words([1, 0x12345678], [79]),
+        Words2Words([1, 0x345678], [79]),
         Words2Words([1, 0x010101], [1]),
+        Words2Words([1, 0x12345678], [-1]),
+        Words2Words([1, -1], [-1]),
         Words2Words(
             [4, 0, 0, 0, 0],
             [0, 0, 0, 0],

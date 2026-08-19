@@ -2843,7 +2843,7 @@ def rgb_to_grayscale(*xs):
     Output: N gray values (0..255).
 
     - N < 0: return -1.
-    - The highest byte of a pixel is ignored.
+    - The highest byte of a pixel (alpha) should be zero, otherwise return -1.
     """
     n = xs[0]
 
@@ -2854,6 +2854,9 @@ def rgb_to_grayscale(*xs):
 
     for i in range(n):
         pixel = xs[1 + i]
+
+        if (pixel >> 24) & 0xFF != 0:
+            return [-1]
 
         r = (pixel >> 16) & 0xFF
         g = (pixel >> 8) & 0xFF
