@@ -1,6 +1,8 @@
 module Wrench.Config (
     Config (..),
     readConfig,
+    executionStatsReport,
+    withExecutionStats,
 ) where
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
@@ -23,6 +25,34 @@ readConfig path = runExceptT $ do
         Right conf -> return conf
     let conf' = (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
     return conf'
+
+executionStatsReport :: ReportConf
+executionStatsReport =
+    ReportConf
+        { rcName = Just "Overview"
+        , rcSlice = LastSlice
+        , rcAssert = Nothing
+        , rcView =
+            Just $
+                unlines
+                    [ "## Execution statistics"
+                    , "sim:instruction-count: {sim:instruction-count}"
+                    , "layout:sections-size:  {layout:sections-size} (text {layout:text-sections-size} / data {layout:data-sections-size})"
+                    , "mem:instr-ranges:      {mem:instr-ranges}"
+                    , "mem:data-ranges:       {mem:data-ranges}"
+                    , "mem:io-ranges:         {mem:io-ranges}"
+                    , "{isa-specific}"
+                    , ""
+                    , "## Memory layout"
+                    , "```"
+                    , "{memory:table}"
+                    , "```"
+                    ]
+        }
+
+withExecutionStats :: Config -> Config
+withExecutionStats conf@Config{cReports} =
+    conf{cReports = Just $ fromMaybe [] cReports <> [executionStatsReport]}
 
 -----------------------------------------------------------
 

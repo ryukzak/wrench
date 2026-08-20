@@ -16,7 +16,9 @@ import System.Directory (createDirectoryIfMissing)
 import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
 import Web.FormUrlEncoded (FromForm)
+import Wrench.Config (executionStatsReport)
 import Wrench.Misc (wrenchVersion)
+import Wrench.Report (ReportConf (..))
 import WrenchServ.Config
 
 data SimulationRequest = SimulationRequest
@@ -83,7 +85,7 @@ spitDump Config{cStoragePath, cWrenchPath, cWrenchArgs} SimulationTask{stIsa, st
 
 doSimulation :: Config -> SimulationTask -> IO SimulationResult
 doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, stAsmFn, stConfFn} = do
-    let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-c", stConfFn]
+    let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-c", stConfFn, "--stats"]
         srCmd = T.intercalate " " $ map toText ([cWrenchPath] <> args)
     simConf <- decodeUtf8 <$> readFileBS stConfFn
     currentTime <- getCurrentTime
@@ -122,12 +124,8 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
             , srStats
             }
 
--- | Pull the @Execution statistics@ report block out of wrench's stdout.
--- Report blocks are @---@-separated and prefixed with @# <name>@ (see
--- 'Wrench.Wrench.wrench'); we return the body of that block with the
--- header line dropped, or @""@ if the config produced no stats report.
 extractStats :: Text -> Text
 extractStats out =
-    let header = "# Execution statistics"
+    let header = "# " <> fromMaybe "" (rcName executionStatsReport)
         section = find (T.isPrefixOf header . T.strip) $ map T.strip $ T.splitOn "---" out
      in maybe "" (T.strip . T.drop (T.length header) . T.strip) section

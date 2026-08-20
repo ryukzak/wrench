@@ -53,6 +53,10 @@ options =
                 <> help "Only run preprocess and translation steps"
             )
         <*> switch
+            ( long "stats"
+                <> help "Append a built-in `Overview` report"
+            )
+        <*> switch
             ( long "verbose"
                 <> short 'v'
                 <> help "Verbose output"
