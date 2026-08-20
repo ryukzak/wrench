@@ -133,24 +133,8 @@ def run_python_test_cases(verbose):
             case.check_assert(variant.reference)
 
 
-EXECUTION_STATS_REPORT = """  - name: Execution statistics
-    slice: last
-    view: |
-      sim:instruction-count: {sim:instruction-count}
-      layout:sections-size:  {layout:sections-size} (text {layout:text-sections-size} / data {layout:data-sections-size})
-      mem:instr-ranges:      {mem:instr-ranges}
-      mem:data-ranges:       {mem:data-ranges}
-      mem:io-ranges:         {mem:io-ranges}
-
-      {isa-specific}
-
-      {memory:table}
-"""
-
-
-def generate_wrench_test_cases(conf_name, case, with_stats=False):
+def generate_wrench_test_cases(conf_name, case):
     conf_name = case.assert_string(conf_name)
-    stats_report = EXECUTION_STATS_REPORT if with_stats else ""
     return f"""name: "{conf_name}"
 limit: {case.limit}
 memory_size: 0x1000
@@ -165,7 +149,7 @@ reports:
 {case.yaml_view()}
     assert: |
 {case.yaml_assert()}
-{stats_report}"""
+"""
 
 
 ###########################################################
@@ -196,7 +180,7 @@ def generate_wrench_variant_test_cases(path):
             fn = f"{path}/{name}/{idx}.yaml"
             with open(fn, "w") as f:
                 print(fn)
-                f.write(generate_wrench_test_cases(name, case, with_stats=True))
+                f.write(generate_wrench_test_cases(name, case))
 
 
 def inf_shuffle(xs):

@@ -56,22 +56,22 @@ intervalsTests =
             "recordRange"
             [ testCase "single range" $
                 renderIntervals (recordRange 10 4 emptyIntervals)
-                    @?= "10..13"
+                    @?= "10..13 (4 B)"
             , testCase "adjacent ranges merge into one" $
                 renderIntervals (recordRange 0 4 (recordRange 4 4 emptyIntervals))
-                    @?= "0..7"
+                    @?= "0..7 (8 B)"
             , testCase "overlapping ranges merge into one" $
                 renderIntervals (recordRange 0 6 (recordRange 4 4 emptyIntervals))
-                    @?= "0..7"
+                    @?= "0..7 (8 B)"
             , testCase "non-adjacent ranges stay separate" $
                 renderIntervals (recordRange 0 4 (recordRange 10 4 emptyIntervals))
-                    @?= "0..3, 10..13"
+                    @?= "0..3 (4 B), 10..13 (4 B)"
             , testCase "byte-level adjacency: [0,3] and [4,7] merge" $
                 renderIntervals (recordRange 4 4 (recordRange 0 4 emptyIntervals))
-                    @?= "0..7"
+                    @?= "0..7 (8 B)"
             , testCase "byte-level gap: [0,3] and [5,8] stay separate" $
                 renderIntervals (recordRange 5 4 (recordRange 0 4 emptyIntervals))
-                    @?= "0..3, 5..8"
+                    @?= "0..3 (4 B), 5..8 (4 B)"
             ]
         , testGroup
             "rendering"
@@ -80,31 +80,31 @@ intervalsTests =
                 renderIntervalsHex emptyIntervals @?= "-"
             , testCase "hex format uses 0x prefix" $
                 renderIntervalsHex (recordRange 0 16 emptyIntervals)
-                    @?= "0x0..0xf"
+                    @?= "0x00..0x0f (16 B)"
             , testCase "hex format on larger range" $
                 renderIntervalsHex (recordRange 0x80 8 emptyIntervals)
-                    @?= "0x80..0x87"
+                    @?= "0x80..0x87 (8 B)"
             , testCase "multiple clusters separated by comma" $
                 renderIntervalsHex
                     ( recordRange 0x100 4 $
                         recordRange 0x10 4 emptyIntervals
                     )
-                    @?= "0x10..0x13, 0x100..0x103"
+                    @?= "0x10..0x13 (4 B), 0x100..0x103 (4 B)"
             ]
         , testGroup
             "set operations"
             [ testCase "union of disjoint ranges" $
                 renderIntervals (intervalsUnion (recordRange 0 5 emptyIntervals) (recordRange 10 5 emptyIntervals))
-                    @?= "0..4, 10..14"
+                    @?= "0..4 (5 B), 10..14 (5 B)"
             , testCase "intersection of overlapping ranges" $
                 renderIntervals (intervalsIntersect (recordRange 0 10 emptyIntervals) (recordRange 5 10 emptyIntervals))
-                    @?= "5..9"
+                    @?= "5..9 (5 B)"
             , testCase "intersection of disjoint ranges is empty" $
                 renderIntervals (intervalsIntersect (recordRange 0 5 emptyIntervals) (recordRange 10 5 emptyIntervals))
                     @?= "-"
             , testCase "difference carves out a hole" $
                 renderIntervals (intervalsDifference (recordRange 0 10 emptyIntervals) (recordRange 3 4 emptyIntervals))
-                    @?= "0..2, 7..9"
+                    @?= "0..2 (3 B), 7..9 (3 B)"
             ]
         , testGroup
             "queries"

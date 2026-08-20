@@ -76,7 +76,7 @@ This service will be used to send laboratory works to check.
 
 ```shell
 $ wrench --help
-Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [-v|--verbose]
+Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
               [--instruction-limit LIMIT] [--memory-limit SIZE]
               [--state-log-limit LIMIT]
 
@@ -87,6 +87,7 @@ Available options:
   --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)
   -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
+  --stats                  Append a built-in `Overview` report
   -v,--verbose             Verbose output
   --instruction-limit LIMIT
                            Maximum number of instructions to execute

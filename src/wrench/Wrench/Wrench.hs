@@ -35,6 +35,7 @@ data Options = Options
     , isa :: String
     , configFile :: Maybe FilePath
     , onlyTranslation :: Bool
+    , stats :: Bool
     , verbose :: Bool
     , maxInstructionLimit :: Int
     , maxMemoryLimit :: Int
@@ -49,6 +50,7 @@ instance Default Options where
             , isa = "risc-iv-32"
             , configFile = Nothing
             , onlyTranslation = False
+            , stats = False
             , verbose = False
             , maxInstructionLimit = 8000000
             , maxMemoryLimit = 8192
@@ -82,10 +84,14 @@ prettyLabels rLabels =
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
-runWrenchIO opts@Options{input, configFile, isa, verbose, maxInstructionLimit, maxMemoryLimit} = do
+runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
     conf@Config{cLimit, cMemorySize} <- case configFile of
-        Just fn -> either (error . toText) id <$> readConfig fn
+        Just fn ->
+            either
+                (error . toText)
+                (if stats then withExecutionStats else id)
+                <$> readConfig fn
         Nothing -> return def
 
     when verbose $ do
