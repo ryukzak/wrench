@@ -239,15 +239,14 @@ renderIntervalsWith fmt (Intervals s) =
         renderInterval i =
             let lo = case I.lowerBound i of I.Finite n -> n; _ -> error "Intervals: unexpected infinite lower bound"
                 hi = case I.upperBound i of I.Finite n -> n - 1; _ -> error "Intervals: unexpected infinite upper bound"
-             in fmt lo <> ".." <> fmt hi
+             in fmt lo <> ".." <> fmt hi <> " (" <> show (hi - lo + 1) <> " B)"
 
 -- | Decimal-formatted ranges.
 renderIntervals :: Intervals -> Text
 renderIntervals = renderIntervalsWith show
 
--- | Hex-formatted ranges (@0xNN@ lowercase, no padding).
 renderIntervalsHex :: Intervals -> Text
-renderIntervalsHex = renderIntervalsWith (\n -> "0x" <> toText (showHex n ""))
+renderIntervalsHex = renderIntervalsWith (\n -> "0x" <> T.justifyRight 2 '0' (toText (showHex n "")))
 
 -- | Membership test: is @addr@ inside any interval?
 inIntervals :: Int -> Intervals -> Bool

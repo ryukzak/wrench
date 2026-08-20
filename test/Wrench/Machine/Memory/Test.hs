@@ -212,22 +212,22 @@ accessLogTests =
             "data accesses"
             [ testCase "readWord on plain memory records alData" $
                 (renderIntervals . alData <$> logAfter (`readWord` 0) iomem)
-                    @?= Right "0..3"
+                    @?= Right "0..3 (4 B)"
             , testCase "readByte on plain memory records 1-byte alData" $
                 (renderIntervals . alData <$> logAfter (`readByte` 9) iomem)
-                    @?= Right "9..9"
+                    @?= Right "9..9 (1 B)"
             , testCase "writeWord on plain memory records alData" $
                 (renderIntervals . alData <$> logAfterWrite (\m -> writeWord m 0 0xDEADBEEF) iomem)
-                    @?= Right "0..3"
+                    @?= Right "0..3 (4 B)"
             , testCase "writeByte on plain memory records alData" $
                 (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 9 0xFF) iomem)
-                    @?= Right "9..9"
+                    @?= Right "9..9 (1 B)"
             , testCase "adjacent writes coalesce into one range" $ do
                 let go0 = writeByte sparseMem 8 0x01
                     go1 = go0 >>= \m -> writeByte m 9 0x02
                     go2 = go1 >>= \m -> writeByte m 10 0x03
                 case go2 of
-                    Right m -> renderIntervals (alData (accessLog m)) @?= "8..10"
+                    Right m -> renderIntervals (alData (accessLog m)) @?= "8..10 (3 B)"
                     Left e -> assertFailure (toString e)
             ]
         , testGroup
@@ -235,19 +235,19 @@ accessLogTests =
             [ testCase "readWord on IO port records alIo, not alData" $ do
                 case readWord iomem 4 of
                     Right (m', _) -> do
-                        renderIntervals (alIo (accessLog m')) @?= "4..7"
+                        renderIntervals (alIo (accessLog m')) @?= "4..7 (4 B)"
                         renderIntervals (alData (accessLog m')) @?= "-"
                     Left e -> assertFailure (toString e)
             , testCase "writeWord on IO port records alIo" $ do
                 case writeWord iomem 4 0x12345678 of
-                    Right m' -> renderIntervals (alIo (accessLog m')) @?= "4..7"
+                    Right m' -> renderIntervals (alIo (accessLog m')) @?= "4..7 (4 B)"
                     Left e -> assertFailure (toString e)
             , testCase "mixed data + io accesses stay in separate buckets" $ do
                 case readWord iomem 0 of
                     Right (m1, _) -> case readWord m1 4 of
                         Right (m2, _) -> do
-                            renderIntervals (alData (accessLog m2)) @?= "0..3"
-                            renderIntervals (alIo (accessLog m2)) @?= "4..7"
+                            renderIntervals (alData (accessLog m2)) @?= "0..3 (4 B)"
+                            renderIntervals (alIo (accessLog m2)) @?= "4..7 (4 B)"
                             renderIntervals (alInstr (accessLog m2)) @?= "-"
                         Left e -> assertFailure (toString e)
                     Left e -> assertFailure (toString e)
@@ -256,12 +256,12 @@ accessLogTests =
             "instruction fetches"
             [ testCase "readInstruction records the byte span in alInstr" $ do
                 case readInstruction piomem 0 of
-                    Right (m', _) -> renderIntervals (alInstr (accessLog m')) @?= "0..1"
+                    Right (m', _) -> renderIntervals (alInstr (accessLog m')) @?= "0..1 (2 B)"
                     Left e -> assertFailure (toString e)
             , testCase "two adjacent fetches coalesce" $ do
                 case readInstruction piomem 0 of
                     Right (m1, _) -> case readInstruction m1 2 of
-                        Right (m2, _) -> renderIntervals (alInstr (accessLog m2)) @?= "0..3"
+                        Right (m2, _) -> renderIntervals (alInstr (accessLog m2)) @?= "0..3 (4 B)"
                         Left e -> assertFailure (toString e)
                     Left e -> assertFailure (toString e)
             ]
@@ -273,14 +273,14 @@ accessLogTests =
             -- beyond the active section still show up in alData.
             [ testCase "write at the start of the unused tail" $
                 (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 8 0x42) sparseMem)
-                    @?= Right "8..8"
+                    @?= Right "8..8 (1 B)"
             , testCase "write near the very end" $
                 (renderIntervals . alData <$> logAfterWrite (\m -> writeByte m 15 0xFF) sparseMem)
-                    @?= Right "15..15"
+                    @?= Right "15..15 (1 B)"
             , testCase "in-bounds + out-of-section coalesce by adjacency" $ do
                 case writeByte sparseMem 7 0x01 of
                     Right m1 -> case writeByte m1 8 0x02 of
-                        Right m2 -> renderIntervals (alData (accessLog m2)) @?= "7..8"
+                        Right m2 -> renderIntervals (alData (accessLog m2)) @?= "7..8 (2 B)"
                         Left e -> assertFailure (toString e)
                     Left e -> assertFailure (toString e)
             ]

@@ -25,6 +25,6 @@ reports:
       mem:io-ranges: {mem:io-ranges}
     assert: |
       sim:instruction-count: 87
-      mem:instr-ranges: 0x0..0x4b, 0x8c..0xbf
-      mem:data-ranges: 0x64..0x6b, 0x236..0x255
-      mem:io-ranges: 0x80..0x87
+      mem:instr-ranges: 0x00..0x4b (76 B), 0x8c..0xbf (52 B)
+      mem:data-ranges: 0x64..0x6b (8 B), 0x236..0x255 (32 B)
+      mem:io-ranges: 0x80..0x87 (8 B)
