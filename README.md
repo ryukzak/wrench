@@ -1,8 +1,9 @@
 # Wrench
 
 ![Wrench CI](https://github.com/ryukzak/wrench/actions/workflows/ci.yml/badge.svg?branch=master)
+![License](https://img.shields.io/github/license/ryukzak/wrench)
 
-This is an educational project designed to explore different types of processor architectures. It includes simple CPU models and assemblers for them.
+Wrench is a teaching platform for computer architecture: one assembler/simulator toolchain shared across five deliberately different CPU paradigms, plus a formatter and a grading service for running real coursework. Every architecture uses the same assembly conventions, YAML-driven configuration, and report/assertion language, so a single lab exercise can be solved once and compared instruction-for-instruction across an accumulator machine, a stack machine, a load-store RISC, a register-memory CISC, a VLIW design, etc.
 
 - `wrench` -- translator/simulator itself
 - `wrench-fmt` -- formatter for assembly files
@@ -14,6 +15,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 **Table of Contents**
 
 - [Wrench](#wrench)
+    - [Why Simplified Architectures?](#why-simplified-architectures)
     - [Documentation](#documentation)
     - [How to Run](#how-to-run)
         - [Build Locally](#build-locally)
@@ -26,6 +28,26 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
         - [More Examples](#more-examples)
 
 <!-- markdown-toc end -->
+
+## Why Simplified Architectures?
+
+None of Wrench's ISAs are real hardware. Each is a small, from-scratch design "inspired by" a real family -- RISC-IV by RISC-V, M68k by the Motorola 68000, F32a by the GreenArrays F18a, VLIW-IV by RISC-V, classic VLIW designs, etc. That's deliberate:
+
+- **Right altitude of complexity.** Real ISAs carry decades of backward-compatibility cruft: extension zoos, privileged/CSR specs, addressing-mode edge cases, bundle templates and predication. None of that teaches the underlying paradigm faster; a simplified ISA keeps the concept and drops the incidental history.
+- **One toolchain instead of five.** Because Wrench owns every ISA, all five share the same directives, config schema, and report language (see [Documentation](./docs/README.md)). Wrapping five real toolchains instead would mean learning five sets of toolchain quirks, not five architectural paradigms.
+- **Deterministic enough to auto-grade.** The variant generator (`script/variants.py`) produces a unique, auto-checkable assignment per student, which requires fully-specified semantics with no inherited hardware errata or undefined behavior.
+- **No hardware or licensing barrier.** A classroom doesn't need real 68000s or GreenArrays chips -- the spec is the simulator.
+- **A whole ISA fits in one sitting.** Each architecture doc is a few thousand words, not a multi-hundred-page reference manual.
+
+This tradeoff is scoped to teaching -- it isn't a claim that simplified ISAs are better for production compiler work or real hardware bring-up, just that they fit a course better where students should be reasoning about architecture, not toolchain trivia.
+
+| Architecture | Paradigm | Registers | Inspired by |
+| ----------------------------- | --------------------------------------- | ------------------------------------ | ------------------ |
+| [Acc32](./docs/acc32.md) | Accumulator | 1 (`Acc`) | -- (from scratch) |
+| [F32a](./docs/f32a.md) | Stack (dual-stack) | 2 (`A`, `B`) + data/return stacks | GreenArrays F18a |
+| [RISC-IV](./docs/risc-iv.md) | Load/store RISC | 32 general-purpose | RISC-V |
+| [M68k](./docs/m68k.md) | Register-memory CISC | 8 data + 8 address | Motorola 68000 |
+| [VLIW-IV](./docs/vliw-iv.md) | Static-scheduled VLIW (4-wide bundles) | 32 general-purpose | RISC-V + classic VLIW |
 
 ## Documentation
 

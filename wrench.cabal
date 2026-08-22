@@ -6,7 +6,7 @@ cabal-version: 2.2
 
 name:           wrench
 version:        0.0.4.7
-description:    Wrench - is a tool for educating computer architecture.
+description:    A multi-architecture CPU simulator, assembler, and auto-grading toolkit for teaching computer architecture.
 homepage:       https://github.com/ryukzak/wrench#readme
 bug-reports:    https://github.com/ryukzak/wrench/issues
 author:         Aleksandr Penskoi

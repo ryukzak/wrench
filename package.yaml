@@ -9,7 +9,7 @@ copyright: "2026 Aleksandr Penskoi"
 extra-source-files:
   - README.md
 
-description: Wrench - is a tool for educating computer architecture.
+description: A multi-architecture CPU simulator, assembler, and auto-grading toolkit for teaching computer architecture.
 
 default-extensions:
   - AllowAmbiguousTypes
