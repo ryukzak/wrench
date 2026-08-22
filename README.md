@@ -160,13 +160,13 @@ Task: Calculate the factorial of a number `n` (`n!`) in RISC-IV architecture.
 - Configuration: [factorial-5.yaml](./example/risc-iv-32/factorial-5.yaml)
 - Run the example:
 
-    ```shell
-    # Translation only
-    stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml -S
+```shell
+# Translation only
+stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml -S
 
-    # Full simulation
-    stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml
-    ```
+# Full simulation
+stack exec wrench -- example/risc-iv-32/factorial.s -c example/risc-iv-32/factorial-5.yaml
+```
 
 ### More Examples
 
