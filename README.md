@@ -16,7 +16,6 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 
 - [Wrench](#wrench)
     - [Why Simplified Architectures?](#why-simplified-architectures)
-    - [Documentation](#documentation)
     - [How to Run](#how-to-run)
         - [Build Locally](#build-locally)
         - [Install from a Binary Release](#install-from-a-binary-release)
@@ -44,20 +43,10 @@ This tradeoff is scoped to teaching -- it isn't a claim that simplified ISAs are
 | Architecture | Paradigm | Registers | Inspired by |
 | ----------------------------- | --------------------------------------- | ------------------------------------ | ------------------ |
 | [Acc32](./docs/acc32.md) | Accumulator | 1 (`Acc`) | -- (from scratch) |
-| [F32a](./docs/f32a.md) | Stack (dual-stack) | 2 (`A`, `B`) + data/return stacks | GreenArrays F18a |
-| [RISC-IV](./docs/risc-iv.md) | Load/store RISC | 32 general-purpose | RISC-V |
-| [M68k](./docs/m68k.md) | Register-memory CISC | 8 data + 8 address | Motorola 68000 |
-| [VLIW-IV](./docs/vliw-iv.md) | Static-scheduled VLIW (4-wide bundles) | 32 general-purpose | RISC-V + classic VLIW |
-
-## Documentation
-
-- [General Assembly Documentation](./docs/README.md) -- Explanation of how assembly source code and simulation configuration files should be structured (ISA-agnostic)
-- Architecture specific documentation:
-    - [Acc32](./docs/acc32.md) -- Accumulator-based 32-bit architecture
-    - [F32a](./docs/f32a.md) -- Stack-based 32-bit architecture
-    - [M68k](./docs/m68k.md) -- Motorola 68000-inspired architecture
-    - [RISC-IV](./docs/risc-iv.md) -- RISC-V-inspired 32-bit architecture
-    - [VLIW-IV](./docs/vliw-iv.md) -- RISC-V-inspired VLIW 32-bit architecture
+| [F32a](./docs/f32a.md) | Stack (dual-stack) | 2 (`A`, `B`) + data/return stacks | [GreenArrays F18a](https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18a.pdf) |
+| [RISC-IV](./docs/risc-iv.md) | Load/store RISC | 32 general-purpose | [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf) |
+| [M68k](./docs/m68k.md) | Register-memory CISC | 8 data + 8 address | [Motorola 68000](https://nguillaumin.github.io/perihelion-m68k-tutorials/appendixes/m68k-instruction-set.txt) |
+| [VLIW-IV](./docs/vliw-iv.md) | Static-scheduled VLIW (4-wide bundles) | 32 general-purpose | [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf) + classic VLIW |
 
 ## How to Run
 
@@ -123,7 +112,7 @@ Available options:
 
 The `wrench` app requires an input assembler file and optionally a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation. Alternatively, you can specify execution limits directly via command-line arguments.
 
-See our [documentation](./docs/README.md) for detailed information about:
+The [General Assembly Documentation](./docs/README.md) explains how assembly source code and simulation configuration files should be structured (ISA-agnostic), including:
 
 - Generic assembly structure
 - Configuration file format and options
