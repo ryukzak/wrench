@@ -317,7 +317,7 @@ goldenTranslateWasm32 fn =
         src <- decodeUtf8 <$> readFileBS fn
         case Wasm32.translateWasm32 @Int32 1000 fn src of
             Right (TranslatorResult dump labels _stats, _functionTable) ->
-                return $ encodeUtf8 $ intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
+                return $ encodeUtf8 $ T.intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 

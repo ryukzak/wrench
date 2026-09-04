@@ -382,7 +382,7 @@ translateWasm32 memorySize fn src =
     case parse asmParser fn src of
         Left err -> Left $ toText $ errorBundlePretty err
         Right sections -> do
-            labels <- firstToText $ evaluateLabels sections
+            labels <- evaluateLabels sections
             let resolveLabel l = HashMap.lookup l labels
                 marked = markupSectionOffsets 0 sections
             functionTable <- collectFunctions marked
@@ -391,12 +391,9 @@ translateWasm32 memorySize fn src =
             dump <- prepareDump memorySize code
             Right (TranslatorResult dump labels stats, functionTable)
 
-firstToText :: Either String a -> Either Text a
-firstToText = either (Left . toText) Right
-
 collectFunctions ::
     (MachineWord w) =>
-    [(w, Section (Source w (Ref w)) w String)]
+    [(w, Section (Source w (Ref w)) w Text)]
     -> Either Text FunctionTable
 collectFunctions sections = snd <$> foldM collectSection (Nothing, IntMap.empty) sections
     where
@@ -462,9 +459,9 @@ data SourceControl = SourceControl
 
 lowerSections ::
     (MachineWord w) =>
-    (String -> Maybe w)
+    (Text -> Maybe w)
     -> FunctionTable
-    -> [(w, Section (Source w (Ref w)) w String)]
+    -> [(w, Section (Source w (Ref w)) w Text)]
     -> Either Text [Section (Isa w w) w w]
 lowerSections resolveLabel functions sections = do
     (st, lowered) <- foldM lowerSection (LowerState Nothing, []) sections
@@ -493,7 +490,7 @@ lowerSections resolveLabel functions sections = do
 
 lowerSource ::
     (MachineWord w) =>
-    (String -> Maybe w)
+    (Text -> Maybe w)
     -> FunctionTable
     -> Int
     -> LowerState
@@ -612,7 +609,7 @@ lowerEnd st = do
         [] -> Left "unexpected end"
         (_control : rest) -> return (setFunction st ctx{fcControls = rest}, Just End)
 
-resolveRef :: (String -> Maybe w) -> Ref w -> Either Text w
+resolveRef :: (Text -> Maybe w) -> Ref w -> Either Text w
 resolveRef resolveLabel = \case
     ValueR prepare value -> Right $! prepare value
     Ref prepare label -> case resolveLabel label of
@@ -981,6 +978,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                 <> "wasm32:control-stack-max: "
                 <> show controlStackMax
         _ -> Nothing
+
+    isHalted State{stopped} = stopped
 
 frameLocal :: Int -> Frame w -> Maybe w
 frameLocal index Frame{frLocals} = lookupLocalValue index frLocals

@@ -168,9 +168,9 @@ wrenchWasm32IO opts@Options{isa, onlyTranslation} conf@Config{} src =
         Left e -> wrenchError e
     where
         translationResult rLabels rDump = do
-            putStrLn $ prettyLabels rLabels
+            putText $ prettyLabels rLabels
             putStrLn "---"
-            putStrLn $ prettyDump rLabels rDump
+            putText $ prettyDump rLabels rDump
         wrenchError e = do
             putStrLn $ "error (" <> isa <> "): " <> toString e
             exitFailure
