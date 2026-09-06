@@ -219,6 +219,43 @@ A loop is normally wrapped in an outer block. Branching to the loop label contin
 
 Control labels are ordinary label tokens. The examples use bare labels to distinguish them from locals, while the parser still accepts labels such as `$loop` for compatibility with existing sources.
 
+## Execution Model
+
+Structured control and calls are tracked with a small set of registers and one linear stack, sharing memory with the operand stack:
+
+- `sp` -- top of the stack (locals, operand values, and control records all live here)
+- `frame_base` -- start of the active function's locals
+- `ctrl_top` -- address of the innermost open `block`/`loop`/`if`/call record
+
+No instruction encodes a jump address. `block`, `loop`, `if`, and `call` each push a small record describing where control goes on exit; `br`, `br_if`, `end`, and `return` resolve their target by reading that record chain, never an encoded offset.
+
+### If, Else, and End
+
+`if`, `else`, and `end` are matched structurally in the bytecode -- no address for "the else" or "the end" is stored anywhere. `if` locates them itself by scanning forward, counting nested `block`/`loop`/`if` opens against `end` closes, until it finds the matching `else` (if present) and `end`.
+
+`if <label>` pops the condition. When a branch is actually entered (either branch, as long as one exists to run), `if` also pushes a control record tagged `<label>` so `br`/`br_if <label>` can target it later (see [Block and Loop](#block-and-loop)):
+
+```
+bytecode, one copy, in order:
+
+    if L
+    ...then-branch...
+    else                ; only reached by falling through the then-branch
+    ...else-branch...
+    end
+
+condition != 0:                             condition == 0 (else present):
+    push a record, enter right after `if`   push a record, jump to right after `else`
+    run the then-branch                     run the else-branch
+    fall into `else` -> jump to `end`       fall into `end`
+
+condition == 0, no else:
+    push nothing -- the construct is never entered,
+    continue directly after `end`
+```
+
+Reaching `else` always means the condition was non-zero -- the else-branch must not also run, so `else` unconditionally jumps to right after the matching `end`. The "condition == 0, no else" path is not a branch into a live scope: nothing was pushed, so there's nothing to close either -- it behaves as if the whole construct were absent. `end` closes whichever record is on top of the control chain; what "closing a record" does in general is covered next.
+
 ## Instructions
 
 Instruction sizes are implementation sizes used by the Wrench translator and trace:
