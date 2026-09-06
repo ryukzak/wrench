@@ -89,6 +89,8 @@ data Isa w l
       Over
     | -- | __a__    Fetches the contents of register A into T, pushing the data stack
       AFetch
+    | -- | __b__    Fetches the contents of register B into T, pushing the data stack
+      BFetch
     | -- | __halt__
       Halt
     deriving (Show)
@@ -118,6 +120,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmdMnemonic0 "dup" >> return Dup
             , cmdMnemonic0 "over" >> return Over
             , cmdMnemonic0 "a" >> return AFetch
+            , cmdMnemonic0 "b" >> return BFetch
             , FetchP <$> cmdMnemonic1 "@p"
             , cmdMnemonic0 "@+" >> return FetchPlus
             , cmdMnemonic0 "@b" >> return FetchB
@@ -190,6 +193,7 @@ instance DerefMnemonic (Isa w) w where
             AStore -> AStore
             BStore -> BStore
             AFetch -> AFetch
+            BFetch -> BFetch
             FetchP l -> FetchP (deref' f l)
             Fetch -> Fetch
             FetchPlus -> FetchPlus
@@ -430,6 +434,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             AStore -> dataPop >>= setA >> nextP
             BStore -> dataPop >>= setB >> nextP
             AFetch -> getA >>= dataPush >> nextP
+            BFetch -> getB >>= dataPush >> nextP
             -- [    T   ][    A   ] >> 1
             --      ^            |
             --      |            |
