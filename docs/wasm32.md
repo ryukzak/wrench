@@ -229,6 +229,50 @@ Structured control and calls are tracked with a small set of registers and one l
 
 No instruction encodes a jump address. `block`, `loop`, `if`, and `call` each push a small record describing where control goes on exit; `br`, `br_if`, `end`, and `return` resolve their target by reading that record chain, never an encoded offset.
 
+### Control Records
+
+Every open `block`, `loop`, `if`, or function call is represented the same way: one fixed-shape record, pushed onto the stack alongside locals and operand values, and linked into a chain through `ctrl_top`:
+
+Records live in the same stack as everything else, so this is what it looks like as actual stack contents (growing upward), for a function that has one open `block` and, inside it, one open `loop`:
+
+```
+addr   contents
+----   -------------------------------------
+ 108   [ Loop  record: link = 101, ... ]      <- ctrl_top
+ 107   ...loop body's own operand values...
+ 101   [ Block record: link = 100, ... ]
+ 100   [ Call  record: link = NULL, ... ]
+  99   ...locals...
+```
+
+`ctrl_top` only ever points at the topmost record (108 here). Each record's `link` field skips directly to the *previous* record's address, regardless of how much ordinary stack data (locals, operand values) sits in between -- the `Loop` record's `link = 101` jumps straight past everything at 107 to the `Block` record, and `Block`'s `link = 100` reaches the `Call` record at the bottom, whose `link = NULL` marks the end of the chain.
+
+Each record's `link` field points at the one before it -- that chain *is* the control stack; there is no separate structure for it.
+
+A record holds:
+
+Only `Block`/`Loop`/`If` need `label`/`startPc`, and only `Call` needs `savedFrameBase` -- each record only ever uses one of the two, based on `kind`, so they belong in a union rather than sitting side by side as fields that are unused half the time:
+
+```c
+struct ControlRecord {
+    ControlRecord *link;        // previous record in the chain (NULL at the bottom)
+    Kind           kind;        // Block, Loop, If, or Call
+    Addr           endPc;       // normal-exit target; for Call, the return address
+    int            resultCount; // stack values kept when the record closes
+    union {
+        struct { int label; Addr startPc; } branch; // Block/Loop/If: branch target id, loop re-entry point
+        struct { Addr savedFrameBase; }      call;   // Call: caller's frame_base, restored on return
+    };
+};
+```
+
+Two operations cover everything that touches a record:
+
+- **enter** -- push a new record at the top of the stack and point `ctrl_top` at it. Used by `block`, `loop`, `if` (once a branch is chosen to run), and `call`.
+- **collapse** -- the one operation behind `end`, a taken `br`/`br_if`, and `return`. Take the record's `resultCount` top-of-stack values, discard the record and everything pushed above it (or, if the record is being kept open, everything above it but not the record itself), write those values back, and continue either at `branch.startPc` (kept open -- a loop repeating) or at `endPc` (closed -- every other case), restoring `ctrl_top` from `link` in the closed case. Closing a call record additionally restores `frame_base` from `call.savedFrameBase`.
+
+The sections below are all instances of these two operations: `if`/`else`/`end` decide *when* to enter and which record to close; `block`/`loop`/`br`/`br_if` decide *which* record a branch resolves to; `call`/`return` add the locals/`frame_base` bookkeeping on top.
+
 ### If, Else, and End
 
 `if`, `else`, and `end` are matched structurally in the bytecode -- no address for "the else" or "the end" is stored anywhere. `if` locates them itself by scanning forward, counting nested `block`/`loop`/`if` opens against `end` closes, until it finds the matching `else` (if present) and `end`.
@@ -254,7 +298,41 @@ condition == 0, no else:
     continue directly after `end`
 ```
 
-Reaching `else` always means the condition was non-zero -- the else-branch must not also run, so `else` unconditionally jumps to right after the matching `end`. The "condition == 0, no else" path is not a branch into a live scope: nothing was pushed, so there's nothing to close either -- it behaves as if the whole construct were absent. `end` closes whichever record is on top of the control chain; what "closing a record" does in general is covered next.
+Reaching `else` always means the condition was non-zero -- the else-branch must not also run, so `else` unconditionally jumps to right after the matching `end`. The "condition == 0, no else" path is not a branch into a live scope: nothing was pushed, so there's nothing to close either -- it behaves as if the whole construct were absent. `end` closes whichever record is on top of the control chain: it pops that record and continues right after the matching `end`. `block`/`loop`/`if` carry no declared result type in Wasm32, so closing one never moves any stack values -- it is exactly that pop, nothing more. (A function's `return`/`.endfunc` is the one case that *does* carry a result count, covered in [Function Call and Return](#function-call-and-return).)
+
+### Block and Loop
+
+`block` and `loop` never pop anything -- unlike `if`, entering one is unconditional. Each pushes a control record tagged with its label; the only difference between them is what a `br`/`br_if` targeting that record does:
+
+- targeting a `block` (or an `if`): discard the record, continue right after its `end`
+- targeting a `loop`: keep the record, jump back to right after `loop` itself
+
+That asymmetry is the entire looping mechanism in Wasm32 -- a `loop` by itself does not repeat anything; it only becomes a loop because something inside it branches back with `br`/`br_if`.
+
+`br <label>`/`br_if <label>` search the control chain from `ctrl_top` outward for the record tagged `<label>`, discarding every record above it along the way. Branching out of several nested scopes costs exactly the same as branching out of one -- it's a single search, then a single pop-back-to-that-point.
+
+Using the loop from [Structured Control Flow](#structured-control-flow):
+
+```assembly
+    block done
+        loop again
+            ...
+            br_if done   ; A
+            ...
+            br again     ; B
+        end
+    end
+```
+
+At both `A` and `B` the control chain holds two open records:
+
+```
+ctrl_top -> [ loop again ]
+            [ block done ]
+```
+
+- At `A` (`br_if done`, taken): the search skips past `loop again` and matches `block done` -- both records are discarded (the `loop` one only because it happened to sit above the match), and execution continues right after the outer `end`.
+- At `B` (`br again`): the search matches `loop again` immediately, at the top -- it is kept, and execution jumps back to right after `loop again`.
 
 ## Instructions
 
