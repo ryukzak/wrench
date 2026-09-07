@@ -82,6 +82,11 @@ data Isa w l
     | Halt
     | Unreachable
     | Nop
+    | -- | Function metadata, embedded in code right before the body: param
+      -- count, declared (non-parameter) local count, result count. Emitted
+      -- by lowering a source @.func@ directive; never reached by ordinary
+      -- fallthrough, only read directly by 'Call'.
+      FuncHeader Int Int Int
     deriving (Show)
 
 data Source w l
@@ -342,6 +347,7 @@ instance DerefMnemonic (Isa w) w where
             Halt -> Halt
             Unreachable -> Unreachable
             Nop -> Nop
+            FuncHeader p l r -> FuncHeader p l r
 
 instance ByteSize (Isa w l) where
     byteSize I32Const{} = 5
@@ -354,10 +360,11 @@ instance ByteSize (Isa w l) where
     byteSize If{} = 2
     byteSize Br{} = 2
     byteSize BrIf{} = 2
+    byteSize FuncHeader{} = 4
     byteSize _ = 1
 
 instance ByteSize (Source w l) where
-    byteSize SourceFunc{} = 0
+    byteSize SourceFunc{} = 4
     byteSize SourceEndFunc = 1
     byteSize SourceI32Const{} = 5
     byteSize SourceCall{} = 5
@@ -449,6 +456,13 @@ data FunctionCtx = FunctionCtx
     }
     deriving (Show)
 
+-- | Which structured construct a still-open 'SourceControl' is, tracked
+-- purely at lowering time (e.g. so 'lowerElse' can reject an `else`
+-- outside an `if`). Unrelated to 'RecordKind', the runtime tag stored in a
+-- control record.
+data ControlKind = ControlBlock | ControlLoop | ControlIf
+    deriving (Eq, Show)
+
 data SourceControl = SourceControl
     { scName :: !String
     , scId :: !Int
@@ -502,7 +516,11 @@ lowerSource resolveLabel functions addr st source =
             when (isJust $ lsFunction st) $ Left ".func before .endfunc"
             meta <- maybeToRight ("missing function metadata at address " <> show addr) (IntMap.lookup addr functions)
             let locals = zip (fmLocalNames meta) [0 ..]
-            return (st{lsFunction = Just FunctionCtx{fcLocals = locals, fcControls = [], fcNextControlId = 0}}, Nothing)
+                declaredLocalCount = length (fmLocalNames meta) - fmParamCount meta
+            return
+                ( st{lsFunction = Just FunctionCtx{fcLocals = locals, fcControls = [], fcNextControlId = 0}}
+                , Just $ FuncHeader (fmParamCount meta) declaredLocalCount (fmResultCount meta)
+                )
         SourceEndFunc -> do
             ctx <- requireFunction st ".endfunc"
             case fcControls ctx of
@@ -618,36 +636,99 @@ resolveRef resolveLabel = \case
 
 type Wasm32State w = MachineState (IoMem (Isa w w) w) w
 
-data ControlKind = ControlBlock | ControlLoop | ControlIf
-    deriving (Eq, Show)
+-- | What a control record on the chain represents. Encoded as a plain word
+-- in memory -- see 'recordKindOffset'.
+data RecordKind = RecordCall | RecordBlock | RecordLoop | RecordIf
+    deriving (Bounded, Enum, Eq, Show)
 
-data ControlFrame = ControlFrame
-    { cfLabel :: Int
-    , cfKind :: ControlKind
-    , cfStartPc :: Int
-    , cfEndPc :: Int
-    , cfFrameDepth :: Int
-    }
+-- | The kind-specific payload passed to 'enter'. docs/wasm32.md describes
+-- the persisted record as a C-style tagged union (untyped fields, valid
+-- shape implied by `kind`, a convention the reader has to trust); here the
+-- shape is the type itself, one constructor per 'RecordKind', so a
+-- mismatch between a record's kind and its payload can't be constructed in
+-- the first place -- 'recordKindOf' derives the kind from the value rather
+-- than needing it passed alongside.
+data RecordExtra
+    = -- | Block: branch target id only.
+      BlockExtra {reLabel :: Int}
+    | -- | If: branch target id only.
+      IfExtra {reLabel :: Int}
+    | -- | Loop: branch target id, and the loop's re-entry point.
+      LoopExtra {reLabel :: Int, reStartPc :: Int}
+    | -- | Call: caller's frame_base to restore on return, and this call's
+      -- own 'FuncHeader' address (report views only).
+      CallExtra {reSavedFrameBase :: Int, reEntryPc :: Int}
     deriving (Show)
 
-data Frame w = Frame
-    { frReturnPc :: Maybe Int
-    , frLocals :: [w]
-    , frLocalNames :: [String]
-    , frResults :: Int
-    }
-    deriving (Show)
+recordKindOf :: RecordExtra -> RecordKind
+recordKindOf BlockExtra{} = RecordBlock
+recordKindOf IfExtra{} = RecordIf
+recordKindOf LoopExtra{} = RecordLoop
+recordKindOf CallExtra{} = RecordCall
+
+-- | The two generic word slots a 'RecordExtra' actually occupies in
+-- memory (see 'recordField4Offset'/'recordField5Offset') -- the only place
+-- that needs to know both the tagged Haskell shape and the untyped
+-- on-disk layout at once.
+extraRawFields :: RecordExtra -> (Int, Int)
+extraRawFields (BlockExtra l) = (l, 0)
+extraRawFields (IfExtra l) = (l, 0)
+extraRawFields (LoopExtra l s) = (l, s)
+extraRawFields (CallExtra fb ep) = (fb, ep)
+
+-- | Width, in words, of one control record. See docs/wasm32.md's "Control
+-- Records" section for the field layout this mirrors.
+recordWidth :: Int
+recordWidth = 6
+
+recordLinkOffset, recordKindOffset, recordEndPcOffset, recordResultCountOffset :: Int
+recordLinkOffset = 0
+recordKindOffset = 1
+recordEndPcOffset = 2
+recordResultCountOffset = 3
+
+-- | 'RecordExtra's first field: label (Block\/If\/Loop) or savedFrameBase
+-- (Call).
+recordField4Offset :: Int
+recordField4Offset = 4
+
+-- | 'RecordExtra's second field: startPc (Loop only) or entryPc (Call).
+recordField5Offset :: Int
+recordField5Offset = 5
+
+-- | Sentinel for "no previous record" ('ctrlTop'\/a record's `link`), and
+-- for a `Call` record's `endPc` meaning "this is `_start` -- halt, don't
+-- jump to a return address."
+nullAddr :: Int
+nullAddr = -1
 
 data MachineState mem w = State
     { pc :: Int
+    -- ^ Program counter.
+    , sp :: Int
+    -- ^ Top of the one runtime stack (locals, operand values, and control
+    -- records all live here -- see docs/wasm32.md's Execution Model).
+    , frameBase :: Int
+    -- ^ Base address of the active function's locals.
+    , ctrlTop :: Int
+    -- ^ Address of the innermost open block\/loop\/if\/call record, or
+    -- 'nullAddr'.
     , mem :: mem
-    , operandStack :: [w]
-    , operandStackMax :: !Int
-    , frames :: [Frame w]
-    , framesMax :: !Int
-    , controlStack :: [ControlFrame]
-    , controlStackMax :: !Int
+    , spMax :: !Int
+    -- ^ High-water mark of 'sp' (locals + operand values + control
+    -- records combined -- backs @wasm32:operand-stack-max@).
+    , callDepth :: !Int
+    , callDepthMax :: !Int
+    -- ^ Live/high-water count of open `Call` records (backs @frames@\/
+    -- @wasm32:frames-max@).
+    , ctrlDepth :: !Int
+    , ctrlDepthMax :: !Int
+    -- ^ Live/high-water count of open `Block`\/`Loop`\/`If` records (backs
+    -- @wasm32:control-stack-max@).
     , functions :: !FunctionTable
+    -- ^ Kept only for report\/debug views (@locals@, @local:<name>@,
+    -- @stack@) -- not consulted by instruction execution, which reads
+    -- function metadata from the embedded 'FuncHeader' instead.
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -657,19 +738,35 @@ instance InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) wher
     initState pc dump _randomStream =
         State
             { pc
+            , sp = memTop dump
+            , frameBase = memTop dump
+            , ctrlTop = nullAddr
             , mem = dump
-            , operandStack = []
-            , operandStackMax = 0
-            , frames = []
-            , framesMax = 0
-            , controlStack = []
-            , controlStackMax = 0
+            , spMax = memTop dump
+            , callDepth = 0
+            , callDepthMax = 0
+            , ctrlDepth = 0
+            , ctrlDepthMax = 0
             , functions = IntMap.empty
             , stopped = False
             , internalError = Nothing
             }
 
+-- | Where the runtime stack starts: the upper half of the configured
+-- memory, code+data occupying the lower half.
+--
+-- TODO: make the stack's size/placement independently configurable
+-- instead of this fixed split of the ISA's memory-size setting.
+memTop :: IoMem (Isa w w) w -> Int
+memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
+
+-- | Width, in bytes, of the 'FuncHeader' instruction every function
+-- starts with. Fixed regardless of the header's actual field values.
+funcHeaderSize :: Int
+funcHeaderSize = byteSize (FuncHeader 0 0 0 :: Isa w w)
+
 initWasm32State ::
+    forall w.
     (MachineWord w) =>
     Int
     -> IoMem (Isa w w) w
@@ -680,47 +777,61 @@ initWasm32State entryPc dump functionTable =
         Nothing -> Left "_start label should point to .func."
         Just meta
             | fmParamCount meta /= 0 -> Left "entry function cannot have parameters"
-            | otherwise ->
+            | otherwise -> do
+                let step = byteSizeT @w
+                    base = memTop dump
+                    localCount = length (fmLocalNames meta)
+                    recordAddr = base + localCount * step
+                    stackTop = recordAddr + recordWidth * step
+                mem' <- writeRecordAt dump recordAddr nullAddr (CallExtra nullAddr entryPc) nullAddr 0
                 Right
                     State
-                        { pc = entryPc
-                        , mem = dump
-                        , operandStack = []
-                        , operandStackMax = 0
-                        , frames = [emptyFrame Nothing meta]
-                        , framesMax = 1
-                        , controlStack = []
-                        , controlStackMax = 0
+                        { pc = entryPc + funcHeaderSize
+                        , sp = stackTop
+                        , frameBase = base
+                        , ctrlTop = recordAddr
+                        , mem = mem'
+                        , spMax = stackTop
+                        , callDepth = 1
+                        , callDepthMax = 1
+                        , ctrlDepth = 0
+                        , ctrlDepthMax = 0
                         , functions = functionTable
                         , stopped = False
                         , internalError = Nothing
                         }
 
-emptyFrame :: (MachineWord w) => Maybe Int -> FunctionMeta -> Frame w
-emptyFrame returnPc meta =
-    Frame
-        { frReturnPc = returnPc
-        , frLocals = replicate (length $ fmLocalNames meta) def
-        , frLocalNames = fmLocalNames meta
-        , frResults = fmResultCount meta
-        }
-
-calledFrame :: (MachineWord w) => Maybe Int -> FunctionMeta -> [w] -> Either Text (Frame w)
-calledFrame returnPc meta args
-    | length args /= fmParamCount meta =
-        Left
-            $ "function expects "
-            <> show (fmParamCount meta)
-            <> " arguments, got "
-            <> show (length args)
-    | otherwise =
-        Right
-            Frame
-                { frReturnPc = returnPc
-                , frLocals = args <> replicate (length (fmLocalNames meta) - fmParamCount meta) def
-                , frLocalNames = fmLocalNames meta
-                , frResults = fmResultCount meta
-                }
+-- | Write a control record's six fields at @addr@ (word-index offsets,
+-- scaled to bytes internally -- this memory is byte-addressed and a `w`
+-- occupies 'byteSizeT' bytes, not one address). Pure -- used both by
+-- 'initWasm32State' (before any 'State' machinery exists) and, wrapped by
+-- 'writeRecord', by 'enter' during execution.
+writeRecordAt ::
+    forall w.
+    (MachineWord w) =>
+    IoMem (Isa w w) w
+    -> Int
+    -> Int
+    -- ^ link
+    -> RecordExtra
+    -> Int
+    -- ^ endPc
+    -> Int
+    -- ^ resultCount
+    -> Either Text (IoMem (Isa w w) w)
+writeRecordAt m addr link extra endPc resultCount =
+    let step = byteSizeT @w
+        (field4, field5) = extraRawFields extra
+     in foldlM
+            (\m' (o, v) -> writeWord m' (addr + o * step) (toEnum v))
+            m
+            [ (recordLinkOffset, link)
+            , (recordKindOffset, fromEnum (recordKindOf extra))
+            , (recordEndPcOffset, endPc)
+            , (recordResultCountOffset, resultCount)
+            , (recordField4Offset, field4)
+            , (recordField5Offset, field5)
+            ]
 
 setPc :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -733,22 +844,28 @@ nextPc instruction = do
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
-pushValue :: w -> State (MachineState (IoMem (Isa w w) w) w) ()
-pushValue value =
-    modify $ \st@State{operandStack, operandStackMax} ->
-        let operandStack' = value : operandStack
-         in st{operandStack = operandStack', operandStackMax = max operandStackMax (length operandStack')}
+-- | Set `sp`, tracking its high-water mark ('spMax').
+setSp :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setSp sp' = modify $ \st -> st{sp = sp', spMax = max (spMax st) sp'}
 
-popValue :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
+-- | This memory is byte-addressed and a `w` occupies 'byteSizeT' bytes,
+-- not one address, so `sp` must step by that width, not by 1.
+pushValue :: forall w. (MachineWord w) => w -> State (MachineState (IoMem (Isa w w) w) w) ()
+pushValue value = do
+    State{sp} <- get
+    setWord sp value
+    setSp (sp + byteSizeT @w)
+
+-- | No underflow guard: popping past the current frame's locals reads
+-- whatever is physically below them (another frame's data, or a memory
+-- error at the very bottom) -- the same "no floor check" gap real Wasm
+-- closes with an ahead-of-time validator, not a runtime check.
+popValue :: forall w. (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
 popValue = do
-    st@State{operandStack} <- get
-    case operandStack of
-        [] -> do
-            raiseInternalError "operand stack underflow"
-            return def
-        (x : xs) -> do
-            put st{operandStack = xs}
-            return x
+    State{sp} <- get
+    let sp' = sp - byteSizeT @w
+    setSp sp'
+    getWord sp'
 
 popValues :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) [w]
 popValues n = reverse <$> replicateM n popValue
@@ -789,78 +906,163 @@ setByte addr byte = do
         Right mem' -> put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-currentFrame :: State (MachineState (IoMem (Isa w w) w) w) (Maybe (Frame w))
-currentFrame = get <&> listToMaybe . frames
-
-currentFrameDepth :: State (MachineState (IoMem (Isa w w) w) w) Int
-currentFrameDepth = get <&> length . frames
-
-lookupLocal :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) w
+lookupLocal :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) w
 lookupLocal index = do
-    currentFrame >>= \case
-        Nothing -> do
-            raiseInternalError "no active function frame"
-            return def
-        Just Frame{frLocals} ->
-            case lookupLocalValue index frLocals of
-                Just value -> return value
-                Nothing -> do
-                    raiseInternalError $ "unknown local index: " <> show index
-                    return def
+    State{frameBase} <- get
+    getWord (frameBase + index * byteSizeT @w)
 
-setLocal :: Int -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
+setLocal :: forall w. (MachineWord w) => Int -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
 setLocal index value = do
-    st@State{frames} <- get
-    case frames of
-        [] -> raiseInternalError "no active function frame"
-        (frame@Frame{frLocals} : rest) ->
-            case replaceAt index value frLocals of
-                Just frLocals' -> put st{frames = frame{frLocals = frLocals'} : rest}
-                Nothing -> raiseInternalError $ "unknown local index: " <> show index
+    State{frameBase} <- get
+    setWord (frameBase + index * byteSizeT @w) value
 
-lookupLocalValue :: Int -> [w] -> Maybe w
-lookupLocalValue index values
-    | index < 0 = Nothing
-    | otherwise = listToMaybe $ drop index values
+readRecordField :: forall w. (MachineWord w) => Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) Int
+readRecordField addr offset = fromEnum <$> getWord (addr + offset * byteSizeT @w)
 
-replaceAt :: Int -> a -> [a] -> Maybe [a]
-replaceAt index value values
-    | index < 0 = Nothing
-    | otherwise = go index values
+readRecordKind :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) RecordKind
+readRecordKind addr = toEnum <$> readRecordField addr recordKindOffset
+
+writeRecord ::
+    (MachineWord w) =>
+    Int -> Int -> RecordExtra -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+writeRecord addr link extra endPc resultCount = do
+    st@State{mem} <- get
+    case writeRecordAt mem addr link extra endPc resultCount of
+        Right mem' -> put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+
+-- | Push a new control record and make it the current one (`ctrlTop`).
+-- Used by `block`/`loop`/`if` (once a branch is actually taken) and
+-- `call`. See docs/wasm32.md's "Control Records" section.
+enter ::
+    forall w. (MachineWord w) => Int -> Int -> RecordExtra -> State (MachineState (IoMem (Isa w w) w) w) ()
+enter endPc resultCount extra = do
+    State{sp, ctrlTop} <- get
+    writeRecord sp ctrlTop extra endPc resultCount
+    setSp (sp + recordWidth * byteSizeT @w)
+    modify $ \st -> st{ctrlTop = sp}
+    bumpDepth (recordKindOf extra)
     where
-        go _ [] = Nothing
-        go 0 (_ : rest) = Just (value : rest)
-        go n (x : rest) = (x :) <$> go (n - 1) rest
+        bumpDepth RecordCall = modify $ \st -> st{callDepth = callDepth st + 1, callDepthMax = max (callDepthMax st) (callDepth st + 1)}
+        bumpDepth _ = modify $ \st -> st{ctrlDepth = ctrlDepth st + 1, ctrlDepthMax = max (ctrlDepthMax st) (ctrlDepth st + 1)}
 
-returnFromFunction :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
-returnFromFunction = do
-    State{frames, controlStack} <- get
-    case frames of
-        [] -> raiseInternalError "return without active function frame"
-        (Frame{frReturnPc, frResults} : callerFrames) -> do
-            results <- popValues frResults
-            let depth = length frames
-                controlStack' = filter ((< depth) . cfFrameDepth) controlStack
-            modify $ \st' -> st'{frames = callerFrames, controlStack = controlStack'}
+-- | The one operation behind `end`, a taken `br`/`br_if`, and `return`:
+-- collapse the record at @r@, optionally keeping it open (a taken branch
+-- to a `loop`). See docs/wasm32.md's "Control Records" section.
+collapse :: (MachineWord w) => Int -> Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+collapse r keepOpen = do
+    kind <- readRecordKind r
+    case kind of
+        RecordCall -> do
+            -- Read every field before touching the stack below: closing
+            -- overwrites the record's own bytes (splicing or relocating
+            -- results into/through them), so anything still needed from
+            -- it must be read first.
+            resultCount <- readRecordField r recordResultCountOffset
+            savedFrameBase <- readRecordField r recordField4Offset
+            link <- readRecordField r recordLinkOffset
+            endPc <- readRecordField r recordEndPcOffset
+            -- A function declares a real result count, so closing it
+            -- collects exactly that many values and reclaims everything
+            -- below them: the record itself, and (since `r` sits above
+            -- the callee's locals) the locals too.
+            results <- popValues resultCount
+            State{frameBase} <- get
+            setSp frameBase
             mapM_ pushValue results
-            case frReturnPc of
-                Just returnPc -> setPc returnPc
-                Nothing -> modify $ \st' -> st'{stopped = True}
+            modify $ \st -> st{frameBase = savedFrameBase, ctrlTop = link, callDepth = callDepth st - 1}
+            if endPc == nullAddr
+                then modify $ \st -> st{stopped = True}
+                else setPc endPc
+        _
+            -- Branching back into a `loop` never removes anything: a
+            -- well-formed body already leaves the stack exactly as it
+            -- found it (Wasm32 gives block/loop/if no declared result
+            -- type to collect otherwise), so there's nothing to splice.
+            | keepOpen -> readRecordField r recordField5Offset >>= setPc
+            -- Closing a `block`/`loop`/`if`: unlike `Call`, there are no
+            -- locals of its own to reclaim -- only the record's own words
+            -- need to go, so splice them out and keep everything the body
+            -- pushed above them (see 'spliceOut'). Read link/endPc first
+            -- -- the splice overwrites this record's own bytes.
+            | otherwise -> do
+                link <- readRecordField r recordLinkOffset
+                -- Unlike a Call record's endPc (already a full return
+                -- address), Block/Loop/If store the matching `end`
+                -- instruction's own address (from findEndPc/
+                -- resolveIfTargets) -- same convention `executeElse`
+                -- uses, so skip past it the same way here.
+                endPc <- readRecordField r recordEndPcOffset
+                State{sp} <- get
+                spliceOut r recordWidth sp
+                modify $ \st -> st{ctrlTop = link, ctrlDepth = ctrlDepth st - 1}
+                setPc (endPc + byteSize End)
 
-callFunction :: (MachineWord w) => w -> State (MachineState (IoMem (Isa w w) w) w) ()
-callFunction target = do
-    State{pc, functions} <- get
-    case IntMap.lookup (fromEnum target) functions of
-        Nothing -> raiseInternalError "call target does not point to .func"
-        Just meta -> do
-            args <- popValues (fmParamCount meta)
-            case calledFrame (Just $ pc + byteSize (Call target)) meta args of
-                Left err -> raiseInternalError err
-                Right frame -> do
-                    st@State{frames} <- get
-                    let frames' = frame : frames
-                    put st{frames = frames', framesMax = max (framesMax st) (length frames')}
-                    setPc (fromEnum target)
+-- | Remove the @widthWords@-word record at @r@, shifting @[r+width, top)@
+-- (moved one whole `w` at a time) down to start at @r@, and shrinking `sp`
+-- to match.
+spliceOut :: forall w. (MachineWord w) => Int -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+spliceOut r widthWords top = do
+    let step = byteSizeT @w
+        width = widthWords * step
+    forM_ [0, step .. top - r - width - 1] $ \i -> getWord (r + width + i) >>= setWord (r + i)
+    setSp (top - width)
+
+-- | Walk the control chain from `ctrlTop` for the record tagged @label@,
+-- erroring rather than walking past a `Call` record (a valid program's
+-- `br`/`br_if` always resolves within its own function).
+findLabel :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) (Either Text Int)
+findLabel label = get >>= go . ctrlTop
+    where
+        go r
+            | r == nullAddr = return $ Left $ "unknown control label: " <> show label
+            | otherwise = do
+                kind <- readRecordKind r
+                if kind == RecordCall
+                    then return $ Left $ "unknown control label: " <> show label
+                    else do
+                        l <- readRecordField r recordField4Offset
+                        if l == label
+                            then return $ Right r
+                            else readRecordField r recordLinkOffset >>= go
+
+-- | Walk the control chain from `ctrlTop` for the nearest enclosing `Call`
+-- record -- what `return` closes.
+findCall :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) (Either Text Int)
+findCall = get >>= go . ctrlTop
+    where
+        go r
+            | r == nullAddr = return $ Left "return without active function frame"
+            | otherwise = do
+                kind <- readRecordKind r
+                if kind == RecordCall
+                    then return $ Right r
+                    else readRecordField r recordLinkOffset >>= go
+
+-- | Collapse every open record from `ctrlTop` down to and including @r@,
+-- keeping @r@ itself open only if @keepOpen@ (a taken branch back into a
+-- `loop`). Anything strictly above @r@ is always fully closed along the
+-- way -- branching or returning past a scope exits it unconditionally,
+-- regardless of what its own body would otherwise have preserved.
+unwindTo :: (MachineWord w) => Int -> Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+unwindTo r keepOpen = do
+    State{ctrlTop} <- get
+    if ctrlTop == r
+        then collapse r keepOpen
+        else do
+            collapse ctrlTop False
+            unwindTo r keepOpen
+
+-- | `br`/`br_if <label>`: find the targeted record and unwind to it,
+-- keeping it open only when it's a `loop` (branching back to its start).
+branch :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+branch label = do
+    result <- findLabel label
+    case result of
+        Right r -> do
+            kind <- readRecordKind r
+            unwindTo r (kind == RecordLoop)
+        Left err -> raiseInternalError err
 
 findEndPc :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text Int
 findEndPc memory start = go start (0 :: Int)
@@ -895,42 +1097,54 @@ findIfTargets memory start = go start (0 :: Int) Nothing
                     | otherwise -> go next (depth - 1) elsePc
                 _ -> go next depth elsePc
 
-pushControlFrame :: Int -> ControlKind -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
-pushControlFrame label kind startPc endPc = do
-    depth <- currentFrameDepth
-    modify $ \st@State{controlStack, controlStackMax} ->
-        let controlStack' = ControlFrame label kind startPc endPc depth : controlStack
-         in st{controlStack = controlStack', controlStackMax = max controlStackMax (length controlStack')}
+-- | Resolve the else/end targets for the `if` starting right after the
+-- given pc. Currently rescans the bytecode on every execution.
+--
+-- TODO: back this with a small LRU cache keyed by the `if`'s pc (default
+-- size 4), storing the resolved (elsePc, endPc) pair, since the bytecode
+-- is immutable and targets never change once resolved. This is the
+-- branch-target-buffer-style optimization discussed for hot loops.
+resolveIfTargets :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text (Maybe Int, Int)
+resolveIfTargets = findIfTargets
 
-branchTo :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
-branchTo label = do
-    st@State{controlStack} <- get
-    depth <- currentFrameDepth
-    let (_above, rest) = break (\cf -> cfFrameDepth cf == depth && cfLabel cf == label) controlStack
-    case rest of
-        [] -> raiseInternalError $ "unknown control label: " <> show label
-        (target@ControlFrame{cfKind, cfStartPc, cfEndPc} : outer) ->
-            case cfKind of
-                ControlLoop -> put st{controlStack = target : outer} >> setPc cfStartPc
-                ControlBlock -> put st{controlStack = outer} >> setPc (cfEndPc + byteSize End)
-                ControlIf -> put st{controlStack = outer} >> setPc (cfEndPc + byteSize End)
-
-popControlEnd :: Isa w w -> State (MachineState (IoMem (Isa w w) w) w) ()
-popControlEnd instruction = do
-    st@State{controlStack} <- get
-    depth <- currentFrameDepth
-    case controlStack of
-        (_cf : rest) | cfFrameDepth _cf == depth -> put st{controlStack = rest} >> nextPc instruction
-        _ -> raiseInternalError "unexpected end"
-
-executeElse :: State (MachineState (IoMem (Isa w w) w) w) ()
+-- | `else` is reached only by falling through a taken then-branch, so the
+-- record it needs (the currently-open `If`) is always `ctrlTop` -- it
+-- reads that record's `endPc` and jumps past it, without closing it (the
+-- real `end` still has to run to close it).
+executeElse :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
 executeElse = do
-    st@State{controlStack} <- get
-    depth <- currentFrameDepth
-    case controlStack of
-        (ControlFrame{cfKind = ControlIf, cfFrameDepth, cfEndPc} : rest)
-            | cfFrameDepth == depth -> put st{controlStack = rest} >> setPc (cfEndPc + byteSize End)
-        _ -> raiseInternalError "unexpected else"
+    State{ctrlTop} <- get
+    endPc <- readRecordField ctrlTop recordEndPcOffset
+    setPc (endPc + byteSize End)
+
+-- | Pure lookup, used only by the report/debug views below (never by
+-- instruction execution): the address of the nearest enclosing `Call`
+-- record's `FuncHeader`, found by walking from @r@ via `link`.
+currentEntryPc :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Maybe Int
+currentEntryPc m = go
+    where
+        go r
+            | r == nullAddr = Nothing
+            | otherwise = case pureRecordKind m r of
+                Just RecordCall -> pureRecordField m r recordField5Offset
+                Just _ -> pureRecordField m r recordLinkOffset >>= go
+                Nothing -> Nothing
+
+-- | 'Either' has no 'hush' in scope here; a local one-liner is simpler
+-- than pulling in another import for it.
+eitherToMaybe :: Either e a -> Maybe a
+eitherToMaybe = either (const Nothing) Just
+
+pureRecordField :: forall w. (MachineWord w) => IoMem (Isa w w) w -> Int -> Int -> Maybe Int
+pureRecordField m addr offset = fromEnum . snd <$> eitherToMaybe (readWord m (addr + offset * byteSizeT @w))
+
+pureRecordKind :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Maybe RecordKind
+pureRecordKind m addr = toEnum <$> pureRecordField m addr recordKindOffset
+
+-- | The current function's declared signature, looked up (for reporting
+-- only) via the innermost `Call` record's saved entry pc.
+currentFunctionMeta :: (MachineWord w) => MachineState (IoMem (Isa w w) w) w -> Maybe FunctionMeta
+currentFunctionMeta State{mem, ctrlTop, functions} = currentEntryPc mem ctrlTop >>= (`IntMap.lookup` functions)
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
@@ -938,51 +1152,87 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{operandStack, frames, controlStack} v =
+    reprState labels st v =
         case T.splitOn ":" v of
-            ["stack", f] -> stack f operandStack
-            ["locals", f] -> localsView f (listToMaybe frames)
-            ["local", name, f] -> localView f name (listToMaybe frames)
-            ["frames"] -> show (length frames)
-            ["ctrl"] -> T.intercalate ":" $ map (show . cfLabel) controlStack
+            ["stack", f] -> stackView f st
+            ["locals", f] -> localsView f st
+            ["local", name, f] -> localView f name st
+            ["frames"] -> show (callDepth st)
+            ["ctrl"] -> ctrlView st
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
         where
-            stack "dec" values = toText $ intercalate ":" $ map show values
-            stack "hex" values = T.intercalate ":" $ map (toText . word32ToHex) values
-            stack f _ = unknownFormat f
-            localsView _ Nothing = ""
-            localsView f (Just Frame{frLocals, frLocalNames}) =
-                T.intercalate ":" $ zipWith (\n value -> toText n <> "=" <> viewRegister f value) frLocalNames frLocals
-            localView _ _ Nothing = ""
-            localView f name (Just frame@Frame{frLocalNames}) =
-                case snd <$> find ((== toString name) . fst) (zip frLocalNames [0 :: Int ..]) of
-                    Just index -> maybe (unknownView name) (viewRegister f) (frameLocal index frame)
-                    Nothing -> case readMaybe (toString name) of
-                        Just index -> maybe (unknownView name) (viewRegister f) (frameLocal index frame)
-                        Nothing -> unknownView name
+            formatValues "dec" values = toText $ intercalate ":" $ map show values
+            formatValues "hex" values = T.intercalate ":" $ map (toText . word32ToHex) values
+            formatValues f _ = unknownFormat f
 
-    summaryView _labels State{operandStackMax, framesMax, controlStackMax} v = case T.splitOn ":" v of
-        ["wasm32", "operand-stack-max"] -> Just $ show operandStackMax
-        ["wasm32", "frames-max"] -> Just $ show framesMax
-        ["wasm32", "control-stack-max"] -> Just $ show controlStackMax
+            -- Raw words above the current frame's own locals and its call
+            -- record (which always sits right after them, see 'enter'),
+            -- top first: a genuine stack dump, so this includes any
+            -- block/loop/if control records currently open above that,
+            -- not just pure operand values (those interleave once any
+            -- are open).
+            step = byteSizeT @w
+
+            stackView f st'@State{mem, sp} = case currentFunctionMeta st' of
+                Nothing -> ""
+                Just meta ->
+                    let lo = frameBase st' + length (fmLocalNames meta) * step + recordWidth * step
+                        values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. lo]
+                     in formatValues f values
+
+            localsView f st'@State{mem} = case currentFunctionMeta st' of
+                Nothing -> ""
+                Just meta ->
+                    let names = fmLocalNames meta
+                        values = map (\i -> maybe def snd (eitherToMaybe (readWord mem (frameBase st' + i * step)))) [0 .. length names - 1]
+                     in T.intercalate ":" $ zipWith (\n value -> toText n <> "=" <> viewRegister f value) names values
+
+            localView f name st'@State{mem} = case currentFunctionMeta st' of
+                Nothing -> unknownView name
+                Just meta ->
+                    let names = fmLocalNames meta
+                        byName = snd <$> find ((== toString name) . fst) (zip names [0 :: Int ..])
+                        index = case byName of
+                            Just i -> Just i
+                            Nothing -> readMaybe (toString name)
+                     in case index of
+                            Just i
+                                | i >= 0 && i < length names ->
+                                    maybe (unknownView name) (viewRegister f . snd) (eitherToMaybe (readWord mem (frameBase st' + i * step)))
+                            _ -> unknownView name
+
+            -- Structured control ids only (skips the enclosing `Call`),
+            -- innermost first.
+            ctrlView State{mem, ctrlTop} = T.intercalate ":" $ map show (go ctrlTop)
+                where
+                    go r
+                        | r == nullAddr = []
+                        | otherwise = case pureRecordKind mem r of
+                            Just RecordCall -> []
+                            Just _ -> case (pureRecordField mem r recordField4Offset, pureRecordField mem r recordLinkOffset) of
+                                (Just label, Just link) -> label : go link
+                                _ -> []
+                            Nothing -> []
+
+    summaryView _labels State{spMax, callDepthMax, ctrlDepthMax} v = case T.splitOn ":" v of
+        ["wasm32", "operand-stack-max"] -> Just $ show spMax
+        ["wasm32", "frames-max"] -> Just $ show callDepthMax
+        ["wasm32", "control-stack-max"] -> Just $ show ctrlDepthMax
         ["isa-specific"] ->
-            Just
-                $ "wasm32:operand-stack-max: "
-                <> show operandStackMax
-                <> "\n"
-                <> "wasm32:frames-max:        "
-                <> show framesMax
-                <> "\n"
-                <> "wasm32:control-stack-max: "
-                <> show controlStackMax
+            Just $
+                "wasm32:operand-stack-max: "
+                    <> show spMax
+                    <> "\n"
+                    <> "wasm32:frames-max:        "
+                    <> show callDepthMax
+                    <> "\n"
+                    <> "wasm32:control-stack-max: "
+                    <> show ctrlDepthMax
         _ -> Nothing
 
     isHalted State{stopped} = stopped
-
-frameLocal :: Int -> Frame w -> Maybe w
-frameLocal index Frame{frLocals} = lookupLocalValue index frLocals
 
 lookupAssoc :: (Eq a) => a -> [(a, b)] -> Maybe b
 lookupAssoc key = fmap snd . find ((== key) . fst)
@@ -1065,34 +1315,54 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Block label -> do
                 State{pc, mem} <- get
                 case findEndPc mem (pc + byteSize instruction) of
-                    Right endPc -> pushControlFrame label ControlBlock (pc + byteSize instruction) endPc >> nextPc instruction
+                    Right endPc -> enter endPc 0 (BlockExtra label) >> nextPc instruction
                     Left err -> raiseInternalError $ "control flow error: " <> err
             Loop label -> do
                 State{pc, mem} <- get
                 case findEndPc mem (pc + byteSize instruction) of
-                    Right endPc -> pushControlFrame label ControlLoop (pc + byteSize instruction) endPc >> nextPc instruction
+                    Right endPc -> enter endPc 0 (LoopExtra label (pc + byteSize instruction)) >> nextPc instruction
                     Left err -> raiseInternalError $ "control flow error: " <> err
             If label -> do
                 condition <- popValue
                 State{pc, mem} <- get
-                case findIfTargets mem (pc + byteSize instruction) of
+                case resolveIfTargets mem (pc + byteSize instruction) of
                     Right (elsePc, endPc)
-                        | condition /= 0 -> pushControlFrame label ControlIf (pc + byteSize instruction) endPc >> nextPc instruction
-                        | Just elseAddr <- elsePc ->
-                            pushControlFrame label ControlIf (elseAddr + byteSize Else) endPc >> setPc (elseAddr + byteSize Else)
+                        | condition /= 0 -> enter endPc 0 (IfExtra label) >> nextPc instruction
+                        | Just elseAddr <- elsePc -> do
+                            enter endPc 0 (IfExtra label)
+                            setPc (elseAddr + byteSize Else)
                         | otherwise -> setPc (endPc + byteSize End)
                     Left err -> raiseInternalError $ "control flow error: " <> err
             Else -> executeElse
-            End -> popControlEnd instruction
-            Br label -> branchTo label
+            End -> do
+                State{ctrlTop} <- get
+                collapse ctrlTop False
+            Br label -> branch label
             BrIf label -> do
                 condition <- popValue
-                if condition /= 0 then branchTo label else nextPc instruction
-            Call target -> callFunction target
-            Return -> returnFromFunction
+                if condition /= 0 then branch label else nextPc instruction
+            Call target -> do
+                State{pc, mem} <- get
+                case readInstruction mem (fromEnum target) of
+                    Right (mem', FuncHeader paramCount declaredLocalCount resultCount) -> do
+                        modify $ \st -> st{mem = mem'}
+                        State{sp, frameBase = callerFrameBase} <- get
+                        let calleeFrameBase = sp - paramCount * byteSizeT @w
+                        replicateM_ declaredLocalCount (pushValue def)
+                        enter (pc + byteSize instruction) resultCount (CallExtra callerFrameBase (fromEnum target))
+                        modify $ \st -> st{frameBase = calleeFrameBase}
+                        setPc (fromEnum target + funcHeaderSize)
+                    Right _ -> raiseInternalError "call target does not point to .func"
+                    Left err -> raiseInternalError $ "control flow error: " <> err
+            Return -> do
+                result <- findCall
+                case result of
+                    Right r -> unwindTo r False
+                    Left err -> raiseInternalError err
             Halt -> modify $ \st -> st{stopped = True}
             Unreachable -> raiseInternalError "unreachable"
             Nop -> nextPc instruction
+            FuncHeader{} -> raiseInternalError "fell into function metadata; call should have jumped past it"
         where
             unary f = popValue >>= pushValue . f
             binary f1 f2 op = do
