@@ -251,7 +251,7 @@ Each record's `link` field points at the one before it -- that chain *is* the co
 
 A record holds:
 
-Only `Block`/`Loop`/`If` need `label`/`startPc`, and only `Call` needs `savedFrameBase` -- each record only ever uses one of the two, based on `kind`, so they belong in a union rather than sitting side by side as fields that are unused half the time:
+`Block` and `If` only ever need `label`; `Loop` additionally needs `startPc`; `Call` needs neither, but needs `savedFrameBase`/`entryPc` instead -- three genuinely different shapes, each only ever used by the `kind` it belongs to:
 
 ```c
 struct ControlRecord {
@@ -260,8 +260,14 @@ struct ControlRecord {
     Addr           endPc;       // normal-exit target; for Call, the return address
     int            resultCount; // stack values kept when the record closes
     union {
-        struct { int label; Addr startPc; } branch; // Block/Loop/If: branch target id, loop re-entry point
-        struct { Addr savedFrameBase; }      call;   // Call: caller's frame_base, restored on return
+        struct { int label; }                         block_if; // Block, If: branch target id
+        struct { int label; Addr startPc; }            loop;    // Loop: branch target id, loop re-entry point
+        struct { Addr savedFrameBase; Addr entryPc; }  call;    // Call: caller's frame_base to restore, and this
+                                                                 // call's own FuncHeader address (report views
+                                                                 // only -- see Function Call and Return)
+        struct {}                                      unused;  // never actually selected -- `kind` always picks
+                                                                 // one of the three above; a plain union like this
+                                                                 // one carries no tag of its own to enforce that
     };
 };
 ```
@@ -269,7 +275,7 @@ struct ControlRecord {
 Two operations cover everything that touches a record:
 
 - **enter** -- push a new record at the top of the stack and point `ctrl_top` at it. Used by `block`, `loop`, `if` (once a branch is chosen to run), and `call`.
-- **collapse** -- the one operation behind `end`, a taken `br`/`br_if`, and `return`. Take the record's `resultCount` top-of-stack values, discard the record and everything pushed above it (or, if the record is being kept open, everything above it but not the record itself), write those values back, and continue either at `branch.startPc` (kept open -- a loop repeating) or at `endPc` (closed -- every other case), restoring `ctrl_top` from `link` in the closed case. Closing a call record additionally restores `frame_base` from `call.savedFrameBase`.
+- **collapse** -- the one operation behind `end`, a taken `br`/`br_if`, and `return`. Take the record's `resultCount` top-of-stack values, discard the record and everything pushed above it (or, if the record is being kept open, everything above it but not the record itself), write those values back, and continue either at `loop.startPc` (kept open -- a loop repeating) or at `endPc` (closed -- every other case), restoring `ctrl_top` from `link` in the closed case. Closing a call record additionally restores `frame_base` from `call.savedFrameBase`.
 
 The sections below are all instances of these two operations: `if`/`else`/`end` decide *when* to enter and which record to close; `block`/`loop`/`br`/`br_if` decide *which* record a branch resolves to; `call`/`return` add the locals/`frame_base` bookkeeping on top.
 
@@ -309,7 +315,7 @@ Reaching `else` always means the condition was non-zero -- the else-branch must 
 
 That asymmetry is the entire looping mechanism in Wasm32 -- a `loop` by itself does not repeat anything; it only becomes a loop because something inside it branches back with `br`/`br_if`.
 
-`br <label>`/`br_if <label>` search the control chain from `ctrl_top` outward for the record tagged `<label>`, discarding every record above it along the way. Branching out of several nested scopes costs exactly the same as branching out of one -- it's a single search, then a single pop-back-to-that-point.
+`br <label>`/`br_if <label>` search the control chain from `ctrl_top` outward for the record tagged `<label>`, then unwind to it one record at a time: each record strictly above the target is closed individually (as an ordinary, unconditional close) before the target itself closes. Closing a record one at a time, rather than discarding the whole span above the target in one step, is what lets each intervening scope's own body keep whatever it left on the stack -- exactly as it would closing on its own -- instead of that being silently swept away by the branch skipping past it. The cost is proportional to how many scopes are skipped, not the constant-time pointer move a single splice would be; see [Control Records](#control-records) for what closing one record does.
 
 Using the loop from [Structured Control Flow](#structured-control-flow):
 
@@ -338,26 +344,25 @@ ctrl_top -> [ loop again ]
 
 A function call is just another kind of record on the chain -- `Call` -- with its own way of entering (`call`) and its own way of being found and closed (`return`, or simply falling off the end of the function).
 
-Function metadata is not a separate table -- it is three words placed right before the function's body in code memory:
+Function metadata is not a separate table -- it is a `FuncHeader` instruction placed right before the function's body in code, holding paramCount, declaredLocalCount, and resultCount as its immediate fields. It is never reached by ordinary fallthrough (nothing falls into a function entry except via `call`, which always jumps past it); `call` reads it the same way it reads any other instruction, via `readInstruction`, rather than through a separate lookup:
 
 ```
-target+0   paramCount
-target+1   declaredLocalCount
-target+2   resultCount
-target+3   ...function body...
+target:   FuncHeader paramCount declaredLocalCount resultCount
+target+k: ...function body...        ; k = byteSize(FuncHeader)
 ```
 
-`call target` reads those three words, then enters a `Call` record:
+`call target` reads that header, then enters a `Call` record:
 
 ```
 frame_base' <- sp - paramCount        ; arguments are already on the stack -- alias them in, no copy
 push declaredLocalCount zero words    ; the rest of the locals, zero-initialized
 enter Call record:
     endPc               <- pc right after this `call`   ; the return address
-    resultCount         <- resultCount (read above)
+    resultCount         <- resultCount (read from the header)
     call.savedFrameBase <- frame_base                    ; caller's, to restore later
+    call.entryPc        <- target                        ; this call's own FuncHeader address (report views only)
 frame_base <- frame_base'
-pc <- target + 3                                         ; skip the header, start the body
+pc <- target + byteSize(FuncHeader)                       ; skip the header, start the body
 ```
 
 The caller's pushed arguments never move -- the same aliasing trick from [Control Records](#control-records), just applied to locals instead of a branch target: whatever already sat on top of the stack becomes `locals[0..paramCount-1]` simply because `frame_base'` starts there.
@@ -370,7 +375,7 @@ return:
     collapse(r, keepOpen = false)
 ```
 
-Because the search walks past anything in the way, a `return` issued from inside an open `block`/`loop`/`if` closes those scopes too, in the same single step -- an early return three scopes deep costs the same as one at the top level. Falling off the end of a function is not a special case either: with nothing else open, `ctrl_top` already *is* the `Call` record, so the ordinary `end` operation, `collapse(ctrl_top, keepOpen=false)`, has exactly the effect of a `return`. That is why `.endfunc` lowers to the same instruction as `return`.
+Because unwinding closes one record at a time (see [Block and Loop](#block-and-loop)), a `return` issued from inside an open `block`/`loop`/`if` closes those scopes too on its way out, each keeping whatever its own body left, just as it would closing normally. Falling off the end of a function is not a special case either: with nothing else open, `ctrl_top` already *is* the `Call` record, so the ordinary `end` operation, `collapse(ctrl_top, keepOpen=false)`, has exactly the effect of a `return`. That is why `.endfunc` lowers to the same instruction as `return`.
 
 Using `sum` from [Functions and Locals](#functions-and-locals), called as `i32.const 3`, `i32.const 4`, `call sum`:
 
