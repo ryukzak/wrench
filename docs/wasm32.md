@@ -334,6 +334,65 @@ ctrl_top -> [ loop again ]
 - At `A` (`br_if done`, taken): the search skips past `loop again` and matches `block done` -- both records are discarded (the `loop` one only because it happened to sit above the match), and execution continues right after the outer `end`.
 - At `B` (`br again`): the search matches `loop again` immediately, at the top -- it is kept, and execution jumps back to right after `loop again`.
 
+### Function Call and Return
+
+A function call is just another kind of record on the chain -- `Call` -- with its own way of entering (`call`) and its own way of being found and closed (`return`, or simply falling off the end of the function).
+
+Function metadata is not a separate table -- it is three words placed right before the function's body in code memory:
+
+```
+target+0   paramCount
+target+1   declaredLocalCount
+target+2   resultCount
+target+3   ...function body...
+```
+
+`call target` reads those three words, then enters a `Call` record:
+
+```
+frame_base' <- sp - paramCount        ; arguments are already on the stack -- alias them in, no copy
+push declaredLocalCount zero words    ; the rest of the locals, zero-initialized
+enter Call record:
+    endPc               <- pc right after this `call`   ; the return address
+    resultCount         <- resultCount (read above)
+    call.savedFrameBase <- frame_base                    ; caller's, to restore later
+frame_base <- frame_base'
+pc <- target + 3                                         ; skip the header, start the body
+```
+
+The caller's pushed arguments never move -- the same aliasing trick from [Control Records](#control-records), just applied to locals instead of a branch target: whatever already sat on top of the stack becomes `locals[0..paramCount-1]` simply because `frame_base'` starts there.
+
+`return` finds the nearest enclosing `Call` record and collapses it -- the same search-then-collapse `br`/`br_if` use, just searching by `kind == Call` instead of by label:
+
+```
+return:
+    r <- walk the chain from ctrl_top via `link` until kind == Call
+    collapse(r, keepOpen = false)
+```
+
+Because the search walks past anything in the way, a `return` issued from inside an open `block`/`loop`/`if` closes those scopes too, in the same single step -- an early return three scopes deep costs the same as one at the top level. Falling off the end of a function is not a special case either: with nothing else open, `ctrl_top` already *is* the `Call` record, so the ordinary `end` operation, `collapse(ctrl_top, keepOpen=false)`, has exactly the effect of a `return`. That is why `.endfunc` lowers to the same instruction as `return`.
+
+Using `sum` from [Functions and Locals](#functions-and-locals), called as `i32.const 3`, `i32.const 4`, `call sum`:
+
+```
+before call:  frame_base = F, sp = S           ; 3 and 4 already sit at S-2, S-1
+
+call sum:
+    frame_base' = S - 2                         ; aliases the 3 and 4 in place
+    (sum declares no extra locals -- nothing to zero-fill)
+    enter Call record: endPc = return address, resultCount = 1, call.savedFrameBase = F
+    frame_base = S - 2, pc = sum's body
+
+sum's body pushes 3 + 4 = 7, then falls off the end:
+    collapse(ctrl_top, keepOpen = false):
+        results = [7]
+        reclaim locals, scratch, and the record itself in one step
+        frame_base = F                          ; restored
+        pc = return address
+```
+
+From the caller's side this looks identical to any other instruction: two values consumed, one produced, nothing about the call boundary is visible in the stack's shape.
+
 ## Instructions
 
 Instruction sizes are implementation sizes used by the Wrench translator and trace:
