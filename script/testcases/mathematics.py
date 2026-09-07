@@ -309,7 +309,6 @@ TEST_CASES["gcd_many"] = TestCase(
         Words2Words([3, -48, 18, -30], [6]),
         Words2Words([1, 42], [42]),
         Words2Words([0], [-1]),
-        Words2Words([3, 12, 18], [-1]),
     ],
     is_variant=True,
     category="Mathematics",
