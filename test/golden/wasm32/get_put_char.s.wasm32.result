@@ -1,7 +1,7 @@
 0:	_start
 23:	normalize_char
 ---
-mem[0..3]: 	FuncHeader 0 0 0 	@_start
+mem[0..3]: 	FuncEnter 0 0 0 	@_start
 mem[4..8]: 	I32Const 132
 mem[9..13]: 	I32Const 128
 mem[14..14]: 	I32Load
@@ -9,7 +9,7 @@ mem[15..19]: 	Call 23
 mem[20..20]: 	I32Store
 mem[21..21]: 	Halt
 mem[22..22]: 	Return
-mem[23..26]: 	FuncHeader 1 0 1 	@normalize_char
+mem[23..26]: 	FuncEnter 1 0 1 	@normalize_char
 mem[27..28]: 	LocalGet 0
 mem[29..33]: 	I32Const 88
 mem[34..34]: 	I32Eq

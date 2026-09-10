@@ -4,7 +4,7 @@
 ---
 mem[0..13]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
 mem[14..16]: 	00 00 00	@"buf_end"
-mem[17..20]: 	FuncHeader 0 2 0 	@_start
+mem[17..20]: 	FuncEnter 0 2 0 	@_start
 mem[21..25]: 	I32Const 0
 mem[26..27]: 	LocalSet 0
 mem[28..32]: 	I32Const 14

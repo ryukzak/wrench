@@ -29,3 +29,11 @@ reports:
       wasm32:operand-stack-max: 2168
       wasm32:frames-max:        2
       wasm32:control-stack-max: 2
+  - name: Frame view (final state, only one frame left)
+    slice: last
+    filter:
+      - state
+    view: |
+      {frame:2}
+    assert: |
+      #0 _start: locals=[$result=0] stack=[]
