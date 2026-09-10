@@ -3,7 +3,7 @@
 ![Wrench CI](https://github.com/ryukzak/wrench/actions/workflows/ci.yml/badge.svg?branch=master)
 ![License](https://img.shields.io/github/license/ryukzak/wrench)
 
-Wrench is a teaching platform for computer architecture: one assembler/simulator toolchain shared across five deliberately different CPU paradigms, plus a formatter and a grading service for running real coursework. Every architecture uses the same assembly conventions, YAML-driven configuration, and report/assertion language, so a single lab exercise can be solved once and compared instruction-for-instruction across an accumulator machine, a stack machine, a load-store RISC, a register-memory CISC, a VLIW design, etc.
+Wrench is a teaching platform for computer architecture: one assembler/simulator toolchain shared across six deliberately different CPU paradigms, plus a formatter and a grading service for running real coursework. Every architecture uses the same assembly conventions, YAML-driven configuration, and report/assertion language, so a single lab exercise can be solved once and compared instruction-for-instruction across an accumulator machine, a stack machine, a load-store RISC, a register-memory CISC, a VLIW design, etc.
 
 - `wrench` -- translator/simulator itself
 - `wrench-fmt` -- formatter for assembly files
@@ -30,10 +30,10 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
 
 ## Why Simplified Architectures?
 
-None of Wrench's ISAs are real hardware. Each is a small, from-scratch design "inspired by" a real family -- RISC-IV by RISC-V, M68k by the Motorola 68000, F32a by the GreenArrays F18a, VLIW-IV by RISC-V, classic VLIW designs, etc. That's deliberate:
+None of Wrench's ISAs are real hardware. Each is a small, from-scratch design "inspired by" a real family -- RISC-IV by RISC-V, M68k by the Motorola 68000, F32a by the GreenArrays F18a, VLIW-IV by RISC-V, classic VLIW designs, Wasm32 by WebAssembly, etc. That's deliberate:
 
 - **Right altitude of complexity.** Real ISAs carry decades of backward-compatibility cruft: extension zoos, privileged/CSR specs, addressing-mode edge cases, bundle templates and predication. None of that teaches the underlying paradigm faster; a simplified ISA keeps the concept and drops the incidental history.
-- **One toolchain instead of five.** Because Wrench owns every ISA, all five share the same directives, config schema, and report language (see [Documentation](./docs/README.md)). Wrapping five real toolchains instead would mean learning five sets of toolchain quirks, not five architectural paradigms.
+- **One toolchain instead of six.** Because Wrench owns every ISA, all six share the same directives, config schema, and report language (see [Documentation](./docs/README.md)). Wrapping six real toolchains instead would mean learning six sets of toolchain quirks, not six architectural paradigms.
 - **Deterministic enough to auto-grade.** The variant generator (`script/variants.py`) produces a unique, auto-checkable assignment per student, which requires fully-specified semantics with no inherited hardware errata or undefined behavior.
 - **No hardware or licensing barrier.** A classroom doesn't need real 68000s or GreenArrays chips -- the spec is the simulator.
 - **A whole ISA fits in one sitting.** Each architecture doc is a few thousand words, not a multi-hundred-page reference manual.
@@ -47,6 +47,7 @@ This tradeoff is scoped to teaching -- it isn't a claim that simplified ISAs are
 | [RISC-IV](./docs/risc-iv.md) | Load/store RISC | 32 general-purpose | [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf) |
 | [M68k](./docs/m68k.md) | Register-memory CISC | 8 data + 8 address | [Motorola 68000](https://nguillaumin.github.io/perihelion-m68k-tutorials/appendixes/m68k-instruction-set.txt) |
 | [VLIW-IV](./docs/vliw-iv.md) | Static-scheduled VLIW (4-wide bundles) | 32 general-purpose | [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf) + classic VLIW |
+| [Wasm32](./docs/wasm32.md) | Stack | -- (operand stack + locals) | [WebAssembly](https://webassembly.github.io/spec/core/) |
 
 ## How to Run
 
@@ -95,7 +96,7 @@ Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
 
 Available options:
   INPUT                    Input assembler file (.s)
-  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)
+  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv, wasm32)
   -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   --stats                  Append a built-in `Overview` report

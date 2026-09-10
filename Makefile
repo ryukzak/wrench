@@ -79,6 +79,12 @@ test-examples: build
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/factorial.s       -c example/vliw-iv/factorial-5.yaml
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/test-parallel.s   -c example/vliw-iv/test-parallel.yaml
 
+	stack exec wrench -- --isa wasm32     example/wasm32/not.s              -c example/wasm32/not-true.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/hello.s            -c example/wasm32/hello.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/get-put-char.s     -c example/wasm32/get-put-char-65.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/factorial.s        -c example/wasm32/factorial-5.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/dup.s              -c example/wasm32/dup.yaml
+
 test-server: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl
@@ -107,6 +113,7 @@ format-asm: build-fmt
 	stack exec wrench-fmt -- --inplace --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --inplace --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 	stack exec wrench-fmt -- --inplace --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
+	stack exec wrench-fmt -- --inplace --isa wasm32     -v example/wasm32/*.s     test/golden/wasm32/*.s
 
 format-py:
 	ruff format script
@@ -133,6 +140,7 @@ format-check-asm: build-fmt
 	stack exec wrench-fmt -- --check --isa acc32      -v example/acc32/*.s      test/golden/acc32/*.s
 	stack exec wrench-fmt -- --check --isa m68k       -v example/m68k/*.s       test/golden/m68k/*.s
 	stack exec wrench-fmt -- --check --isa vliw-iv    -v example/vliw-iv/*.s    test/golden/vliw-iv/*.s
+	stack exec wrench-fmt -- --check --isa wasm32     -v example/wasm32/*.s     test/golden/wasm32/*.s
 
 format-check-py:
 	ruff format --check script
