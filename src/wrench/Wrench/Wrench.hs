@@ -221,7 +221,7 @@ wrenchWasm32 ::
     Options
     -> Config
     -> String
-    -> Either Text (Result (IntMap (Cell (Wasm32.Isa w w) w)) w)
+    -> Either Text (Result (IntMap (Cell (Wasm32.Isa Int Int w w) w)) w)
 wrenchWasm32 Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports} src = do
     (trResult@TranslatorResult{dump, labels}, functionTable) <- Wasm32.translateWasm32 @w cMemorySize fn src
 
@@ -236,8 +236,8 @@ wrenchWasm32 Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, 
         isSuccess = all fst reports
         reportTexts = map snd reports
 
-    return
-        $ Result
+    return $
+        Result
             { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
             , rLabels = labels
             , rSuccess = isSuccess

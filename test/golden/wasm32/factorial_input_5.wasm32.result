@@ -10,3 +10,6 @@ wasm32:control-stack-max: 2
 wasm32:operand-stack-max: 2168
 wasm32:frames-max:        2
 wasm32:control-stack-max: 2
+---
+# Frame view (final state, only one frame left)
+#0 _start: locals=[$result=0] stack=[]

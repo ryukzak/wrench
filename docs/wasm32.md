@@ -52,6 +52,7 @@ double:
 - `locals:dec`, `locals:hex` -- locals of the current function frame.
 - `local:<name>:dec`, `local:<name>:hex` -- one local from the current function frame.
 - `frames` -- number of active function frames.
+- `frame`, `frame:<n>`, `frame:<n>:dec`, `frame:<n>:hex` -- one line per active call frame, innermost first (default `<n>` is 1, default format is `dec`): `#<i> <name>: locals=[...] stack=[...]`. Each frame's `stack` is that frame's own operand region, using the same raw-dump convention as `stack:*` above -- for the innermost frame this is everything above its locals up to the live `sp`; for an outer frame waiting on a call, it's everything up to the point where it pushed the callee's arguments (frozen while the callee runs). Requesting more frames than are active just stops early instead of erroring.
 - `ctrl` -- active structured control ids, innermost first.
 
 ### Runtime statistics
@@ -263,7 +264,7 @@ struct ControlRecord {
         struct { int label; }                         block_if; // Block, If: branch target id
         struct { int label; Addr startPc; }            loop;    // Loop: branch target id, loop re-entry point
         struct { Addr savedFrameBase; Addr entryPc; }  call;    // Call: caller's frame_base to restore, and this
-                                                                 // call's own FuncHeader address (report views
+                                                                 // call's own FuncEnter address (report views
                                                                  // only -- see Function Call and Return)
         struct {}                                      unused;  // never actually selected -- `kind` always picks
                                                                  // one of the three above; a plain union like this
@@ -344,11 +345,11 @@ ctrl_top -> [ loop again ]
 
 A function call is just another kind of record on the chain -- `Call` -- with its own way of entering (`call`) and its own way of being found and closed (`return`, or simply falling off the end of the function).
 
-Function metadata is not a separate table -- it is a `FuncHeader` instruction placed right before the function's body in code, holding paramCount, declaredLocalCount, and resultCount as its immediate fields. It is never reached by ordinary fallthrough (nothing falls into a function entry except via `call`, which always jumps past it); `call` reads it the same way it reads any other instruction, via `readInstruction`, rather than through a separate lookup:
+Function metadata is not a separate table -- it is a `FuncEnter` instruction placed right before the function's body in code, holding paramCount, declaredLocalCount, and resultCount as its immediate fields. It is never reached by ordinary fallthrough (nothing falls into a function entry except via `call`, which always jumps past it); `call` reads it the same way it reads any other instruction, via `readInstruction`, rather than through a separate lookup:
 
 ```
-target:   FuncHeader paramCount declaredLocalCount resultCount
-target+k: ...function body...        ; k = byteSize(FuncHeader)
+target:   FuncEnter paramCount declaredLocalCount resultCount
+target+k: ...function body...        ; k = byteSize(FuncEnter)
 ```
 
 `call target` reads that header, then enters a `Call` record:
@@ -360,9 +361,9 @@ enter Call record:
     endPc               <- pc right after this `call`   ; the return address
     resultCount         <- resultCount (read from the header)
     call.savedFrameBase <- frame_base                    ; caller's, to restore later
-    call.entryPc        <- target                        ; this call's own FuncHeader address (report views only)
+    call.entryPc        <- target                        ; this call's own FuncEnter address (report views only)
 frame_base <- frame_base'
-pc <- target + byteSize(FuncHeader)                       ; skip the header, start the body
+pc <- target + byteSize(FuncEnter)                       ; skip the header, start the body
 ```
 
 The caller's pushed arguments never move -- the same aliasing trick from [Control Records](#control-records), just applied to locals instead of a branch target: whatever already sat on top of the stack becomes `locals[0..paramCount-1]` simply because `frame_base'` starts there.
@@ -403,10 +404,11 @@ From the caller's side this looks identical to any other instruction: two values
 Instruction sizes are implementation sizes used by the Wrench translator and trace:
 
 - 5 bytes: `i32.const`, `call`
+- 4 bytes: `.func`'s embedded `FuncEnter` header (see "Function Call and Return")
 - 2 bytes: `local.get`, `local.set`, `local.tee`, `block`, `loop`, `if`, `br`, `br_if`
 - 1 byte: all other instructions
 
-Source directives are handled before runtime memory is built: `.func` emits no instruction bytes, and `.endfunc` emits a one-byte `return`.
+`.func` and `.endfunc` are assembly directives, not `Isa` instructions in their own right: `.func` lowers to a `FuncEnter` header, and `.endfunc` lowers to a plain one-byte `return` (the function's implicit return, same as falling off the end in real Wasm).
 
 ### Constants and Stack Operations
 
