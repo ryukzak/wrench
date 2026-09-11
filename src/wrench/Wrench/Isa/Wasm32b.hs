@@ -60,6 +60,22 @@ data Isa w l
       If
     | Else
     | End
+    | -- | Marks a re-entry point; on its own, runs the body exactly once
+      -- (falls through to `end` like any other scope). Repetition only
+      -- happens when a `br_if` inside jumps back to it. Also no label,
+      -- same reasoning as `If` -- `br_if` always means "the nearest
+      -- enclosing loop," so there's nothing to name.
+      Loop
+    | -- | Pop a condition; if non-zero, jump back to the nearest enclosing
+      -- `loop`'s start (see 'controlStack'). If zero, fall through.
+      BrIf
+    | -- | Duplicate the top of the operand stack. Without this (or
+      -- locals), a value consumed to check a loop condition is gone --
+      -- nothing survives to feed the next iteration, so `loop` can only
+      -- ever run a fixed, pre-supplied number of times. `dup` is the
+      -- minimal fix: peek the top instead of only ever being able to pop
+      -- it.
+      Dup
     | Halt
     deriving (Eq, Show)
 
@@ -100,6 +116,9 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd0 "if" If
                     , cmd0 "else" Else
                     , cmd0 "end" End
+                    , cmd0 "loop" Loop
+                    , cmd0 "br_if" BrIf
+                    , cmd0 "dup" Dup
                     , cmd0 "halt" Halt
                     ]
 
@@ -139,6 +158,9 @@ instance DerefMnemonic (Isa w) w where
         If -> If
         Else -> Else
         End -> End
+        Loop -> Loop
+        BrIf -> BrIf
+        Dup -> Dup
         Halt -> Halt
 
 instance ByteSize (Isa w l) where
@@ -154,6 +176,14 @@ data MachineState mem w = State
     -- memory (see 'memTop') rather than as a separate Haskell structure --
     -- no locals, no control stack, no call frames, just this one region.
     , mem :: mem
+    , controlStack :: [(Int, Int)]
+    -- ^ One @(loopStart, loopEnd)@ per currently-open `loop`, innermost
+    -- first -- the one piece of runtime state `if`\/`else`\/`end` don't
+    -- need but `loop`\/`br_if` do (see the module haddock's note on why).
+    -- `loopStart` is where `br_if` jumps back to; `loopEnd` is compared
+    -- against `end`'s own address to tell "this end closes the innermost
+    -- open loop" apart from "this end closes a plain if" -- only the
+    -- former pops.
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -165,6 +195,7 @@ instance InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) wher
             { pc
             , sp = memTop dump
             , mem = dump
+            , controlStack = []
             , stopped = False
             , internalError = Nothing
             }
@@ -221,9 +252,9 @@ popValue = do
     getWord sp'
 
 -- | Find the `if` at @start@'s branch targets by scanning forward,
--- tracking nested `if`s so a nested `else`\/`end` doesn't get mistaken for
--- this one's. Returns the matching `else`'s address (if there is one) and
--- the matching `end`'s address.
+-- tracking nested `if`\/`loop` scopes so a nested `else`\/`end` doesn't get
+-- mistaken for this one's. Returns the matching `else`'s address (if there
+-- is one) and the matching `end`'s address.
 findIfTargets :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text (Maybe Int, Int)
 findIfTargets memory start = go start (0 :: Int) Nothing
     where
@@ -232,6 +263,7 @@ findIfTargets memory start = go start (0 :: Int) Nothing
             let next = addr + byteSize instruction
             case instruction of
                 If -> go next (depth + 1) elsePc
+                Loop -> go next (depth + 1) elsePc
                 Else
                     | depth == 0 -> go next depth (Just addr)
                     | otherwise -> go next depth elsePc
@@ -240,9 +272,10 @@ findIfTargets memory start = go start (0 :: Int) Nothing
                     | otherwise -> go next (depth - 1) elsePc
                 _ -> go next depth elsePc
 
--- | Find the `end` matching the `if` that owns the `else` at @start@ --
--- reached only by falling through a taken then-branch, to skip the
--- else-branch body entirely.
+-- | Find the `end` matching the scope (an `if`'s `else`, or a `loop`)
+-- starting right after @start@ -- shared by 'Else' (skipping the
+-- else-branch body after a taken then-branch) and 'Loop' (finding its own
+-- end up front, to remember alongside its start in 'controlStack').
 findEndPc :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text Int
 findEndPc memory start = go start (0 :: Int)
     where
@@ -251,6 +284,7 @@ findEndPc memory start = go start (0 :: Int)
             let next = addr + byteSize instruction
             case instruction of
                 If -> go next (depth + 1)
+                Loop -> go next (depth + 1)
                 End
                     | depth == 0 -> Right addr
                     | otherwise -> go next (depth - 1)
@@ -335,7 +369,33 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 case findEndPc mem (pc + byteSize instruction) of
                     Right endPc -> setPc (endPc + byteSize End)
                     Left err -> raiseInternalError $ "control flow error: " <> err
-            End -> nextPc instruction
+            End -> do
+                State{pc, controlStack} <- get
+                case controlStack of
+                    ((_, loopEnd) : rest) | loopEnd == pc -> modify $ \st -> st{controlStack = rest}
+                    _ -> return ()
+                nextPc instruction
+            Loop -> do
+                State{pc, mem} <- get
+                case findEndPc mem (pc + byteSize instruction) of
+                    Right endPc -> do
+                        modify $ \st -> st{controlStack = (pc + byteSize instruction, endPc) : controlStack st}
+                        nextPc instruction
+                    Left err -> raiseInternalError $ "control flow error: " <> err
+            BrIf -> do
+                condition <- popValue
+                if condition == 0
+                    then nextPc instruction
+                    else do
+                        State{controlStack} <- get
+                        case controlStack of
+                            ((start, _) : _) -> setPc start
+                            [] -> raiseInternalError "br_if outside loop"
+            Dup -> do
+                top <- popValue
+                pushValue top
+                pushValue top
+                nextPc instruction
             Halt -> modify $ \st -> st{stopped = True}
         where
             unary f = popValue >>= pushValue . f
