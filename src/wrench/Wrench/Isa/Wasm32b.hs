@@ -135,9 +135,10 @@ type Wasm32bState w = MachineState (IoMem (Isa w w) w) w
 
 data MachineState mem w = State
     { pc :: Int
-    , operandStack :: [w]
-    -- ^ Head = top. The whole machine: no locals, no control stack, no
-    -- call frames -- just this.
+    , sp :: Int
+    -- ^ Top of the operand stack, which lives in ordinary byte-addressed
+    -- memory (see 'memTop') rather than as a separate Haskell structure --
+    -- no locals, no control stack, no call frames, just this one region.
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -148,11 +149,16 @@ instance InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) wher
     initState pc dump _randomStream =
         State
             { pc
-            , operandStack = []
+            , sp = memTop dump
             , mem = dump
             , stopped = False
             , internalError = Nothing
             }
+
+-- | Where the operand stack starts: the upper half of the configured
+-- memory, code+data occupying the lower half.
+memTop :: IoMem (Isa w w) w -> Int
+memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
 
 setPc :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -165,17 +171,40 @@ nextPc instruction = do
 raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
-pushValue :: w -> State (MachineState (IoMem (Isa w w) w) w) ()
-pushValue value = modify $ \st -> st{operandStack = value : operandStack st}
+getWord :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) w
+getWord addr = do
+    st@State{mem} <- get
+    case readWord mem addr of
+        Right (mem', w) -> put st{mem = mem'} >> return w
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return def
 
--- | No underflow guard: popping past the bottom of an empty stack is a
--- program error this ISA doesn't validate against ahead of time.
-popValue :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
+setWord :: (MachineWord w) => Int -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
+setWord addr w = do
+    st@State{mem} <- get
+    case writeWord mem addr w of
+        Right mem' -> put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+
+-- | This memory is byte-addressed and a `w` occupies 'byteSizeT' bytes,
+-- not one address, so `sp` must step by that width, not by 1.
+pushValue :: forall w. (MachineWord w) => w -> State (MachineState (IoMem (Isa w w) w) w) ()
+pushValue value = do
+    State{sp} <- get
+    setWord sp value
+    modify $ \st -> st{sp = sp + byteSizeT @w}
+
+-- | No underflow guard: popping past the bottom of the stack region reads
+-- whatever is physically below it (code/data memory, or a memory error at
+-- the very bottom) -- a program error this ISA doesn't validate against
+-- ahead of time.
+popValue :: forall w. (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
 popValue = do
-    st@State{operandStack} <- get
-    case operandStack of
-        [] -> raiseInternalError "operand stack underflow" >> return def
-        (v : rest) -> put st{operandStack = rest} >> return v
+    State{sp} <- get
+    let sp' = sp - byteSizeT @w
+    modify $ \st -> st{sp = sp'}
+    getWord sp'
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
@@ -184,14 +213,22 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     isHalted State{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{operandStack} v =
+    reprState labels st@State{mem, sp} v =
         case T.splitOn ":" v of
-            ["stack", "dec"] -> toText $ intercalate ":" $ map show operandStack
-            ["stack", "hex"] -> T.intercalate ":" $ map (toText . word32ToHex) operandStack
-            ["stack", f] -> unknownFormat f
+            ["stack", f] -> formatValues f values
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
+        where
+            step = byteSizeT @w
+            -- Top first, matching the old list's head-is-top convention.
+            values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. memTop mem]
+
+            formatValues "dec" vs = toText $ intercalate ":" $ map show vs
+            formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
+            formatValues f _ = unknownFormat f
+
+            eitherToMaybe = either (const Nothing) Just
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch = do
