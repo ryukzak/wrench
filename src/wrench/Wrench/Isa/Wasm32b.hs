@@ -52,6 +52,14 @@ data Isa w l
     | I32LeU
     | I32GtU
     | I32GeU
+    | -- | No label: nothing can branch to it yet (no `br`), so there's
+      -- nothing for a label to name. `if`\/`else`\/`end` targets are found
+      -- by scanning forward from `if` (see 'findIfTargets') rather than
+      -- stored anywhere -- no runtime frame, since nothing branches out of
+      -- a taken branch early.
+      If
+    | Else
+    | End
     | Halt
     deriving (Eq, Show)
 
@@ -89,6 +97,9 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd0 "i32.le_u" I32LeU
                     , cmd0 "i32.gt_u" I32GtU
                     , cmd0 "i32.ge_u" I32GeU
+                    , cmd0 "if" If
+                    , cmd0 "else" Else
+                    , cmd0 "end" End
                     , cmd0 "halt" Halt
                     ]
 
@@ -125,6 +136,9 @@ instance DerefMnemonic (Isa w) w where
         I32LeU -> I32LeU
         I32GtU -> I32GtU
         I32GeU -> I32GeU
+        If -> If
+        Else -> Else
+        End -> End
         Halt -> Halt
 
 instance ByteSize (Isa w l) where
@@ -206,6 +220,42 @@ popValue = do
     modify $ \st -> st{sp = sp'}
     getWord sp'
 
+-- | Find the `if` at @start@'s branch targets by scanning forward,
+-- tracking nested `if`s so a nested `else`\/`end` doesn't get mistaken for
+-- this one's. Returns the matching `else`'s address (if there is one) and
+-- the matching `end`'s address.
+findIfTargets :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text (Maybe Int, Int)
+findIfTargets memory start = go start (0 :: Int) Nothing
+    where
+        go addr depth elsePc = do
+            (_, instruction) <- readInstruction memory addr
+            let next = addr + byteSize instruction
+            case instruction of
+                If -> go next (depth + 1) elsePc
+                Else
+                    | depth == 0 -> go next depth (Just addr)
+                    | otherwise -> go next depth elsePc
+                End
+                    | depth == 0 -> Right (elsePc, addr)
+                    | otherwise -> go next (depth - 1) elsePc
+                _ -> go next depth elsePc
+
+-- | Find the `end` matching the `if` that owns the `else` at @start@ --
+-- reached only by falling through a taken then-branch, to skip the
+-- else-branch body entirely.
+findEndPc :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text Int
+findEndPc memory start = go start (0 :: Int)
+    where
+        go addr depth = do
+            (_, instruction) <- readInstruction memory addr
+            let next = addr + byteSize instruction
+            case instruction of
+                If -> go next (depth + 1)
+                End
+                    | depth == 0 -> Right addr
+                    | otherwise -> go next (depth - 1)
+                _ -> go next depth
+
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
     memoryDump State{mem} = mem
@@ -270,6 +320,22 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             I32LeU -> compareU (<=) >> nextPc instruction
             I32GtU -> compareU (>) >> nextPc instruction
             I32GeU -> compareU (>=) >> nextPc instruction
+            If -> do
+                condition <- popValue
+                if condition /= 0
+                    then nextPc instruction
+                    else do
+                        State{pc, mem} <- get
+                        case findIfTargets mem (pc + byteSize instruction) of
+                            Right (Just elseAddr, _) -> setPc (elseAddr + byteSize Else)
+                            Right (Nothing, endPc) -> setPc (endPc + byteSize End)
+                            Left err -> raiseInternalError $ "control flow error: " <> err
+            Else -> do
+                State{pc, mem} <- get
+                case findEndPc mem (pc + byteSize instruction) of
+                    Right endPc -> setPc (endPc + byteSize End)
+                    Left err -> raiseInternalError $ "control flow error: " <> err
+            End -> nextPc instruction
             Halt -> modify $ \st -> st{stopped = True}
         where
             unary f = popValue >>= pushValue . f
