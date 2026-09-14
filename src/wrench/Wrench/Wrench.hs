@@ -14,7 +14,7 @@ import Data.Text qualified as T
 import Prelude (Read (..))
 import Relude
 import Relude.Extra
-import System.Random (StdGen, mkStdGen, uniformR)
+import System.Random qualified as Random
 import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
@@ -86,13 +86,14 @@ prettyLabels rLabels =
 runWrenchIO :: Options -> IO ()
 runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
-    conf@Config{cLimit, cMemorySize} <- case configFile of
+    rawConf <- case configFile of
         Just fn ->
             either
                 (error . toText)
                 (if stats then withExecutionStats else id)
                 <$> readConfig fn
         Nothing -> return def
+    conf@Config{cLimit, cMemorySize} <- ensureSeed rawConf
 
     when verbose $ do
         pPrint conf
@@ -163,12 +164,17 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed} src = do
-    trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+    let (memoryGen, isaGen) = Random.split (Random.mkStdGen $ fromMaybe 0 cSeed)
+        memoryFillBytes =
+            if fromMaybe False cZeroMemoryInit
+                then repeat 0
+                else map fromIntegral (randomInts (0, 255) memoryGen)
+    trResult@TranslatorResult{dump, labels} <- translate cMemorySize memoryFillBytes fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
+        randomStream = randomInts (0, maxBound) isaGen
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 
@@ -194,7 +200,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             | otherwise =
                 error $ "integer value out of machine word range: " <> show x
 
-        randomInts :: (Int, Int) -> StdGen -> [Int]
+        randomInts :: (Int, Int) -> Random.StdGen -> [Int]
         randomInts range gen =
-            let (val, gen') = uniformR range gen
+            let (val, gen') = Random.uniformR range gen
              in val : randomInts range gen'

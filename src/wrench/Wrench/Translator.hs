@@ -74,10 +74,11 @@ translate ::
     , Show (isa_ w w)
     ) =>
     Int
+    -> [Word8]
     -> FilePath
     -> String
     -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)
-translate memorySize fn src =
+translate memorySize fillBytes fn src =
     case parse asmParser fn src of
         Right sections ->
             case evaluateLabels sections of
@@ -87,6 +88,6 @@ translate memorySize fn src =
                         code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
                         stats = computeDumpStats code
                      in do
-                            dump <- prepareDump memorySize code
+                            dump <- prepareDump memorySize fillBytes code
                             Right $ TranslatorResult dump labels stats
         Left err -> Left $ toText $ errorBundlePretty err

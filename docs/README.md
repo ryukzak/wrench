@@ -19,6 +19,8 @@ Wrench is an educational project designed to explore different types of processo
         - [Configuration Options](#configuration-options)
             - [`limit`](#limit)
             - [`memory_size`](#memory_size)
+            - [`seed`](#seed)
+            - [`zero_memory_init`](#zero_memory_init)
             - [`memory_mapped_io`](#memory_mapped_io)
             - [`reports`](#reports)
                 - [`name`](#name)
@@ -222,6 +224,26 @@ reports:
 
   ```yaml
   memory_size: 40
+  ```
+
+#### `seed`
+
+- **Type:** Integer (optional)
+- **Description:** Seed for the simulation's pseudo-random number generator. Used by [`zero_memory_init`](#zero_memory_init) (specifically, its absence) and by architectures that consume randomness at runtime (e.g. `vliw-iv`'s hazard simulation). If omitted, the `wrench` CLI draws a fresh random seed for each run (visible with `--verbose`, so you can pin it via `seed:` to replay an interesting run); library/test callers that invoke the simulator directly without going through the CLI default to seed `0` instead, for reproducibility.
+- **Example:**
+
+  ```yaml
+  seed: 1337
+  ```
+
+#### `zero_memory_init`
+
+- **Type:** Boolean (optional, default: `false`)
+- **Description:** By default, bytes of memory not covered by any `.text`/`.data` section are filled with pseudo-random data (seeded by [`seed`](#seed)) instead of zeros -- this catches bugs where a program relies on unallocated memory happening to be zero. Set to `true` to fill those bytes with zeros instead. Bytes that a section does initialize -- including ones explicitly set to `0` -- are never affected by this flag either way.
+- **Example:**
+
+  ```yaml
+  zero_memory_init: true
   ```
 
 #### `memory_mapped_io`

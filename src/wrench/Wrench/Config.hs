@@ -1,6 +1,7 @@
 module Wrench.Config (
     Config (..),
     readConfig,
+    ensureSeed,
     executionStatsReport,
     withExecutionStats,
 ) where
@@ -12,6 +13,7 @@ import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import System.Random qualified as Random
 import Wrench.Report
 
 throwE :: (Monad m) => e -> ExceptT e m a
@@ -25,6 +27,13 @@ readConfig path = runExceptT $ do
         Right conf -> return conf
     let conf' = (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
     return conf'
+
+ensureSeed :: Config -> IO Config
+ensureSeed conf@Config{cSeed = Just _} = return conf
+ensureSeed conf = do
+    gen <- Random.initStdGen
+    let (seed, _gen') = Random.uniformR (0, maxBound :: Int) gen
+    return conf{cSeed = Just seed}
 
 executionStatsReport :: ReportConf
 executionStatsReport =
@@ -69,6 +78,7 @@ data Config = Config
     -- ^ Optional list of report configurations.
     , cSeed :: Maybe Int
     -- ^ Optional seed for random number generation.
+    , cZeroMemoryInit :: Maybe Bool
     }
     deriving (Generic, Show)
 
@@ -89,6 +99,7 @@ instance Default Config where
                         }
                     ]
             , cSeed = Nothing
+            , cZeroMemoryInit = Just False
             }
 
 instance Semigroup Config where
@@ -100,6 +111,7 @@ instance Semigroup Config where
             , cLimit = cLimit a
             , cReports = cReports a <|> cReports b
             , cSeed = cSeed a <|> cSeed b
+            , cZeroMemoryInit = cZeroMemoryInit a <|> cZeroMemoryInit b
             }
 
 instance FromJSON Config where
