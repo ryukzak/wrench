@@ -13,4 +13,5 @@ Config
             }
         ]
     , cSeed = Nothing
+    , cZeroMemoryInit = Just False
     }

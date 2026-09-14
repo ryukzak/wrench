@@ -69,6 +69,11 @@ data Config = Config
     -- ^ Optional list of report configurations.
     , cSeed :: Maybe Int
     -- ^ Optional seed for random number generation.
+    , cZeroMemoryInit :: Maybe Bool
+    -- ^ Optional flag (default: disabled): fill memory not covered by any
+    --   section with zeros instead of pseudo-random bytes (seeded by
+    --   'cSeed'). Set to 'True' to fall back to the old zero-filling
+    --   behavior.
     }
     deriving (Generic, Show)
 
@@ -89,6 +94,7 @@ instance Default Config where
                         }
                     ]
             , cSeed = Nothing
+            , cZeroMemoryInit = Just False
             }
 
 instance Semigroup Config where
@@ -100,6 +106,7 @@ instance Semigroup Config where
             , cLimit = cLimit a
             , cReports = cReports a <|> cReports b
             , cSeed = cSeed a <|> cSeed b
+            , cZeroMemoryInit = cZeroMemoryInit a <|> cZeroMemoryInit b
             }
 
 instance FromJSON Config where

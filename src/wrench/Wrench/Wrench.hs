@@ -14,7 +14,7 @@ import Data.Text qualified as T
 import Prelude (Read (..))
 import Relude
 import Relude.Extra
-import System.Random (StdGen, mkStdGen, uniformR)
+import System.Random (StdGen, initStdGen, mkStdGen, split, uniformR)
 import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
@@ -86,13 +86,14 @@ prettyLabels rLabels =
 runWrenchIO :: Options -> IO ()
 runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
-    conf@Config{cLimit, cMemorySize} <- case configFile of
+    rawConf <- case configFile of
         Just fn ->
             either
                 (error . toText)
                 (if stats then withExecutionStats else id)
                 <$> readConfig fn
         Nothing -> return def
+    conf@Config{cLimit, cMemorySize} <- ensureSeed rawConf
 
     when verbose $ do
         pPrint conf
@@ -108,6 +109,17 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
         Just Acc32 -> wrenchIO @(Acc32State Int32) opts conf src
         Just M68k -> wrenchIO @(M68kState Int32) opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
+    where
+        -- \| The CLI is the only place a missing 'cSeed' should draw fresh
+        --   entropy: 'wrench' itself stays pure (seed 0 when unset), which
+        --   is what the golden test suite relies on for reproducibility.
+        --   The resolved seed is visible via --verbose (which pretty-prints
+        --   'conf' below) so a run can be replayed with an explicit `seed:`.
+        ensureSeed conf@Config{cSeed = Just _} = return conf
+        ensureSeed conf = do
+            gen <- initStdGen
+            let (seed, _gen') = uniformR (0, maxBound :: Int) gen
+            return conf{cSeed = Just seed}
 
 wrenchIO ::
     forall st isa_ w isa1 isa2.
@@ -163,12 +175,17 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed} src = do
-    trResult@TranslatorResult{dump, labels} <- translate cMemorySize fn src
+wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+    let (memoryGen, isaGen) = split (mkStdGen $ fromMaybe 0 cSeed)
+        memoryFillBytes =
+            if fromMaybe False cZeroMemoryInit
+                then repeat 0
+                else map fromIntegral (randomInts (0, 255) memoryGen)
+    trResult@TranslatorResult{dump, labels} <- translate cMemorySize memoryFillBytes fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        randomStream = randomInts (0, maxBound) (mkStdGen $ fromMaybe 0 cSeed)
+        randomStream = randomInts (0, maxBound) isaGen
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 

@@ -1,0 +1,13 @@
+name: "Random memory initialization"
+limit: 10
+memory_size: 0x40
+seed: 1337
+reports:
+  - name: Explicitly initialized data (stays 0xDEADBEEF)
+    slice: last
+    view: |
+      {memory:0x0:0x3}
+  - name: Unallocated memory (random bytes; try changing seed)
+    slice: last
+    view: |
+      {memory:0x20:0x2f}

@@ -74,6 +74,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/sb.s" "test/golden/risc-iv-32/sb.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/multi_sections.s" "test/golden/risc-iv-32/multi_sections.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/random_memory_init.s" "test/golden/risc-iv-32/random_memory_init.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"
@@ -292,7 +293,7 @@ goldenTranslate' ::
 goldenTranslate' isa fn =
     goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @isa @Int32 1000 fn src of
+        case translate @isa @Int32 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats) ->
                 return $ encodeUtf8 $ T.intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->

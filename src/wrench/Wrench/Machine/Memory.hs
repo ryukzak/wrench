@@ -39,8 +39,13 @@ data DumpStats = DumpStats
     }
     deriving (Eq, Show)
 
-prepareDump :: (ByteSize isa, MachineWord w) => Int -> [Section isa w w] -> Either Text (Mem isa w)
-prepareDump memorySize sections =
+prepareDump ::
+    (ByteSize isa, MachineWord w) =>
+    Int
+    -> [Word8]
+    -> [Section isa w w]
+    -> Either Text (Mem isa w)
+prepareDump memorySize fillBytes sections =
     let addSection cells offset dump =
             let dump' = zip [offset ..] cells
              in (offset + length dump', dump' <> dump)
@@ -73,7 +78,7 @@ prepareDump memorySize sections =
                     (0, [])
                     sections
         dumpSize = maximum1 $ 0 :| keys fromSections
-        placeholder = map (,Value 0) [0 .. memorySize - 1]
+        placeholder = zip [0 .. memorySize - 1] (map Value fillBytes)
      in if dumpSize > memorySize
             then
                 Left $

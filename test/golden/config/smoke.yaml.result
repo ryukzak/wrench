@@ -67,4 +67,5 @@ Config
             }
         ]
     , cSeed = Just 1337
+    , cZeroMemoryInit = Just False
     }
