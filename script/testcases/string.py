@@ -602,7 +602,7 @@ TEST_CASES["lower_case_cstr"] = TestCase(
             "HELLO\x00WORLD\n",
             "hello",
             "",
-            mem_view=[(0x00, 0x1F, cbuf("HELLO\x00WORLD", 0x20))],
+            mem_view=[(0x00, 0x1F, cbuf("hello\x00WORLD", 0x20))],
         ),
     ],
     is_variant=True,
