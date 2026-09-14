@@ -1,6 +1,7 @@
 module Wrench.Config (
     Config (..),
     readConfig,
+    ensureSeed,
     executionStatsReport,
     withExecutionStats,
 ) where
@@ -12,6 +13,7 @@ import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
+import System.Random (initStdGen, uniformR)
 import Wrench.Report
 
 throwE :: (Monad m) => e -> ExceptT e m a
@@ -25,6 +27,20 @@ readConfig path = runExceptT $ do
         Right conf -> return conf
     let conf' = (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
     return conf'
+
+-- | Draw a fresh seed from OS entropy when the config doesn't pin one, so
+--   unseeded runs get different randomness (memory init, vliw-iv hazards)
+--   each time. Deliberately NOT folded into 'readConfig': that function is
+--   also used by the golden test suite (both to dump the parsed 'Config'
+--   itself, and to drive most simulation goldens, few of which pin a
+--   seed), which needs to stay entropy-free to avoid latent flakiness.
+--   Only the CLI (see 'runWrenchIO') should call this.
+ensureSeed :: Config -> IO Config
+ensureSeed conf@Config{cSeed = Just _} = return conf
+ensureSeed conf = do
+    gen <- initStdGen
+    let (seed, _gen') = uniformR (0, maxBound :: Int) gen
+    return conf{cSeed = Just seed}
 
 executionStatsReport :: ReportConf
 executionStatsReport =
