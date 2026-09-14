@@ -14,7 +14,7 @@ import Data.Text qualified as T
 import Prelude (Read (..))
 import Relude
 import Relude.Extra
-import System.Random (StdGen, mkStdGen, split, uniformR)
+import System.Random qualified as Random
 import Text.Pretty.Simple
 import Wrench.Config
 import Wrench.Isa.Acc32 (Acc32State)
@@ -165,7 +165,7 @@ wrench ::
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
 wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
-    let (memoryGen, isaGen) = split (mkStdGen $ fromMaybe 0 cSeed)
+    let (memoryGen, isaGen) = Random.split (Random.mkStdGen $ fromMaybe 0 cSeed)
         memoryFillBytes =
             if fromMaybe False cZeroMemoryInit
                 then repeat 0
@@ -200,7 +200,7 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             | otherwise =
                 error $ "integer value out of machine word range: " <> show x
 
-        randomInts :: (Int, Int) -> StdGen -> [Int]
+        randomInts :: (Int, Int) -> Random.StdGen -> [Int]
         randomInts range gen =
-            let (val, gen') = uniformR range gen
+            let (val, gen') = Random.uniformR range gen
              in val : randomInts range gen'

@@ -13,7 +13,7 @@ import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import System.Random (initStdGen, uniformR)
+import System.Random qualified as Random
 import Wrench.Report
 
 throwE :: (Monad m) => e -> ExceptT e m a
@@ -31,8 +31,8 @@ readConfig path = runExceptT $ do
 ensureSeed :: Config -> IO Config
 ensureSeed conf@Config{cSeed = Just _} = return conf
 ensureSeed conf = do
-    gen <- initStdGen
-    let (seed, _gen') = uniformR (0, maxBound :: Int) gen
+    gen <- Random.initStdGen
+    let (seed, _gen') = Random.uniformR (0, maxBound :: Int) gen
     return conf{cSeed = Just seed}
 
 executionStatsReport :: ReportConf
