@@ -28,13 +28,6 @@ readConfig path = runExceptT $ do
     let conf' = (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
     return conf'
 
--- | Draw a fresh seed from OS entropy when the config doesn't pin one, so
---   unseeded runs get different randomness (memory init, vliw-iv hazards)
---   each time. Deliberately NOT folded into 'readConfig': that function is
---   also used by the golden test suite (both to dump the parsed 'Config'
---   itself, and to drive most simulation goldens, few of which pin a
---   seed), which needs to stay entropy-free to avoid latent flakiness.
---   Only the CLI (see 'runWrenchIO') should call this.
 ensureSeed :: Config -> IO Config
 ensureSeed conf@Config{cSeed = Just _} = return conf
 ensureSeed conf = do
@@ -86,10 +79,6 @@ data Config = Config
     , cSeed :: Maybe Int
     -- ^ Optional seed for random number generation.
     , cZeroMemoryInit :: Maybe Bool
-    -- ^ Optional flag (default: disabled): fill memory not covered by any
-    --   section with zeros instead of pseudo-random bytes (seeded by
-    --   'cSeed'). Set to 'True' to fall back to the old zero-filling
-    --   behavior.
     }
     deriving (Generic, Show)
 

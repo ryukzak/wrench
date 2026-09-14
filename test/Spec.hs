@@ -74,7 +74,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/sb.s" "test/golden/risc-iv-32/sb.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/multi_sections.s" "test/golden/risc-iv-32/multi_sections.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/random_memory_init.s" "test/golden/risc-iv-32/random_memory_init.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/memory_init.s" "test/golden/risc-iv-32/memory_init.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"
