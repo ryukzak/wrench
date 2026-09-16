@@ -58,6 +58,14 @@ if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64,linux/arm6
     exit 1
 fi
 
+PUSH_CHECK_TAG="${IMAGE_NAME}:push-check"
+if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64 \
+        -t "$PUSH_CHECK_TAG" --push - >/dev/null 2>&1; then
+    echo "Error: Unable to push to $IMAGE_NAME. Check your Docker registry login/permissions." >&2
+    echo "Fix: docker login" >&2
+    exit 1
+fi
+
 CURRENT_VERSION=$(grep '^version:' package.yaml | sed -E 's/version: //')
 echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml
