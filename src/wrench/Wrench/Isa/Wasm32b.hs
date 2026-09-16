@@ -17,7 +17,8 @@ import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
 import Data.Text qualified as T
 import Relude
-import Text.Megaparsec (choice)
+import Relude.Unsafe qualified as Unsafe
+import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -52,23 +53,32 @@ data Isa w l
     | I32LeU
     | I32GtU
     | I32GeU
-    | -- | No label: nothing can branch to it yet (no `br`), so there's
-      -- nothing for a label to name. `if`\/`else`\/`end` targets are found
-      -- by scanning forward from `if` (see 'findIfTargets') rather than
-      -- stored anywhere -- no runtime frame, since nothing branches out of
-      -- a taken branch early.
+    | -- | No label: `if`\/`else`\/`end` targets are found by scanning
+      -- forward from `if` (see 'findIfTargets') rather than stored
+      -- anywhere -- no runtime frame, since nothing branches out of a
+      -- taken branch early.
       If
     | Else
     | End
-    | -- | Marks a re-entry point; on its own, runs the body exactly once
-      -- (falls through to `end` like any other scope). Repetition only
-      -- happens when a `br_if` inside jumps back to it. Also no label,
-      -- same reasoning as `If` -- `br_if` always means "the nearest
-      -- enclosing loop," so there's nothing to name.
+    | -- | Marks a re-entry point (a valid `br`\/`br_if` target that jumps
+      -- backward, to just after here); on its own, runs the body exactly
+      -- once, same as `Block`.
       Loop
-    | -- | Pop a condition; if non-zero, jump back to the nearest enclosing
-      -- `loop`'s start (see 'controlStack'). If zero, fall through.
-      BrIf
+    | -- | Marks a valid `br`\/`br_if` target that jumps forward, to just
+      -- after its matching `end` -- the thing `loop` doesn't give you, and
+      -- what makes a real "break" possible (branching out of a loop
+      -- instead of only ever back into it).
+      Block
+    | -- | Branch to the enclosing `block`\/`loop` @depth@ levels out (0 =
+      -- innermost), unconditionally. Reaching a `loop` jumps to its start
+      -- and leaves it open (this is how you continue); reaching a `block`
+      -- jumps past its `end` and closes it, along with everything nested
+      -- between here and there (this is how you break out of more than
+      -- one level at once). See 'branchTo'.
+      Br Int
+    | -- | Same as 'Br', but pops a condition first and only branches if
+      -- it's non-zero; otherwise falls through.
+      BrIf Int
     | -- | Duplicate the top of the operand stack. Without this (or
       -- locals), a value consumed to check a loop condition is gone --
       -- nothing survives to feed the next iteration, so `loop` can only
@@ -117,7 +127,9 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd0 "else" Else
                     , cmd0 "end" End
                     , cmd0 "loop" Loop
-                    , cmd0 "br_if" BrIf
+                    , cmd0 "block" Block
+                    , try (Br <$> cmd1 "br" depth)
+                    , try (BrIf <$> cmd1 "br_if" depth)
                     , cmd0 "dup" Dup
                     , cmd0 "halt" Halt
                     ]
@@ -127,6 +139,11 @@ cmd0 mnemonic constructor = string mnemonic >> return constructor
 
 cmd1 :: String -> Parser a -> Parser a
 cmd1 mnemonic arg = string mnemonic >> hspace1 >> arg
+
+-- | A branch's target depth: how many enclosing `block`\/`loop` scopes out
+-- to reach, 0 = innermost.
+depth :: Parser Int
+depth = Unsafe.read <$> num
 
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i = case i of
@@ -159,15 +176,37 @@ instance DerefMnemonic (Isa w) w where
         Else -> Else
         End -> End
         Loop -> Loop
-        BrIf -> BrIf
+        Block -> Block
+        Br d -> Br d
+        BrIf d -> BrIf d
         Dup -> Dup
         Halt -> Halt
 
 instance ByteSize (Isa w l) where
     byteSize I32Const{} = 5
+    byteSize Br{} = 2
+    byteSize BrIf{} = 2
     byteSize _ = 1
 
 type Wasm32bState w = MachineState (IoMem (Isa w w) w) w
+
+-- | One entry in 'controlStack', carrying exactly the fields each shape
+-- needs rather than a bare tag alongside untyped fields (same reasoning
+-- as the original wasm32's @RecordExtra@: a mismatch between kind and
+-- payload can't be constructed in the first place). Both shapes carry
+-- @csEnd@ -- a plain `end`'s own address, compared against it to tell
+-- "this end closes the innermost open scope" apart from "this end closes
+-- a plain if" (only the former pops, and only that shared field is
+-- needed to decide it -- see the `End` case in 'instructionExecute').
+data ControlKind
+    = -- | Reaching this (via `br`\/`br_if`) leaves it open: jump to
+      -- @csStart@ (just after `loop`) to run the body again.
+      LoopScope {csStart :: Int, csEnd :: Int}
+    | -- | Reaching this closes it: jump just past @csEnd@ (see
+      -- 'branchTo'), removing it from 'controlStack' too, since unlike a
+      -- loop there's nothing left to continue.
+      BlockScope {csEnd :: Int}
+    deriving (Show)
 
 data MachineState mem w = State
     { pc :: Int
@@ -176,14 +215,11 @@ data MachineState mem w = State
     -- memory (see 'memTop') rather than as a separate Haskell structure --
     -- no locals, no control stack, no call frames, just this one region.
     , mem :: mem
-    , controlStack :: [(Int, Int)]
-    -- ^ One @(loopStart, loopEnd)@ per currently-open `loop`, innermost
-    -- first -- the one piece of runtime state `if`\/`else`\/`end` don't
-    -- need but `loop`\/`br_if` do (see the module haddock's note on why).
-    -- `loopStart` is where `br_if` jumps back to; `loopEnd` is compared
-    -- against `end`'s own address to tell "this end closes the innermost
-    -- open loop" apart from "this end closes a plain if" -- only the
-    -- former pops.
+    , controlStack :: [ControlKind]
+    -- ^ One entry per currently-open `block`\/`loop`, innermost first --
+    -- the one piece of runtime state `if`\/`else`\/`end` don't need but
+    -- `loop`\/`block`\/`br`\/`br_if` do (see the module haddock's note on
+    -- why).
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -252,9 +288,9 @@ popValue = do
     getWord sp'
 
 -- | Find the `if` at @start@'s branch targets by scanning forward,
--- tracking nested `if`\/`loop` scopes so a nested `else`\/`end` doesn't get
--- mistaken for this one's. Returns the matching `else`'s address (if there
--- is one) and the matching `end`'s address.
+-- tracking nested `if`\/`loop`\/`block` scopes so a nested `else`\/`end`
+-- doesn't get mistaken for this one's. Returns the matching `else`'s
+-- address (if there is one) and the matching `end`'s address.
 findIfTargets :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text (Maybe Int, Int)
 findIfTargets memory start = go start (0 :: Int) Nothing
     where
@@ -264,6 +300,7 @@ findIfTargets memory start = go start (0 :: Int) Nothing
             case instruction of
                 If -> go next (depth + 1) elsePc
                 Loop -> go next (depth + 1) elsePc
+                Block -> go next (depth + 1) elsePc
                 Else
                     | depth == 0 -> go next depth (Just addr)
                     | otherwise -> go next depth elsePc
@@ -272,10 +309,10 @@ findIfTargets memory start = go start (0 :: Int) Nothing
                     | otherwise -> go next (depth - 1) elsePc
                 _ -> go next depth elsePc
 
--- | Find the `end` matching the scope (an `if`'s `else`, or a `loop`)
--- starting right after @start@ -- shared by 'Else' (skipping the
--- else-branch body after a taken then-branch) and 'Loop' (finding its own
--- end up front, to remember alongside its start in 'controlStack').
+-- | Find the `end` matching the scope (an `if`'s `else`, or a `loop`\/
+-- `block`) starting right after @start@ -- shared by 'Else' (skipping the
+-- else-branch body after a taken then-branch) and 'Loop'\/'Block' (finding
+-- their own end up front, to remember in 'controlStack').
 findEndPc :: (MachineWord w) => IoMem (Isa w w) w -> Int -> Either Text Int
 findEndPc memory start = go start (0 :: Int)
     where
@@ -285,10 +322,28 @@ findEndPc memory start = go start (0 :: Int)
             case instruction of
                 If -> go next (depth + 1)
                 Loop -> go next (depth + 1)
+                Block -> go next (depth + 1)
                 End
                     | depth == 0 -> Right addr
                     | otherwise -> go next (depth - 1)
                 _ -> go next depth
+
+-- | Branch to the `block`\/`loop` @depth@ levels out (0 = innermost),
+-- unconditionally: drop the @depth@ scopes strictly between here and the
+-- target (they're being exited, regardless of kind), then act on the
+-- target itself according to its own shape.
+branchTo :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+branchTo depth = do
+    State{controlStack} <- get
+    case drop depth controlStack of
+        [] -> raiseInternalError "br/br_if: depth out of range"
+        found@(scope : rest) -> case scope of
+            LoopScope{csStart} -> do
+                modify $ \st -> st{controlStack = found}
+                setPc csStart
+            BlockScope{csEnd} -> do
+                modify $ \st -> st{controlStack = rest}
+                setPc (csEnd + byteSize End)
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
@@ -372,25 +427,30 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             End -> do
                 State{pc, controlStack} <- get
                 case controlStack of
-                    ((_, loopEnd) : rest) | loopEnd == pc -> modify $ \st -> st{controlStack = rest}
+                    (scope : rest) | csEnd scope == pc -> modify $ \st -> st{controlStack = rest}
                     _ -> return ()
                 nextPc instruction
             Loop -> do
                 State{pc, mem} <- get
                 case findEndPc mem (pc + byteSize instruction) of
                     Right endPc -> do
-                        modify $ \st -> st{controlStack = (pc + byteSize instruction, endPc) : controlStack st}
+                        let scope = LoopScope{csStart = pc + byteSize instruction, csEnd = endPc}
+                        modify $ \st -> st{controlStack = scope : controlStack st}
                         nextPc instruction
                     Left err -> raiseInternalError $ "control flow error: " <> err
-            BrIf -> do
+            Block -> do
+                State{pc, mem} <- get
+                case findEndPc mem (pc + byteSize instruction) of
+                    Right endPc -> do
+                        modify $ \st -> st{controlStack = BlockScope{csEnd = endPc} : controlStack st}
+                        nextPc instruction
+                    Left err -> raiseInternalError $ "control flow error: " <> err
+            Br depth -> branchTo depth
+            BrIf depth -> do
                 condition <- popValue
                 if condition == 0
                     then nextPc instruction
-                    else do
-                        State{controlStack} <- get
-                        case controlStack of
-                            ((start, _) : _) -> setPc start
-                            [] -> raiseInternalError "br_if outside loop"
+                    else branchTo depth
             Dup -> do
                 top <- popValue
                 pushValue top

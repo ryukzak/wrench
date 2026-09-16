@@ -1,0 +1,10 @@
+name: "assert break/continue: markers for 5,4; 3 skipped; stops at 2"
+limit: 200
+memory_size: 0x100
+reports:
+  - name: Check result
+    slice: last
+    view: |
+      stack: {stack:dec}
+    assert: |
+      stack: 2:4:5

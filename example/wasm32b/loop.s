@@ -12,6 +12,6 @@ _start:
         dup           ; keep a copy to compare, without losing the value
         i32.const 100
         i32.lt_s      ; condition = (value <s 100)
-        br_if         ; still under 100 -> double again
+        br_if 0       ; still under 100 -> double again (0 = this loop)
     end
     halt
