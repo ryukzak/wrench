@@ -68,6 +68,24 @@ data Isa w l
     | I32LeU
     | I32GtU
     | I32GeU
+    | -- | Pop an address, push the 4-byte word stored there. Real
+      -- WebAssembly's @i32.load@ also takes a static offset immediate
+      -- (added to the popped address) -- omitted here, matching
+      -- "Wrench.Isa.Wasm32"'s own simplification: a hand-written example
+      -- that needs base+offset addressing can just do the add explicitly
+      -- with `i32.add` before the load.
+      I32Load
+    | -- | Pop a value then an address (value on top -- the value being
+      -- stored is computed\/pushed last, right before the address it's
+      -- going to, same as real WebAssembly's stack order), and write the
+      -- value's 4 bytes there.
+      I32Store
+    | -- | Like 'I32Load', but reads one byte and zero-extends it.
+      I32Load8U
+    | -- | Like 'I32Load8U', but sign-extends instead.
+      I32Load8S
+    | -- | Like 'I32Store', but writes only the value's low byte.
+      I32Store8
     | -- | No label: `if`\/`else`\/`end` targets are found by scanning
       -- forward from `if` (see 'findIfTargets') rather than stored
       -- anywhere -- no runtime frame, since nothing branches out of a
@@ -176,6 +194,21 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd0 "i32.le_u" I32LeU
                     , cmd0 "i32.gt_u" I32GtU
                     , cmd0 "i32.ge_u" I32GeU
+                    , -- Longer alternative first: "i32.load" is a strict
+                      -- prefix of "i32.load8_u"/"i32.load8_s", and this
+                      -- `choice` list doesn't backtrack once one of its
+                      -- bare-word alternatives has consumed input (see
+                      -- "i32.eqz" ahead of "i32.eq" above for the same
+                      -- reason) -- tried the other way round, "i32.load"
+                      -- would swallow the first 8 characters of
+                      -- "i32.load8_u" and then fail at the trailing "8_u"
+                      -- instead of falling through to try the longer
+                      -- mnemonic.
+                      cmd0 "i32.load8_u" I32Load8U
+                    , cmd0 "i32.load8_s" I32Load8S
+                    , cmd0 "i32.load" I32Load
+                    , cmd0 "i32.store8" I32Store8
+                    , cmd0 "i32.store" I32Store
                     , cmd0 "if" If
                     , cmd0 "else" Else
                     , cmd0 "end" End
@@ -245,6 +278,11 @@ instance DerefMnemonic (Isa w) w where
         I32LeU -> I32LeU
         I32GtU -> I32GtU
         I32GeU -> I32GeU
+        I32Load -> I32Load
+        I32Store -> I32Store
+        I32Load8U -> I32Load8U
+        I32Load8S -> I32Load8S
+        I32Store8 -> I32Store8
         If -> If
         Else -> Else
         End -> End
@@ -424,6 +462,22 @@ setWord :: (MachineWord w) => Int -> w -> State (MachineState (IoMem (Isa w w) w
 setWord addr w = do
     st@State{mem} <- get
     case writeWord mem addr w of
+        Right mem' -> put st{mem = mem'}
+        Left err -> raiseInternalError $ "memory access error: " <> err
+
+getByte :: (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) Word8
+getByte addr = do
+    st@State{mem} <- get
+    case readByte mem addr of
+        Right (mem', b) -> put st{mem = mem'} >> return b
+        Left err -> do
+            raiseInternalError $ "memory access error: " <> err
+            return 0
+
+setByte :: (MachineWord w) => Int -> Word8 -> State (MachineState (IoMem (Isa w w) w) w) ()
+setByte addr b = do
+    st@State{mem} <- get
+    case writeByte mem addr b of
         Right mem' -> put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
@@ -743,6 +797,30 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             I32LeU -> compareU (<=) >> nextPc instruction
             I32GtU -> compareU (>) >> nextPc instruction
             I32GeU -> compareU (>=) >> nextPc instruction
+            I32Load -> do
+                addr <- popValue
+                getWord (fromEnum addr) >>= pushValue
+                nextPc instruction
+            I32Store -> do
+                value <- popValue
+                addr <- popValue
+                setWord (fromEnum addr) value
+                nextPc instruction
+            I32Load8U -> do
+                addr <- popValue
+                byte <- getByte (fromEnum addr)
+                pushValue (fromIntegral byte)
+                nextPc instruction
+            I32Load8S -> do
+                addr <- popValue
+                byte <- getByte (fromEnum addr)
+                pushValue (fromIntegral (fromIntegral byte :: Int8))
+                nextPc instruction
+            I32Store8 -> do
+                value <- popValue
+                addr <- popValue
+                setByte (fromEnum addr) (fromIntegral value)
+                nextPc instruction
             If -> do
                 condition <- popValue
                 if condition /= 0

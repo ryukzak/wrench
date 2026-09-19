@@ -1,5 +1,5 @@
-name: "assert break/continue: markers for 5,4; 3 skipped; stops before 2"
-limit: 200
+name: "assert sum(1..5) == 15"
+limit: 100
 memory_size: 0x100
 reports:
   - name: Check result
@@ -7,4 +7,4 @@ reports:
     view: |
       stack: {stack:dec}
     assert: |
-      stack: 4:5
+      stack: 15

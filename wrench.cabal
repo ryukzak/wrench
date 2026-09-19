@@ -328,6 +328,7 @@ test-suite wrench-test
       Wrench.Isa.RiscIv.Test
       Wrench.Isa.VliwIv.Test
       Wrench.Isa.Wasm32.Test
+      Wrench.Isa.Wasm32b.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test

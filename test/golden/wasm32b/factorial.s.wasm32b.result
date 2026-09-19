@@ -1,0 +1,24 @@
+0:	factorial
+36:	_start
+---
+mem[0..1]: 	LocalGet 0 	@factorial
+mem[2..6]: 	I32Const 1
+mem[7..7]: 	I32LeS
+mem[8..8]: 	If
+mem[9..13]: 	I32Const 1
+mem[14..14]: 	Return
+mem[15..15]: 	End
+mem[16..17]: 	LocalGet 0
+mem[18..19]: 	LocalGet 0
+mem[20..24]: 	I32Const 1
+mem[25..25]: 	I32Sub
+mem[26..30]: 	I32Const 0
+mem[31..33]: 	Call 1 1
+mem[34..34]: 	I32Mul
+mem[35..35]: 	Return
+mem[36..40]: 	I32Const 5 	@_start
+mem[41..45]: 	I32Const 0
+mem[46..48]: 	Call 1 1
+mem[49..49]: 	Halt
+mem[50..999]: 	( 00 )
+---

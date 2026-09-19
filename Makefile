@@ -86,6 +86,18 @@ test-examples: build
 	stack exec wrench -- --isa wasm32     example/wasm32/factorial.s        -c example/wasm32/factorial-5.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/dup.s              -c example/wasm32/dup.yaml
 
+	stack exec wrench -- --isa wasm32b    example/wasm32b/not.s             -c example/wasm32b/not-true.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/hello.s           -c example/wasm32b/hello.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/get-put-char.s    -c example/wasm32b/get-put-char-65.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/factorial.s       -c example/wasm32b/factorial.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/arithmetic.s      -c example/wasm32b/arithmetic.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/bitwise.s         -c example/wasm32b/bitwise.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/signed_vs_unsigned.s -c example/wasm32b/signed_vs_unsigned.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/loop.s            -c example/wasm32b/loop.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/break_continue.s  -c example/wasm32b/break_continue.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/if_else.s         -c example/wasm32b/if_else.yaml
+	stack exec wrench -- --isa wasm32b    example/wasm32b/sum.s             -c example/wasm32b/sum.yaml
+
 test-server: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl

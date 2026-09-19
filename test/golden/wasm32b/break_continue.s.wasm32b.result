@@ -1,0 +1,35 @@
+0:	_start
+---
+mem[0..1]: 	Locals 1 	@_start
+mem[2..6]: 	I32Const 5
+mem[7..8]: 	LocalSet 0
+mem[9..9]: 	Block
+mem[10..10]: 	Loop
+mem[11..12]: 	LocalGet 0
+mem[13..17]: 	I32Const 2
+mem[18..18]: 	I32Eq
+mem[19..20]: 	BrIf 1
+mem[21..22]: 	LocalGet 0
+mem[23..27]: 	I32Const 3
+mem[28..28]: 	I32Eq
+mem[29..29]: 	If
+mem[30..31]: 	LocalGet 0
+mem[32..36]: 	I32Const 1
+mem[37..37]: 	I32Sub
+mem[38..39]: 	LocalSet 0
+mem[40..40]: 	Else
+mem[41..42]: 	LocalGet 0
+mem[43..44]: 	LocalGet 0
+mem[45..49]: 	I32Const 1
+mem[50..50]: 	I32Sub
+mem[51..52]: 	LocalSet 0
+mem[53..53]: 	End
+mem[54..55]: 	LocalGet 0
+mem[56..60]: 	I32Const 0
+mem[61..61]: 	I32GtS
+mem[62..63]: 	BrIf 0
+mem[64..64]: 	End
+mem[65..65]: 	End
+mem[66..66]: 	Halt
+mem[67..999]: 	( 00 )
+---

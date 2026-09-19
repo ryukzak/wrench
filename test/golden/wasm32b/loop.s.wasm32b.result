@@ -1,0 +1,18 @@
+0:	_start
+---
+mem[0..1]: 	Locals 1 	@_start
+mem[2..6]: 	I32Const 1
+mem[7..8]: 	LocalSet 0
+mem[9..9]: 	Loop
+mem[10..11]: 	LocalGet 0
+mem[12..16]: 	I32Const 2
+mem[17..17]: 	I32Mul
+mem[18..19]: 	LocalTee 0
+mem[20..24]: 	I32Const 100
+mem[25..25]: 	I32LtS
+mem[26..27]: 	BrIf 0
+mem[28..28]: 	End
+mem[29..30]: 	LocalGet 0
+mem[31..31]: 	Halt
+mem[32..999]: 	( 00 )
+---

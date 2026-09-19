@@ -26,6 +26,9 @@ import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
 import Wrench.Isa.Wasm32 qualified as Wasm32
 import Wrench.Isa.Wasm32.Test qualified
+import Wrench.Isa.Wasm32b (Wasm32bState)
+import Wrench.Isa.Wasm32b qualified as Wasm32b
+import Wrench.Isa.Wasm32b.Test qualified
 import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
@@ -262,6 +265,45 @@ tests =
                 , generatedTest Wasm32 "dup" 1
                 ]
             ]
+        , testGroup
+            "Wasm32b"
+            [ Wrench.Isa.Wasm32b.Test.tests
+            , testGroup
+                "Translator"
+                [ goldenTranslate Wasm32b "test/golden/wasm32b/arithmetic.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/bitwise.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/signed_vs_unsigned.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/loop.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/break_continue.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/if_else.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/sum.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/factorial.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/hello.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/logical_not.s"
+                , goldenTranslate Wasm32b "test/golden/wasm32b/get_put_char.s"
+                ]
+            , testGroup
+                "Simulator"
+                [ goldenSimulate Wasm32b "test/golden/wasm32b/arithmetic.s" "test/golden/wasm32b/arithmetic.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/bitwise.s" "test/golden/wasm32b/bitwise.yaml"
+                , goldenSimulate
+                    Wasm32b
+                    "test/golden/wasm32b/signed_vs_unsigned.s"
+                    "test/golden/wasm32b/signed_vs_unsigned.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/loop.s" "test/golden/wasm32b/loop.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/break_continue.s" "test/golden/wasm32b/break_continue.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/if_else.s" "test/golden/wasm32b/if_else.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/sum.s" "test/golden/wasm32b/sum.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/factorial.s" "test/golden/wasm32b/factorial.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/hello.s" "test/golden/wasm32b/hello.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/logical_not.s" "test/golden/wasm32b/logical_not_true.yaml"
+                , goldenSimulate Wasm32b "test/golden/wasm32b/get_put_char.s" "test/golden/wasm32b/get_put_char_65.yaml"
+                , goldenSimulate
+                    Wasm32b
+                    "test/golden/wasm32b/get_put_char.s"
+                    "test/golden/wasm32b/get_put_char_domain_error.yaml"
+                ]
+            ]
         ]
 
 isaPath :: (IsString a) => Isa -> a
@@ -272,6 +314,7 @@ isaPath isa = case isa of
     M68k -> "m68k"
     VliwIv -> "vliw-iv"
     Wasm32 -> "wasm32"
+    Wasm32b -> "wasm32b"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -310,12 +353,13 @@ goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
 goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
 goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.Isa VliwIv fn
 goldenTranslate Wasm32 fn = goldenTranslateWasm32 fn
+goldenTranslate Wasm32b fn = goldenTranslate' @Wasm32b.Isa Wasm32b fn
 
 goldenTranslateWasm32 :: FilePath -> TestTree
 goldenTranslateWasm32 fn =
     goldenVsString (fn2name fn) (fn <> "." <> isaPath Wasm32 <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case Wasm32.translateWasm32 @Int32 1000 fn src of
+        case Wasm32.translateWasm32 @Int32 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats, _functionTable) ->
                 return $ encodeUtf8 $ T.intercalate "\n---\n" [prettyLabels labels, prettyDump labels $ dumpCells dump, ""]
             Left err ->
@@ -356,6 +400,7 @@ goldenSimulate' shouldFail isa =
         M68k -> goldenSimulateInner (wrench @(M68kState Int32)) ".m68k.result" shouldFail
         VliwIv -> goldenSimulateInner (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
         Wasm32 -> goldenSimulateInner (wrenchWasm32 @Int32) ".wasm32.result" shouldFail
+        Wasm32b -> goldenSimulateInner (wrench @(Wasm32bState Int32)) ".wasm32b.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn
