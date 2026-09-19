@@ -64,9 +64,29 @@ main = do
 
 data ArchStyle
     = StandardArch
-    | Wasm32Arch
     | VliwArch {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
+
+-- | Which bare-keyword tokens shift a `TextLine`'s indentation, tracked as a
+-- running depth across a `.text` section, independent of `archStyle` (which
+-- only governs how one already-indented line's tokens get laid out). Three
+-- disjoint roles, since a keyword closing a scope isn't always the same as
+-- one that permanently reduces depth going forward:
+--
+--   - 'biOpensBlock': starts a new nested scope -- indent everything until
+--     the matching close one level deeper (@block@\/@loop@\/@if@).
+--   - 'biClosesBlock': ends the innermost scope for good, both printed
+--     one level shallower and reducing depth for every following line
+--     (@end@).
+--   - 'biRedentsLine': printed one level shallower than the current scope,
+--     like a close, but the scope stays open afterward -- depth for
+--     following lines is unaffected (@else@, which starts an alternate
+--     body at the *same* depth the @if@'s own body had).
+data BlockIndent = BlockIndent
+    { biOpensBlock :: [Text]
+    , biClosesBlock :: [Text]
+    , biRedentsLine :: [Text]
+    }
 
 data FmtConfig = FmtConfig
     { dataLabelWidth :: Int
@@ -77,6 +97,7 @@ data FmtConfig = FmtConfig
     , textCommandWidth :: Int
     , commentStart :: Text
     , archStyle :: ArchStyle
+    , blockIndent :: Maybe BlockIndent
     }
 
 instance Default FmtConfig where
@@ -90,6 +111,7 @@ instance Default FmtConfig where
             , textCommandWidth = 40
             , commentStart = ";"
             , archStyle = StandardArch
+            , blockIndent = Nothing
             }
 
 f32aFmt :: FmtConfig
@@ -110,6 +132,18 @@ vliwIvFmt =
         , archStyle = VliwArch [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
+wasm32Fmt :: FmtConfig
+wasm32Fmt =
+    def
+        { blockIndent =
+            Just
+                BlockIndent
+                    { biOpensBlock = ["block", "loop", "if"]
+                    , biClosesBlock = ["end"]
+                    , biRedentsLine = ["else", "end"]
+                    }
+        }
+
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
     content <- decodeUtf8 <$> readFileBS fileName
@@ -119,7 +153,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
-            Just Wasm32 -> formatFile def{archStyle = Wasm32Arch} content
+            Just Wasm32 -> formatFile wasm32Fmt content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -155,48 +189,57 @@ formatLines fmt tokenss =
         -- Calculate VLIW slot widths if needed
         archStyle' = case archStyle fmt of
             VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
-            Wasm32Arch -> Wasm32Arch
             StandardArch -> StandardArch
         fmt' = fmt{archStyle = archStyle'}
-        source' = formatStatements fmt' statements
+        -- One indent-in-spaces per statement, shared by both the code
+        -- rendering below and comment-only lines just after: a
+        -- comment-only line inside a `block`/`loop`/`if` body should nest
+        -- along with the code around it, not sit flat at the top level
+        -- (see 'statementIndents').
+        indents = statementIndents fmt' statements
+        source' = zipWith (\ind st -> pprint fmt'{textCommandIndent = ind} st) indents statements
         comments' =
-            zipWith
-                ( \s c ->
+            map
+                ( \(s, ind, c) ->
                     if T.null c
                         then c
                         else case s of
                             OutOfSection [] -> c
-                            DataLine [] -> T.replicate 4 " " <> c
-                            TextLine [] -> T.replicate 4 " " <> c
+                            DataLine [] -> T.replicate ind " " <> c
+                            TextLine [] -> T.replicate ind " " <> c
                             _ -> c
                 )
-                statements
-                comments
+                (zip3 statements indents comments)
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
-formatStatements :: FmtConfig -> [Statement] -> [Text]
-formatStatements fmt@FmtConfig{archStyle = Wasm32Arch} statements = go 0 statements
+-- | The indent (in spaces) each statement's own line should get. Without
+-- 'blockIndent' tracking, that's just 'textCommandIndent' for every line,
+-- matching every non-block-structured ISA's flat indentation. With it,
+-- each `TextLine` bumps or drops the running depth per 'blockLineDepth'\/
+-- 'blockNextDepth' -- e.g. a `block`\/`loop`\/`if` body sits one level
+-- deeper than the line that opened it.
+statementIndents :: FmtConfig -> [Statement] -> [Int]
+statementIndents FmtConfig{textCommandIndent, blockIndent = Just bi} statements = go 0 statements
     where
         go _ [] = []
         go depth (statement : rest) =
-            let lineDepth = wasm32LineDepth depth statement
-                nextDepth = wasm32NextDepth depth statement
-                fmt' = fmt{textCommandIndent = textCommandIndent fmt + lineDepth * 4}
-             in pprint fmt' statement : go nextDepth rest
-formatStatements fmt statements = map (pprint fmt) statements
+            let lineDepth = blockLineDepth bi depth statement
+                nextDepth = blockNextDepth bi depth statement
+             in (textCommandIndent + lineDepth * 4) : go nextDepth rest
+statementIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
 
-wasm32LineDepth :: Int -> Statement -> Int
-wasm32LineDepth depth (TextLine (token : _))
-    | token `elem` ["else", "end", ".endfunc", "endfunc"] = max 0 (depth - 1)
+blockLineDepth :: BlockIndent -> Int -> Statement -> Int
+blockLineDepth BlockIndent{biRedentsLine} depth (TextLine (token : _))
+    | token `elem` biRedentsLine = max 0 (depth - 1)
     | otherwise = depth
-wasm32LineDepth depth _ = depth
+blockLineDepth _ depth _ = depth
 
-wasm32NextDepth :: Int -> Statement -> Int
-wasm32NextDepth depth (TextLine (token : _))
-    | token `elem` ["block", "loop", "if", ".func", "func"] = depth + 1
-    | token `elem` ["end", ".endfunc", "endfunc"] = max 0 (depth - 1)
+blockNextDepth :: BlockIndent -> Int -> Statement -> Int
+blockNextDepth BlockIndent{biOpensBlock, biClosesBlock} depth (TextLine (token : _))
+    | token `elem` biOpensBlock = depth + 1
+    | token `elem` biClosesBlock = max 0 (depth - 1)
     | otherwise = depth
-wasm32NextDepth depth _ = depth
+blockNextDepth _ depth _ = depth
 
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
@@ -275,12 +318,6 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case archStyle of
                 VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                Wasm32Arch ->
-                    let cmdTokens =
-                            zipWith width textCommandTokenWidths tokens
-                                <> drop (length textCommandTokenWidths) tokens
-                        cmd = width textCommandWidth $ unwords cmdTokens
-                     in T.replicate textCommandIndent " " <> cmd
                 StandardArch ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
@@ -326,5 +363,4 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwArch = case archStyle of
             VliwArch _ -> True
-            Wasm32Arch -> False
             StandardArch -> False

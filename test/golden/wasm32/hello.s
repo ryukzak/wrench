@@ -5,33 +5,35 @@ buf_end:         .byte  0, 0, 0
 
     .text
 
+    ; Copy buf..buf_end byte by byte to the output port. block/loop here work
+    ; exactly like break_continue.s's do: depth 0 (the loop) is "keep going",
+    ; depth 1 (the enclosing block) is "stop" -- reached once ptr catches up
+    ; with buf_end.
 _start:
-    .func    locals $ptr $end
-        i32.const buf
-        local.set $ptr
-        i32.const buf_end
-        local.set $end
+    locals   2
+    i32.const buf
+    local.set 0
+    i32.const buf_end
+    local.set 1
 
-        block    done
-            loop     again
-                local.get $ptr
-                local.get $end
-                i32.ge_u
-                br_if    done
+    block
+        loop
+            local.get 0
+            local.get 1
+            i32.ge_u
+            br_if    1
 
-                i32.const 0x84
-                local.get $ptr
-                i32.load8_u
-                i32.store8
+            i32.const 0x84
+            local.get 0
+            i32.load8_u
+            i32.store8
 
-                local.get $ptr
-                i32.const 1
-                i32.add
-                local.set $ptr
+            local.get 0
+            i32.const 1
+            i32.add
+            local.set 0
 
-                br       again
-            end
+            br       0
         end
-
-        halt
-    .endfunc
+    end
+    halt

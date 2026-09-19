@@ -1,6 +1,6 @@
-name: "assert get_put_char('X') == (-1, '')"
-limit: 2000
-memory_size: 0x1000
+name: "assert get_put_char('X') is a domain error"
+limit: 200
+memory_size: 0x200
 memory_mapped_io:
   0x80: [88]
   0x84: []
