@@ -28,7 +28,7 @@ tests =
                 isRight (parseSource "func 2, 3, 1")
         , testCase ".func metadata lowers to an embedded FuncEnter" $ do
             let src = Prelude.unlines [".text", "_start:", "    .func", "    halt", "    .endfunc"]
-            case translateWasm32 @Int32 64 "-" src of
+            case translateWasm32 @Int32 64 (repeat 0) "-" src of
                 Left err -> assertFailureText err
                 Right (TranslatorResult dump labels _stats, functions) -> do
                     HashMap.lookup "_start" labels @?= Just 0
@@ -224,7 +224,7 @@ assertFailureText = assertFailure . toString
 
 assertTranslateError :: Text -> [String] -> Assertion
 assertTranslateError needle lines' =
-    case translateWasm32 @Int32 64 "-" (Prelude.unlines lines') of
+    case translateWasm32 @Int32 64 (repeat 0) "-" (Prelude.unlines lines') of
         Right _ -> assertFailure $ "translation unexpectedly succeeded; expected " <> toString needle
         Left err -> assertBool ("expected " <> toString needle <> " in " <> toString err) $ needle `T.isInfixOf` err
 

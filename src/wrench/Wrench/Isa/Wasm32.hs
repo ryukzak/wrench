@@ -523,10 +523,11 @@ translateWasm32 ::
     forall w.
     (MachineWord w) =>
     Int
+    -> [Word8]
     -> FilePath
     -> String
     -> Either Text (TranslatorResult (Mem (Isa Int Int w w) w) w, FunctionTable)
-translateWasm32 memorySize fn src =
+translateWasm32 memorySize fillBytes fn src =
     case parse asmParser fn src of
         Left err -> Left $ toText $ errorBundlePretty err
         Right tokenSections -> do
@@ -542,7 +543,7 @@ translateWasm32 memorySize fn src =
             let code = map (uncurry (derefSection resolveLabel)) localed
             validateCallTargets functionTable code
             let stats = computeDumpStats code
-            dump <- prepareDump memorySize code
+            dump <- prepareDump memorySize fillBytes code
             Right (TranslatorResult dump labels stats, functionTable)
 
 -- | Replace every parsed @.func@ declaration with the 'FuncEnter'

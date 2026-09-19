@@ -224,10 +224,10 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             , rDump = dumpCells dump
             }
 
-        randomInts :: (Int, Int) -> Random.StdGen -> [Int]
-        randomInts range gen =
-            let (val, gen') = Random.uniformR range gen
-             in val : randomInts range gen'
+randomInts :: (Int, Int) -> Random.StdGen -> [Int]
+randomInts range gen =
+    let (val, gen') = Random.uniformR range gen
+     in val : randomInts range gen'
 
 wrenchWasm32 ::
     forall w.
@@ -236,8 +236,12 @@ wrenchWasm32 ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell (Wasm32.Isa Int Int w w) w)) w)
-wrenchWasm32 Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports} src = do
-    (trResult@TranslatorResult{dump, labels}, functionTable) <- Wasm32.translateWasm32 @w cMemorySize fn src
+wrenchWasm32 Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+    let memoryFillBytes =
+            if fromMaybe False cZeroMemoryInit
+                then repeat 0
+                else map fromIntegral (randomInts (0, 255) (Random.mkStdGen $ fromMaybe 0 cSeed))
+    (trResult@TranslatorResult{dump, labels}, functionTable) <- Wasm32.translateWasm32 @w cMemorySize memoryFillBytes fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
