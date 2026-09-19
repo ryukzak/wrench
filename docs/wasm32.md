@@ -1,8 +1,21 @@
 # Wasm32 Instruction Set Architecture (ISA) Documentation
 
-Wasm32 is a 32-bit stack-based instruction set. Every value lives on one operand stack; there are no general-purpose registers. This document covers its structure, its instructions, and -- in detail -- how control flow and the stack actually work underneath.
+The Wasm32 ISA is a 32-bit stack-based instruction set designed for educational purposes. This documentation provides an overview of the instructions available in the Wasm32 ISA, their syntax, and their semantics, and -- in detail -- how control flow and the stack actually work underneath.
 
-Comments in Wasm32 assembly are denoted by the `;` character.
+## Architecture Overview
+
+The Wasm32 architecture is a 32-bit stack-based architecture. It features:
+
+- One operand stack, shared by locals, operand values, and structured-control/call bookkeeping alike -- no general-purpose registers
+- Structured control flow (`block`, `loop`, `if`/`else`) instead of arbitrary jumps
+- Function calls where a function address is just an ordinary value, so a direct call and a call through a value computed at runtime are the same instruction
+- Memory-mapped I/O
+
+This stack-based architecture offers a compact structured-control-flow model, making it useful for studying function calls, local variables, loops, and low-level memory access.
+
+Comments in Wasm32 assembly code are denoted by the `;` character.
+
+Inspired by [WebAssembly](https://webassembly.github.io/spec/core/)
 
 ## Program Structure
 
@@ -112,65 +125,249 @@ At the moment `call` executes, the values immediately below the popped target --
 
 ## Instructions
 
-### Constants
+### Constants and Stack Manipulation
 
-- **`i32.const <value>`** -- push an immediate value.
+- **Constant**
+    - **Syntax:** `i32.const <value>`
+    - **Description:** Push an immediate value onto the stack.
+    - **Operation:** `stack.push(<value>)`
 
-### Arithmetic
+- **Duplicate**
+    - **Syntax:** `dup`
+    - **Description:** Duplicate the top value on the stack, without needing a local -- valid only as long as the duplicated value was pushed after whichever scopes are currently open (see "Why a value has to live in a local, not just on the stack, across a loop" above).
+    - **Operation:** `x <- stack.pop(); stack.push(x); stack.push(x)`
 
-- **`i32.add`**, **`i32.sub`**, **`i32.mul`** -- pop two, push the result. `sub` computes first-pushed minus second-pushed.
-- **`i32.div_s`**, **`i32.rem_s`** -- signed division/remainder. Division by zero traps; so does the one signed overflow case (dividing the most negative representable value by `-1`).
-- **`i32.div_u`**, **`i32.rem_u`** -- unsigned division/remainder. Division by zero traps.
+### Arithmetic Instructions
 
-### Bitwise
+- **Add**
+    - **Syntax:** `i32.add`
+    - **Description:** Add the top two values on the stack.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x + y)`
 
-- **`i32.and`**, **`i32.or`**, **`i32.xor`** -- bitwise AND/OR/XOR.
-- **`i32.shl`** -- shift left. **`i32.shr_s`** -- arithmetic (sign-extending) shift right. **`i32.shr_u`** -- logical (zero-filling) shift right. All three mask the shift amount to its low 5 bits.
+- **Subtract**
+    - **Syntax:** `i32.sub`
+    - **Description:** Subtract the second-pushed value from the first-pushed value.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x - y)`
 
-### Comparison
+- **Multiply**
+    - **Syntax:** `i32.mul`
+    - **Description:** Multiply the top two values on the stack.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x * y)`
 
-- **`i32.eqz`** -- push `1` if the top is zero, else `0`.
-- **`i32.eq`**, **`i32.ne`** -- equality/inequality.
-- **`i32.lt_s`**, **`i32.le_s`**, **`i32.gt_s`**, **`i32.ge_s`** -- signed ordering.
-- **`i32.lt_u`**, **`i32.le_u`**, **`i32.gt_u`**, **`i32.ge_u`** -- unsigned ordering.
+- **Signed Divide**
+    - **Syntax:** `i32.div_s`
+    - **Description:** Divide two signed values. Division by zero and signed overflow (dividing the most negative representable value by `-1`) trap.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(signed(x) / signed(y))`
 
-Every comparison pushes `1` for true, `0` for false, and reads its two operands as (first-pushed, second-pushed) -- `i32.lt_s` computes first-pushed `<` second-pushed.
+- **Unsigned Divide**
+    - **Syntax:** `i32.div_u`
+    - **Description:** Divide two unsigned values. Division by zero traps.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(unsigned(x) / unsigned(y))`
 
-### Memory
+- **Signed Remainder**
+    - **Syntax:** `i32.rem_s`
+    - **Description:** Compute the signed remainder. Division by zero and signed overflow trap.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(signed(x) % signed(y))`
 
-- **`i32.load`** -- pop an address, push the 4-byte word stored there.
-- **`i32.store`** -- pop a value, then an address (value on top, pushed last), and write the value's 4 bytes there.
-- **`i32.load8_u`**, **`i32.load8_s`** -- like `i32.load`, but read one byte, zero- or sign-extending it to a full value.
-- **`i32.store8`** -- like `i32.store`, but writes only the value's low byte.
+- **Unsigned Remainder**
+    - **Syntax:** `i32.rem_u`
+    - **Description:** Compute the unsigned remainder. Division by zero traps.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(unsigned(x) % unsigned(y))`
 
-There is no base-plus-offset addressing mode; a program that wants it computes the sum explicitly with `i32.add` before the load or store.
+### Bitwise Instructions
 
-### Stack manipulation
+- **And**
+    - **Syntax:** `i32.and`
+    - **Description:** Bitwise AND of the top two values.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x & y)`
 
-- **`dup`** -- duplicate the top value.
+- **Or**
+    - **Syntax:** `i32.or`
+    - **Description:** Bitwise OR of the top two values.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x | y)`
+
+- **Xor**
+    - **Syntax:** `i32.xor`
+    - **Description:** Bitwise XOR of the top two values.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x ^ y)`
+
+- **Shift Left**
+    - **Syntax:** `i32.shl`
+    - **Description:** Shift left, masking the shift amount to its low 5 bits.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x << (y & 0x1F))`
+
+- **Signed Shift Right**
+    - **Syntax:** `i32.shr_s`
+    - **Description:** Arithmetic (sign-extending) shift right, masking the shift amount to its low 5 bits.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(x >>a (y & 0x1F))`
+
+- **Unsigned Shift Right**
+    - **Syntax:** `i32.shr_u`
+    - **Description:** Logical (zero-filling) shift right, masking the shift amount to its low 5 bits.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(unsigned(x) >>l (y & 0x1F))`
+
+### Comparison Instructions
+
+Every comparison pushes `1` for true, `0` for false, and reads its two operands as (first-pushed, second-pushed) -- e.g. `i32.lt_s` computes first-pushed `<` second-pushed.
+
+- **Equal to Zero**
+    - **Syntax:** `i32.eqz`
+    - **Description:** Push `1` if the top of the stack is zero, else `0`.
+    - **Operation:** `x <- stack.pop(); stack.push(if x == 0 then 1 else 0)`
+
+- **Equal**
+    - **Syntax:** `i32.eq`
+    - **Description:** Push `1` if the two values are equal, else `0`.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if x == y then 1 else 0)`
+
+- **Not Equal**
+    - **Syntax:** `i32.ne`
+    - **Description:** Push `1` if the two values are not equal, else `0`.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if x != y then 1 else 0)`
+
+- **Signed Less Than**
+    - **Syntax:** `i32.lt_s`
+    - **Description:** Signed ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if signed(x) < signed(y) then 1 else 0)`
+
+- **Signed Less Than or Equal**
+    - **Syntax:** `i32.le_s`
+    - **Description:** Signed ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if signed(x) <= signed(y) then 1 else 0)`
+
+- **Signed Greater Than**
+    - **Syntax:** `i32.gt_s`
+    - **Description:** Signed ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if signed(x) > signed(y) then 1 else 0)`
+
+- **Signed Greater Than or Equal**
+    - **Syntax:** `i32.ge_s`
+    - **Description:** Signed ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if signed(x) >= signed(y) then 1 else 0)`
+
+- **Unsigned Less Than**
+    - **Syntax:** `i32.lt_u`
+    - **Description:** Unsigned ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if unsigned(x) < unsigned(y) then 1 else 0)`
+
+- **Unsigned Less Than or Equal**
+    - **Syntax:** `i32.le_u`
+    - **Description:** Unsigned ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if unsigned(x) <= unsigned(y) then 1 else 0)`
+
+- **Unsigned Greater Than**
+    - **Syntax:** `i32.gt_u`
+    - **Description:** Unsigned ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if unsigned(x) > unsigned(y) then 1 else 0)`
+
+- **Unsigned Greater Than or Equal**
+    - **Syntax:** `i32.ge_u`
+    - **Description:** Unsigned ordering comparison.
+    - **Operation:** `y <- stack.pop(); x <- stack.pop(); stack.push(if unsigned(x) >= unsigned(y) then 1 else 0)`
+
+### Memory Instructions
+
+There is no base-plus-offset addressing mode; a program that wants one computes the sum explicitly with `i32.add` before the load or store.
+
+- **Load**
+    - **Syntax:** `i32.load`
+    - **Description:** Pop an address, push the 4-byte word stored there.
+    - **Operation:** `addr <- stack.pop(); stack.push(mem[addr])`
+
+- **Store**
+    - **Syntax:** `i32.store`
+    - **Description:** Pop a value, then an address (value on top, pushed last), and write the value's 4 bytes there.
+    - **Operation:** `value <- stack.pop(); addr <- stack.pop(); mem[addr] <- value`
+
+- **Load Byte Unsigned**
+    - **Syntax:** `i32.load8_u`
+    - **Description:** Pop an address, push the byte stored there, zero-extended to a full value.
+    - **Operation:** `addr <- stack.pop(); stack.push(zeroExtend(mem8[addr]))`
+
+- **Load Byte Signed**
+    - **Syntax:** `i32.load8_s`
+    - **Description:** Pop an address, push the byte stored there, sign-extended to a full value.
+    - **Operation:** `addr <- stack.pop(); stack.push(signExtend(mem8[addr]))`
+
+- **Store Byte**
+    - **Syntax:** `i32.store8`
+    - **Description:** Pop a value, then an address, and write the value's low byte there.
+    - **Operation:** `value <- stack.pop(); addr <- stack.pop(); mem8[addr] <- value & 0xFF`
 
 ### Local Instructions
 
-- **`locals <n>`** -- reserve and zero-fill `n` extra locals, right after any parameters. Must be the first instruction of a function body if present.
-- **`local.get <i>`** -- push local `i`.
-- **`local.set <i>`** -- pop into local `i`.
-- **`local.tee <i>`** -- pop into local `i`, then push the same value back.
+- **Locals**
+    - **Syntax:** `locals <n>`
+    - **Description:** Reserve and zero-fill `n` extra locals, right after any parameters. Must be the first instruction of a function body if present -- see "Locals" above for why.
+    - **Operation:** `locals[paramCount .. paramCount + n - 1] <- 0`
 
-### Control flow
+- **Local Get**
+    - **Syntax:** `local.get <i>`
+    - **Description:** Push local `i`'s value.
+    - **Operation:** `stack.push(locals[i])`
 
-- **`block`** -- open a scope that `br`/`br_if` can jump forward past (to its matching `end`).
-- **`loop`** -- open a scope that `br`/`br_if` can jump backward into (to just after the `loop` instruction itself).
-- **`if`** -- pop a condition; fall into the following body if non-zero, otherwise skip to the matching `else` or past the matching `end`.
-- **`else`** -- marks the alternative body of an `if`; reached only by the taken body falling through, at which point it skips past the matching `end`.
-- **`end`** -- closes the innermost open `block`/`loop`/`if`.
-- **`br <depth>`** -- branch unconditionally to the scope `depth` levels out (`0` = innermost).
-- **`br_if <depth>`** -- pop a condition; branch like `br` only if it is non-zero.
+- **Local Set**
+    - **Syntax:** `local.set <i>`
+    - **Description:** Pop the top of the stack into local `i`.
+    - **Operation:** `locals[i] <- stack.pop()`
+
+- **Local Tee**
+    - **Syntax:** `local.tee <i>`
+    - **Description:** Like Local Set, but also pushes the value back, leaving the stack depth unchanged.
+    - **Operation:** `x <- stack.pop(); locals[i] <- x; stack.push(x)`
+
+### Control Flow Instructions
+
+- **Block**
+    - **Syntax:** `block`
+    - **Description:** Open a scope that `br`/`br_if` can jump forward past, to its matching `end` -- see "Control Flow" above.
+    - **Operation:** push a control record for this scope
+
+- **Loop**
+    - **Syntax:** `loop`
+    - **Description:** Open a scope that `br`/`br_if` can jump backward into, to just after this instruction.
+    - **Operation:** push a control record for this scope
+
+- **If**
+    - **Syntax:** `if`
+    - **Description:** Pop a condition; fall into the following body if non-zero, otherwise skip to the matching `else` or past the matching `end`.
+    - **Operation:** `c <- stack.pop(); if c != 0 then continue else pc <- matching else-or-end`
+
+- **Else**
+    - **Syntax:** `else`
+    - **Description:** Marks the alternative body of an `if`. Reached only by the taken `if`-body falling through to it, at which point it unconditionally skips past the matching `end`.
+    - **Operation:** `pc <- matching end + 1`
+
+- **End**
+    - **Syntax:** `end`
+    - **Description:** Closes the innermost open `block`/`loop`/`if`.
+    - **Operation:** pop the innermost control record
+
+- **Branch**
+    - **Syntax:** `br <depth>`
+    - **Description:** Branch unconditionally to the scope `depth` levels out (`0` = innermost). Reaching a `loop` re-enters it and leaves it open; reaching a `block` exits it, closing everything nested between the branch and it.
+    - **Operation:** unwind to the control record `depth` levels out; jump to its re-entry point (`loop`) or past its `end` (`block`)
+
+- **Branch If**
+    - **Syntax:** `br_if <depth>`
+    - **Description:** Pop a condition; branch like `br` only if it is non-zero, otherwise fall through.
+    - **Operation:** `c <- stack.pop(); if c != 0 then br(depth)`
 
 ### Function Instructions
 
-- **`call <paramCount>, <resultCount>`** -- pop a target address; the `paramCount` values below it become the callee's parameters; jump to the target, expecting `resultCount` values back.
-- **`return`** -- close the nearest enclosing call, popping and forwarding its declared result values to the caller.
+- **Call**
+    - **Syntax:** `call <paramCount>, <resultCount>`
+    - **Description:** Pop a target address (an ordinary value, produced the same way any label reference is -- see "Functions" above); the `paramCount` values below it become the callee's parameters (its locals `0` upward); jump to the target, expecting `resultCount` values back. Neither count is checked against the callee's actual behavior.
+    - **Operation:** `target <- stack.pop(); frameBase <- address of the paramCount values below target; push a call record; pc <- target`
+
+- **Return**
+    - **Syntax:** `return`
+    - **Description:** Close the nearest enclosing call (unwinding any `block`/`loop`/`if` still open along the way), popping and forwarding its declared result values to the caller.
+    - **Operation:** `results <- stack.pop(resultCount); discard the callee's frame; stack.push(results); pc <- return address`
 
 ### Other
 
-- **`halt`** -- stop execution.
+- **Halt**
+    - **Syntax:** `halt`
+    - **Description:** Stop execution.
+    - **Operation:** `stop`

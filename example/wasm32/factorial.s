@@ -28,7 +28,10 @@ factorial:
     return
 
 _start:
-    i32.const 5
+    i32.const 0x84
+    i32.const 0x80
+    i32.load
     i32.const factorial
     call     1, 1
+    i32.store
     halt

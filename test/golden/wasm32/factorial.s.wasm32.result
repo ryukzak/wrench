@@ -16,9 +16,12 @@ mem[26..30]: 	I32Const 0
 mem[31..33]: 	Call 1 1
 mem[34..34]: 	I32Mul
 mem[35..35]: 	Return
-mem[36..40]: 	I32Const 5 	@_start
-mem[41..45]: 	I32Const 0
-mem[46..48]: 	Call 1 1
-mem[49..49]: 	Halt
-mem[50..999]: 	( 00 )
+mem[36..40]: 	I32Const 132 	@_start
+mem[41..45]: 	I32Const 128
+mem[46..46]: 	I32Load
+mem[47..51]: 	I32Const 0
+mem[52..54]: 	Call 1 1
+mem[55..55]: 	I32Store
+mem[56..56]: 	Halt
+mem[57..999]: 	( 00 )
 ---
