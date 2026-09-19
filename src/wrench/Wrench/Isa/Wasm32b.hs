@@ -5,13 +5,23 @@
 {- | A from-scratch, minimal WebAssembly-inspired 32-bit ISA. Unlike
 "Wrench.Isa.Wasm32", this one is deliberately scoped down: push a
 constant, combine values with arithmetic\/comparison ops, structured
-control flow, locals, and now direct function calls -- no indirect
-calls\/closures yet -- using the same generic translator pipeline as e.g.
-F32a/Acc32 rather than any bespoke lowering (in particular, unlike
-"Wrench.Isa.Wasm32"'s @FuncEnter@, a callee has no self-describing header:
-`call` states its own paramCount\/resultCount as plain literal operands,
-the same way `br`'s depth or `locals`'s count are caller-known literals
-rather than looked up from the target).
+control flow, locals, and function calls -- no closures yet -- using the
+same generic translator pipeline as e.g. F32a/Acc32 rather than any
+bespoke lowering (in particular, unlike "Wrench.Isa.Wasm32"'s
+@FuncEnter@, a callee has no self-describing header: `call` states its
+own paramCount\/resultCount as plain literal operands, the same way
+`br`'s depth or `locals`'s count are caller-known literals rather than
+looked up from the target).
+
+There's also no separate direct\/indirect call split: a function address
+is just an ordinary `i32` value (`i32.const some_function` produces one
+the same way any other label reference does), so `call` always pops its
+target off the stack rather than embedding it as an operand. A
+statically-known call site is simply @i32.const target@ followed by
+`call` -- one mechanism, not two, at the cost of that being two
+instructions instead of one for the common case, and the target no
+longer appearing inline on `call`'s own line in a trace\/dump (it's on
+the preceding `i32.const` instead).
 -}
 module Wrench.Isa.Wasm32b (
     Isa (..),
@@ -107,15 +117,21 @@ data Isa w l
     | -- | Like 'LocalSet', but also pushes the value back -- writes the
       -- local without changing stack depth.
       LocalTee Int
-    | -- | Call @l@ with @paramCount@ values already pushed (they become the
-      -- callee's locals 0..paramCount-1) and expect @resultCount@ values
-      -- back. No callee-side header: the caller states both counts itself,
-      -- so the whole call is resolved without any bespoke lowering pass --
-      -- just an ordinary label reference plus two literal operands (see
-      -- the module haddock). A mismatch between what's declared here and
-      -- what the callee actually expects\/produces isn't caught -- same
-      -- "trust the source" posture as everything else in this file.
-      Call l Int Int
+    | -- | Pop the call target (a code address, just an ordinary `i32`
+      -- value -- see the module haddock) off the stack, with
+      -- @paramCount@ more values already pushed below it (they become
+      -- the callee's locals 0..paramCount-1), and expect @resultCount@
+      -- values back. There's no separate "direct call" instruction: a
+      -- statically-known target is just @i32.const target@ immediately
+      -- before this, no different in kind from a target computed at
+      -- runtime (a function passed as a parameter, say) -- one
+      -- mechanism either way. No callee-side header either: the caller
+      -- states both counts itself, so the whole thing resolves without
+      -- any bespoke lowering pass, just two literal operands. A
+      -- mismatch between what's declared here and what the callee
+      -- actually expects\/produces isn't caught -- same "trust the
+      -- source" posture as everything else in this file.
+      Call Int Int
     | -- | Return from the nearest enclosing 'Call', popping its declared
       -- @resultCount@ values (silently trusting exactly that many are on
       -- top of the operand stack) and discarding the whole callee frame in
@@ -176,11 +192,9 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                         ( do
                             void $ string "call"
                             hspace1
-                            target <- referenceWithDirective
-                            comma
                             params <- intLit
                             comma
-                            Call target params <$> intLit
+                            Call params <$> intLit
                         )
                     , cmd0 "return" Return
                     , cmd0 "halt" Halt
@@ -198,7 +212,7 @@ cmd1 mnemonic arg = string mnemonic >> hspace1 >> arg
 intLit :: Parser Int
 intLit = Unsafe.read <$> num
 
--- | Separates `call`'s three operands (target, paramCount, resultCount) --
+-- | Separates `call`'s two operands (paramCount, resultCount) --
 -- comma-separated the same way the original "Wrench.Isa.Wasm32"'s numeric
 -- @.func@ form is (@func 2, 0, 1@).
 comma :: Parser ()
@@ -243,7 +257,7 @@ instance DerefMnemonic (Isa w) w where
         LocalGet i -> LocalGet i
         LocalSet i -> LocalSet i
         LocalTee i -> LocalTee i
-        Call l p r -> Call (deref' f l) p r
+        Call p r -> Call p r
         Return -> Return
         Halt -> Halt
 
@@ -255,7 +269,7 @@ instance ByteSize (Isa w l) where
     byteSize LocalGet{} = 2
     byteSize LocalSet{} = 2
     byteSize LocalTee{} = 2
-    byteSize Call{} = 7
+    byteSize Call{} = 3
     byteSize _ = 1
 
 type Wasm32bState w = MachineState (IoMem (Isa w w) w) w
@@ -812,7 +826,8 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setWord addr value
                 pushValue value
                 nextPc instruction
-            Call target paramCount resultCount -> do
+            Call paramCount resultCount -> do
+                target <- popValue
                 State{sp, frameBase, localCount, pc} <- get
                 let calleeFrameBase = sp - paramCount * byteSizeT @w
                 pushControl
