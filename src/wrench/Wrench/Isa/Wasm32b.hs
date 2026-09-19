@@ -1,12 +1,17 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-partial-fields #-}
 
 {- | A from-scratch, minimal WebAssembly-inspired 32-bit ISA. Unlike
-"Wrench.Isa.Wasm32", this one is deliberately scoped down for now: push
-a constant, combine values with arithmetic\/comparison ops, halt.
-No locals, no structured control flow, no calls -- just a plain stack
-machine, using the same generic translator pipeline as e.g. F32a/Acc32
-rather than any bespoke lowering.
+"Wrench.Isa.Wasm32", this one is deliberately scoped down: push a
+constant, combine values with arithmetic\/comparison ops, structured
+control flow, locals, and now direct function calls -- no indirect
+calls\/closures yet -- using the same generic translator pipeline as e.g.
+F32a/Acc32 rather than any bespoke lowering (in particular, unlike
+"Wrench.Isa.Wasm32"'s @FuncEnter@, a callee has no self-describing header:
+`call` states its own paramCount\/resultCount as plain literal operands,
+the same way `br`'s depth or `locals`'s count are caller-known literals
+rather than looked up from the target).
 -}
 module Wrench.Isa.Wasm32b (
     Isa (..),
@@ -19,7 +24,7 @@ import Data.Text qualified as T
 import Relude
 import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice, try)
-import Text.Megaparsec.Char (hspace, hspace1, string)
+import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
@@ -86,6 +91,38 @@ data Isa w l
       -- minimal fix: peek the top instead of only ever being able to pop
       -- it.
       Dup
+    | -- | Reserve and zero-fill @n@ *extra* locals right after whatever
+      -- params the active function already has (indices
+      -- @paramCount..paramCount+n-1@), at a fixed offset from 'frameBase'
+      -- -- immune to whatever `sp` does afterward (control records,
+      -- operand churn), unlike a value merely sitting on the stack.
+      -- Optional: a function that needs no extra locals can just omit it.
+      -- Must be the very first instruction in a function body if present
+      -- -- see 'spliceIn's haddock for why.
+      Locals Int
+    | -- | Push local @i@'s value.
+      LocalGet Int
+    | -- | Pop a value into local @i@.
+      LocalSet Int
+    | -- | Like 'LocalSet', but also pushes the value back -- writes the
+      -- local without changing stack depth.
+      LocalTee Int
+    | -- | Call @l@ with @paramCount@ values already pushed (they become the
+      -- callee's locals 0..paramCount-1) and expect @resultCount@ values
+      -- back. No callee-side header: the caller states both counts itself,
+      -- so the whole call is resolved without any bespoke lowering pass --
+      -- just an ordinary label reference plus two literal operands (see
+      -- the module haddock). A mismatch between what's declared here and
+      -- what the callee actually expects\/produces isn't caught -- same
+      -- "trust the source" posture as everything else in this file.
+      Call l Int Int
+    | -- | Return from the nearest enclosing 'Call', popping its declared
+      -- @resultCount@ values (silently trusting exactly that many are on
+      -- top of the operand stack) and discarding the whole callee frame in
+      -- one step, closing any `block`\/`loop`\/`if` left open along the
+      -- way first (a `return` inside a loop must still unwind it). See
+      -- 'collapseControl'.
+      Return
     | Halt
     deriving (Eq, Show)
 
@@ -128,9 +165,24 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , cmd0 "end" End
                     , cmd0 "loop" Loop
                     , cmd0 "block" Block
-                    , try (Br <$> cmd1 "br" depth)
-                    , try (BrIf <$> cmd1 "br_if" depth)
+                    , try (Br <$> cmd1 "br" intLit)
+                    , try (BrIf <$> cmd1 "br_if" intLit)
                     , cmd0 "dup" Dup
+                    , try (Locals <$> cmd1 "locals" intLit)
+                    , try (LocalGet <$> cmd1 "local.get" intLit)
+                    , try (LocalSet <$> cmd1 "local.set" intLit)
+                    , try (LocalTee <$> cmd1 "local.tee" intLit)
+                    , try
+                        ( do
+                            void $ string "call"
+                            hspace1
+                            target <- referenceWithDirective
+                            comma
+                            params <- intLit
+                            comma
+                            Call target params <$> intLit
+                        )
+                    , cmd0 "return" Return
                     , cmd0 "halt" Halt
                     ]
 
@@ -140,10 +192,17 @@ cmd0 mnemonic constructor = string mnemonic >> return constructor
 cmd1 :: String -> Parser a -> Parser a
 cmd1 mnemonic arg = string mnemonic >> hspace1 >> arg
 
--- | A branch's target depth: how many enclosing `block`\/`loop` scopes out
--- to reach, 0 = innermost.
-depth :: Parser Int
-depth = Unsafe.read <$> num
+-- | A small non-negative integer literal: a branch's target depth (how
+-- many enclosing `block`\/`loop` scopes out to reach, 0 = innermost), a
+-- local's index, a `locals` count, or one of `call`'s two trailing counts.
+intLit :: Parser Int
+intLit = Unsafe.read <$> num
+
+-- | Separates `call`'s three operands (target, paramCount, resultCount) --
+-- comma-separated the same way the original "Wrench.Isa.Wasm32"'s numeric
+-- @.func@ form is (@func 2, 0, 1@).
+comma :: Parser ()
+comma = hspace >> void (char ',') >> hspace
 
 instance DerefMnemonic (Isa w) w where
     derefMnemonic f _offset i = case i of
@@ -180,46 +239,130 @@ instance DerefMnemonic (Isa w) w where
         Br d -> Br d
         BrIf d -> BrIf d
         Dup -> Dup
+        Locals n -> Locals n
+        LocalGet i -> LocalGet i
+        LocalSet i -> LocalSet i
+        LocalTee i -> LocalTee i
+        Call l p r -> Call (deref' f l) p r
+        Return -> Return
         Halt -> Halt
 
 instance ByteSize (Isa w l) where
     byteSize I32Const{} = 5
     byteSize Br{} = 2
     byteSize BrIf{} = 2
+    byteSize Locals{} = 2
+    byteSize LocalGet{} = 2
+    byteSize LocalSet{} = 2
+    byteSize LocalTee{} = 2
+    byteSize Call{} = 7
     byteSize _ = 1
 
 type Wasm32bState w = MachineState (IoMem (Isa w w) w) w
 
--- | One entry in 'controlStack', carrying exactly the fields each shape
+-- | One control-record's payload, carrying exactly the fields each shape
 -- needs rather than a bare tag alongside untyped fields (same reasoning
 -- as the original wasm32's @RecordExtra@: a mismatch between kind and
--- payload can't be constructed in the first place). Both shapes carry
--- @csEnd@ -- a plain `end`'s own address, compared against it to tell
--- "this end closes the innermost open scope" apart from "this end closes
--- a plain if" (only the former pops, and only that shared field is
--- needed to decide it -- see the `End` case in 'instructionExecute').
+-- payload can't be constructed in the first place). 'LoopScope' and
+-- 'BlockScope' both carry @csEnd@ -- a plain `end`'s own address, compared
+-- against it to tell "this end closes the innermost open scope" apart from
+-- "this end closes a plain if" (only the former pops, and only that shared
+-- field is needed to decide it -- see the `End` case in
+-- 'instructionExecute'). Never itself stored raw: 'pushControl' derives
+-- the persisted, untyped 'ControlTag' + fields from it, and
+-- 'readControlAt' reconstructs it on the way back -- construction-time
+-- only, exactly like @RecordExtra@.
 data ControlKind
     = -- | Reaching this (via `br`\/`br_if`) leaves it open: jump to
       -- @csStart@ (just after `loop`) to run the body again.
       LoopScope {csStart :: Int, csEnd :: Int}
     | -- | Reaching this closes it: jump just past @csEnd@ (see
-      -- 'branchTo'), removing it from 'controlStack' too, since unlike a
-      -- loop there's nothing left to continue.
+      -- 'collapseControl'), popping it off the control chain too, since
+      -- unlike a loop there's nothing left to continue.
       BlockScope {csEnd :: Int}
+    | -- | Pushed by `call`, closed by `return` (never by `br`\/`br_if`\/
+      -- `end` -- see 'findControlTarget's guard). Unlike the structured
+      -- scopes, closing this one doesn't splice a fixed-width gap out of
+      -- the stack: 'csResultCount' values get popped, then 'sp' is
+      -- truncated straight to the *callee's* live 'frameBase', reclaiming
+      -- the record and every one of the callee's locals in one step
+      -- (correct only because 'pushControl'\/'Locals' always keep this
+      -- record sitting right above every local, never in between -- see
+      -- 'Locals'\/'spliceIn'). @csSavedFrameBase@\/@csSavedLocalCount@ are
+      -- what the *caller* had, restored on return.
+      CallScope {csSavedFrameBase :: Int, csSavedLocalCount :: Int, csReturnPc :: Int, csResultCount :: Int}
     deriving (Show)
+
+-- | The persisted tag for a control record -- the untyped memory word
+-- 'pushControl' writes and 'readControlAt' reads to know which
+-- 'ControlKind' shape to reconstruct. Kept separate from 'ControlKind'
+-- the same way the original wasm32 keeps @RecordKind@ separate from
+-- @RecordExtra@.
+data ControlTag = LoopTag | BlockTag | CallTag
+    deriving (Bounded, Enum, Eq, Show)
+
+-- | Width, in words, of one control record: a link plus a tag plus all
+-- four of 'ControlKind's possible fields, always present regardless of
+-- shape (a 'BlockScope' just leaves two slots as 0 and never reads them
+-- back) -- fixed width keeps the chain-walk arithmetic in
+-- 'readControlAt'\/'pushControl' uniform, the same tradeoff the original
+-- wasm32's control records make. 'CallScope' happens to need all four,
+-- which is why this grew from the structured-only shapes' three.
+controlEntryWidth :: Int
+controlEntryWidth = 6
+
+controlLinkOffset
+    , controlTagOffset
+    , controlField1Offset
+    , controlField2Offset
+    , controlField3Offset
+    , controlField4Offset ::
+        Int
+controlLinkOffset = 0
+controlTagOffset = 1
+controlField1Offset = 2
+controlField2Offset = 3
+controlField3Offset = 4
+controlField4Offset = 5
+
+-- | Sentinel for "no enclosing control record" ('ctrlTop', or a record's
+-- own `link`), and for "no active function frame" when 'findCall' walks
+-- past the bottom of the chain without finding a 'CallScope'.
+nullAddr :: Int
+nullAddr = -1
 
 data MachineState mem w = State
     { pc :: Int
     , sp :: Int
-    -- ^ Top of the operand stack, which lives in ordinary byte-addressed
-    -- memory (see 'memTop') rather than as a separate Haskell structure --
-    -- no locals, no control stack, no call frames, just this one region.
+    -- ^ Top of the *one* stack: locals, operand values, and control
+    -- records all live here, interleaved in whatever order they were
+    -- pushed (a `loop`\/`block`\/`call` pushes its own record right on top
+    -- of the operand values that happen to be there already, exactly like
+    -- the original wasm32's unified stack) -- no separate control-stack
+    -- region, no separate call stack, no second stack pointer.
+    , ctrlTop :: Int
+    -- ^ Address of the innermost open `block`\/`loop`\/`call`'s control
+    -- record, or 'nullAddr'. Since records are scattered through the
+    -- shared stack at unpredictable intervals (arbitrarily many operand
+    -- pushes can sit between two successive records), finding the record
+    -- @depth@ levels out -- or the nearest 'CallScope' -- can't be done by
+    -- arithmetic alone: each record stores `link`, the previous record's
+    -- own address, and 'readControlAt'\/'branchTo'\/'findCall' walk that
+    -- chain.
+    , frameBase :: Int
+    -- ^ Base address of the *active* function's locals (param 0's
+    -- address). Starts at 'memTop' -- so a program that never calls
+    -- anything behaves exactly as before functions existed -- and is
+    -- carved out of the caller's already-pushed arguments by `call`,
+    -- saved in the callee's own 'CallScope' record, and restored by
+    -- `return`.
+    , localCount :: Int
+    -- ^ How many words at 'frameBase' are locals (params, plus however
+    -- many extra 'Locals' declared) rather than operand-stack content --
+    -- set to @paramCount@ by `call`, bumped by 'Locals', saved\/restored
+    -- across calls exactly like 'frameBase' -- so report views know where
+    -- the *stack* actually starts for whichever frame is currently active.
     , mem :: mem
-    , controlStack :: [ControlKind]
-    -- ^ One entry per currently-open `block`\/`loop`, innermost first --
-    -- the one piece of runtime state `if`\/`else`\/`end` don't need but
-    -- `loop`\/`block`\/`br`\/`br_if` do (see the module haddock's note on
-    -- why).
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -230,13 +373,15 @@ instance InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) wher
         State
             { pc
             , sp = memTop dump
+            , ctrlTop = nullAddr
+            , frameBase = memTop dump
+            , localCount = 0
             , mem = dump
-            , controlStack = []
             , stopped = False
             , internalError = Nothing
             }
 
--- | Where the operand stack starts: the upper half of the configured
+-- | Where locals (if any) start: the upper half of the configured
 -- memory, code+data occupying the lower half.
 memTop :: IoMem (Isa w w) w -> Int
 memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
@@ -287,6 +432,88 @@ popValue = do
     modify $ \st -> st{sp = sp'}
     getWord sp'
 
+-- | Address of local @i@: a fixed offset from the *active* function's
+-- 'frameBase', unaffected by `sp`\/`ctrlTop` -- the whole point, since a
+-- value merely sitting on the stack isn't (see 'Locals'\/the module
+-- haddock). Uniform across params and extra locals alike -- no branch on
+-- @i@ -- because 'Locals' relocates the frame's own control record above
+-- every local it declares (see 'spliceIn'), so nothing ever sits between
+-- them.
+localAddr :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) Int
+localAddr i = do
+    State{frameBase} <- get
+    return $ frameBase + i * byteSizeT @w
+
+-- | Remove the @widthWords@-word record at @r@, shifting everything
+-- above it (up to @top@) down to close the gap, and shrinking `sp` to
+-- match -- the same splice the original wasm32 uses to close a
+-- block\/loop record without disturbing whatever its body pushed above
+-- it.
+spliceOut :: forall w. (MachineWord w) => Int -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+spliceOut r widthWords top = do
+    let step = byteSizeT @w
+        width = widthWords * step
+    forM_ [0, step .. top - r - width - 1] $ \i -> getWord (r + width + i) >>= setWord (r + i)
+    modify $ \st -> st{sp = top - width}
+
+-- | The mirror of 'spliceOut': insert @n@ zero-filled words at @at@,
+-- shifting everything from @at@ up to @top@ (exclusive) up by that many
+-- words, and growing `sp` to match. 'Locals' uses this to grow the active
+-- frame's locals region while keeping every local contiguous: a `call`
+-- always leaves its own 'CallScope' sitting right above the params (the
+-- only locals that exist yet), so inserting @n@ new words right at that
+-- boundary slides the record up out of the way, making room for the
+-- extra locals *underneath* it rather than above -- see 'localAddr's
+-- haddock. Safe to call with @at == top@ (nothing above to shift, and no
+-- enclosing `call` at all -- the pre-functions, single-frame case):
+-- degenerates to a plain reservation, identical to what 'Locals' used to
+-- do directly.
+spliceIn :: forall w. (MachineWord w) => Int -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+spliceIn at n top = do
+    let step = byteSizeT @w
+        width = n * step
+    forM_ [top - step, top - 2 * step .. at] $ \i -> getWord i >>= setWord (i + width)
+    forM_ [0, step .. width - step] $ \i -> setWord (at + i) def
+    modify $ \st -> st{sp = top + width}
+
+-- | Push a control record: write it at the current 'sp' (right on top of
+-- whatever operand values are already there), link it to the previously
+-- innermost record, and make it the new innermost one.
+pushControl :: forall w. (MachineWord w) => ControlKind -> State (MachineState (IoMem (Isa w w) w) w) ()
+pushControl scope = do
+    State{sp, ctrlTop} <- get
+    let step = byteSizeT @w
+        (tag, f1, f2, f3, f4) = case scope of
+            LoopScope{csStart, csEnd} -> (LoopTag, csStart, csEnd, 0, 0)
+            BlockScope{csEnd} -> (BlockTag, 0, csEnd, 0, 0)
+            CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} ->
+                (CallTag, csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount)
+    setWord (sp + controlLinkOffset * step) (toEnum ctrlTop)
+    setWord (sp + controlTagOffset * step) (toEnum (fromEnum tag))
+    setWord (sp + controlField1Offset * step) (toEnum f1)
+    setWord (sp + controlField2Offset * step) (toEnum f2)
+    setWord (sp + controlField3Offset * step) (toEnum f3)
+    setWord (sp + controlField4Offset * step) (toEnum f4)
+    modify $ \st -> st{ctrlTop = sp, sp = sp + controlEntryWidth * step}
+
+-- | Read the control record based at @addr@ (not necessarily 'ctrlTop'
+-- itself -- 'branchTo'\/'unwindTo'\/'findCall' walk the chain via `link`
+-- without disturbing anything), returning its payload and its `link`.
+readControlAt :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) (ControlKind, Int)
+readControlAt addr = do
+    let step = byteSizeT @w
+    link <- fromEnum <$> getWord (addr + controlLinkOffset * step)
+    tag <- toEnum . fromEnum <$> getWord (addr + controlTagOffset * step)
+    f1 <- fromEnum <$> getWord (addr + controlField1Offset * step)
+    f2 <- fromEnum <$> getWord (addr + controlField2Offset * step)
+    f3 <- fromEnum <$> getWord (addr + controlField3Offset * step)
+    f4 <- fromEnum <$> getWord (addr + controlField4Offset * step)
+    let scope = case (tag :: ControlTag) of
+            LoopTag -> LoopScope{csStart = f1, csEnd = f2}
+            BlockTag -> BlockScope{csEnd = f2}
+            CallTag -> CallScope{csSavedFrameBase = f1, csSavedLocalCount = f2, csReturnPc = f3, csResultCount = f4}
+    return (scope, link)
+
 -- | Find the `if` at @start@'s branch targets by scanning forward,
 -- tracking nested `if`\/`loop`\/`block` scopes so a nested `else`\/`end`
 -- doesn't get mistaken for this one's. Returns the matching `else`'s
@@ -328,22 +555,103 @@ findEndPc memory start = go start (0 :: Int)
                     | otherwise -> go next (depth - 1)
                 _ -> go next depth
 
--- | Branch to the `block`\/`loop` @depth@ levels out (0 = innermost),
--- unconditionally: drop the @depth@ scopes strictly between here and the
--- target (they're being exited, regardless of kind), then act on the
--- target itself according to its own shape.
-branchTo :: Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+-- | Find the control record @depth@ levels out from `ctrlTop` (0 =
+-- innermost) by walking `link`. Stops with an error at a 'CallScope'
+-- rather than walking through it -- a `br`\/`br_if` is scoped to its own
+-- function's `block`\/`loop` nesting and must never reach into (or past)
+-- the caller's, matching how a `return` (not `br`) is the only thing
+-- that closes a call.
+findControlTarget :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) (Either Text Int)
+findControlTarget depth = do
+    State{ctrlTop} <- get
+    go depth ctrlTop
+    where
+        go _ addr | addr == nullAddr = return $ Left "br/br_if: depth out of range"
+        go n addr = do
+            (scope, link) <- readControlAt addr
+            case scope of
+                CallScope{} -> return $ Left "br/br_if: depth out of range"
+                _
+                    | n <= (0 :: Int) -> return $ Right addr
+                    | otherwise -> go (n - 1) link
+
+-- | Walk the chain from `ctrlTop` for the nearest enclosing 'CallScope' --
+-- what `return` closes. Unlike 'findControlTarget', this is meant to walk
+-- *through* any `block`\/`loop`\/`if` in the way (a `return` inside a loop
+-- must still close it) and only stops -- successfully -- at a call.
+findCall :: forall w. (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) (Either Text Int)
+findCall = do
+    State{ctrlTop} <- get
+    go ctrlTop
+    where
+        go addr
+            | addr == nullAddr = return $ Left "return without active function frame"
+            | otherwise = do
+                (scope, link) <- readControlAt addr
+                case scope of
+                    CallScope{} -> return $ Right addr
+                    _ -> go link
+
+-- | Collapse the record at @r@: if @keepOpen@ (a taken branch back into
+-- a loop), just jump to its start -- the record and everything its body
+-- has pushed above it stay exactly as they are, since the next iteration
+-- needs them. A 'CallScope' is never @keepOpen@ (only `return` closes
+-- one, and it always exits); everything else splices the record's own
+-- words out of the stack (preserving everything above them), unlinks it,
+-- and jumps past its `end`.
+collapseControl :: forall w. (MachineWord w) => Int -> Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+collapseControl r keepOpen = do
+    (scope, link) <- readControlAt r
+    case scope of
+        LoopScope{csStart} | keepOpen -> setPc csStart
+        CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} -> do
+            -- Read every field before touching the stack below: popping
+            -- results and truncating overwrite this record's own bytes.
+            results <- popValues csResultCount
+            State{frameBase} <- get
+            modify $ \st -> st{sp = frameBase}
+            mapM_ pushValue results
+            modify $ \st -> st{frameBase = csSavedFrameBase, localCount = csSavedLocalCount, ctrlTop = link}
+            setPc csReturnPc
+        _ -> do
+            State{sp} <- get
+            spliceOut r controlEntryWidth sp
+            modify $ \st -> st{ctrlTop = link}
+            setPc (csEnd scope + byteSize End)
+
+popValues :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) [w]
+popValues n = reverse <$> replicateM n popValue
+
+-- | Collapse every open record from `ctrlTop` down to and including @r@,
+-- keeping @r@ itself open only if @keepOpen@ (branching back into a
+-- loop). Anything strictly above @r@ is always fully closed along the
+-- way, regardless of its own kind -- branching past a scope exits it
+-- unconditionally.
+unwindTo :: forall w. (MachineWord w) => Int -> Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+unwindTo r keepOpen = do
+    State{ctrlTop} <- get
+    if ctrlTop == r
+        then collapseControl r keepOpen
+        else do
+            collapseControl ctrlTop False
+            unwindTo r keepOpen
+
+-- | Branch to the `block`\/`loop` @depth@ levels out (0 = innermost).
+-- Reaching a `loop` leaves it open (this is how you continue); reaching
+-- a `block` closes it, along with everything nested between here and
+-- there (this is how you break out of more than one level at once).
+-- 'findControlTarget' already guarantees @target@ is never a 'CallScope'.
+branchTo :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) ()
 branchTo depth = do
-    State{controlStack} <- get
-    case drop depth controlStack of
-        [] -> raiseInternalError "br/br_if: depth out of range"
-        found@(scope : rest) -> case scope of
-            LoopScope{csStart} -> do
-                modify $ \st -> st{controlStack = found}
-                setPc csStart
-            BlockScope{csEnd} -> do
-                modify $ \st -> st{controlStack = rest}
-                setPc (csEnd + byteSize End)
+    result <- findControlTarget depth
+    case result of
+        Left err -> raiseInternalError err
+        Right target -> do
+            (scope, _) <- readControlAt target
+            let keepOpen = case scope of
+                    LoopScope{} -> True
+                    _ -> False
+            unwindTo target keepOpen
 
 instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
     programCounter State{pc} = pc
@@ -352,16 +660,28 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
     isHalted State{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{mem, sp} v =
+    reprState labels st@State{mem, sp, frameBase, localCount} v =
         case T.splitOn ":" v of
             ["stack", f] -> formatValues f values
+            ["locals", f] -> formatValues f localValues
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
         where
             step = byteSizeT @w
+            -- Where the *active* frame's locals end and its own operand
+            -- stack begins -- everything from here up to `sp` is "stack"
+            -- for report-view purposes, which, same as before functions
+            -- existed, includes this frame's own control records (and any
+            -- calls it in turn made) as raw words, not just plain operand
+            -- values -- this view has never distinguished the two.
+            frameStackBase = frameBase + localCount * step
             -- Top first, matching the old list's head-is-top convention.
-            values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. memTop mem]
+            values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. frameStackBase]
+            localValues =
+                mapMaybe
+                    (\a -> eitherToMaybe (readWord mem a) <&> snd)
+                    [frameBase, frameBase + step .. frameStackBase - step]
 
             formatValues "dec" vs = toText $ intercalate ":" $ map show vs
             formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
@@ -425,24 +745,33 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     Right endPc -> setPc (endPc + byteSize End)
                     Left err -> raiseInternalError $ "control flow error: " <> err
             End -> do
-                State{pc, controlStack} <- get
-                case controlStack of
-                    (scope : rest) | csEnd scope == pc -> modify $ \st -> st{controlStack = rest}
-                    _ -> return ()
+                State{pc, ctrlTop} <- get
+                unless (ctrlTop == nullAddr) $ do
+                    (scope, link) <- readControlAt ctrlTop
+                    case scope of
+                        -- A plain `end` never closes a call (`return`
+                        -- does); if `ctrlTop` is one, this `end` belongs
+                        -- to something already closed, not this record.
+                        CallScope{} -> return ()
+                        _
+                            | csEnd scope == pc -> do
+                                State{sp} <- get
+                                spliceOut ctrlTop controlEntryWidth sp
+                                modify $ \st -> st{ctrlTop = link}
+                            | otherwise -> return ()
                 nextPc instruction
             Loop -> do
                 State{pc, mem} <- get
                 case findEndPc mem (pc + byteSize instruction) of
                     Right endPc -> do
-                        let scope = LoopScope{csStart = pc + byteSize instruction, csEnd = endPc}
-                        modify $ \st -> st{controlStack = scope : controlStack st}
+                        pushControl LoopScope{csStart = pc + byteSize instruction, csEnd = endPc}
                         nextPc instruction
                     Left err -> raiseInternalError $ "control flow error: " <> err
             Block -> do
                 State{pc, mem} <- get
                 case findEndPc mem (pc + byteSize instruction) of
                     Right endPc -> do
-                        modify $ \st -> st{controlStack = BlockScope{csEnd = endPc} : controlStack st}
+                        pushControl BlockScope{csEnd = endPc}
                         nextPc instruction
                     Left err -> raiseInternalError $ "control flow error: " <> err
             Br depth -> branchTo depth
@@ -456,6 +785,50 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 pushValue top
                 pushValue top
                 nextPc instruction
+            Locals n -> do
+                State{frameBase, localCount, sp, ctrlTop} <- get
+                spliceIn (frameBase + localCount * byteSizeT @w) n sp
+                -- 'spliceIn' physically relocated whatever sat above the
+                -- inserted words -- if that's this frame's own 'CallScope'
+                -- (see 'localAddr's haddock: it's guaranteed to be, if
+                -- anything, since 'Locals' must run before any nested
+                -- `block`\/`loop`\/`call` could push above it), 'ctrlTop'
+                -- must move with it or it'll point at stale, now
+                -- zero-filled bytes.
+                let ctrlTop' = if ctrlTop == nullAddr then nullAddr else ctrlTop + n * byteSizeT @w
+                modify $ \st -> st{localCount = localCount + n, ctrlTop = ctrlTop'}
+                nextPc instruction
+            LocalGet i -> do
+                addr <- localAddr i
+                getWord addr >>= pushValue
+                nextPc instruction
+            LocalSet i -> do
+                addr <- localAddr i
+                popValue >>= setWord addr
+                nextPc instruction
+            LocalTee i -> do
+                addr <- localAddr i
+                value <- popValue
+                setWord addr value
+                pushValue value
+                nextPc instruction
+            Call target paramCount resultCount -> do
+                State{sp, frameBase, localCount, pc} <- get
+                let calleeFrameBase = sp - paramCount * byteSizeT @w
+                pushControl
+                    CallScope
+                        { csSavedFrameBase = frameBase
+                        , csSavedLocalCount = localCount
+                        , csReturnPc = pc + byteSize instruction
+                        , csResultCount = resultCount
+                        }
+                modify $ \st -> st{frameBase = calleeFrameBase, localCount = paramCount}
+                setPc (fromEnum target)
+            Return -> do
+                result <- findCall
+                case result of
+                    Left err -> raiseInternalError err
+                    Right r -> unwindTo r False
             Halt -> modify $ \st -> st{stopped = True}
         where
             unary f = popValue >>= pushValue . f
