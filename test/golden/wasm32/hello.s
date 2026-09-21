@@ -1,6 +1,6 @@
     .data
 
-buf:             .byte  31, 'H' , 'e' , 'l' , 'l' , 'o' , '\n' , '\0' , 'W' , 'o' , 'r' , 'l' , 'd' , '!'
+buf:             .byte  31, 'Hello\n\0World!'
 buf_end:         .byte  0, 0, 0
 
     .text
