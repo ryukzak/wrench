@@ -816,8 +816,14 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     $ filter ((<= addr) . fst)
                     $ toPairs offset2label
 
-            formatLayout "dec" = renderLayout show
-            formatLayout "hex" = renderLayout (toText . word32ToHex)
+            -- Both formats already exist for the word *values* a span
+            -- shows; extend the same choice to every address a span
+            -- mentions (its own mem[a..b] range, a frame's pc, a control
+            -- record's return\/start\/end\/savedFrameBase) rather than
+            -- leaving addresses permanently decimal regardless of which
+            -- format was asked for.
+            formatLayout "dec" = renderLayout show show
+            formatLayout "hex" = renderLayout (toText . word32ToHex) (toText . word32ToHex)
             formatLayout f = unknownFormat f
 
             -- \| One line per contiguous span of a frame's own visible
@@ -828,16 +834,16 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             -- actually is: a frame's locals, one of its own open control
             -- records (decoded, not raw words), or a run of genuine
             -- operand values.
-            renderLayout :: (w -> Text) -> Text
-            renderLayout showWord =
+            renderLayout :: (w -> Text) -> (Int -> Text) -> Text
+            renderLayout showWord showAddr =
                 T.intercalate "\n"
-                    $ concatMap (renderFrame showWord)
+                    $ concatMap (renderFrame showWord showAddr)
                     $ zip [0 :: Int ..] (reverse (walkFrames st))
 
-            renderFrame showWord (i, FrameLayout{flPc, flFrameBase, flLocalCount, flScanUpper, flControls}) =
+            renderFrame showWord showAddr (i, FrameLayout{flPc, flFrameBase, flLocalCount, flScanUpper, flControls}) =
                 header : localsLines <> segmentLines
                 where
-                    header = "#" <> show i <> " " <> funcNameAt flPc <> " (pc=" <> show flPc <> ")"
+                    header = "#" <> show i <> " " <> funcNameAt flPc <> " (pc=" <> showAddr flPc <> ")"
                     opStart = flFrameBase + flLocalCount * step
                     localsLines
                         | flLocalCount == 0 = []
@@ -849,7 +855,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                         | lo >= hi = []
                         | otherwise = indexedSpan lo hi "(stack)"
                     controlSpan lo hi kind =
-                        let (tag, fields) = describeControl kind
+                        let (tag, fields) = describeControl showAddr kind
                          in span_ lo hi tag : map ("      " <>) fields
                     -- \| This span's address range, on one line, followed
                     -- by one indented "index: value" line per word --
@@ -864,12 +870,12 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                                 [0 ..]
                                 [lo, lo + step .. hi - step]
                         where
-                            header_ = "  mem[" <> show lo <> ".." <> show (hi - 1) <> "]: " <> tag
+                            header_ = "  mem[" <> showAddr lo <> ".." <> showAddr (hi - 1) <> "]: " <> tag
                     span_ lo hi tag =
                         "  mem["
-                            <> show lo
+                            <> showAddr lo
                             <> ".."
-                            <> show (hi - 1)
+                            <> showAddr (hi - 1)
                             <> "]: "
                             <> T.intercalate " " (map (wordAt showWord) [lo, lo + step .. hi - step])
                             <> " \t@"
@@ -877,17 +883,20 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
 
             -- \| A control record's kind (its own report-view tag) and its
             -- fields, one per line, rather than crammed onto the same
-            -- line as the record's raw words.
-            describeControl :: ControlKind -> (Text, [Text])
-            describeControl LoopScope{csStart, csEnd} =
-                ("loop", ["start=" <> show csStart, "end=" <> show csEnd])
-            describeControl BlockScope{csEnd} = ("block", ["end=" <> show csEnd])
-            describeControl CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} =
+            -- line as the record's raw words -- addresses (@return@,
+            -- @start@, @end@, @savedFrameBase@) follow the requested
+            -- format; plain counts (@results@, @savedLocalCount@) always
+            -- stay decimal, since hex doesn't make a count more readable.
+            describeControl :: (Int -> Text) -> ControlKind -> (Text, [Text])
+            describeControl showAddr LoopScope{csStart, csEnd} =
+                ("loop", ["start=" <> showAddr csStart, "end=" <> showAddr csEnd])
+            describeControl showAddr BlockScope{csEnd} = ("block", ["end=" <> showAddr csEnd])
+            describeControl showAddr CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} =
                 ( "call"
                 ,
-                    [ "return=" <> show csReturnPc
+                    [ "return=" <> showAddr csReturnPc
                     , "results=" <> show csResultCount
-                    , "savedFrameBase=" <> show csSavedFrameBase
+                    , "savedFrameBase=" <> showAddr csSavedFrameBase
                     , "savedLocalCount=" <> show csSavedLocalCount
                     ]
                 )
