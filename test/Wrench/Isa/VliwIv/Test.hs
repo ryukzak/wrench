@@ -212,6 +212,20 @@ tests =
             translate "addi a1, a0, 3 / nop / nop / nop" @?= True
             translate "nop / nop / lw a1, 20(a0) / j 100" @?= True
             translate "add a2, a0, a1 / sub a3, a0, a1 / sw a1, 0(a0) / halt" @?= True
+        , testCase "Translator: blank slots (single space) are equivalent to nop" $ do
+            translate "addi a1, a0, 3 /  /  /  " @?= True
+            translate " /  / lw a1, 20(a0) / j 100" @?= True
+            translate "add a2, a0, a1 / sub a3, a0, a1 / sw a1, 0(a0) / halt" @?= True
+        , testCase "Blank slot behaves exactly like an explicit nop" $ do
+            let VliwIvSt{regs = regsBlank} =
+                    simulate
+                        "addi a1, a0, 3 /  /  /  "
+                        (withRegs [(A0, 5)])
+                VliwIvSt{regs = regsNop} =
+                    simulate
+                        "addi a1, a0, 3 / nop / nop / nop"
+                        (withRegs [(A0, 5)])
+             in regsBlank @?= regsNop
         , testGroup
             "Constant field truncation (silent)"
             -- A constant that does not fit its documented slot field is reduced to
