@@ -106,7 +106,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , lineLayout = VliwLayout [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
+        , lineLayout = VliwLayout [30, 30, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -152,7 +152,7 @@ formatLines fmt tokenss =
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
-            VliwLayout _ -> VliwLayout (calculateVliwSlotWidths statements)
+            VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
             StandardLayout -> StandardLayout
         fmt' = fmt{lineLayout = lineLayout'}
         source' = map (pprint fmt') statements
@@ -171,8 +171,8 @@ formatLines fmt tokenss =
                 comments
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
-calculateVliwSlotWidths :: [Statement] -> [Int]
-calculateVliwSlotWidths statements =
+calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
+calculateVliwSlotWidths configWidths statements =
     let textLines =
             [ tokens
             | TextLine tokens <- statements
@@ -182,7 +182,7 @@ calculateVliwSlotWidths statements =
             ]
         slotsList = map splitByPipe textLines
         numSlots = if null slotsList then 0 else foldl' max 0 (map length slotsList)
-        maxWidths =
+        contentWidths =
             [ foldl'
                 max
                 0
@@ -195,7 +195,8 @@ calculateVliwSlotWidths statements =
                 )
             | idx <- [0 .. numSlots - 1]
             ]
-     in maxWidths
+        aluWidths = take 2 configWidths
+     in aluWidths <> drop (length aluWidths) contentWidths
     where
         splitByPipe :: [Text] -> [[Text]]
         splitByPipe tokens =
