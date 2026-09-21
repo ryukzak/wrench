@@ -1,0 +1,434 @@
+---
+# Check result
+stack: 128
+---
+# Stack layout
+pc: 4
+#0 _start (pc=4)
+pc: 9
+#0 _start (pc=9)
+  mem[128..131]: (stack)
+    0: 0
+pc: 14
+#0 _start (pc=14)
+  mem[128..135]: (stack)
+    0: 0
+    1: 1
+pc: 15
+#0 _start (pc=15)
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 1
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 1
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 2
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 2
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 2
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 2
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 2
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 4
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 4
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 4
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 4
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 4
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 8
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 8
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 8
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 8
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 8
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 16
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 16
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 16
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 16
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 16
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 32
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 32
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 32
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 32
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 32
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 64
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 64
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 64
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 1
+pc: 16
+#0 _start (pc=16)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 21
+#0 _start (pc=21)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 26
+#0 _start (pc=26)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 0
+pc: 27
+#0 _start (pc=27)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 64
+pc: 32
+#0 _start (pc=32)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..155]: (stack)
+    0: 0
+    1: 64
+    2: 2
+pc: 33
+#0 _start (pc=33)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 0
+    1: 128
+pc: 34
+#0 _start (pc=34)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 39
+#0 _start (pc=39)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 40
+#0 _start (pc=40)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 128
+pc: 45
+#0 _start (pc=45)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..151]: (stack)
+    0: 128
+    1: 100
+pc: 46
+#0 _start (pc=46)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+  mem[144..147]: (stack)
+    0: 0
+pc: 48
+#0 _start (pc=48)
+  mem[128..143]: LoopScope { csStart = 16, csEnd = 48 }
+pc: 49
+#0 _start (pc=49)
+pc: 54
+#0 _start (pc=54)
+  mem[128..131]: (stack)
+    0: 0
+pc: 55
+#0 _start (pc=55)
+  mem[128..131]: (stack)
+    0: 128
+pc: 55
+#0 _start (pc=55)
+  mem[128..131]: (stack)
+    0: 128

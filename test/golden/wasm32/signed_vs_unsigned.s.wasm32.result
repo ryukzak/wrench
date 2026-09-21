@@ -1,0 +1,11 @@
+0:	_start
+---
+mem[0..4]: 	I32Const (-1) 	@_start
+mem[5..9]: 	I32Const 1
+mem[10..10]: 	I32LtS
+mem[11..15]: 	I32Const (-1)
+mem[16..20]: 	I32Const 1
+mem[21..21]: 	I32LtU
+mem[22..22]: 	Halt
+mem[23..999]: 	( 00 )
+---

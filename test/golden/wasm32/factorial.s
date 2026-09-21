@@ -1,57 +1,37 @@
     .text
 
-_start:
-    .func    locals $result
-        i32.const 0x84
-        i32.const 0x80
-        i32.load
-        call     factorial
-        i32.store
-        halt
-    .endfunc
-
+    ; factorial(n), recursive. No separate direct-call instruction: the
+    ; target is always popped off the stack, so a statically-known call site
+    ; is just `i32.const target` immediately before `call` -- no callee-side
+    ; header either, so every call site states its own paramCount/resultCount
+    ; directly (see the Isa module haddock on `Call`).
 factorial:
-    .func    params $n result i32 locals $acc
-
-        local.get $n
-        i32.const 0
-        i32.lt_s
-        if       negative
-            i32.const -1
-            return
-        end
-
-        local.get $n
-        i32.const 12
-        i32.gt_s
-        if       overflow
-            i32.const -858993460
-            return
-        end
-
+    local.get 0
+    i32.const 1
+    i32.le_s
+    if
         i32.const 1
-        local.set $acc
+        return
+    end
+    ; Stack effect while computing n * factorial(n - 1): the first
+    ; local.get here leaves `n` sitting below wherever the recursive
+    ; call's own frame gets carved out, untouched no matter how deep the
+    ; recursion goes -- the same way an open block/loop's body values
+    ; survive a nested call today.
+    local.get 0
+    local.get 0
+    i32.const 1
+    i32.sub
+    i32.const factorial
+    call     1, 1
+    i32.mul
+    return
 
-        block    done
-            loop     again
-                local.get $n
-                i32.const 1
-                i32.le_s
-                br_if    done
-
-                local.get $acc
-                local.get $n
-                i32.mul
-                local.set $acc
-
-                local.get $n
-                i32.const 1
-                i32.sub
-                local.set $n
-
-                br       again
-            end
-        end
-
-        local.get $acc
-    .endfunc
+_start:
+    i32.const 0x84
+    i32.const 0x80
+    i32.load
+    i32.const factorial
+    call     1, 1
+    i32.store
+    halt

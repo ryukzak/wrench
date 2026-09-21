@@ -1,0 +1,15 @@
+0:	_start
+---
+mem[0..4]: 	I32Const 10 	@_start
+mem[5..9]: 	I32Const 20
+mem[10..14]: 	I32Const 1
+mem[15..19]: 	I32Const 2
+mem[20..20]: 	I32LtS
+mem[21..21]: 	If
+mem[22..22]: 	I32Add
+mem[23..23]: 	Else
+mem[24..24]: 	I32Mul
+mem[25..25]: 	End
+mem[26..26]: 	Halt
+mem[27..999]: 	( 00 )
+---

@@ -1,6 +1,6 @@
 name: "assert get_put_char('A') == ('A', '')"
-limit: 2000
-memory_size: 0x1000
+limit: 200
+memory_size: 0x200
 memory_mapped_io:
   0x80: [65]
   0x84: []

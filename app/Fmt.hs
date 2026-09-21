@@ -62,11 +62,16 @@ main = do
                     <> header "asm-formatter - a simple assembly file formatter"
                 )
 
-data ArchStyle
-    = StandardArch
-    | Wasm32Arch
-    | VliwArch {vliwSlotWidths :: [Int]}
+data LineLayout
+    = StandardLayout
+    | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
+
+data BlockIndent = BlockIndent
+    { biOpensBlock :: [Text]
+    , biClosesBlock :: [Text]
+    , biRedentsLine :: [Text]
+    }
 
 data FmtConfig = FmtConfig
     { dataLabelWidth :: Int
@@ -76,7 +81,8 @@ data FmtConfig = FmtConfig
     , textCommandTokenWidths :: [Int]
     , textCommandWidth :: Int
     , commentStart :: Text
-    , archStyle :: ArchStyle
+    , lineLayout :: LineLayout
+    , blockIndent :: Maybe BlockIndent
     }
 
 instance Default FmtConfig where
@@ -89,7 +95,8 @@ instance Default FmtConfig where
             , textCommandTokenWidths = [8, 0, 0, 0, 0, 0, 0]
             , textCommandWidth = 40
             , commentStart = ";"
-            , archStyle = StandardArch
+            , lineLayout = StandardLayout
+            , blockIndent = Nothing
             }
 
 f32aFmt :: FmtConfig
@@ -107,7 +114,19 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , archStyle = VliwArch [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
+        , lineLayout = VliwLayout [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
+        }
+
+wasm32Fmt :: FmtConfig
+wasm32Fmt =
+    def
+        { blockIndent =
+            Just
+                BlockIndent
+                    { biOpensBlock = ["block", "loop", "if"]
+                    , biClosesBlock = ["end"]
+                    , biRedentsLine = ["else", "end"]
+                    }
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -119,7 +138,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
-            Just Wasm32 -> formatFile def{archStyle = Wasm32Arch} content
+            Just Wasm32 -> formatFile wasm32Fmt content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -153,50 +172,50 @@ formatLines fmt tokenss =
     let (source, comments) = unzip $ map (splitComment fmt) tokenss
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
-        archStyle' = case archStyle fmt of
-            VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
-            Wasm32Arch -> Wasm32Arch
-            StandardArch -> StandardArch
-        fmt' = fmt{archStyle = archStyle'}
-        source' = formatStatements fmt' statements
+        lineLayout' = case lineLayout fmt of
+            VliwLayout _ -> VliwLayout (calculateVliwSlotWidths statements)
+            StandardLayout -> StandardLayout
+        fmt' = fmt{lineLayout = lineLayout'}
+        -- indent per statement, shared with the comment-only lines below
+        indents = statementIndents fmt' statements
+        source' = zipWith (\ind st -> pprint fmt'{textCommandIndent = ind} st) indents statements
         comments' =
-            zipWith
-                ( \s c ->
+            map
+                ( \(s, ind, c) ->
                     if T.null c
                         then c
                         else case s of
                             OutOfSection [] -> c
-                            DataLine [] -> T.replicate 4 " " <> c
-                            TextLine [] -> T.replicate 4 " " <> c
+                            DataLine [] -> T.replicate ind " " <> c
+                            TextLine [] -> T.replicate ind " " <> c
                             _ -> c
                 )
-                statements
-                comments
+                (zip3 statements indents comments)
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
-formatStatements :: FmtConfig -> [Statement] -> [Text]
-formatStatements fmt@FmtConfig{archStyle = Wasm32Arch} statements = go 0 statements
+-- | Indent (in spaces) for each statement's line.
+statementIndents :: FmtConfig -> [Statement] -> [Int]
+statementIndents FmtConfig{textCommandIndent, blockIndent = Just bi} statements = go 0 statements
     where
         go _ [] = []
         go depth (statement : rest) =
-            let lineDepth = wasm32LineDepth depth statement
-                nextDepth = wasm32NextDepth depth statement
-                fmt' = fmt{textCommandIndent = textCommandIndent fmt + lineDepth * 4}
-             in pprint fmt' statement : go nextDepth rest
-formatStatements fmt statements = map (pprint fmt) statements
+            let lineDepth = blockLineDepth bi depth statement
+                nextDepth = blockNextDepth bi depth statement
+             in (textCommandIndent + lineDepth * textCommandIndent) : go nextDepth rest
+statementIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
 
-wasm32LineDepth :: Int -> Statement -> Int
-wasm32LineDepth depth (TextLine (token : _))
-    | token `elem` ["else", "end", ".endfunc", "endfunc"] = max 0 (depth - 1)
+blockLineDepth :: BlockIndent -> Int -> Statement -> Int
+blockLineDepth BlockIndent{biRedentsLine} depth (TextLine (token : _))
+    | token `elem` biRedentsLine = max 0 (depth - 1)
     | otherwise = depth
-wasm32LineDepth depth _ = depth
+blockLineDepth _ depth _ = depth
 
-wasm32NextDepth :: Int -> Statement -> Int
-wasm32NextDepth depth (TextLine (token : _))
-    | token `elem` ["block", "loop", "if", ".func", "func"] = depth + 1
-    | token `elem` ["end", ".endfunc", "endfunc"] = max 0 (depth - 1)
+blockNextDepth :: BlockIndent -> Int -> Statement -> Int
+blockNextDepth BlockIndent{biOpensBlock, biClosesBlock} depth (TextLine (token : _))
+    | token `elem` biOpensBlock = depth + 1
+    | token `elem` biClosesBlock = max 0 (depth - 1)
     | otherwise = depth
-wasm32NextDepth depth _ = depth
+blockNextDepth _ depth _ = depth
 
 calculateVliwSlotWidths :: [Statement] -> [Int]
 calculateVliwSlotWidths statements =
@@ -259,10 +278,10 @@ pprint
         , textCommandIndent
         , textCommandTokenWidths
         , textCommandWidth
-        , archStyle
+        , lineLayout
         } = inner
         where
-            inner (OutOfSection tokens) = "    " <> unwords tokens
+            inner (OutOfSection tokens) = T.replicate textCommandIndent " " <> unwords tokens
             inner (DataLine []) = ""
             inner (DataLine (label : type_ : rest)) =
                 unwords
@@ -273,15 +292,9 @@ pprint
             inner (TextLine []) = ""
             inner (TextLine (l : rest))
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
-            inner (TextLine tokens) = case archStyle of
-                VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                Wasm32Arch ->
-                    let cmdTokens =
-                            zipWith width textCommandTokenWidths tokens
-                                <> drop (length textCommandTokenWidths) tokens
-                        cmd = width textCommandWidth $ unwords cmdTokens
-                     in T.replicate textCommandIndent " " <> cmd
-                StandardArch ->
+            inner (TextLine tokens) = case lineLayout of
+                VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                StandardLayout ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
                                 <> drop (length textCommandTokenWidths) tokens
@@ -308,7 +321,7 @@ pprint
             formatSlot w ts = width w (unwords ts)
 
 tokenize :: FmtConfig -> Text -> [Text]
-tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
+tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
     where
         inner "" = []
         inner txt
@@ -316,15 +329,14 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
-            | isVliwArch && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
+            | isVliwLayout && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '/')
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwLayout && c == '/')
                     )
                     txt =
                 token : inner (T.strip rest)
-        isVliwArch = case archStyle of
-            VliwArch _ -> True
-            Wasm32Arch -> False
-            StandardArch -> False
+        isVliwLayout = case lineLayout of
+            VliwLayout _ -> True
+            StandardLayout -> False

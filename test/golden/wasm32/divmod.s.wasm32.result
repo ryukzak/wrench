@@ -1,0 +1,31 @@
+0:	divmod
+11:	store2
+22:	_start
+---
+mem[0..1]: 	LocalGet 0 	@divmod
+mem[2..3]: 	LocalGet 1
+mem[4..4]: 	I32DivS
+mem[5..6]: 	LocalGet 0
+mem[7..8]: 	LocalGet 1
+mem[9..9]: 	I32RemS
+mem[10..10]: 	Return
+mem[11..12]: 	LocalGet 3 	@store2
+mem[13..14]: 	LocalGet 1
+mem[15..15]: 	I32Store
+mem[16..17]: 	LocalGet 2
+mem[18..19]: 	LocalGet 0
+mem[20..20]: 	I32Store
+mem[21..21]: 	Return
+mem[22..26]: 	I32Const 128 	@_start
+mem[27..27]: 	I32Load
+mem[28..32]: 	I32Const 132
+mem[33..33]: 	I32Load
+mem[34..38]: 	I32Const 0
+mem[39..41]: 	Call 2 2
+mem[42..46]: 	I32Const 136
+mem[47..51]: 	I32Const 140
+mem[52..56]: 	I32Const 11
+mem[57..59]: 	Call 4 0
+mem[60..60]: 	Halt
+mem[61..999]: 	( 00 )
+---
