@@ -62,26 +62,11 @@ main = do
                     <> header "asm-formatter - a simple assembly file formatter"
                 )
 
-data ArchStyle
-    = StandardArch
-    | VliwArch {vliwSlotWidths :: [Int]}
+data LineLayout
+    = StandardLayout
+    | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
--- | Which bare-keyword tokens shift a `TextLine`'s indentation, tracked as a
--- running depth across a `.text` section, independent of `archStyle` (which
--- only governs how one already-indented line's tokens get laid out). Three
--- disjoint roles, since a keyword closing a scope isn't always the same as
--- one that permanently reduces depth going forward:
---
---   - 'biOpensBlock': starts a new nested scope -- indent everything until
---     the matching close one level deeper (@block@\/@loop@\/@if@).
---   - 'biClosesBlock': ends the innermost scope for good, both printed
---     one level shallower and reducing depth for every following line
---     (@end@).
---   - 'biRedentsLine': printed one level shallower than the current scope,
---     like a close, but the scope stays open afterward -- depth for
---     following lines is unaffected (@else@, which starts an alternate
---     body at the *same* depth the @if@'s own body had).
 data BlockIndent = BlockIndent
     { biOpensBlock :: [Text]
     , biClosesBlock :: [Text]
@@ -96,7 +81,7 @@ data FmtConfig = FmtConfig
     , textCommandTokenWidths :: [Int]
     , textCommandWidth :: Int
     , commentStart :: Text
-    , archStyle :: ArchStyle
+    , lineLayout :: LineLayout
     , blockIndent :: Maybe BlockIndent
     }
 
@@ -110,7 +95,7 @@ instance Default FmtConfig where
             , textCommandTokenWidths = [8, 0, 0, 0, 0, 0, 0]
             , textCommandWidth = 40
             , commentStart = ";"
-            , archStyle = StandardArch
+            , lineLayout = StandardLayout
             , blockIndent = Nothing
             }
 
@@ -129,7 +114,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , archStyle = VliwArch [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
+        , lineLayout = VliwLayout [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
 wasm32Fmt :: FmtConfig
@@ -187,15 +172,11 @@ formatLines fmt tokenss =
     let (source, comments) = unzip $ map (splitComment fmt) tokenss
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
-        archStyle' = case archStyle fmt of
-            VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
-            StandardArch -> StandardArch
-        fmt' = fmt{archStyle = archStyle'}
-        -- One indent-in-spaces per statement, shared by both the code
-        -- rendering below and comment-only lines just after: a
-        -- comment-only line inside a `block`/`loop`/`if` body should nest
-        -- along with the code around it, not sit flat at the top level
-        -- (see 'statementIndents').
+        lineLayout' = case lineLayout fmt of
+            VliwLayout _ -> VliwLayout (calculateVliwSlotWidths statements)
+            StandardLayout -> StandardLayout
+        fmt' = fmt{lineLayout = lineLayout'}
+        -- indent per statement, shared with the comment-only lines below
         indents = statementIndents fmt' statements
         source' = zipWith (\ind st -> pprint fmt'{textCommandIndent = ind} st) indents statements
         comments' =
@@ -212,12 +193,7 @@ formatLines fmt tokenss =
                 (zip3 statements indents comments)
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
--- | The indent (in spaces) each statement's own line should get. Without
--- 'blockIndent' tracking, that's just 'textCommandIndent' for every line,
--- matching every non-block-structured ISA's flat indentation. With it,
--- each `TextLine` bumps or drops the running depth per 'blockLineDepth'\/
--- 'blockNextDepth' -- e.g. a `block`\/`loop`\/`if` body sits one level
--- deeper than the line that opened it.
+-- | Indent (in spaces) for each statement's line.
 statementIndents :: FmtConfig -> [Statement] -> [Int]
 statementIndents FmtConfig{textCommandIndent, blockIndent = Just bi} statements = go 0 statements
     where
@@ -225,7 +201,7 @@ statementIndents FmtConfig{textCommandIndent, blockIndent = Just bi} statements 
         go depth (statement : rest) =
             let lineDepth = blockLineDepth bi depth statement
                 nextDepth = blockNextDepth bi depth statement
-             in (textCommandIndent + lineDepth * 4) : go nextDepth rest
+             in (textCommandIndent + lineDepth * textCommandIndent) : go nextDepth rest
 statementIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
 
 blockLineDepth :: BlockIndent -> Int -> Statement -> Int
@@ -302,10 +278,10 @@ pprint
         , textCommandIndent
         , textCommandTokenWidths
         , textCommandWidth
-        , archStyle
+        , lineLayout
         } = inner
         where
-            inner (OutOfSection tokens) = "    " <> unwords tokens
+            inner (OutOfSection tokens) = T.replicate textCommandIndent " " <> unwords tokens
             inner (DataLine []) = ""
             inner (DataLine (label : type_ : rest)) =
                 unwords
@@ -316,9 +292,9 @@ pprint
             inner (TextLine []) = ""
             inner (TextLine (l : rest))
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
-            inner (TextLine tokens) = case archStyle of
-                VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                StandardArch ->
+            inner (TextLine tokens) = case lineLayout of
+                VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                StandardLayout ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
                                 <> drop (length textCommandTokenWidths) tokens
@@ -345,7 +321,7 @@ pprint
             formatSlot w ts = width w (unwords ts)
 
 tokenize :: FmtConfig -> Text -> [Text]
-tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
+tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
     where
         inner "" = []
         inner txt
@@ -353,14 +329,14 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
-            | isVliwArch && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
+            | isVliwLayout && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '/')
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwLayout && c == '/')
                     )
                     txt =
                 token : inner (T.strip rest)
-        isVliwArch = case archStyle of
-            VliwArch _ -> True
-            StandardArch -> False
+        isVliwLayout = case lineLayout of
+            VliwLayout _ -> True
+            StandardLayout -> False
