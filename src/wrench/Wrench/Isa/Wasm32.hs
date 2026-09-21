@@ -831,10 +831,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                         | otherwise = [span_ flFrameBase opStart "locals"]
                     segmentLines = go opStart flControls
                     go lo [] = valueSpan lo flScanUpper
-                    go lo ((s, e, kind) : rest) = valueSpan lo s <> [span_ s e (describeControl kind)] <> go e rest
+                    go lo ((s, e, kind) : rest) = valueSpan lo s <> controlSpan s e kind <> go e rest
                     valueSpan lo hi
                         | lo >= hi = []
                         | otherwise = [span_ lo hi "stack"]
+                    controlSpan lo hi kind =
+                        let (tag, fields) = describeControl kind
+                         in span_ lo hi tag : map ("      " <>) fields
                     span_ lo hi tag =
                         "  mem["
                             <> show lo
@@ -845,20 +848,22 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                             <> " \t@"
                             <> tag
 
-            describeControl :: ControlKind -> Text
+            -- \| A control record's kind (its own report-view tag) and its
+            -- fields, one per line, rather than crammed onto the same
+            -- line as the record's raw words.
+            describeControl :: ControlKind -> (Text, [Text])
             describeControl LoopScope{csStart, csEnd} =
-                "loop(start=" <> show csStart <> ",end=" <> show csEnd <> ")"
-            describeControl BlockScope{csEnd} = "block(end=" <> show csEnd <> ")"
+                ("loop", ["start=" <> show csStart, "end=" <> show csEnd])
+            describeControl BlockScope{csEnd} = ("block", ["end=" <> show csEnd])
             describeControl CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} =
-                "call(return="
-                    <> show csReturnPc
-                    <> ",results="
-                    <> show csResultCount
-                    <> ",savedFrameBase="
-                    <> show csSavedFrameBase
-                    <> ",savedLocalCount="
-                    <> show csSavedLocalCount
-                    <> ")"
+                ( "call"
+                ,
+                    [ "return=" <> show csReturnPc
+                    , "results=" <> show csResultCount
+                    , "savedFrameBase=" <> show csSavedFrameBase
+                    , "savedLocalCount=" <> show csSavedLocalCount
+                    ]
+                )
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch = do
