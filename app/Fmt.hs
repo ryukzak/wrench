@@ -62,9 +62,9 @@ main = do
                     <> header "asm-formatter - a simple assembly file formatter"
                 )
 
-data ArchStyle
-    = StandardArch
-    | VliwArch {vliwSlotWidths :: [Int]}
+data LineLayout
+    = StandardLayout
+    | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
 data FmtConfig = FmtConfig
@@ -75,7 +75,7 @@ data FmtConfig = FmtConfig
     , textCommandTokenWidths :: [Int]
     , textCommandWidth :: Int
     , commentStart :: Text
-    , archStyle :: ArchStyle
+    , lineLayout :: LineLayout
     }
 
 instance Default FmtConfig where
@@ -88,7 +88,7 @@ instance Default FmtConfig where
             , textCommandTokenWidths = [8, 0, 0, 0, 0, 0, 0]
             , textCommandWidth = 40
             , commentStart = ";"
-            , archStyle = StandardArch
+            , lineLayout = StandardLayout
             }
 
 f32aFmt :: FmtConfig
@@ -106,7 +106,7 @@ vliwIvFmt :: FmtConfig
 vliwIvFmt =
     def
         { commentStart = ";"
-        , archStyle = VliwArch [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
+        , lineLayout = VliwLayout [34, 34, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
 process :: Options -> String -> IO (Either Text Text)
@@ -151,10 +151,10 @@ formatLines fmt tokenss =
     let (source, comments) = unzip $ map (splitComment fmt) tokenss
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
-        archStyle' = case archStyle fmt of
-            VliwArch _ -> VliwArch (calculateVliwSlotWidths statements)
-            StandardArch -> StandardArch
-        fmt' = fmt{archStyle = archStyle'}
+        lineLayout' = case lineLayout fmt of
+            VliwLayout _ -> VliwLayout (calculateVliwSlotWidths statements)
+            StandardLayout -> StandardLayout
+        fmt' = fmt{lineLayout = lineLayout'}
         source' = map (pprint fmt') statements
         comments' =
             zipWith
@@ -232,7 +232,7 @@ pprint
         , textCommandIndent
         , textCommandTokenWidths
         , textCommandWidth
-        , archStyle
+        , lineLayout
         } = inner
         where
             inner (OutOfSection tokens) = "    " <> unwords tokens
@@ -246,9 +246,9 @@ pprint
             inner (TextLine []) = ""
             inner (TextLine (l : rest))
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
-            inner (TextLine tokens) = case archStyle of
-                VliwArch widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                StandardArch ->
+            inner (TextLine tokens) = case lineLayout of
+                VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                StandardLayout ->
                     let cmdTokens = zipWith width textCommandTokenWidths tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
@@ -273,7 +273,7 @@ pprint
             formatSlot w ts = width w (unwords ts)
 
 tokenize :: FmtConfig -> Text -> [Text]
-tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
+tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
     where
         inner "" = []
         inner txt
@@ -281,14 +281,14 @@ tokenize FmtConfig{commentStart, archStyle} content = inner $ T.strip content
             | T.isPrefixOf "'" txt =
                 let (string, rest) = T.breakOn "'" (T.drop 1 txt)
                  in ("'" <> string <> "'") : inner (T.strip $ T.drop 1 rest)
-            | isVliwArch && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
+            | isVliwLayout && T.isPrefixOf "/" txt = "/" : inner (T.strip $ T.drop 1 txt)
             | (token, rest) <-
                 T.break
                     ( \c ->
-                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwArch && c == '/')
+                        c == ' ' || c == '\t' || c == '\'' || c == T.head commentStart || (isVliwLayout && c == '/')
                     )
                     txt =
                 token : inner (T.strip rest)
-        isVliwArch = case archStyle of
-            VliwArch _ -> True
-            StandardArch -> False
+        isVliwLayout = case lineLayout of
+            VliwLayout _ -> True
+            StandardLayout -> False
