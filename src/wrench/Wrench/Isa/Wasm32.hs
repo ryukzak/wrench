@@ -847,7 +847,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     go lo ((s, e, kind) : rest) = valueSpan lo s <> controlSpan s e kind <> go e rest
                     valueSpan lo hi
                         | lo >= hi = []
-                        | otherwise = indexedSpan lo hi "stack"
+                        | otherwise = indexedSpan lo hi "(stack)"
                     controlSpan lo hi kind =
                         let (tag, fields) = describeControl kind
                          in span_ lo hi tag : map ("      " <>) fields
@@ -864,12 +864,12 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                                 [0 ..]
                                 [lo, lo + step .. hi - step]
                         where
-                            header_ = "  mem[" <> show lo <> ".." <> show (hi - step) <> "]: " <> tag
+                            header_ = "  mem[" <> show lo <> ".." <> show (hi - 1) <> "]: " <> tag
                     span_ lo hi tag =
                         "  mem["
                             <> show lo
                             <> ".."
-                            <> show (hi - step)
+                            <> show (hi - 1)
                             <> "]: "
                             <> T.intercalate " " (map (wordAt showWord) [lo, lo + step .. hi - step])
                             <> " \t@"
