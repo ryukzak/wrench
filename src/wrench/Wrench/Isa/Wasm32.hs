@@ -830,6 +830,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             ["stack", f] -> formatValues f values
             ["locals", f] -> formatValues f localValues
             ["layout", f] -> formatLayout f
+            ["dump", f] -> formatDump f
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
@@ -887,6 +888,33 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             formatLayout "dec" = renderLayout show show
             formatLayout "hex" = renderLayout (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
             formatLayout f = unknownFormat f
+
+            -- \| The whole configured memory as two contiguous chunks,
+            -- nothing left unaccounted for: `.text`\/`.data` (address 0
+            -- up to 'memTop') dumped exactly the way the static
+            -- translation dump does -- 'prettyDump' itself, reused
+            -- directly, not reimplemented -- followed by the shared
+            -- stack, split the same way 'layout' already does into
+            -- whatever's actually live (`memTop` up to `sp`, decoded)
+            -- and the still-unused tail above it (`sp` up to the end of
+            -- memory), shown the same undifferentiated way as the first
+            -- chunk's own unused space between `.text`\/`.data` and
+            -- `memTop`.
+            formatDump "dec" = renderDump show show
+            formatDump "hex" = renderDump (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
+            formatDump f = unknownFormat f
+
+            renderDump :: (w -> Text) -> (Int -> Text) -> Text
+            renderDump showWord showAddr =
+                T.intercalate "\n" $
+                    filter
+                        (not . T.null)
+                        [ dumpRange 0 (memTop mem)
+                        , renderLayout showWord showAddr
+                        , dumpRange sp (memCapacity mem)
+                        ]
+                where
+                    dumpRange lo hi = prettyDump labels (fromList (sliceMem [lo .. hi - 1] (dumpCells mem)))
 
             -- \| One line per contiguous span of a frame's own visible
             -- range, address-ascending across every frame from the
