@@ -32,6 +32,7 @@ module Wrench.Isa.Wasm32 (
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
 import Data.Text qualified as T
+import Numeric (showHex)
 import Relude
 import Relude.Extra (toPairs)
 import Relude.Unsafe qualified as Unsafe
@@ -352,28 +353,98 @@ data ControlKind
 data ControlTag = LoopTag | BlockTag | CallTag
     deriving (Bounded, Enum, Eq, Show)
 
--- | Width, in words, of one control record: a link plus a tag plus all
--- four of 'ControlKind's possible fields, always present regardless of
--- shape (a 'BlockScope' just leaves two slots as 0 and never reads them
--- back) -- fixed width keeps the chain-walk arithmetic in
--- 'readControlAt'\/'pushControl' uniform, at the cost of every
--- 'LoopScope'\/'BlockScope' carrying two unused words it never reads.
-controlEntryWidth :: Int
-controlEntryWidth = 6
+-- | Width, in words, of a control record tagged @tag@: 3 for a
+-- 'BlockScope' (link, meta, @csEnd@ -- it's the only kind needing just
+-- one address-shaped field), 4 for a 'LoopScope' or 'CallScope' (both
+-- need two -- @csStart@\/@csEnd@, or @csSavedFrameBase@\/@csReturnPc@).
+-- Variable instead of one size fits all: chain-walking (@readControlAt@)
+-- and closing a record (@spliceOut@'s width argument) both need to know
+-- a record's actual footprint, so this has to agree exactly with
+-- 'serializeControlRecord's own output length for the same kind.
+controlRecordWidth :: ControlTag -> Int
+controlRecordWidth BlockTag = 3
+controlRecordWidth _ = 4
 
-controlLinkOffset
-    , controlTagOffset
-    , controlField1Offset
-    , controlField2Offset
-    , controlField3Offset
-    , controlField4Offset ::
-        Int
-controlLinkOffset = 0
-controlTagOffset = 1
-controlField1Offset = 2
-controlField2Offset = 3
-controlField3Offset = 4
-controlField4Offset = 5
+tagOfKind :: ControlKind -> ControlTag
+tagOfKind LoopScope{} = LoopTag
+tagOfKind BlockScope{} = BlockTag
+tagOfKind CallScope{} = CallTag
+
+-- | The three fields packed into a control record's second word (its
+-- "meta" word): which kind it is, plus the two small counts only a
+-- 'CallScope' actually uses (0 for the structured scopes). 2 bits for
+-- 'cmTag' (3 possible values), 8 each for the counts -- generous for
+-- any realistic paramCount\/resultCount\/localCount, all three literal
+-- operands a human wrote in source and nowhere near 255 -- fitting all
+-- three in the bottom 18 bits of one word instead of three of their
+-- own. The record's address-shaped fields ('CallScope''s own
+-- @csSavedFrameBase@\/@csReturnPc@, a structured scope's @csStart@\/
+-- @csEnd@) keep a full word each instead: an address can legitimately
+-- be anywhere in the configured memory, and the distance between two
+-- records (a record's own @link@) has no similarly small natural bound
+-- to shrink it to.
+data ControlMeta = ControlMeta
+    { cmTag :: ControlTag
+    , cmCount1 :: Int
+    , cmCount2 :: Int
+    }
+    deriving (Eq, Show)
+
+tagBitWidth, countBitWidth :: Int
+tagBitWidth = 2
+countBitWidth = 8
+
+packMeta :: ControlMeta -> Int
+packMeta ControlMeta{cmTag, cmCount1, cmCount2} =
+    fromEnum cmTag
+        .|. (cmCount1 `shiftL` tagBitWidth)
+        .|. (cmCount2 `shiftL` (tagBitWidth + countBitWidth))
+
+unpackMeta :: Int -> ControlMeta
+unpackMeta meta =
+    ControlMeta
+        (toEnum (meta .&. bitMask tagBitWidth))
+        ((meta `shiftR` tagBitWidth) .&. bitMask countBitWidth)
+        ((meta `shiftR` (tagBitWidth + countBitWidth)) .&. bitMask countBitWidth)
+    where
+        bitMask n = (1 `shiftL` n) - 1
+
+-- | Serialize a control record -- @link@ plus the 'ControlKind' being
+-- pushed -- to exactly 'controlRecordWidth'-many words for that kind's
+-- own tag, in the order 'pushControl'\/'readControlAt' write\/read
+-- them: link, packed meta, then one or two address-shaped fields.
+serializeControlRecord :: forall w. (MachineWord w) => Int -> ControlKind -> [w]
+serializeControlRecord link kind =
+    toEnum link : toEnum (packMeta meta) : map toEnum addrWords
+    where
+        (meta, addrWords) = case kind of
+            LoopScope{csStart, csEnd} -> (ControlMeta LoopTag 0 0, [csStart, csEnd])
+            BlockScope{csEnd} -> (ControlMeta BlockTag 0 0, [csEnd])
+            CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} ->
+                (ControlMeta CallTag csSavedLocalCount csResultCount, [csSavedFrameBase, csReturnPc])
+
+-- | The inverse of 'serializeControlRecord'. The caller reads exactly
+-- 'controlRecordWidth'-many words for the tag found in the second one
+-- (see 'readControlAt') before calling this, so a list whose length
+-- doesn't match its own decoded tag means something upstream is already
+-- broken.
+deserializeControlRecord :: forall w. (MachineWord w) => [w] -> (ControlKind, Int)
+deserializeControlRecord (link : metaWord : addrWords) =
+    (,fromEnum link) $ case (cmTag, addrWords) of
+        (BlockTag, [end]) -> BlockScope{csEnd = fromEnum end}
+        (LoopTag, [start, end]) -> LoopScope{csStart = fromEnum start, csEnd = fromEnum end}
+        (CallTag, [savedFrameBase, returnPc]) ->
+            CallScope
+                { csSavedFrameBase = fromEnum savedFrameBase
+                , csSavedLocalCount = cmCount1
+                , csReturnPc = fromEnum returnPc
+                , csResultCount = cmCount2
+                }
+        _ -> error $ "deserializeControlRecord: " <> show (length addrWords) <> " address words doesn't match tag " <> show cmTag
+    where
+        ControlMeta{cmTag, cmCount1, cmCount2} = unpackMeta (fromEnum metaWord)
+deserializeControlRecord ws =
+    error $ "deserializeControlRecord: expected at least link+meta, got " <> show (length ws) <> " words"
 
 -- | Sentinel for "no enclosing control record" ('ctrlTop', or a record's
 -- own `link`), and for "no active function frame" when 'findCall' walks
@@ -525,36 +596,23 @@ pushControl :: forall w. (MachineWord w) => ControlKind -> State (MachineState (
 pushControl scope = do
     State{sp, ctrlTop} <- get
     let step = byteSizeT @w
-        (tag, f1, f2, f3, f4) = case scope of
-            LoopScope{csStart, csEnd} -> (LoopTag, csStart, csEnd, 0, 0)
-            BlockScope{csEnd} -> (BlockTag, 0, csEnd, 0, 0)
-            CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} ->
-                (CallTag, csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount)
-    setWord (sp + controlLinkOffset * step) (toEnum ctrlTop)
-    setWord (sp + controlTagOffset * step) (toEnum (fromEnum tag))
-    setWord (sp + controlField1Offset * step) (toEnum f1)
-    setWord (sp + controlField2Offset * step) (toEnum f2)
-    setWord (sp + controlField3Offset * step) (toEnum f3)
-    setWord (sp + controlField4Offset * step) (toEnum f4)
-    modify $ \st -> st{ctrlTop = sp, sp = sp + controlEntryWidth * step}
+        ws = serializeControlRecord @w ctrlTop scope
+    forM_ (zip [0 ..] ws) $ \(i, word) -> setWord (sp + i * step) word
+    modify $ \st -> st{ctrlTop = sp, sp = sp + length ws * step}
 
 -- | Read the control record based at @addr@ (not necessarily 'ctrlTop'
 -- itself -- 'branchTo'\/'unwindTo'\/'findCall' walk the chain via `link`
 -- without disturbing anything), returning its payload and its `link`.
+-- Two-phase, since a record's own width (how many more words to read)
+-- depends on the tag inside its second word -- see 'controlRecordWidth'.
 readControlAt :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) (ControlKind, Int)
 readControlAt addr = do
     let step = byteSizeT @w
-    link <- fromEnum <$> getWord (addr + controlLinkOffset * step)
-    tag <- toEnum . fromEnum <$> getWord (addr + controlTagOffset * step)
-    f1 <- fromEnum <$> getWord (addr + controlField1Offset * step)
-    f2 <- fromEnum <$> getWord (addr + controlField2Offset * step)
-    f3 <- fromEnum <$> getWord (addr + controlField3Offset * step)
-    f4 <- fromEnum <$> getWord (addr + controlField4Offset * step)
-    let scope = case (tag :: ControlTag) of
-            LoopTag -> LoopScope{csStart = f1, csEnd = f2}
-            BlockTag -> BlockScope{csEnd = f2}
-            CallTag -> CallScope{csSavedFrameBase = f1, csSavedLocalCount = f2, csReturnPc = f3, csResultCount = f4}
-    return (scope, link)
+    link <- getWord addr
+    metaWord <- getWord (addr + step)
+    let width = controlRecordWidth (cmTag (unpackMeta (fromEnum metaWord)))
+    addrWords <- mapM (\i -> getWord (addr + i * step)) [2 .. width - 1]
+    return $ deserializeControlRecord @w (link : metaWord : addrWords)
 
 -- | One active call's own slice of the shared stack, as address ranges
 -- only -- no memory reads here, so this stays usable from a pure
@@ -613,7 +671,7 @@ walkFrames st@State{sp, ctrlTop, frameBase, localCount, pc} = go frameBase local
             | addr == nullAddr = ([], Nothing)
             | otherwise =
                 let (scope, link) = evalState (readControlAt @w addr) st
-                    span_ = (addr, addr + controlEntryWidth * step, scope)
+                    span_ = (addr, addr + controlRecordWidth (tagOfKind scope) * step, scope)
                  in case scope of
                         CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc} ->
                             ([span_], Just (csSavedFrameBase, csSavedLocalCount, csReturnPc, link))
@@ -722,7 +780,7 @@ collapseControl r keepOpen = do
             setPc csReturnPc
         _ -> do
             State{sp} <- get
-            spliceOut r controlEntryWidth sp
+            spliceOut r (controlRecordWidth (tagOfKind scope)) sp
             modify $ \st -> st{ctrlTop = link}
             setPc (csEnd scope + byteSize End)
 
@@ -821,9 +879,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             -- mentions (its own mem[a..b] range, a frame's pc, a control
             -- record's return\/start\/end\/savedFrameBase) rather than
             -- leaving addresses permanently decimal regardless of which
-            -- format was asked for.
+            -- format was asked for. Addresses get only as many hex
+            -- digits as this run's own configured memory could ever
+            -- need (see 'hexAddrWidth') -- 'word32ToHex's full 8 digits
+            -- stays for word *values*, which are arbitrary 32-bit data
+            -- regardless of how small the memory is.
             formatLayout "dec" = renderLayout show show
-            formatLayout "hex" = renderLayout (toText . word32ToHex) (toText . word32ToHex)
+            formatLayout "hex" = renderLayout (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
             formatLayout f = unknownFormat f
 
             -- \| One line per contiguous span of a frame's own visible
@@ -855,8 +917,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                         | lo >= hi = []
                         | otherwise = indexedSpan lo hi "(stack)"
                     controlSpan lo hi kind =
-                        let (tag, fields) = describeControl showAddr kind
-                         in span_ lo hi tag : map ("      " <>) fields
+                        let (tag, literal) = describeControl showAddr kind
+                         in [span_ lo hi tag, "      " <> literal]
                     -- \| This span's address range, on one line, followed
                     -- by one indented "index: value" line per word --
                     -- for a frame's locals or its plain operand values,
@@ -881,25 +943,46 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                             <> " \t@"
                             <> tag
 
-            -- \| A control record's kind (its own report-view tag) and its
-            -- fields, one per line, rather than crammed onto the same
-            -- line as the record's raw words -- addresses (@return@,
-            -- @start@, @end@, @savedFrameBase@) follow the requested
-            -- format; plain counts (@results@, @savedLocalCount@) always
-            -- stay decimal, since hex doesn't make a count more readable.
-            describeControl :: (Int -> Text) -> ControlKind -> (Text, [Text])
+            -- \| A control record's kind (its own report-view tag) and a
+            -- Haskell-record-literal rendering of its fields -- close to
+            -- how 'ControlKind' itself reads in source, rather than a
+            -- bespoke key=value format -- with addresses (@csStart@,
+            -- @csEnd@, @csReturnPc@, @csSavedFrameBase@) following the
+            -- requested format and plain counts (@csResultCount@,
+            -- @csSavedLocalCount@) always decimal, since hex doesn't
+            -- make a count more readable.
+            describeControl :: (Int -> Text) -> ControlKind -> (Text, Text)
             describeControl showAddr LoopScope{csStart, csEnd} =
-                ("loop", ["start=" <> showAddr csStart, "end=" <> showAddr csEnd])
-            describeControl showAddr BlockScope{csEnd} = ("block", ["end=" <> showAddr csEnd])
+                ("loop", "LoopScope { csStart = " <> showAddr csStart <> ", csEnd = " <> showAddr csEnd <> " }")
+            describeControl showAddr BlockScope{csEnd} =
+                ("block", "BlockScope { csEnd = " <> showAddr csEnd <> " }")
             describeControl showAddr CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} =
                 ( "call"
-                ,
-                    [ "return=" <> showAddr csReturnPc
-                    , "results=" <> show csResultCount
-                    , "savedFrameBase=" <> showAddr csSavedFrameBase
-                    , "savedLocalCount=" <> show csSavedLocalCount
-                    ]
+                , "CallScope { csSavedFrameBase = "
+                    <> showAddr csSavedFrameBase
+                    <> ", csSavedLocalCount = "
+                    <> show csSavedLocalCount
+                    <> ", csReturnPc = "
+                    <> showAddr csReturnPc
+                    <> ", csResultCount = "
+                    <> show csResultCount
+                    <> " }"
                 )
+
+            -- \| Right-pad an address's hex digits to just as many as
+            -- 'capacity' could ever need -- a 512-byte memory only ever
+            -- needs 3 (up to 0x1ff), so a `layout:hex` address dump has
+            -- no reason to carry 'word32ToHex's full 8-digit width, the
+            -- right choice for an arbitrary 32-bit *value* but overkill
+            -- for an address bounded by this run's own configured
+            -- memory size.
+            hexAddrWidth :: Int -> Int
+            hexAddrWidth capacity = max 1 (length (showHex (max 0 (capacity - 1)) ""))
+
+            hexAddr :: Int -> Int -> Text
+            hexAddr width a =
+                let hex = showHex a ""
+                 in "0x" <> toText (replicate (max 0 (width - length hex)) '0') <> toText hex
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch = do
@@ -992,7 +1075,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                         _
                             | csEnd scope == pc -> do
                                 State{sp} <- get
-                                spliceOut ctrlTop controlEntryWidth sp
+                                spliceOut ctrlTop (controlRecordWidth (tagOfKind scope)) sp
                                 modify $ \st -> st{ctrlTop = link}
                             | otherwise -> return ()
                 nextPc instruction
