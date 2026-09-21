@@ -84,6 +84,7 @@ test-examples: build
 	stack exec wrench -- --isa wasm32     example/wasm32/hello.s            -c example/wasm32/hello.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/get-put-char.s     -c example/wasm32/get-put-char-65.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/factorial.s        -c example/wasm32/factorial.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/divmod.s           -c example/wasm32/divmod.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/arithmetic.s       -c example/wasm32/arithmetic.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/bitwise.s          -c example/wasm32/bitwise.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/signed_vs_unsigned.s -c example/wasm32/signed_vs_unsigned.yaml
