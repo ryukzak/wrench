@@ -8,3 +8,8 @@ reports:
       stack: {stack:dec}
     assert: |
       stack: 4:5
+  - name: Stack layout
+    slice: all
+    view: |
+      pc: {pc}
+      {layout:dec}

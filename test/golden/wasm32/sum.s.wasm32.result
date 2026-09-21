@@ -1,25 +1,32 @@
-0:	_start
+0:	counter
+4:	_start
 ---
-mem[0..1]: 	Locals 1 	@_start
-mem[2..6]: 	I32Const 5
-mem[7..8]: 	LocalSet 0
-mem[9..9]: 	Loop
-mem[10..11]: 	LocalGet 0
-mem[12..13]: 	LocalGet 0
-mem[14..18]: 	I32Const 1
-mem[19..19]: 	I32Sub
-mem[20..21]: 	LocalSet 0
-mem[22..23]: 	LocalGet 0
-mem[24..28]: 	I32Const 0
-mem[29..29]: 	I32GtS
-mem[30..31]: 	BrIf 0
-mem[32..32]: 	End
-mem[33..34]: 	LocalGet 0
-mem[35..35]: 	I32Add
-mem[36..36]: 	I32Add
-mem[37..37]: 	I32Add
-mem[38..38]: 	I32Add
-mem[39..39]: 	I32Add
-mem[40..40]: 	Halt
-mem[41..999]: 	( 00 )
+mem[0..3]: 	00 00 00 00	@"counter"
+mem[4..8]: 	I32Const 0 	@_start
+mem[9..13]: 	I32Const 5
+mem[14..14]: 	I32Store
+mem[15..15]: 	Loop
+mem[16..20]: 	I32Const 0
+mem[21..21]: 	I32Load
+mem[22..26]: 	I32Const 0
+mem[27..31]: 	I32Const 0
+mem[32..32]: 	I32Load
+mem[33..37]: 	I32Const 1
+mem[38..38]: 	I32Sub
+mem[39..39]: 	I32Store
+mem[40..44]: 	I32Const 0
+mem[45..45]: 	I32Load
+mem[46..50]: 	I32Const 0
+mem[51..51]: 	I32GtS
+mem[52..53]: 	BrIf 0
+mem[54..54]: 	End
+mem[55..59]: 	I32Const 0
+mem[60..60]: 	I32Load
+mem[61..61]: 	I32Add
+mem[62..62]: 	I32Add
+mem[63..63]: 	I32Add
+mem[64..64]: 	I32Add
+mem[65..65]: 	I32Add
+mem[66..66]: 	Halt
+mem[67..999]: 	( 00 )
 ---

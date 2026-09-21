@@ -1,3 +1,396 @@
 ---
 # Check result
 stack: 4:5
+---
+# Stack layout
+pc: 4
+#0 _start (pc=4)
+pc: 9
+#0 _start (pc=9)
+  mem[128..128]: 0 	@stack
+pc: 14
+#0 _start (pc=14)
+  mem[128..132]: 0 5 	@stack
+pc: 15
+#0 _start (pc=15)
+pc: 16
+#0 _start (pc=16)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+pc: 17
+#0 _start (pc=17)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+pc: 22
+#0 _start (pc=22)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 0 	@stack
+pc: 23
+#0 _start (pc=23)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 28
+#0 _start (pc=28)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 2 	@stack
+pc: 29
+#0 _start (pc=29)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 0 	@stack
+pc: 31
+#0 _start (pc=31)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+pc: 36
+#0 _start (pc=36)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 0 	@stack
+pc: 37
+#0 _start (pc=37)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 42
+#0 _start (pc=42)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 3 	@stack
+pc: 43
+#0 _start (pc=43)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 0 	@stack
+pc: 63
+#0 _start (pc=63)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+pc: 68
+#0 _start (pc=68)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 0 	@stack
+pc: 69
+#0 _start (pc=69)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 74
+#0 _start (pc=74)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 79
+#0 _start (pc=79)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 0 0 	@stack
+pc: 80
+#0 _start (pc=80)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 0 5 	@stack
+pc: 85
+#0 _start (pc=85)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 0 5 1 	@stack
+pc: 86
+#0 _start (pc=86)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 0 4 	@stack
+pc: 87
+#0 _start (pc=87)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 88
+#0 _start (pc=88)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 93
+#0 _start (pc=93)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 94
+#0 _start (pc=94)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 99
+#0 _start (pc=99)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 100
+#0 _start (pc=100)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 1 	@stack
+pc: 17
+#0 _start (pc=17)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 22
+#0 _start (pc=22)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 23
+#0 _start (pc=23)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 28
+#0 _start (pc=28)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 2 	@stack
+pc: 29
+#0 _start (pc=29)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 31
+#0 _start (pc=31)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 36
+#0 _start (pc=36)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 37
+#0 _start (pc=37)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 42
+#0 _start (pc=42)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 3 	@stack
+pc: 43
+#0 _start (pc=43)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 63
+#0 _start (pc=63)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..176]: 5 	@stack
+pc: 68
+#0 _start (pc=68)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 0 	@stack
+pc: 69
+#0 _start (pc=69)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 74
+#0 _start (pc=74)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 79
+#0 _start (pc=79)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 0 	@stack
+pc: 80
+#0 _start (pc=80)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 4 	@stack
+pc: 85
+#0 _start (pc=85)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..192]: 5 4 0 4 1 	@stack
+pc: 86
+#0 _start (pc=86)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 3 	@stack
+pc: 87
+#0 _start (pc=87)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 88
+#0 _start (pc=88)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 93
+#0 _start (pc=93)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 94
+#0 _start (pc=94)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 3 	@stack
+pc: 99
+#0 _start (pc=99)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 3 0 	@stack
+pc: 100
+#0 _start (pc=100)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 1 	@stack
+pc: 17
+#0 _start (pc=17)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 22
+#0 _start (pc=22)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 23
+#0 _start (pc=23)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 3 	@stack
+pc: 28
+#0 _start (pc=28)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 3 2 	@stack
+pc: 29
+#0 _start (pc=29)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 31
+#0 _start (pc=31)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 36
+#0 _start (pc=36)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 37
+#0 _start (pc=37)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 3 	@stack
+pc: 42
+#0 _start (pc=42)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 3 3 	@stack
+pc: 43
+#0 _start (pc=43)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 1 	@stack
+pc: 44
+#0 _start (pc=44)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 49
+#0 _start (pc=49)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 54
+#0 _start (pc=54)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 0 	@stack
+pc: 55
+#0 _start (pc=55)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 3 	@stack
+pc: 60
+#0 _start (pc=60)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..192]: 5 4 0 3 1 	@stack
+pc: 61
+#0 _start (pc=61)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 0 2 	@stack
+pc: 62
+#0 _start (pc=62)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 88
+#0 _start (pc=88)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 93
+#0 _start (pc=93)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 94
+#0 _start (pc=94)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 2 	@stack
+pc: 99
+#0 _start (pc=99)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 2 0 	@stack
+pc: 100
+#0 _start (pc=100)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 1 	@stack
+pc: 17
+#0 _start (pc=17)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..180]: 5 4 	@stack
+pc: 22
+#0 _start (pc=22)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 0 	@stack
+pc: 23
+#0 _start (pc=23)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 2 	@stack
+pc: 28
+#0 _start (pc=28)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..188]: 5 4 2 2 	@stack
+pc: 29
+#0 _start (pc=29)
+  mem[128..148]: -1 1 0 103 0 0 	@block(end=103)
+  mem[152..172]: 128 0 17 102 0 0 	@loop(start=17,end=102)
+  mem[176..184]: 5 4 1 	@stack
+pc: 104
+#0 _start (pc=104)
+  mem[128..132]: 5 4 	@stack
+pc: 104
+#0 _start (pc=104)
+  mem[128..132]: 5 4 	@stack

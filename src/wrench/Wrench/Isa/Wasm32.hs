@@ -8,8 +8,11 @@ control flow, locals, and function calls -- no closures yet -- using the
 same generic translator pipeline as e.g. F32a/Acc32 rather than any
 bespoke lowering. A callee has no self-describing header: `call` states
 its own paramCount\/resultCount as plain literal operands, the same way
-`br`'s depth or `locals`'s count are caller-known literals rather than
-looked up from the target.
+`br`'s depth is a caller-known literal rather than looked up from the
+target. A function's only locals are its parameters -- there's no
+instruction to declare more -- so anything a function needs beyond its
+own params\/return values (a loop counter, say) lives in `.data` instead
+(see 'localAddr's haddock).
 
 There's also no separate direct\/indirect call split: a function address
 is just an ordinary `i32` value (`i32.const some_function` produces one
@@ -30,6 +33,7 @@ import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
 import Data.Text qualified as T
 import Relude
+import Relude.Extra (toPairs)
 import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -115,15 +119,6 @@ data Isa w l
       -- minimal fix: peek the top instead of only ever being able to pop
       -- it.
       Dup
-    | -- | Reserve and zero-fill @n@ *extra* locals right after whatever
-      -- params the active function already has (indices
-      -- @paramCount..paramCount+n-1@), at a fixed offset from 'frameBase'
-      -- -- immune to whatever `sp` does afterward (control records,
-      -- operand churn), unlike a value merely sitting on the stack.
-      -- Optional: a function that needs no extra locals can just omit it.
-      -- Must be the very first instruction in a function body if present
-      -- -- see 'spliceIn's haddock for why.
-      Locals Int
     | -- | Push local @i@'s value.
       LocalGet Int
     | -- | Pop a value into local @i@.
@@ -213,7 +208,6 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , try (Br <$> cmd1 "br" intLit)
                     , try (BrIf <$> cmd1 "br_if" intLit)
                     , cmd0 "dup" Dup
-                    , try (Locals <$> cmd1 "locals" intLit)
                     , try (LocalGet <$> cmd1 "local.get" intLit)
                     , try (LocalSet <$> cmd1 "local.set" intLit)
                     , try (LocalTee <$> cmd1 "local.tee" intLit)
@@ -237,7 +231,7 @@ cmd1 mnemonic arg = string mnemonic >> hspace1 >> arg
 
 -- | A small non-negative integer literal: a branch's target depth (how
 -- many enclosing `block`\/`loop` scopes out to reach, 0 = innermost), a
--- local's index, a `locals` count, or one of `call`'s two trailing counts.
+-- local's index, or one of `call`'s two trailing counts.
 intLit :: Parser Int
 intLit = Unsafe.read <$> num
 
@@ -285,7 +279,6 @@ instance DerefMnemonic (Isa w) w where
         Br d -> Br d
         BrIf d -> BrIf d
         Dup -> Dup
-        Locals n -> Locals n
         LocalGet i -> LocalGet i
         LocalSet i -> LocalSet i
         LocalTee i -> LocalTee i
@@ -297,7 +290,6 @@ instance ByteSize (Isa w l) where
     byteSize I32Const{} = 5
     byteSize Br{} = 2
     byteSize BrIf{} = 2
-    byteSize Locals{} = 2
     byteSize LocalGet{} = 2
     byteSize LocalSet{} = 2
     byteSize LocalTee{} = 2
@@ -331,10 +323,10 @@ data ControlKind
       -- scopes, closing this one doesn't splice a fixed-width gap out of
       -- the stack: 'csResultCount' values get popped, then 'sp' is
       -- truncated straight to the *callee's* live 'frameBase', reclaiming
-      -- the record and every one of the callee's locals in one step
-      -- (correct only because 'pushControl'\/'Locals' always keep this
-      -- record sitting right above every local, never in between -- see
-      -- 'Locals'\/'spliceIn'). @csSavedFrameBase@\/@csSavedLocalCount@ are
+      -- the record and every one of the callee's locals (its params --
+      -- the only kind there are) in one step, correct because
+      -- 'pushControl' always leaves this record sitting right above them,
+      -- never in between. @csSavedFrameBase@\/@csSavedLocalCount@ are
       -- what the *caller* had, restored on return.
       CallScope {csSavedFrameBase :: Int, csSavedLocalCount :: Int, csReturnPc :: Int, csResultCount :: Int}
     deriving (Show)
@@ -402,11 +394,11 @@ data MachineState mem w = State
     -- saved in the callee's own 'CallScope' record, and restored by
     -- `return`.
     , localCount :: Int
-    -- ^ How many words at 'frameBase' are locals (params, plus however
-    -- many extra 'Locals' declared) rather than operand-stack content --
-    -- set to @paramCount@ by `call`, bumped by 'Locals', saved\/restored
-    -- across calls exactly like 'frameBase' -- so report views know where
-    -- the *stack* actually starts for whichever frame is currently active.
+    -- ^ How many words at 'frameBase' are locals (i.e. params -- the
+    -- active function's own paramCount) rather than operand-stack
+    -- content -- set once by `call` and saved\/restored across nested
+    -- calls exactly like 'frameBase' -- so report views know where the
+    -- *stack* actually starts for whichever frame is currently active.
     , mem :: mem
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -493,13 +485,10 @@ popValue = do
     modify $ \st -> st{sp = sp'}
     getWord sp'
 
--- | Address of local @i@: a fixed offset from the *active* function's
--- 'frameBase', unaffected by `sp`\/`ctrlTop` -- the whole point, since a
--- value merely sitting on the stack isn't (see 'Locals'\/the module
--- haddock). Uniform across params and extra locals alike -- no branch on
--- @i@ -- because 'Locals' relocates the frame's own control record above
--- every local it declares (see 'spliceIn'), so nothing ever sits between
--- them.
+-- | Address of local @i@ (one of the active function's params): a fixed
+-- offset from 'frameBase', unaffected by `sp`\/`ctrlTop` -- the whole
+-- point, since a value merely sitting on the stack isn't (see the module
+-- haddock).
 localAddr :: forall w. (MachineWord w) => Int -> State (MachineState (IoMem (Isa w w) w) w) Int
 localAddr i = do
     State{frameBase} <- get
@@ -515,26 +504,6 @@ spliceOut r widthWords top = do
         width = widthWords * step
     forM_ [0, step .. top - r - width - 1] $ \i -> getWord (r + width + i) >>= setWord (r + i)
     modify $ \st -> st{sp = top - width}
-
--- | The mirror of 'spliceOut': insert @n@ zero-filled words at @at@,
--- shifting everything from @at@ up to @top@ (exclusive) up by that many
--- words, and growing `sp` to match. 'Locals' uses this to grow the active
--- frame's locals region while keeping every local contiguous: a `call`
--- always leaves its own 'CallScope' sitting right above the params (the
--- only locals that exist yet), so inserting @n@ new words right at that
--- boundary slides the record up out of the way, making room for the
--- extra locals *underneath* it rather than above -- see 'localAddr's
--- haddock. Safe to call with @at == top@ (nothing above to shift, and no
--- enclosing `call` at all -- the pre-functions, single-frame case):
--- degenerates to a plain reservation, identical to what 'Locals' used to
--- do directly.
-spliceIn :: forall w. (MachineWord w) => Int -> Int -> Int -> State (MachineState (IoMem (Isa w w) w) w) ()
-spliceIn at n top = do
-    let step = byteSizeT @w
-        width = n * step
-    forM_ [top - step, top - 2 * step .. at] $ \i -> getWord i >>= setWord (i + width)
-    forM_ [0, step .. width - step] $ \i -> setWord (at + i) def
-    modify $ \st -> st{sp = top + width}
 
 -- | Push a control record: write it at the current 'sp' (right on top of
 -- whatever operand values are already there), link it to the previously
@@ -573,6 +542,71 @@ readControlAt addr = do
             BlockTag -> BlockScope{csEnd = f2}
             CallTag -> CallScope{csSavedFrameBase = f1, csSavedLocalCount = f2, csReturnPc = f3, csResultCount = f4}
     return (scope, link)
+
+-- | One active call's own slice of the shared stack, as address ranges
+-- only -- no memory reads here, so this stays usable from a pure
+-- 'reprState' via 'readWord' directly, rather than forcing every caller
+-- through the control-record 'State' machinery just to print a value.
+data FrameLayout = FrameLayout
+    { flPc :: Int
+    -- ^ Where this frame is: the live 'pc' for the innermost\/current
+    -- frame, or the paused return address (a shallower 'CallScope's own
+    -- 'csReturnPc') for every frame below it.
+    , flFrameBase :: Int
+    , flLocalCount :: Int
+    , flScanUpper :: Int
+    -- ^ Exclusive upper bound of this frame's own visible region --
+    -- 'sp' for the innermost frame, or the next (deeper) frame's own
+    -- 'flFrameBase' otherwise, since everything at or above that address
+    -- belongs to the call this frame made, not to this frame itself.
+    , flControls :: [(Int, Int, ControlKind)]
+    -- ^ This frame's own open records -- any 'block'\/'loop' it has
+    -- open, plus (last) the 'CallScope' that entered it, if any --
+    -- address-ascending, each as @(start, end)@ plus the decoded record.
+    }
+
+-- | Split the one shared stack (see 'sp'\/'ctrlTop'\/'frameBase'\/
+-- 'localCount's own haddocks for why there's only one) into per-call
+-- frames, innermost\/live one first. A frame's own control chain can't
+-- be told apart from its neighbours' by address arithmetic alone --
+-- 'link' is the only thing connecting them -- so this walks it exactly
+-- like 'findCall'\/'branchTo' do, just without ever unwinding anything.
+walkFrames :: forall w. (MachineWord w) => MachineState (IoMem (Isa w w) w) w -> [FrameLayout]
+walkFrames st@State{sp, ctrlTop, frameBase, localCount, pc} = go frameBase localCount pc sp ctrlTop
+    where
+        step = byteSizeT @w
+
+        go fb lc p scanUpper addr =
+            let (controls, next) = collectControls addr
+                frame =
+                    FrameLayout
+                        { flPc = p
+                        , flFrameBase = fb
+                        , flLocalCount = lc
+                        , flScanUpper = scanUpper
+                        , flControls = sortOn (\(s, _, _) -> s) controls
+                        }
+             in frame : case next of
+                    Nothing -> []
+                    Just (fb', lc', p', link) -> go fb' lc' p' fb link
+
+        -- \| Walk from @addr@, collecting every open `block`\/`loop` as
+        -- this frame's own, stopping at (and including) the first
+        -- 'CallScope' -- the record that entered this very frame, whose
+        -- fields are exactly what the next, shallower frame needs.
+        -- 'Nothing' only once the chain truly ends: the outermost frame,
+        -- which was never itself entered by a `call`.
+        collectControls addr
+            | addr == nullAddr = ([], Nothing)
+            | otherwise =
+                let (scope, link) = evalState (readControlAt @w addr) st
+                    span_ = (addr, addr + controlEntryWidth * step, scope)
+                 in case scope of
+                        CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc} ->
+                            ([span_], Just (csSavedFrameBase, csSavedLocalCount, csReturnPc, link))
+                        _ ->
+                            let (rest, result) = collectControls link
+                             in (span_ : rest, result)
 
 -- | Find the `if` at @start@'s branch targets by scanning forward,
 -- tracking nested `if`\/`loop`\/`block` scopes so a nested `else`\/`end`
@@ -724,6 +758,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
         case T.splitOn ":" v of
             ["stack", f] -> formatValues f values
             ["locals", f] -> formatValues f localValues
+            ["layout", f] -> formatLayout f
             [r] -> reprState labels st (r <> ":dec")
             [r, _] -> unknownView r
             _ -> errorView v
@@ -734,7 +769,8 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             -- for report-view purposes, which, same as before functions
             -- existed, includes this frame's own control records (and any
             -- calls it in turn made) as raw words, not just plain operand
-            -- values -- this view has never distinguished the two.
+            -- values -- this view has never distinguished the two (see
+            -- "layout" below for a view that does).
             frameStackBase = frameBase + localCount * step
             -- Top first, matching the old list's head-is-top convention.
             values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. frameStackBase]
@@ -748,6 +784,81 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             formatValues f _ = unknownFormat f
 
             eitherToMaybe = either (const Nothing) Just
+
+            wordAt showWord a = maybe "?" (showWord . snd) (eitherToMaybe (readWord mem a))
+
+            offset2label :: HashMap Int Text
+            offset2label = fromList $ map (\(l, a) -> (fromEnum a, l)) $ toPairs labels
+
+            -- \| The innermost label at or before @addr@ -- "which
+            -- function" a frame paused (or currently sitting) at @addr@
+            -- is in, on the assumption that every function starts right
+            -- at its own label and nothing straddles two functions'
+            -- worth of code.
+            funcNameAt addr =
+                fromMaybe "?"
+                    $ viaNonEmpty last
+                    $ map snd
+                    $ sortOn fst
+                    $ filter ((<= addr) . fst)
+                    $ toPairs offset2label
+
+            formatLayout "dec" = renderLayout show
+            formatLayout "hex" = renderLayout (toText . word32ToHex)
+            formatLayout f = unknownFormat f
+
+            -- \| One line per contiguous span of a frame's own visible
+            -- range, address-ascending across every frame from the
+            -- outermost down to the innermost\/live one -- a plain memory
+            -- dump (same shape as the static one 'prettyDump' produces
+            -- for `.text`\/`.data`), annotated with what each span
+            -- actually is: a frame's locals, one of its own open control
+            -- records (decoded, not raw words), or a run of genuine
+            -- operand values.
+            renderLayout :: (w -> Text) -> Text
+            renderLayout showWord =
+                T.intercalate "\n"
+                    $ concatMap (renderFrame showWord)
+                    $ zip [0 :: Int ..] (reverse (walkFrames st))
+
+            renderFrame showWord (i, FrameLayout{flPc, flFrameBase, flLocalCount, flScanUpper, flControls}) =
+                header : localsLines <> segmentLines
+                where
+                    header = "#" <> show i <> " " <> funcNameAt flPc <> " (pc=" <> show flPc <> ")"
+                    opStart = flFrameBase + flLocalCount * step
+                    localsLines
+                        | flLocalCount == 0 = []
+                        | otherwise = [span_ flFrameBase opStart "locals"]
+                    segmentLines = go opStart flControls
+                    go lo [] = valueSpan lo flScanUpper
+                    go lo ((s, e, kind) : rest) = valueSpan lo s <> [span_ s e (describeControl kind)] <> go e rest
+                    valueSpan lo hi
+                        | lo >= hi = []
+                        | otherwise = [span_ lo hi "stack"]
+                    span_ lo hi tag =
+                        "  mem["
+                            <> show lo
+                            <> ".."
+                            <> show (hi - step)
+                            <> "]: "
+                            <> T.intercalate " " (map (wordAt showWord) [lo, lo + step .. hi - step])
+                            <> " \t@"
+                            <> tag
+
+            describeControl :: ControlKind -> Text
+            describeControl LoopScope{csStart, csEnd} =
+                "loop(start=" <> show csStart <> ",end=" <> show csEnd <> ")"
+            describeControl BlockScope{csEnd} = "block(end=" <> show csEnd <> ")"
+            describeControl CallScope{csSavedFrameBase, csSavedLocalCount, csReturnPc, csResultCount} =
+                "call(return="
+                    <> show csReturnPc
+                    <> ",results="
+                    <> show csResultCount
+                    <> ",savedFrameBase="
+                    <> show csSavedFrameBase
+                    <> ",savedLocalCount="
+                    <> show csSavedLocalCount
+                    <> ")"
 
 instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
     instructionFetch = do
@@ -868,19 +979,6 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 top <- popValue
                 pushValue top
                 pushValue top
-                nextPc instruction
-            Locals n -> do
-                State{frameBase, localCount, sp, ctrlTop} <- get
-                spliceIn (frameBase + localCount * byteSizeT @w) n sp
-                -- 'spliceIn' physically relocated whatever sat above the
-                -- inserted words -- if that's this frame's own 'CallScope'
-                -- (see 'localAddr's haddock: it's guaranteed to be, if
-                -- anything, since 'Locals' must run before any nested
-                -- `block`\/`loop`\/`call` could push above it), 'ctrlTop'
-                -- must move with it or it'll point at stale, now
-                -- zero-filled bytes.
-                let ctrlTop' = if ctrlTop == nullAddr then nullAddr else ctrlTop + n * byteSizeT @w
-                modify $ \st -> st{localCount = localCount + n, ctrlTop = ctrlTop'}
                 nextPc instruction
             LocalGet i -> do
                 addr <- localAddr i

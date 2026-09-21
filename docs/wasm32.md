@@ -56,9 +56,9 @@ Memory is split in half: the lower half holds code and `.data`; the upper half i
 
 ### Locals
 
-A function's locals -- both its parameters and any extra locals it declares -- occupy a contiguous run of words starting at `frameBase`, one per index, addressed directly (`frameBase + index * 4`). `frameBase` is not fixed; it moves to wherever the current function's locals happen to start, and is saved and restored across calls (see Functions, below).
+A function's locals are exactly its parameters -- there is no instruction to declare more. They occupy a contiguous run of words starting at `frameBase`, one per index, addressed directly (`frameBase + index * 4`): whatever values the caller pushed just before `call` are, from the callee's perspective, its locals `0` through `paramCount - 1`. `frameBase` is not fixed; it moves to wherever the current function's locals happen to start, and is saved and restored across calls (see Functions, below).
 
-Parameters become locals automatically: whatever values the caller pushed just before `call` are, from the callee's perspective, its locals `0` through `paramCount - 1`, addressed exactly the same way any other local is. A function that needs more locals than it has parameters declares them with `locals n`, which reserves and zero-fills `n` more words right after the existing ones -- so a function with two parameters and one extra local reaches the extra one as local index `2`. `locals` must be the first instruction in a function body if present, because it is the one instruction that changes where things after it in the frame live; running it later would relocate locals a preceding instruction had already addressed.
+A function that needs a scratch word beyond its own parameters -- a loop counter, say -- reaches for a `.data` cell instead: its address is fixed and global, so it survives a `block`/`loop`/call boundary exactly the way a local would (see "Why a value has to live in a local..." below), without needing a parameter to carry it in. `_start` in particular is never called, so it has no parameters at all -- every one of its example programs that needs to keep a value alive across a loop uses `.data` for it.
 
 `local.get i` pushes local `i`'s value onto the operand stack; `local.set i` pops the top of the stack into local `i`; `local.tee i` does the same as `local.set` but pushes the value back afterward, leaving the stack depth unchanged.
 
@@ -92,11 +92,11 @@ Reaching a `loop` by depth jumps back to just after the `loop` instruction and l
 
 `if` pops a condition and, if it is non-zero, falls straight into the body that follows. If the condition is zero, it skips to the matching `else` (if there is one) or past the matching `end` (if there isn't). `else` marks the alternative body, reached only by the taken `if`-body falling through to it -- at which point it unconditionally skips past the matching `end`, so the `else`-body never runs after the `if`-body already did.
 
-### Why a value has to live in a local, not just on the stack, across a loop
+### Why a value has to live in a local (or `.data`), not just on the stack, across a loop
 
 `block` and `loop` push a bookkeeping record onto the very same stack values live on, the moment they are entered -- not somewhere separate. That record physically sits between whatever was pushed *before* the scope opened and whatever gets pushed *inside* it. An instruction that needs an operand only ever reaches upward from the current top of the stack; it has no way to reach past a record sitting in the way to a value that was pushed earlier.
 
-Concretely: `i32.const 1`, then `loop`, then (inside the loop body) `i32.const 2`, `i32.add` -- the `i32.add` needs two operands, but only one value (`2`) has been pushed since the loop's record went on top of the `1`. It ends up reading part of the record's own bookkeeping words as if they were the second operand, silently producing garbage. The fix is to keep the value that needs to survive the scope boundary in a local instead, reading and writing it explicitly with `local.get`/`local.set` on each iteration, rather than leaving it sitting on the raw stack underneath the loop's record.
+Concretely: `i32.const 1`, then `loop`, then (inside the loop body) `i32.const 2`, `i32.add` -- the `i32.add` needs two operands, but only one value (`2`) has been pushed since the loop's record went on top of the `1`. It ends up reading part of the record's own bookkeeping words as if they were the second operand, silently producing garbage. The fix is to keep the value that needs to survive the scope boundary somewhere with a fixed address instead -- a local if the function has a spare parameter, a `.data` cell otherwise -- reading and writing it explicitly on each iteration, rather than leaving it sitting on the raw stack underneath the loop's record.
 
 This is not a problem for a value pushed *inside* a scope and consumed later in the same or a nested scope -- `dup`, or any value produced during one iteration and consumed before the scope closes, works exactly as expected, because everything involved sits above the same record the whole time. The problem is specifically about reaching *underneath* a scope's own record to something that predates it.
 
@@ -122,6 +122,7 @@ At the moment `call` executes, the values immediately below the popped target --
 
 - `stack:dec`, `stack:hex` -- every word from the top of the stack down to the end of the active function's locals, most recent first. Includes any open control records' own words as raw data, exactly as they sit in memory -- this view has never distinguished "a value a program pushed" from "a word a record happens to occupy."
 - `locals:dec`, `locals:hex` -- the active function's locals, in index order.
+- `layout:dec`, `layout:hex` -- an annotated dump of the whole live stack, address-ascending, from the outermost active call down to the innermost/live one. Each frame gets a `#N <function> (pc=<pc>)` header (the function name is the nearest label at or before that frame's own pc), followed by one line per contiguous span of its own visible range: its locals (`@locals`), each of its own open control records decoded (`@loop(start=..,end=..)`, `@block(end=..)`, `@call(return=..,results=..,savedFrameBase=..,savedLocalCount=..)`), and its genuine operand values (`@stack`) -- the same information `stack`/`locals` give, but with the control-record noise labeled instead of left to look like data.
 
 ## Instructions
 
@@ -295,11 +296,6 @@ There is no base-plus-offset addressing mode; a program that wants one computes 
     - **Operation:** `value <- stack.pop(); addr <- stack.pop(); mem8[addr] <- value & 0xFF`
 
 ### Local Instructions
-
-- **Locals**
-    - **Syntax:** `locals <n>`
-    - **Description:** Reserve and zero-fill `n` extra locals, right after any parameters. Must be the first instruction of a function body if present -- see "Locals" above for why.
-    - **Operation:** `locals[paramCount .. paramCount + n - 1] <- 0`
 
 - **Local Get**
     - **Syntax:** `local.get <i>`

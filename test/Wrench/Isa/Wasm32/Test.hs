@@ -84,12 +84,6 @@ tests =
         , testCase "Recursive call/return computes factorial(5)" $ do
             stack <- runSourceToStack factorialSrc
             stack @?= "120"
-        , testCase "Locals immediately followed by a nested call keep frameBase/ctrlTop in sync" $ do
-            -- Regression: Locals must move ctrlTop along with the record
-            -- it relocates (see spliceIn's haddock) -- this combination
-            -- crashed with a garbage control-record tag before that fix.
-            stack <- runSourceToStack combineSrc
-            stack @?= "21"
         , testCase "Indirect call through a parameter dispatches to the right target" $ do
             stack <- runSourceToStack applyTwiceSrc
             stack @?= "12"
@@ -163,9 +157,6 @@ runSource src = do
 
 factorialSrc :: String
 factorialSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/factorial.s")
-
-combineSrc :: String
-combineSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/combine.s")
 
 applyTwiceSrc :: String
 applyTwiceSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/apply_twice.s")
