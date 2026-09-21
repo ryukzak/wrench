@@ -1,5 +1,8 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Wrench.Isa.Wasm32.Test (tests) where
 
+import Data.FileEmbed (embedStringFile)
 import Data.HashMap.Strict qualified as HashMap
 import Prelude qualified
 import Relude
@@ -159,78 +162,10 @@ runSource src = do
                     | otherwise -> Left err
 
 factorialSrc :: String
-factorialSrc =
-    Prelude.unlines
-        [ ".text"
-        , "factorial:"
-        , "    local.get 0"
-        , "    i32.const 1"
-        , "    i32.le_s"
-        , "    if"
-        , "        i32.const 1"
-        , "        return"
-        , "    end"
-        , "    local.get 0"
-        , "    local.get 0"
-        , "    i32.const 1"
-        , "    i32.sub"
-        , "    i32.const factorial"
-        , "    call 1, 1"
-        , "    i32.mul"
-        , "    return"
-        , "_start:"
-        , "    i32.const 5"
-        , "    i32.const factorial"
-        , "    call 1, 1"
-        , "    halt"
-        ]
+factorialSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/factorial.s")
 
 combineSrc :: String
-combineSrc =
-    Prelude.unlines
-        [ ".text"
-        , "combine:"
-        , "    locals 1"
-        , "    local.get 0"
-        , "    i32.const double"
-        , "    call 1, 1"
-        , "    local.set 1"
-        , "    local.get 1"
-        , "    local.get 0"
-        , "    i32.add"
-        , "    return"
-        , "double:"
-        , "    local.get 0"
-        , "    i32.const 2"
-        , "    i32.mul"
-        , "    return"
-        , "_start:"
-        , "    i32.const 7"
-        , "    i32.const combine"
-        , "    call 1, 1"
-        , "    halt"
-        ]
+combineSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/combine.s")
 
 applyTwiceSrc :: String
-applyTwiceSrc =
-    Prelude.unlines
-        [ ".text"
-        , "apply_twice:"
-        , "    local.get 1"
-        , "    local.get 0"
-        , "    call 1, 1"
-        , "    local.get 0"
-        , "    call 1, 1"
-        , "    return"
-        , "double:"
-        , "    local.get 0"
-        , "    i32.const 2"
-        , "    i32.mul"
-        , "    return"
-        , "_start:"
-        , "    i32.const double"
-        , "    i32.const 3"
-        , "    i32.const apply_twice"
-        , "    call 2, 1"
-        , "    halt"
-        ]
+applyTwiceSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/apply_twice.s")
