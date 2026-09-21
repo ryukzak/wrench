@@ -148,6 +148,17 @@ data Isa w l
       -- way first (a `return` inside a loop must still unwind it). See
       -- 'collapseControl'.
       Return
+    | -- | Pop an address and set both `sp` and `frameBase` to it,
+      -- relocating where the one shared stack begins. Only meaningful
+      -- before anything has been pushed -- typically the very first
+      -- thing `_start` does -- since it discards no state of its own,
+      -- it just moves where new pushes land. Without this, the stack
+      -- always starts at 'memTop' (half the configured memory), which a
+      -- program with enough `.data` to spill past that point has no way
+      -- to override; nothing checks that the new address doesn't
+      -- overlap `.text`\/`.data` either, same "trust the source" posture
+      -- as everything else here.
+      SpInit
     | Halt
     deriving (Eq, Show)
 
@@ -220,6 +231,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                             Call params <$> intLit
                         )
                     , cmd0 "return" Return
+                    , cmd0 "sp.init" SpInit
                     , cmd0 "halt" Halt
                     ]
 
@@ -284,6 +296,7 @@ instance DerefMnemonic (Isa w) w where
         LocalTee i -> LocalTee i
         Call p r -> Call p r
         Return -> Return
+        SpInit -> SpInit
         Halt -> Halt
 
 instance ByteSize (Isa w l) where
@@ -1017,6 +1030,10 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 case result of
                     Left err -> raiseInternalError err
                     Right r -> unwindTo r False
+            SpInit -> do
+                addr <- fromEnum <$> popValue
+                modify $ \st -> st{sp = addr, frameBase = addr}
+                nextPc instruction
             Halt -> modify $ \st -> st{stopped = True}
         where
             unary f = popValue >>= pushValue . f

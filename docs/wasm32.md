@@ -363,6 +363,11 @@ There is no base-plus-offset addressing mode; a program that wants one computes 
 
 ### Other
 
+- **Initialize Stack Pointer**
+    - **Syntax:** `sp.init`
+    - **Description:** Pop an address and relocate the stack to start there -- both `sp` and `frameBase` move to it. Only meaningful before anything has been pushed (typically the first thing `_start` does): without it, the stack always starts at half the configured memory, which a program with enough `.data` to spill past that point has no way to override. Nothing checks that the new address avoids `.text`/`.data`.
+    - **Operation:** `addr <- stack.pop(); sp <- addr; frameBase <- addr`
+
 - **Halt**
     - **Syntax:** `halt`
     - **Description:** Stop execution.
