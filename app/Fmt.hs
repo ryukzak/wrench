@@ -198,7 +198,6 @@ calculateVliwSlotWidths statements =
      in maxWidths
     where
         splitByPipe :: [Text] -> [[Text]]
-        splitByPipe [] = []
         splitByPipe tokens =
             let (slot, rest) = break (== "/") tokens
              in slot : case rest of
@@ -261,7 +260,6 @@ pprint
                  in T.intercalate " / " formattedSlots
 
             splitByPipe :: [Text] -> [[Text]]
-            splitByPipe [] = []
             splitByPipe tokens =
                 let (slot, rest) = break (== "/") tokens
                  in slot : case rest of
