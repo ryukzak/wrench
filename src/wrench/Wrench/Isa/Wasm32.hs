@@ -841,16 +841,30 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     opStart = flFrameBase + flLocalCount * step
                     localsLines
                         | flLocalCount == 0 = []
-                        | otherwise = [span_ flFrameBase opStart "locals"]
+                        | otherwise = indexedSpan flFrameBase opStart "locals"
                     segmentLines = go opStart flControls
                     go lo [] = valueSpan lo flScanUpper
                     go lo ((s, e, kind) : rest) = valueSpan lo s <> controlSpan s e kind <> go e rest
                     valueSpan lo hi
                         | lo >= hi = []
-                        | otherwise = [span_ lo hi "stack"]
+                        | otherwise = indexedSpan lo hi "stack"
                     controlSpan lo hi kind =
                         let (tag, fields) = describeControl kind
                          in span_ lo hi tag : map ("      " <>) fields
+                    -- \| This span's address range, on one line, followed
+                    -- by one indented "index: value" line per word --
+                    -- for a frame's locals or its plain operand values,
+                    -- where every word is its own independent thing
+                    -- worth a line, unlike a control record's fields
+                    -- (see 'controlSpan'\/'describeControl').
+                    indexedSpan lo hi tag =
+                        header_
+                            : zipWith
+                                (\idx a -> "    " <> show (idx :: Int) <> ": " <> wordAt showWord a)
+                                [0 ..]
+                                [lo, lo + step .. hi - step]
+                        where
+                            header_ = "  mem[" <> show lo <> ".." <> show (hi - step) <> "]: " <> tag
                     span_ lo hi tag =
                         "  mem["
                             <> show lo
