@@ -194,17 +194,17 @@ wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit
             , rSuccess = isSuccess
             , rDump = dumpCells dump
             }
+    where
+        randomInts :: (Int, Int) -> Random.StdGen -> [Int]
+        randomInts range gen =
+            let (val, gen') = Random.uniformR range gen
+             in val : randomInts range gen'
 
-randomInts :: (Int, Int) -> Random.StdGen -> [Int]
-randomInts range gen =
-    let (val, gen') = Random.uniformR range gen
-     in val : randomInts range gen'
-
-int2mword :: forall w. (MachineWord w) => Int -> w
-int2mword x
-    | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
-        toEnum x
-    | fromEnum (minBound :: Unsign w) <= x && x <= fromEnum (maxBound :: Unsign w) =
-        toSign $ toEnum x
-    | otherwise =
-        error $ "integer value out of machine word range: " <> show x
+        int2mword :: Int -> w
+        int2mword x
+            | fromEnum (minBound :: w) <= x && x <= fromEnum (maxBound :: w) =
+                toEnum x
+            | fromEnum (minBound :: Unsign w) <= x && x <= fromEnum (maxBound :: Unsign w) =
+                toSign $ toEnum x
+            | otherwise =
+                error $ "integer value out of machine word range: " <> show x
