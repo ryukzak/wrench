@@ -53,6 +53,14 @@ data ReportConf = ReportConf
 instance FromJSON ReportConf where
     parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
+prepareReport ::
+    (Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>
+    TranslatorResult mem (WordOf st)
+    -> Bool
+    -> st
+    -> [Trace st (IsaOf st)]
+    -> ReportConf
+    -> (Bool, Text)
 prepareReport
     trResult@TranslatorResult{}
     verbose
@@ -166,7 +174,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
 --   widened to fit @memory_size@.
 renderMemoryTable ::
     forall m isa w.
-    (MachineWord w, Memory m isa w) =>
+    (IsWord w, Memory m isa w) =>
     DumpStats
     -> m
     -> Text
@@ -248,8 +256,8 @@ splitByAccess accessedAll lo hi =
      in go lo inRange
 
 defaultView ::
-    (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
-    HashMap Text w
+    (ByteSize (IsaOf st), Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>
+    HashMap Text (WordOf st)
     -> st
     -> Text
     -> Maybe Text
@@ -266,7 +274,7 @@ defaultView labels st v =
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
-viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
+viewMemory :: (ByteSize isa, IsWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
 viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 

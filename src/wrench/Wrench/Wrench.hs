@@ -17,11 +17,11 @@ import Relude.Extra
 import System.Random qualified as Random
 import Text.Pretty.Simple
 import Wrench.Config
-import Wrench.Isa.Acc32 (Acc32State)
-import Wrench.Isa.F32a (F32aState)
-import Wrench.Isa.M68k (M68kState)
-import Wrench.Isa.RiscIv (RiscIvState)
-import Wrench.Isa.VliwIv (VliwIvState)
+import Wrench.Isa.Acc32 (Acc32St)
+import Wrench.Isa.F32a (F32aSt)
+import Wrench.Isa.M68k (M68kSt)
+import Wrench.Isa.RiscIv (RiscIvSt)
+import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -77,7 +77,7 @@ data Result mem w = Result
     }
     deriving (Show)
 
-prettyLabels :: (MachineWord w) => HashMap Text w -> Text
+prettyLabels :: (IsWord w) => HashMap Text w -> Text
 prettyLabels rLabels =
     T.intercalate "\n"
         $ map (\(l, w) -> show w <> ":\t" <> l)
@@ -103,11 +103,11 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
     case readMaybe isa of
-        Just RiscIv -> wrenchIO @(RiscIvState Int32) opts conf src
-        Just VliwIv -> wrenchIO @(VliwIvState Int32) opts conf src
-        Just F32a -> wrenchIO @(F32aState Int32) opts conf src
-        Just Acc32 -> wrenchIO @(Acc32State Int32) opts conf src
-        Just M68k -> wrenchIO @(M68kState Int32) opts conf src
+        Just RiscIv -> wrenchIO @(RiscIvSt Int32) opts conf src
+        Just VliwIv -> wrenchIO @(VliwIvSt Int32) opts conf src
+        Just F32a -> wrenchIO @(F32aSt Int32) opts conf src
+        Just Acc32 -> wrenchIO @(Acc32St Int32) opts conf src
+        Just M68k -> wrenchIO @(M68kSt Int32) opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::
@@ -115,12 +115,16 @@ wrenchIO ::
     ( ByteSize isa1
     , ByteSize isa2
     , DerefMnemonic (isa_ w) w
-    , InitState (IoMem isa2 w) st
+    , InitState st
+    , Inspectable st
+    , IsWord w
+    , IsaOf st ~ isa2
     , Machine st isa2 w
-    , MachineWord w
+    , MemOf st ~ IoMem isa2 w
+    , Memory (MemOf st) isa2 w
     , MnemonicParser isa1
     , Show (isa_ w w)
-    , StateInterspector st (IoMem isa2 w) isa2 w
+    , WordOf st ~ w
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
@@ -151,12 +155,16 @@ wrench ::
     ( ByteSize isa1
     , ByteSize isa2
     , DerefMnemonic (isa_ w) w
-    , InitState (IoMem isa2 w) st
+    , InitState st
+    , Inspectable st
+    , IsWord w
+    , IsaOf st ~ isa2
     , Machine st isa2 w
-    , MachineWord w
+    , MemOf st ~ IoMem isa2 w
+    , Memory (MemOf st) isa2 w
     , MnemonicParser isa1
     , Show (isa_ w w)
-    , StateInterspector st (IoMem isa2 w) isa2 w
+    , WordOf st ~ w
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>

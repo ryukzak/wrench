@@ -9,19 +9,19 @@ import Test.Tasty.HUnit
 import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
-import Wrench.Isa.Acc32 (Acc32State)
+import Wrench.Isa.Acc32 (Acc32St)
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.Acc32.Test qualified
-import Wrench.Isa.F32a (F32aState)
+import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.F32a qualified as F32a
 import Wrench.Isa.F32a.Test qualified
-import Wrench.Isa.M68k (M68kState)
+import Wrench.Isa.M68k (M68kSt)
 import Wrench.Isa.M68k qualified as M68k
 import Wrench.Isa.M68k.Test qualified
-import Wrench.Isa.RiscIv (RiscIvState)
+import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
-import Wrench.Isa.VliwIv (VliwIvState)
+import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
 import Wrench.Machine.Memory
@@ -273,11 +273,11 @@ fn2name fn =
         $ takeFileName fn
 
 goldenTranslate :: Isa -> FilePath -> TestTree
-goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.Isa RiscIv fn
-goldenTranslate F32a fn = goldenTranslate' @F32a.Isa F32a fn
-goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Isa Acc32 fn
-goldenTranslate M68k fn = goldenTranslate' @M68k.Isa M68k fn
-goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.Isa VliwIv fn
+goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.RiscIvIsa RiscIv fn
+goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a fn
+goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Acc32Isa Acc32 fn
+goldenTranslate M68k fn = goldenTranslate' @M68k.M68kIsa M68k fn
+goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.VliwIvIsa VliwIv fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -308,11 +308,11 @@ goldenSimulateFail = goldenSimulate' True
 goldenSimulate' :: Bool -> Isa -> FilePath -> FilePath -> TestTree
 goldenSimulate' shouldFail isa =
     case isa of
-        RiscIv -> goldenSimulateInner (wrench @(RiscIvState Int32)) ".risc-iv-32.result" shouldFail
-        F32a -> goldenSimulateInner (wrench @(F32aState Int32)) ".f32a.result" shouldFail
-        Acc32 -> goldenSimulateInner (wrench @(Acc32State Int32)) ".acc32.result" shouldFail
-        M68k -> goldenSimulateInner (wrench @(M68kState Int32)) ".m68k.result" shouldFail
-        VliwIv -> goldenSimulateInner (wrench @(VliwIvState Int32)) ".vliw-iv.result" shouldFail
+        RiscIv -> goldenSimulateInner (wrench @(RiscIvSt Int32)) ".risc-iv-32.result" shouldFail
+        F32a -> goldenSimulateInner (wrench @(F32aSt Int32)) ".f32a.result" shouldFail
+        Acc32 -> goldenSimulateInner (wrench @(Acc32St Int32)) ".acc32.result" shouldFail
+        M68k -> goldenSimulateInner (wrench @(M68kSt Int32)) ".m68k.result" shouldFail
+        VliwIv -> goldenSimulateInner (wrench @(VliwIvSt Int32)) ".vliw-iv.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn

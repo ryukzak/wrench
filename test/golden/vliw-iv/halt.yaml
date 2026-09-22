@@ -18,6 +18,6 @@ reports:
       view: |
           prev: {instruction:prev} next: {instruction:next}
       assert: |
-          prev: - next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
-          prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC} next: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt}
-          prev: Isa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt} next: -
+          prev: - next: VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}
+          prev: VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = NopC} next: VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt}
+          prev: VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 1}, alu2Op = NopA, ctrlOp = Halt} next: -

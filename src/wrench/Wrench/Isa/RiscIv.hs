@@ -5,9 +5,8 @@
 
 -- | Inspired by https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
 module Wrench.Isa.RiscIv (
-    Isa (..),
-    MachineState (..),
-    RiscIvState,
+    RiscIvIsa (..),
+    RiscIvSt (..),
     Register (..),
     MemRef (..),
 ) where
@@ -24,9 +23,10 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types (
     ByteSizeT (..),
     InitState (..),
+    Inspectable (..),
     IoMem (..),
     Machine (..),
-    StateInterspector (..),
+    MemOf,
     fromSign,
     halted,
  )
@@ -113,7 +113,7 @@ instance Hashable Register
 instance (Default w) => Default (HashMap Register w) where
     def = fromList $ map (,def) allRegisters
 
-data Isa w l
+data RiscIvIsa w l
     = -- | Add immediate: rd = rs1 + k
       Addi {rd, rs1 :: Register, k :: l}
     | -- | Add: rd = rs1 + rs2
@@ -234,7 +234,7 @@ register =
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
-memRef :: (MachineWord w) => Parser (MemRef w)
+memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
         regWithOffset = do
@@ -244,12 +244,12 @@ memRef = choice [regWithOffset, register <&> MemRef 0]
             void $ char ')'
             return MemRef{mrOffset, mrReg}
 
-instance CommentStart (Isa _a _b) where
+instance CommentStart (RiscIvIsa _a _b) where
     commentStart = ";"
 
-instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
+instance (IsWord w) => MnemonicParser (RiscIvIsa w (Ref w)) where
     mnemonic =
-        hspace *> cmd <* eol' (commentStart @(Isa _ _))
+        hspace *> cmd <* eol' (commentStart @(RiscIvIsa _ _))
         where
             cmd =
                 choice
@@ -293,7 +293,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                     , string "halt" >> return Halt
                     ]
 
-instance (MachineWord w) => DerefMnemonic (Isa w) w where
+instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
          in case i of
@@ -336,7 +336,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
                 Halt -> Halt
 
-instance ByteSize (Isa w l) where
+instance ByteSize (RiscIvIsa w l) where
     byteSize _ = 4
 
 comma = hspace >> string "," >> hspace
@@ -359,30 +359,28 @@ cmd3args mnemonic constructor a b c =
 
 -- * Machine
 
-type RiscIvState w = MachineState (IoMem (Isa w w) w) w
-
-data MachineState mem w = State
+data RiscIvSt w = RiscIvSt
     { pc :: Int
-    , mem :: mem
+    , mem :: IoMem (RiscIvIsa w w) w
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
     }
     deriving (Show)
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setPc :: forall w. Int -> State (RiscIvSt w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-nextPc :: forall w. (ByteSizeT w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: forall w. (ByteSizeT w) => State (RiscIvSt w) ()
 nextPc = do
-    State{pc} <- get
+    RiscIvSt{pc} <- get
     setPc (pc + byteSizeT @w)
 
-raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError :: Text -> State (RiscIvSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getReg r = do
-    State{regs} <- get
+    RiscIvSt{regs} <- get
     case regs !? r of
         Just value -> return value
         Nothing -> do
@@ -390,10 +388,10 @@ getReg r = do
             return def
 
 setReg Zero _ = return ()
-setReg r value = modify $ \st@State{regs} -> st{regs = insert r value regs}
+setReg r value = modify $ \st@RiscIvSt{regs} -> st{regs = insert r value regs}
 
 getWord addr = do
-    st@State{mem} <- get
+    st@RiscIvSt{mem} <- get
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -403,14 +401,14 @@ getWord addr = do
             return def
 
 setWord addr w = do
-    st@State{mem} <- get
+    st@RiscIvSt{mem} <- get
     case writeWord mem addr w of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 getByte addr = do
-    st@State{mem} <- get
+    st@RiscIvSt{mem} <- get
     case readByte mem addr of
         Right (mem', b) -> do
             put st{mem = mem'}
@@ -420,15 +418,17 @@ getByte addr = do
             return 0
 
 setByte addr byte = do
-    st@State{mem} <- get
+    st@RiscIvSt{mem} <- get
     case writeByte mem addr byte of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
+type instance MemOf (RiscIvSt w) = IoMem (RiscIvIsa w w) w
+
+instance (IsWord w) => InitState (RiscIvSt w) where
     initState pc dump _randomStream =
-        State
+        RiscIvSt
             { pc
             , mem = dump
             , regs = def
@@ -436,14 +436,17 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
-    programCounter State{pc} = pc
-    memoryDump State{mem} = mem
-    ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    isHalted State{stopped} = stopped
+instance (IsWord w) => Inspectable (RiscIvSt w) where
+    type WordOf (RiscIvSt w) = w
+    type IsaOf (RiscIvSt w) = RiscIvIsa w w
+
+    programCounter RiscIvSt{pc} = pc
+    memoryDump RiscIvSt{mem} = mem
+    ioStreams RiscIvSt{mem = IoMem{mIoStreams}} = mIoStreams
+    isHalted RiscIvSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{regs} v =
+    reprState labels st@RiscIvSt{regs} v =
         case T.splitOn ":" v of
             [r] -> reprState labels st (r <> ":dec")
             [r, f]
@@ -452,13 +455,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            State{stopped = True} -> return $ Left halted
-            State{internalError = Just err} -> return $ Left err
-            State{pc, mem} ->
+            RiscIvSt{stopped = True} -> return $ Left halted
+            RiscIvSt{internalError = Just err} -> return $ Left err
+            RiscIvSt{pc, mem} ->
                 case readInstruction mem pc of
                     Left err -> return $ Left err
                     Right (mem', instruction) -> do
@@ -550,62 +553,62 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 setReg rd (fromIntegral (fromIntegral b :: Int8))
                 nextPc
             J{k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 setPc (pc + fromEnum k)
             Jal{rd, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 setReg rd (toEnum pc + 4)
                 setPc (pc + fromEnum k)
             Jr{rs} -> getReg rs >>= setPc . fromEnum
             Beqz{rs1, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 if rs1' == 0
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bnez{rs1, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 if rs1' /= 0
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bgt{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
                 if rs1' > rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Ble{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
                 if rs1' <= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bgtu{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
                 if rs1' > rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bleu{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
                 if rs1' <= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Beq{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
                 if rs1' == rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Bne{rs1, rs2, k} -> do
-                State{pc} <- get
+                RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
                 if rs1' /= rs2'

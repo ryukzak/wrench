@@ -9,7 +9,7 @@ module Wrench.Translator.Types (
     DataToken (..),
     DataValue (..),
     ByteSize (..),
-    MachineWord,
+    IsWord,
     markupOffsets,
     markupSectionOffsets,
     DerefMnemonic (..),
@@ -42,7 +42,7 @@ instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
 
 derefSection ::
     forall isa w.
-    (ByteSize (isa (Ref w)), DerefMnemonic isa w, MachineWord w, Show (isa w)) =>
+    (ByteSize (isa (Ref w)), DerefMnemonic isa w, IsWord w, Show (isa w)) =>
     (Text -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w Text
@@ -81,11 +81,11 @@ derefSection f _offset dt@Data{dataTokens} =
                 dataTokens
         }
 
-markupOffsets :: (ByteSize t, MachineWord w) => w -> [t] -> [(w, t)]
+markupOffsets :: (ByteSize t, IsWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
 markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteSize m)) ms
 
-markupSectionOffsets :: (ByteSize isa, MachineWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
+markupSectionOffsets :: (ByteSize isa, IsWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
 markupSectionOffsets _offset [] = []
 markupSectionOffsets offset (s : ss) =
     let offset' = Prelude.maybe offset toEnum (org s)

@@ -6,7 +6,8 @@ module Wrench.Machine.Types (
     mkIoMem,
     Cell (..),
     InitState (..),
-    StateInterspector (..),
+    Inspectable (..),
+    MemOf,
     Intervals (..),
     emptyIntervals,
     recordRange,
@@ -21,7 +22,7 @@ module Wrench.Machine.Types (
     intervalsDifference,
     AccessLog (..),
     emptyAccessLog,
-    MachineWord,
+    IsWord,
     FromSign (..),
     RegisterId,
     ByteSize (..),
@@ -42,7 +43,7 @@ import Relude.Extra (keys)
 
 -- * State
 
-type MachineWord w =
+type IsWord w =
     ( Bits w
     , FiniteBits w
     , ByteSize w
@@ -127,14 +128,19 @@ class ByteSizeT t where
 instance (ByteSize t, Default t) => ByteSizeT t where
     byteSizeT = byteSize (def :: t)
 
-class InitState mem st | st -> mem where
-    initState :: Int -> mem -> [Int] -> st
+type family MemOf st
 
-class StateInterspector st m isa w | st -> m isa w where
+class InitState st where
+    initState :: Int -> MemOf st -> [Int] -> st
+
+class Inspectable st where
+    type WordOf st
+    type IsaOf st
+
     programCounter :: st -> Int
-    memoryDump :: st -> m
-    ioStreams :: st -> IntMap ([w], [w])
-    reprState :: HashMap Text w -> st -> Text -> Text
+    memoryDump :: st -> MemOf st
+    ioStreams :: st -> IntMap ([WordOf st], [WordOf st])
+    reprState :: HashMap Text (WordOf st) -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
     -- | Per-run summary views, resolved from the simulator's *final* state
@@ -143,7 +149,7 @@ class StateInterspector st m isa w | st -> m isa w where
     --   step, where the per-state value would be off by one. Returns
     --   'Nothing' when the variable isn't a summary view, in which case the
     --   resolver falls through to the per-state 'reprState'.
-    summaryView :: HashMap Text w -> st -> Text -> Maybe Text
+    summaryView :: HashMap Text (WordOf st) -> st -> Text -> Maybe Text
     summaryView _labels _st _var = Nothing
 
     isHalted :: st -> Bool

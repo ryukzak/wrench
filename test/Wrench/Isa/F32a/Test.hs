@@ -17,36 +17,36 @@ tests =
     testGroup
         "ISA"
         [ testCase "Over copies second element to top" $ do
-            let State{dataStack} = simulate "over" st0{dataStack = [10, 20, 30]}
+            let F32aSt{dataStack} = simulate "over" st0{dataStack = [10, 20, 30]}
              in dataStack @?= [20, 10, 20, 30]
         , testCase "Over with two elements" $ do
-            let State{dataStack} = simulate "over" st0{dataStack = [1, 2]}
+            let F32aSt{dataStack} = simulate "over" st0{dataStack = [1, 2]}
              in dataStack @?= [2, 1, 2]
         , testCase "Dup duplicates top" $ do
-            let State{dataStack} = simulate "dup" st0{dataStack = [42, 7]}
+            let F32aSt{dataStack} = simulate "dup" st0{dataStack = [42, 7]}
              in dataStack @?= [42, 42, 7]
         , testCase "Drop removes top" $ do
-            let State{dataStack} = simulate "drop" st0{dataStack = [1, 2, 3]}
+            let F32aSt{dataStack} = simulate "drop" st0{dataStack = [1, 2, 3]}
              in dataStack @?= [2, 3]
         , testCase "Bare decimal literal pushes to stack" $ do
-            let State{dataStack} = simulate "42" st0
+            let F32aSt{dataStack} = simulate "42" st0
              in dataStack @?= [42]
         , testCase "Bare hex literal pushes to stack" $ do
-            let State{dataStack} = simulate "0xFF" st0
+            let F32aSt{dataStack} = simulate "0xFF" st0
              in dataStack @?= [255]
         , testCase "Bare negative literal pushes to stack" $ do
-            let State{dataStack} = simulate "-1" st0
+            let F32aSt{dataStack} = simulate "-1" st0
              in dataStack @?= [-1]
         , testCase "Bare char literal pushes to stack" $ do
-            let State{dataStack} = simulate "'A'" st0
+            let F32aSt{dataStack} = simulate "'A'" st0
              in dataStack @?= [65]
         , testCase "lit keyword still works" $ do
-            let State{dataStack} = simulate "lit 42" st0
+            let F32aSt{dataStack} = simulate "lit 42" st0
              in dataStack @?= [42]
         ]
     where
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
-        st0 :: F32aState Int32
+        st0 :: F32aSt Int32
         st0 =
             initState 256 (mkIoMem (fromList []) memInit) []
 
@@ -58,14 +58,14 @@ translate code =
 
 simulate ::
     ( DerefMnemonic (isa' w) w
-    , Machine (st (IoMem isa w) w) isa w
+    , Machine (F32aSt w) isa w
     , MnemonicParser (isa' w (Ref w))
     , isa ~ isa' w w
     , w ~ Int32
     ) =>
     String
-    -> st (IoMem isa w) w
-    -> st (IoMem isa w) w
+    -> F32aSt w
+    -> F32aSt w
 simulate code st =
     let instr = either (error . show) (derefMnemonic (error "labels not defined") def) (translate code)
      in execState (instructionExecute 0 instr) st

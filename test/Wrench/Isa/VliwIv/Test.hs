@@ -18,13 +18,13 @@ tests =
     testGroup
         "ISA"
         [ testCase "Bundle with single ALU operation: Addi" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "addi a1, a0, 3 / nop / nop / nop"
                         (withRegs [(A0, 5)])
              in (regs !? A1) @?= Just 8
         , testCase "Bundle with two ALU operations: Add and Sub" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "add a2, a0, a1 / sub a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 10), (A1, 3)])
@@ -32,19 +32,19 @@ tests =
                     (regs !? A2) @?= Just 13
                     (regs !? A3) @?= Just 7
         , testCase "Shift operations: Sll" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "sll a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 3), (A1, 2)])
              in (regs !? A2) @?= Just 12 -- 3 << 2 = 12
         , testCase "Srl: unsigned right shift" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "srl a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, -16), (A1, 2)])
              in (regs !? A2) @?= Just 1073741820
         , testCase "Sra: arithmetic right shift" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "sra a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, -16), (A1, 2)])
@@ -56,10 +56,10 @@ tests =
                     m2 <- writeByte m1 21 0x34
                     m3 <- writeByte m2 22 0x56
                     writeByte m3 23 0x78
-                State{regs} = simulate "nop / nop / lw a1, 20(a0) / nop" st1{mem = mem1}
+                VliwIvSt{regs} = simulate "nop / nop / lw a1, 20(a0) / nop" st1{mem = mem1}
              in (regs !? A1) @?= Just 0x78563412
         , testCase "Memory operations: Sw" $ do
-            let State{mem} =
+            let VliwIvSt{mem} =
                     simulate
                         "nop / nop / sw a1, 20(a0) / nop"
                         (withRegs [(A0, 0), (A1, -559038737)]) -- 0xDEADBEEF as Int32
@@ -67,7 +67,7 @@ tests =
                 Right (_, w) -> w @?= -559038737
                 Left err -> assertFailure $ "Memory read failed: " <> toString err
         , testCase "Memory operations: Sb" $ do
-            let State{mem} =
+            let VliwIvSt{mem} =
                     simulate
                         "nop / nop / sb a1, 20(a0) / nop"
                         (withRegs [(A0, 0), (A1, 0x12345678)])
@@ -78,28 +78,28 @@ tests =
             let st1 = withRegs [(A0, 0)]
                 mem1 = either error id $ do
                     writeByte (mem st1) 20 0x41
-                State{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
+                VliwIvSt{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
              in (regs !? A1) @?= Just 0x41
         , testCase "Memory operations: Lb (sign extension for negative byte)" $ do
             let st1 = withRegs [(A0, 0)]
                 mem1 = either error id $ do
                     writeByte (mem st1) 20 0x80
-                State{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
+                VliwIvSt{regs} = simulate "nop / nop / lb a1, 20(a0) / nop" st1{mem = mem1}
              in (regs !? A1) @?= Just (-128)
         , testCase "Memory operations: Lb with offset (sign extension from 0xFF)" $ do
             let st1 = withRegs [(A0, 0)]
                 mem1 = either error id $ do
                     writeByte (mem st1) 25 0xFF
-                State{regs} = simulate "nop / nop / lb a1, 25(a0) / nop" st1{mem = mem1}
+                VliwIvSt{regs} = simulate "nop / nop / lb a1, 25(a0) / nop" st1{mem = mem1}
              in (regs !? A1) @?= Just (-1)
         , testCase "Control flow: J (jump)" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / j 100"
                         st0
              in pc @?= 100
         , testCase "Control flow: Jal (jump and link)" $ do
-            let State{pc, regs} =
+            let VliwIvSt{pc, regs} =
                     simulate
                         "nop / nop / nop / jal ra, 100"
                         st0{pc = 50}
@@ -107,55 +107,55 @@ tests =
                     pc @?= 150
                     (regs !? Ra) @?= Just 64 -- 50 + 14 (bundle size)
         , testCase "Control flow: Jr (jump register)" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / jr a0"
                         (withRegs [(A0, 200)])
              in pc @?= 200
         , testCase "Control flow: Beqz (branch if equal to zero) - taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / beqz a0, 50"
                         (withRegs [(A0, 0)])
              in pc @?= 50
         , testCase "Control flow: Beqz - not taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / beqz a0, 50"
                         (withRegs [(A0, 5)])
              in pc @?= 14 -- Advanced by bundle size
         , testCase "Control flow: Bnez (branch if not equal to zero) - taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / bnez a0, 50"
                         (withRegs [(A0, 5)])
              in pc @?= 50
         , testCase "Control flow: Bgt (branch if greater than) - taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / bgt a0, a1, 50"
                         (withRegs [(A0, 10), (A1, 5)])
              in pc @?= 50
         , testCase "Control flow: Bgt - not taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / bgt a0, a1, 50"
                         (withRegs [(A0, 5), (A1, 10)])
              in pc @?= 14
         , testCase "Control flow: Ble (branch if less than or equal) - taken" $ do
-            let State{pc} =
+            let VliwIvSt{pc} =
                     simulate
                         "nop / nop / nop / ble a0, a1, 50"
                         (withRegs [(A0, 5), (A1, 10)])
              in pc @?= 50
         , testCase "Control flow: Halt" $ do
-            let State{stopped} =
+            let VliwIvSt{stopped} =
                     simulate
                         "nop / nop / nop / halt"
                         st0
              in stopped @?= True
         , testCase "Logical operations: And and Or" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "and a2, a0, a1 / or a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 0xFF00), (A1, 0x0FF0)])
@@ -163,13 +163,13 @@ tests =
                     (regs !? A2) @?= Just 0x0F00
                     (regs !? A3) @?= Just 0xFFF0
         , testCase "Logical operations: Xor" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "xor a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 0xFF00), (A1, 0x0FF0)])
              in (regs !? A2) @?= Just 0xF0F0
         , testCase "Arithmetic operations: Mul and Div" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "mul a2, a0, a1 / div a3, a0, a1 / nop / nop"
                         (withRegs [(A0, 6), (A1, 3)])
@@ -177,19 +177,19 @@ tests =
                     (regs !? A2) @?= Just 18
                     (regs !? A3) @?= Just 2
         , testCase "Arithmetic operations: Rem (remainder)" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "rem a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 17), (A1, 5)])
              in (regs !? A2) @?= Just 2
         , testCase "Mulh: high-order multiplication result" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "mulh a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 0x10000000), (A1, 0x10)])
              in (regs !? A2) @?= Just 1
         , testCase "Slti: set less than immediate" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "slti a1, a0, 10 / slti a2, a0, 3 / nop / nop"
                         (withRegs [(A0, 5)])
@@ -197,13 +197,13 @@ tests =
                     (regs !? A1) @?= Just 1 -- 5 < 10
                     (regs !? A2) @?= Just 0 -- 5 >= 3
         , testCase "Lui: load upper immediate" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "lui a0, 0xABCDE / nop / nop / nop"
                         st0
              in (regs !? A0) @?= Just (-1412571136) -- 0xABCDE000 as Int32
         , testCase "Mv: move register" $ do
-            let State{regs} =
+            let VliwIvSt{regs} =
                     simulate
                         "mv a1, a0 / nop / nop / nop"
                         (withRegs [(A0, 42)])
@@ -217,13 +217,13 @@ tests =
             -- A constant that does not fit its documented slot field is reduced to
             -- the low bits of that field and sign-extended; nothing errors.
             [ testCase "addi: 17-bit signed immediate field" $ do
-                let State{regs} =
+                let VliwIvSt{regs} =
                         simulate
                             "addi a0, zero, 0x1FFFF / nop / nop / nop"
                             st0
                  in (regs !? A0) @?= Just (-1) -- all 17 bits set -> -1
             , testCase "beq: 10-bit signed offset field" $ do
-                let State{pc} =
+                let VliwIvSt{pc} =
                         simulate
                             "nop / nop / nop / beq a0, a1, 0x401"
                             (withRegs [(A0, 0), (A1, 0)])
@@ -235,15 +235,15 @@ tests =
                         m2 <- writeByte m1 21 0x22
                         m3 <- writeByte m2 22 0x33
                         writeByte m3 23 0x44
-                    State{regs} = simulate "nop / nop / lw a1, 0x800(a0) / nop" st1{mem = mem1}
+                    VliwIvSt{regs} = simulate "nop / nop / lw a1, 0x800(a0) / nop" st1{mem = mem1}
                  in (regs !? A1) @?= Just 0x44332211 -- offset 0x800 truncates to 0 -> reads [a0]
             ]
         ]
 
 -- Test helper: Initial state for most tests
-st0 :: VliwIvState Int32
+st0 :: VliwIvSt Int32
 st0 =
-    State
+    VliwIvSt
         { pc = 0
         , mem = mkIoMem def (Mem 1000 def)
         , regs = def
@@ -253,19 +253,19 @@ st0 =
         , vliwLoad = emptyVliwLoad
         }
 
-withRegs :: [(Register, Int32)] -> VliwIvState Int32
+withRegs :: [(Register, Int32)] -> VliwIvSt Int32
 withRegs pairs = st0{regs = fromList pairs}
 
 translate :: String -> Bool
 translate code =
     case parse mnemonic "-" (code <> "\n") of
         Left _ -> False
-        Right (_ :: Isa Int32 (Ref Int32)) -> True
+        Right (_ :: VliwIvIsa Int32 (Ref Int32)) -> True
 
 simulate ::
     String
-    -> VliwIvState Int32
-    -> VliwIvState Int32
+    -> VliwIvSt Int32
+    -> VliwIvSt Int32
 simulate code st =
     let instr =
             either

@@ -5,9 +5,8 @@
 
 -- | Inspired by VLIW architectures and RISC-V
 module Wrench.Isa.VliwIv (
-    Isa (..),
-    MachineState (..),
-    VliwIvState,
+    VliwIvIsa (..),
+    VliwIvSt (..),
     Register (..),
     VliwLoadAcc,
     emptyVliwLoad,
@@ -25,9 +24,10 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types (
     ByteSizeT (..),
     InitState (..),
+    Inspectable (..),
     IoMem (..),
     Machine (..),
-    StateInterspector (..),
+    MemOf,
     fromSign,
     halted,
  )
@@ -163,7 +163,7 @@ data ControlOp w l
 
 -- * ISA Bundle
 
-data Isa w l = Isa
+data VliwIvIsa w l = VliwIvIsa
     { memOp :: MemoryOp w l
     , alu1Op :: AluOp w l
     , alu2Op :: AluOp w l
@@ -195,14 +195,14 @@ isCtrlActive :: ControlOp w l -> Bool
 isCtrlActive NopC = False
 isCtrlActive _ = True
 
-bundleActiveCount :: Isa w l -> Int
-bundleActiveCount Isa{memOp, alu1Op, alu2Op, ctrlOp} =
+bundleActiveCount :: VliwIvIsa w l -> Int
+bundleActiveCount VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} =
     bool 0 1 (isMemActive memOp)
         + bool 0 1 (isAluActive alu1Op)
         + bool 0 1 (isAluActive alu2Op)
         + bool 0 1 (isCtrlActive ctrlOp)
 
-recordBundle :: Isa w l -> VliwLoadAcc -> VliwLoadAcc
+recordBundle :: VliwIvIsa w l -> VliwLoadAcc -> VliwLoadAcc
 recordBundle isa (VliwLoadAcc m) =
     VliwLoadAcc $ alter (Just . maybe 1 (+ 1)) (bundleActiveCount isa) m
 
@@ -281,7 +281,7 @@ register =
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
-memRef :: (MachineWord w) => Parser (MemRef w)
+memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
         regWithOffset = do
@@ -291,10 +291,10 @@ memRef = choice [regWithOffset, register <&> MemRef 0]
             void $ char ')'
             return MemRef{mrOffset, mrReg}
 
-instance CommentStart (Isa _a _b) where
+instance CommentStart (VliwIvIsa _a _b) where
     commentStart = ";"
 
-parseMemOp :: (MachineWord w) => Parser (MemoryOp w (Ref w))
+parseMemOp :: (IsWord w) => Parser (MemoryOp w (Ref w))
 parseMemOp =
     choice
         [ cmd2args "lw" Lw register memRef
@@ -304,7 +304,7 @@ parseMemOp =
         , string "nop" >> return NopM
         ]
 
-parseAluOp :: (MachineWord w) => Parser (AluOp w (Ref w))
+parseAluOp :: (IsWord w) => Parser (AluOp w (Ref w))
 parseAluOp =
     choice
         [ cmd3args "addi" Addi register register referenceWithDirective
@@ -326,7 +326,7 @@ parseAluOp =
         , string "nop" >> return NopA
         ]
 
-parseCtrlOp :: (MachineWord w) => Parser (ControlOp w (Ref w))
+parseCtrlOp :: (IsWord w) => Parser (ControlOp w (Ref w))
 parseCtrlOp =
     choice
         [ cmd1args "j" J reference
@@ -345,7 +345,7 @@ parseCtrlOp =
         , string "nop" >> return NopC
         ]
 
-instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
+instance (IsWord w) => MnemonicParser (VliwIvIsa w (Ref w)) where
     mnemonic = do
         hspace
         alu1Op <- parseAluOp
@@ -355,8 +355,8 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
         memOp <- parseMemOp
         hspace >> string "/" >> hspace
         ctrlOp <- parseCtrlOp
-        eol' (commentStart @(Isa _ _))
-        return Isa{memOp, alu1Op, alu2Op, ctrlOp}
+        eol' (commentStart @(VliwIvIsa _ _))
+        return VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp}
 
 instance DerefMnemonic (MemoryOp w) w where
     derefMnemonic _ _ NopM = NopM
@@ -384,7 +384,7 @@ instance DerefMnemonic (AluOp w) w where
     derefMnemonic _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
     derefMnemonic _ _ NopA = NopA
 
-instance (MachineWord w) => DerefMnemonic (ControlOp w) w where
+instance (IsWord w) => DerefMnemonic (ControlOp w) w where
     derefMnemonic f offset (J jK) = J $ deref' (fmap (\x -> x - offset) . f) jK
     derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ deref' (fmap (\x -> x - offset) . f) jalK
     derefMnemonic _ _ (Jr jrRs) = Jr jrRs
@@ -400,8 +400,8 @@ instance (MachineWord w) => DerefMnemonic (ControlOp w) w where
     derefMnemonic _ _ Halt = Halt
     derefMnemonic _ _ NopC = NopC
 
-instance (MachineWord w) => DerefMnemonic (Isa w) w where
-    derefMnemonic f offset i@Isa{memOp, alu1Op, alu2Op, ctrlOp} =
+instance (IsWord w) => DerefMnemonic (VliwIvIsa w) w where
+    derefMnemonic f offset i@VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} =
         i
             { memOp = derefMnemonic f offset memOp
             , alu1Op = derefMnemonic f offset alu1Op
@@ -409,7 +409,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
             , ctrlOp = derefMnemonic f offset ctrlOp
             }
 
-instance ByteSize (Isa w l) where
+instance ByteSize (VliwIvIsa w l) where
     byteSize _ = 14
 
 comma = hspace >> string "," >> hspace
@@ -432,11 +432,9 @@ cmd3args mnemonic constructor a b c =
 
 -- * Machine
 
-type VliwIvState w = MachineState (IoMem (Isa w w) w) w
-
-data MachineState mem w = State
+data VliwIvSt w = VliwIvSt
     { pc :: Int
-    , mem :: mem
+    , mem :: IoMem (VliwIvIsa w w) w
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -445,26 +443,26 @@ data MachineState mem w = State
     }
     deriving (Show)
 
-getRandoms :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) [Int]
+getRandoms :: forall w. Int -> State (VliwIvSt w) [Int]
 getRandoms n = do
-    State{randoms} <- get
+    VliwIvSt{randoms} <- get
     let (taken, rest) = splitAt n randoms
     modify $ \st -> st{randoms = rest}
     return taken
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setPc :: forall w. Int -> State (VliwIvSt w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-nextPc :: forall w. State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: forall w. State (VliwIvSt w) ()
 nextPc = do
-    State{pc} <- get
+    VliwIvSt{pc} <- get
     setPc (pc + 14) -- Bundle size 14 bytes
 
-raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError :: Text -> State (VliwIvSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getReg r = do
-    State{regs} <- get
+    VliwIvSt{regs} <- get
     case regs !? r of
         Just value -> return value
         Nothing -> do
@@ -472,10 +470,10 @@ getReg r = do
             return def
 
 setReg Zero _ = return ()
-setReg r value = modify $ \st@State{regs} -> st{regs = insert r value regs}
+setReg r value = modify $ \st@VliwIvSt{regs} -> st{regs = insert r value regs}
 
 getWord addr = do
-    st@State{mem} <- get
+    st@VliwIvSt{mem} <- get
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -485,14 +483,14 @@ getWord addr = do
             return def
 
 setWord addr w = do
-    st@State{mem} <- get
+    st@VliwIvSt{mem} <- get
     case writeWord mem addr w of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 getByte addr = do
-    st@State{mem} <- get
+    st@VliwIvSt{mem} <- get
     case readByte mem addr of
         Right (mem', b) -> do
             put st{mem = mem'}
@@ -502,15 +500,17 @@ getByte addr = do
             return 0
 
 setByte addr byte = do
-    st@State{mem} <- get
+    st@VliwIvSt{mem} <- get
     case writeByte mem addr byte of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
+type instance MemOf (VliwIvSt w) = IoMem (VliwIvIsa w w) w
+
+instance (IsWord w) => InitState (VliwIvSt w) where
     initState pc dump randomStream =
-        State
+        VliwIvSt
             { pc
             , mem = dump
             , regs = def
@@ -520,14 +520,17 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , vliwLoad = emptyVliwLoad
             }
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
-    programCounter State{pc} = pc
-    memoryDump State{mem} = mem
-    ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    isHalted State{stopped} = stopped
+instance (IsWord w) => Inspectable (VliwIvSt w) where
+    type WordOf (VliwIvSt w) = w
+    type IsaOf (VliwIvSt w) = VliwIvIsa w w
+
+    programCounter VliwIvSt{pc} = pc
+    memoryDump VliwIvSt{mem} = mem
+    ioStreams VliwIvSt{mem = IoMem{mIoStreams}} = mIoStreams
+    isHalted VliwIvSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{regs} v =
+    reprState labels st@VliwIvSt{regs} v =
         case T.splitOn ":" v of
             [r] -> reprState labels st (r <> ":dec")
             [r, f]
@@ -536,7 +539,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     viewRegister f r''
             _ -> errorView v
 
-    summaryView _labels State{vliwLoad} v = case T.splitOn ":" v of
+    summaryView _labels VliwIvSt{vliwLoad} v = case T.splitOn ":" v of
         ["vliw", "load-percent"] -> Just (show (vliwLoadPercent vliwLoad) <> "%")
         ["vliw", "avg-load"] -> Just (vliwAvgLoad vliwLoad)
         ["vliw", "bundles-by-load"] -> Just (renderBundlesByLoad vliwLoad)
@@ -552,20 +555,20 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     <> renderBundlesByLoad vliwLoad
         _ -> Nothing
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            State{stopped = True} -> return $ Left halted
-            State{internalError = Just err} -> return $ Left err
-            State{pc, mem} ->
+            VliwIvSt{stopped = True} -> return $ Left halted
+            VliwIvSt{internalError = Just err} -> return $ Left err
+            VliwIvSt{pc, mem} ->
                 case readInstruction mem pc of
                     Left err -> return $ Left err
                     Right (mem', instruction) -> do
                         put st{mem = mem'}
                         return $ Right (pc, instruction)
 
-    instructionExecute _pc bundle@Isa{memOp, alu1Op, alu2Op, ctrlOp} = do
+    instructionExecute _pc bundle@VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} = do
         -- Tally per-bundle slot usage for the vliw:* report variables.
         modify $ \st -> st{vliwLoad = recordBundle bundle (vliwLoad st)}
         -- Phase 1: Read all source operands and compute results (without modifying state)
@@ -584,7 +587,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
         -- If no branch taken, advance PC
         unless branched nextPc
         where
-            shuffleList :: [a] -> State (MachineState (IoMem (Isa w w) w) w) [a]
+            shuffleList :: [a] -> State (VliwIvSt w) [a]
             shuffleList [] = return []
             shuffleList [x] = return [x]
             shuffleList xs = do
@@ -601,7 +604,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             shuffle xs [] = xs
 
             -- Compute memory operation result without applying it
-            computeMem :: MemoryOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
+            computeMem :: MemoryOp w w -> State (VliwIvSt w) (Maybe (Register, w))
             computeMem NopM = return Nothing
             computeMem (Lw lwRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
@@ -623,12 +626,12 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 return Nothing
 
             -- Apply memory operation result
-            applyMemResult :: Maybe (Register, w) -> State (MachineState (IoMem (Isa w w) w) w) ()
+            applyMemResult :: Maybe (Register, w) -> State (VliwIvSt w) ()
             applyMemResult Nothing = return ()
             applyMemResult (Just (reg, val)) = setReg reg val
 
             -- Compute ALU operation result without applying it
-            computeAlu :: AluOp w w -> State (MachineState (IoMem (Isa w w) w) w) (Maybe (Register, w))
+            computeAlu :: AluOp w w -> State (VliwIvSt w) (Maybe (Register, w))
             computeAlu NopA = return Nothing
             computeAlu (Addi addiRd addiRs1 addiK) = do
                 rs1' <- getReg addiRs1
@@ -665,7 +668,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 return $ Just (mvRd, val)
 
             -- Apply ALU operation result
-            applyAluResult :: Maybe (Register, w) -> State (MachineState (IoMem (Isa w w) w) w) ()
+            applyAluResult :: Maybe (Register, w) -> State (VliwIvSt w) ()
             applyAluResult Nothing = return ()
             applyAluResult (Just (reg, val)) = setReg reg val
 
@@ -677,11 +680,11 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
 
             execCtrl NopC = return False
             execCtrl (J jK) = do
-                State{pc} <- get
+                VliwIvSt{pc} <- get
                 setPc (pc + fromEnum (fitSigned 20 jK))
                 return True
             execCtrl (Jal jalRd jalK) = do
-                State{pc} <- get
+                VliwIvSt{pc} <- get
                 setReg jalRd (toEnum pc + 14)
                 setPc (pc + fromEnum (fitSigned 15 jalK))
                 return True
@@ -703,7 +706,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                 return True
 
             branchIf rs1 k cond = do
-                State{pc} <- get
+                VliwIvSt{pc} <- get
                 rs1' <- getReg rs1
                 if cond rs1'
                     then do
@@ -712,7 +715,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     else return False
 
             branchIf2 rs1 rs2 k cond = do
-                State{pc} <- get
+                VliwIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
                 if cond rs1' rs2'
@@ -722,7 +725,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
                     else return False
 
             branchIf2u rs1 rs2 k cond = do
-                State{pc} <- get
+                VliwIvSt{pc} <- get
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
                 if cond rs1' rs2'

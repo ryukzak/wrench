@@ -18,24 +18,24 @@ tests =
     testGroup
         "ISA"
         [ testCase "Byte arithmetic operations" $ do
-            let State{dataRegs} = simulate "add.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
+            let M68kSt{dataRegs} = simulate "add.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
              in (dataRegs !? D0) @?= Just 7
-            let State{dataRegs, zFlag} = simulate "add.b D1, D0" st0{dataRegs = insert D1 0xFF $ insert D0 1 dataRegs0}
+            let M68kSt{dataRegs, zFlag} = simulate "add.b D1, D0" st0{dataRegs = insert D1 0xFF $ insert D0 1 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0
                     zFlag @?= True
-            let State{dataRegs} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 2 $ insert D0 7 dataRegs0}
+            let M68kSt{dataRegs} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 2 $ insert D0 7 dataRegs0}
              in (dataRegs !? D0) @?= Just 5
-            let State{dataRegs, nFlag} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
+            let M68kSt{dataRegs, nFlag} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just (-5)
                     nFlag @?= True
-            let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
+            let M68kSt{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
              in (dataRegs !? D0) @?= Just 12
-            let State{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
+            let M68kSt{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
              in (dataRegs !? D0) @?= Just 100
         , testCase "Compare operations" $ do
-            let State{dataRegs, zFlag, nFlag, cFlag} =
+            let M68kSt{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 5 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
@@ -43,7 +43,7 @@ tests =
                     zFlag @?= True
                     nFlag @?= False
                     cFlag @?= False
-            let State{dataRegs, zFlag, nFlag, cFlag} =
+            let M68kSt{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
@@ -51,7 +51,7 @@ tests =
                     zFlag @?= False
                     nFlag @?= True
                     cFlag @?= True
-            let State{dataRegs, zFlag, nFlag, cFlag} =
+            let M68kSt{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 3 $ insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
@@ -59,14 +59,14 @@ tests =
                     zFlag @?= False
                     nFlag @?= False
                     cFlag @?= False
-            let State{dataRegs, zFlag} =
+            let M68kSt{dataRegs, zFlag} =
                     simulate "cmp.b D1, D0" st0{dataRegs = insert D1 0x100 $ insert D0 0 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0
                     (dataRegs !? D1) @?= Just 0x100
                     zFlag @?= True
         , testCase "Logic ops clear V and C flags" $ do
-            let State{vFlag, cFlag} =
+            let M68kSt{vFlag, cFlag} =
                     simulate
                         "and.l D1, D0"
                         st0
@@ -77,7 +77,7 @@ tests =
              in do
                     vFlag @?= False
                     cFlag @?= False
-            let State{vFlag, cFlag} =
+            let M68kSt{vFlag, cFlag} =
                     simulate
                         "move.l D1, D0"
                         st0
@@ -88,7 +88,7 @@ tests =
              in do
                     vFlag @?= False
                     cFlag @?= False
-            let State{vFlag, cFlag} =
+            let M68kSt{vFlag, cFlag} =
                     simulate
                         "not.l D0"
                         st0
@@ -119,7 +119,7 @@ tests =
             -- Address Register Direct is not a valid source mode for these
             -- instructions; the parser must fail rather than silently
             -- consuming @A2@ as a label.
-            let parsesM68k :: String -> Either String (Isa Int32 (Ref Int32))
+            let parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
                 parsesM68k = translate
             isLeft (parsesM68k "move.l A2, D0") @?= True
             isLeft (parsesM68k "add.l A0, D1") @?= True
@@ -129,127 +129,127 @@ tests =
             -- @movea@ still accepts An as source.
             isRight (parsesM68k "movea.l A2, A0") @?= True
         , testCase "Read byte from memory by address register" $ do
-            let State{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 6
                     (addrRegs !? A2) @?= Just 6
-            let State{dataRegs, addrRegs} =
+            let M68kSt{dataRegs, addrRegs} =
                     simulate
                         "move.b (A2), D0"
                         st0{addrRegs = insert A2 6 addrRegs0, dataRegs = insert D0 0x10203040 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x10203006
                     (addrRegs !? A2) @?= Just 6
-            let State{dataRegs, addrRegs} = simulate "move.b -(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs} = simulate "move.b -(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 5
                     (addrRegs !? A2) @?= Just 5
-            let State{dataRegs, addrRegs} = simulate "move.b (A2)+, D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2)+, D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 6
                     (addrRegs !? A2) @?= Just 7
-            let State{dataRegs, addrRegs, mem} = simulate "move.b 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 8
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [6, 7, 8, 9] @?= [6, 7, 8, 9]
-            let State{dataRegs, addrRegs, mem} = simulate "move.b -2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b -2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 4
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [3, 4, 5, 6] @?= [3, 4, 5, 6]
         , testCase "Write byte from memory by address register" $ do
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 6
                     fmap snd (readByte mem 5) @?= Right 5
                     fmap snd (readByte mem 6) @?= Right 2
                     fmap snd (readByte mem 7) @?= Right 7
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0, dataRegs = insert D2 0x10203040 dataRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0, dataRegs = insert D2 0x10203040 dataRegs0}
              in do
                     (dataRegs !? D2) @?= Just 0x10203040
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [5, 6, 7] @?= [5, 0x40, 7]
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, -(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, -(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 5
                     readMemBytes mem [5, 6, 7] @?= [2, 6, 7]
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)+" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, (A2)+" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 7
                     readMemBytes mem [5, 6, 7] @?= [5, 2, 7]
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [6, 7, 8, 9] @?= [6, 7, 2, 9]
-            let State{dataRegs, addrRegs, mem} = simulate "move.b D2, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.b D2, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [2, 3, 4, 5, 6] @?= [2, 3, 2, 5, 6]
         , testCase "Read word from memory by address register" $ do
-            let State{dataRegs, addrRegs, mem} = simulate "move.l (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x09080706
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 0x06, 0x07, 0x08, 0x09, 10]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l -(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l -(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x05040302
                     (addrRegs !? A2) @?= Just 2
                     readMemBytes mem [1, 2, 3, 4, 5, 6] @?= [1, 2, 3, 4, 5, 6]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l (A2)+, D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l (A2)+, D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x09080706
                     (addrRegs !? A2) @?= Just 10
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 6, 7, 8, 9, 10]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l 2(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x0B0A0908
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [10, 11, 12, 13, 14, 15] @?= [0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l -4(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l -4(A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x05040302
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [1, 2, 3, 4, 5, 6] @?= [1, 2, 3, 4, 5, 6]
         , testCase "Write word to memory by address register" $ do
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 0x02, 0x00, 0x00, 0x00, 10]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0, dataRegs = insert D2 0x10203040 dataRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)" st0{addrRegs = insert A2 6 addrRegs0, dataRegs = insert D2 0x10203040 dataRegs0}
              in do
                     (dataRegs !? D2) @?= Just 0x10203040
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 0x40, 0x30, 0x20, 0x10, 10]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, -(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D2, -(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 2
                     readMemBytes mem [1, 2, 3, 4, 5, 6] @?= [1, 0x02, 0x00, 0x00, 0x00, 6]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)+" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D2, (A2)+" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 10
                     readMemBytes mem [5, 6, 7, 8, 9, 10] @?= [5, 0x02, 0x00, 0x00, 0x00, 10]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D2, 2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D2) @?= Just 2
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [7, 8, 9, 10, 11, 12] @?= [7, 0x02, 0x00, 0x00, 0x00, 12]
-            let State{dataRegs, addrRegs, mem} = simulate "move.l D3, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
+            let M68kSt{dataRegs, addrRegs, mem} = simulate "move.l D3, -2(A2)" st0{addrRegs = insert A2 6 addrRegs0}
              in do
                     (dataRegs !? D3) @?= Just 3
                     (addrRegs !? A2) @?= Just 6
                     readMemBytes mem [3, 4, 5, 6, 7, 8] @?= [3, 0x03, 0x00, 0x00, 0x00, 8]
         , testCase "Read with index register addressing" $ do
-            let State{dataRegs, addrRegs, mem} =
+            let M68kSt{dataRegs, addrRegs, mem} =
                     simulate
                         "move.b 2(A2,D1), D0"
                         st0
@@ -261,7 +261,7 @@ tests =
                     (dataRegs !? D1) @?= Just 3
                     (dataRegs !? D0) @?= Just 11
                     readMemBytes mem [10, 11, 12] @?= [10, 11, 12]
-            let State{dataRegs, addrRegs, mem} =
+            let M68kSt{dataRegs, addrRegs, mem} =
                     simulate
                         "move.b 2(A2,A1), D0"
                         st0{addrRegs = insert A2 6 $ insert A1 3 addrRegs0}
@@ -270,7 +270,7 @@ tests =
                     (addrRegs !? A1) @?= Just 3
                     (dataRegs !? D0) @?= Just 11
                     readMemBytes mem [10, 11, 12] @?= [10, 11, 12]
-            let State{dataRegs, addrRegs, mem} =
+            let M68kSt{dataRegs, addrRegs, mem} =
                     simulate
                         "move.l 4(A2,D1), D0"
                         st0
@@ -283,7 +283,7 @@ tests =
                     (dataRegs !? D0) @?= Just 0x13121110
                     readMemBytes mem [15, 16, 17, 18, 19, 20] @?= [15, 0x10, 0x11, 0x12, 0x13, 20]
         , testCase "Write with index register addressing" $ do
-            let State{dataRegs, addrRegs, mem} =
+            let M68kSt{dataRegs, addrRegs, mem} =
                     simulate
                         "move.b D0, 2(A2,D1)"
                         st0
@@ -295,7 +295,7 @@ tests =
                     (addrRegs !? A2) @?= Just 6
                     (dataRegs !? D1) @?= Just 3
                     readMemBytes mem [10, 11, 12] @?= [10, 0x99, 12]
-            let State{dataRegs, addrRegs, mem} =
+            let M68kSt{dataRegs, addrRegs, mem} =
                     simulate
                         "move.l D0, 4(A2,A1)"
                         st0
@@ -308,12 +308,12 @@ tests =
                     (addrRegs !? A1) @?= Just 2
                     readMemBytes mem [15, 16, 17, 18, 19, 20] @?= [15, 0x12, 0xEF, 0xCD, 0x7B, 20]
         , testCase "JSR and RTS operations" $ do
-            let State{pc, addrRegs} = simulate "jsr 0x20" st0{addrRegs = insert A7 0x100 addrRegs0}
+            let M68kSt{pc, addrRegs} = simulate "jsr 0x20" st0{addrRegs = insert A7 0x100 addrRegs0}
              in do
                     pc @?= 0x20
                     (addrRegs !? A7) @?= Just 0xFC
 
-            let State{pc, addrRegs} =
+            let M68kSt{pc, addrRegs} =
                     simulate
                         "rts"
                         st0
@@ -324,50 +324,50 @@ tests =
                     (addrRegs !? A7) @?= Just 0x13
         , testCase "Shift carry flag" $ do
             -- LSR: shift right, last bit shifted out is bit 0
-            let State{cFlag} =
+            let M68kSt{cFlag} =
                     simulate "lsr.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 3 dataRegs0}
              in cFlag @?= True -- 3 = ...11, shifting right 1, bit 0 = 1
-            let State{cFlag} =
+            let M68kSt{cFlag} =
                     simulate "lsr.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 2 dataRegs0}
              in cFlag @?= False -- 2 = ...10, shifting right 1, bit 0 = 0
             -- ASL: shift left, last bit shifted out is bit 31
-            let State{cFlag} =
+            let M68kSt{cFlag} =
                     simulate "asl.l D1, D0" st0{dataRegs = insert D1 1 $ insert D0 minBound dataRegs0}
              in cFlag @?= True -- minBound has bit 31 set
         , testCase "Negate operations" $ do
-            let State{dataRegs, nFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 5 dataRegs0}
+            let M68kSt{dataRegs, nFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 5 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just (-5)
                     nFlag @?= True
-            let State{dataRegs, zFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 0 dataRegs0}
+            let M68kSt{dataRegs, zFlag} = simulate "neg.l D0" st0{dataRegs = insert D0 0 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0
                     zFlag @?= True
-            let State{dataRegs, nFlag} = simulate "neg.b D0" st0{dataRegs = insert D0 3 dataRegs0}
+            let M68kSt{dataRegs, nFlag} = simulate "neg.b D0" st0{dataRegs = insert D0 3 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just (-3)
                     nFlag @?= True
         , testCase "Clear operations" $ do
-            let State{dataRegs, zFlag, nFlag, vFlag, cFlag} = simulate "clr.l D0" st0{dataRegs = insert D0 42 dataRegs0}
+            let M68kSt{dataRegs, zFlag, nFlag, vFlag, cFlag} = simulate "clr.l D0" st0{dataRegs = insert D0 42 dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0
                     zFlag @?= True
                     nFlag @?= False
                     vFlag @?= False
                     cFlag @?= False
-            let State{dataRegs, zFlag} = simulate "clr.b D0" st0{dataRegs = insert D0 0xFF dataRegs0}
+            let M68kSt{dataRegs, zFlag} = simulate "clr.b D0" st0{dataRegs = insert D0 0xFF dataRegs0}
              in do
                     (dataRegs !? D0) @?= Just 0x00
                     zFlag @?= True
         , testCase "Division by zero" $ do
-            let State{internalError} =
+            let M68kSt{internalError} =
                     simulate "div.l D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
              in internalError @?= Just "division by zero"
-            let State{internalError} =
+            let M68kSt{internalError} =
                     simulate "div.b D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
              in internalError @?= Just "division by zero"
         , testCase "LINK and UNLK operations" $ do
-            let State{addrRegs, mem} =
+            let M68kSt{addrRegs, mem} =
                     simulate
                         "link A6, -8"
                         st0
@@ -378,7 +378,7 @@ tests =
                     (addrRegs !? A7) @?= Just 0x04
                     fmap snd (readWord mem 0x1C) @?= Right 0x1F1E1D1C
                     fmap snd (readWord mem 0x0C) @?= Right 0x00000020
-            let State{addrRegs, mem} =
+            let M68kSt{addrRegs, mem} =
                     simulate
                         "unlk A6"
                         st0
@@ -397,8 +397,8 @@ tests =
         ]
     where
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
-        st0 :: M68kState Int32
-        st0@State{addrRegs = addrRegs0, dataRegs = dataRegs0, mem = mem0} =
+        st0 :: M68kSt Int32
+        st0@M68kSt{addrRegs = addrRegs0, dataRegs = dataRegs0, mem = mem0} =
             (initState 256 (mkIoMem (fromList []) memInit) [])
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
@@ -414,14 +414,14 @@ translate code =
 
 simulate ::
     ( DerefMnemonic (isa' w) w
-    , Machine (st (IoMem isa w) w) isa w
+    , Machine (M68kSt w) isa w
     , MnemonicParser (isa' w (Ref w))
     , isa ~ isa' w w
     , w ~ Int32
     ) =>
     String
-    -> st (IoMem isa w) w
-    -> st (IoMem isa w) w
+    -> M68kSt w
+    -> M68kSt w
 simulate code st =
     let instr = either (error . show) (derefMnemonic (error "labels not defined") def) (translate code)
      in execState (instructionExecute 0 instr) st

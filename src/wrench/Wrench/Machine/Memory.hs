@@ -40,7 +40,7 @@ data DumpStats = DumpStats
     deriving (Eq, Show)
 
 prepareDump ::
-    (ByteSize isa, MachineWord w) =>
+    (ByteSize isa, IsWord w) =>
     Int
     -> [Word8]
     -> [Section isa w w]
@@ -140,7 +140,7 @@ sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) a
 
 prettyDump ::
     forall w isa.
-    (ByteSize isa, MachineWord w, Show isa) =>
+    (ByteSize isa, IsWord w, Show isa) =>
     HashMap Text w
     -> IntMap (Cell isa w)
     -> Text
@@ -207,7 +207,7 @@ class Memory m isa w | m -> isa w where
     accessLog _ = emptyAccessLog
 
 instance
-    (ByteSize isa, MachineWord w) =>
+    (ByteSize isa, IsWord w) =>
     Memory (Mem isa w) isa w
     where
     readInstruction mem@Mem{memoryData} idx =
@@ -283,7 +283,7 @@ noteDataAccess addr len io =
 noteIoAccess addr len io =
     io{mAccessLog = (mAccessLog io){alIo = recordRange addr len (alIo (mAccessLog io))}}
 
-instance (ByteSize isa, MachineWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
+instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
             Just _ -> Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"

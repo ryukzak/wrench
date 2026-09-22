@@ -5,11 +5,10 @@
 -- NOTE: http://wpage.unina.it/rcanonic/didattica/ce1/docs/68000.pdf
 
 module Wrench.Isa.M68k (
-    Isa (..),
+    M68kIsa (..),
     Argument (..),
     Mode (..),
-    M68kState,
-    MachineState (..),
+    M68kSt (..),
     IndexRegister (..),
     DataReg (..),
     dataRegisters,
@@ -73,9 +72,9 @@ data Argument w l
     | Immediate l
     deriving (Eq, Show)
 
--- | The 'Isa' type represents the instruction set architecture for the M68k machine.
+-- | The 'M68kIsa' type represents the instruction set architecture for the M68k machine.
 -- Each constructor corresponds to a specific instruction.
-data Isa w l
+data M68kIsa w l
     = Move {mode :: Mode, src, dst :: Argument w l}
     | MoveA {mode :: Mode, src, dst :: Argument w l}
     | Not {mode :: Mode, dst :: Argument w l}
@@ -113,10 +112,10 @@ data Isa w l
     | Halt
     deriving (Eq, Show)
 
-instance CommentStart (Isa w l) where
+instance CommentStart (M68kIsa w l) where
     commentStart = ";"
 
-instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
+instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
     mnemonic =
         choice
             [ cmd2args "move" Move (longMode <|> byteMode) src dst
@@ -179,7 +178,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             srcMovea = dataRegister <|> addrRegister <|> allIndirectAddr <|> immidiate
             dst = dataRegister <|> allIndirectAddr
 
-cmd0args :: String -> Isa w (Ref w) -> Parser (Isa w (Ref w))
+cmd0args :: String -> M68kIsa w (Ref w) -> Parser (M68kIsa w (Ref w))
 cmd0args mnemonic constructor = try $ do
     void $ string mnemonic
     eol' ";"
@@ -187,10 +186,10 @@ cmd0args mnemonic constructor = try $ do
 
 cmd1args ::
     String
-    -> (Mode -> a -> Isa w (Ref w))
+    -> (Mode -> a -> M68kIsa w (Ref w))
     -> Parser Mode
     -> Parser a
-    -> Parser (Isa w (Ref w))
+    -> Parser (M68kIsa w (Ref w))
 cmd1args mnemonic constructor modeP dstP = try $ do
     m <- do
         void $ string mnemonic
@@ -203,11 +202,11 @@ cmd1args mnemonic constructor modeP dstP = try $ do
 
 cmd2args ::
     String
-    -> (Mode -> a -> b -> Isa w (Ref w))
+    -> (Mode -> a -> b -> M68kIsa w (Ref w))
     -> Parser Mode
     -> Parser a
     -> Parser b
-    -> Parser (Isa w (Ref w))
+    -> Parser (M68kIsa w (Ref w))
 cmd2args mnemonic constructor modeP srcP dstP = do
     m <- try $ do
         void $ string mnemonic
@@ -288,12 +287,12 @@ registerLikeName = try $ do
     void (oneOf ['0' .. '7'])
     notFollowedBy (alphaNumChar <|> char '_')
 
-immidiate :: (MachineWord w) => Parser (Argument w (Ref w))
+immidiate :: (IsWord w) => Parser (Argument w (Ref w))
 immidiate = do
     notFollowedBy registerLikeName
     Immediate <$> reference
 
-instance DerefMnemonic (Isa w) w where
+instance DerefMnemonic (M68kIsa w) w where
     derefMnemonic f _offset i =
         let derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
@@ -346,7 +345,7 @@ instance (ByteSizeT w) => ByteSize (Argument w l) where
     byteSize (IndirectAddrRegPostIncrement _) = 0
     byteSize (Immediate _) = byteSizeT @w
 
-instance (ByteSizeT w) => ByteSize (Isa w l) where
+instance (ByteSizeT w) => ByteSize (M68kIsa w l) where
     byteSize (Move _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (MoveA _mode src dst) = 2 + byteSize src + byteSize dst
     byteSize (Not _mode dst) = 2 + byteSize dst
@@ -383,37 +382,37 @@ instance (ByteSizeT w) => ByteSize (Isa w l) where
     byteSize Unlk{} = 2
     byteSize Halt = 2
 
-type M68kState w = MachineState (IoMem (Isa w w) w) w
-
-data MachineState mem w = State
+data M68kSt w = M68kSt
     { pc :: Int
     , dataRegs :: HashMap DataReg w
     , addrRegs :: HashMap AddrReg w
-    , mem :: mem
+    , mem :: IoMem (M68kIsa w w) w
     , stopped :: Bool
     , internalError :: Maybe Text
     , nFlag, zFlag, vFlag, cFlag :: Bool
     }
     deriving (Show)
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setPc :: forall w. Int -> State (M68kSt w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-getPc :: State (MachineState (IoMem (Isa w w) w) w) Int
+getPc :: State (M68kSt w) Int
 getPc = get >>= \st -> return $ pc st
 
-nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: (IsWord w) => State (M68kSt w) ()
 nextPc = do
     instructionFetch >>= \case
         Right (pc, instruction) -> setPc (pc + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
-raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError :: Text -> State (M68kSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
-instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
+type instance MemOf (M68kSt w) = IoMem (M68kIsa w w) w
+
+instance (IsWord w) => InitState (M68kSt w) where
     initState pc dump _randomStream =
-        State
+        M68kSt
             { pc
             , dataRegs = def
             , addrRegs = def
@@ -426,14 +425,17 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , cFlag = False
             }
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
-    programCounter State{pc} = pc
-    memoryDump State{mem} = mem
-    ioStreams State{mem = IoMem{mIoStreams}} = mIoStreams
-    isHalted State{stopped} = stopped
+instance (IsWord w) => Inspectable (M68kSt w) where
+    type WordOf (M68kSt w) = w
+    type IsaOf (M68kSt w) = M68kIsa w w
+
+    programCounter M68kSt{pc} = pc
+    memoryDump M68kSt{mem} = mem
+    ioStreams M68kSt{mem = IoMem{mIoStreams}} = mIoStreams
+    isHalted M68kSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
+    reprState labels st@M68kSt{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
         case T.splitOn ":" v of
             [r] -> reprState labels st (r <> ":dec")
             ["SR", "bin"] -> view nFlag <> view zFlag <> view vFlag <> view cFlag
@@ -450,7 +452,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             _ -> errorView v
 
 indirectAddr f r index = do
-    State{addrRegs, dataRegs} <- get
+    M68kSt{addrRegs, dataRegs} <- get
     let offset = fromEnum $ case index of
             Just (DataIndex r) -> fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
             Just (AddrIndex r) -> fromMaybe (error $ "invalid register: " <> show r) $ addrRegs !? r
@@ -460,7 +462,7 @@ indirectAddr f r index = do
         Nothing -> error $ "Invalid register: " <> show r
 
 readMemoryWord addr = do
-    st@State{mem} <- get
+    st@M68kSt{mem} <- get
     case readWord mem addr of
         Right (mem', w) -> do
             put st{mem = mem'}
@@ -470,18 +472,18 @@ readMemoryWord addr = do
             return def
 
 writeMemoryWord addr w = do
-    st@State{mem} <- get
+    st@M68kSt{mem} <- get
     case writeWord mem addr w of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-fetchWord :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) w
+fetchWord :: (IsWord w) => Argument w w -> State (M68kSt w) w
 fetchWord (DirectDataReg r) = do
-    State{dataRegs} <- get
+    M68kSt{dataRegs} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (dataRegs !? r)
 fetchWord (DirectAddrReg r) = do
-    State{addrRegs} <- get
+    M68kSt{addrRegs} <- get
     return $ fromMaybe (error $ "invalid register: " <> show r) (addrRegs !? r)
 fetchWord (IndirectAddrReg offset r index) = do
     addr <- indirectAddr (+ offset) r index
@@ -497,9 +499,9 @@ fetchWord (IndirectAddrRegPostIncrement r) = do
     return w
 fetchWord (Immediate v) = return v
 
-storeWord :: (MachineWord w) => Argument w w -> w -> State (MachineState (IoMem (Isa w w) w) w) ()
-storeWord (DirectDataReg r) v = modify $ \st@State{dataRegs} -> st{dataRegs = insert r v dataRegs, zFlag = v == 0, nFlag = v < 0}
-storeWord (DirectAddrReg r) v = modify $ \st@State{addrRegs} -> st{addrRegs = insert r v addrRegs}
+storeWord :: (IsWord w) => Argument w w -> w -> State (M68kSt w) ()
+storeWord (DirectDataReg r) v = modify $ \st@M68kSt{dataRegs} -> st{dataRegs = insert r v dataRegs, zFlag = v == 0, nFlag = v < 0}
+storeWord (DirectAddrReg r) v = modify $ \st@M68kSt{addrRegs} -> st{addrRegs = insert r v addrRegs}
 storeWord (IndirectAddrReg offset r index) v = do
     addr <- indirectAddr (+ offset) r index
     writeMemoryWord addr v
@@ -514,7 +516,7 @@ storeWord (IndirectAddrRegPostIncrement r) v = do
 storeWord arg _ = error $ "can not store word: " <> show arg
 
 readMemoryByte addr = do
-    st@State{mem} <- get
+    st@M68kSt{mem} <- get
     case readByte mem addr of
         Right (mem', b) -> do
             put st{mem = mem'}
@@ -524,15 +526,15 @@ readMemoryByte addr = do
             return def
 
 writeMemoryByte addr b = do
-    st@State{mem} <- get
+    st@M68kSt{mem} <- get
     case writeByte mem addr (fromSign b) of
         Right mem' -> do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-fetchByte :: (MachineWord w) => Argument w w -> State (MachineState (IoMem (Isa w w) w) w) Int8
+fetchByte :: (IsWord w) => Argument w w -> State (M68kSt w) Int8
 fetchByte (DirectDataReg r) = do
-    State{dataRegs} <- get
+    M68kSt{dataRegs} <- get
     return $ maybe (error $ "invalid register: " <> show r) (fromInteger . toInteger) (dataRegs !? r)
 fetchByte (IndirectAddrReg offset r index) = do
     addr <- indirectAddr (+ offset) r index
@@ -549,9 +551,9 @@ fetchByte (IndirectAddrRegPostIncrement r) = do
 fetchByte (Immediate v) = return $ fromInteger $ toInteger v
 fetchByte arg = error $ "can not fetch byte: " <> show arg
 
-storeByte :: forall w. (MachineWord w) => Argument w w -> Int8 -> State (MachineState (IoMem (Isa w w) w) w) ()
+storeByte :: forall w. (IsWord w) => Argument w w -> Int8 -> State (M68kSt w) ()
 storeByte (DirectDataReg r) v = do
-    st@State{dataRegs} <- get
+    st@M68kSt{dataRegs} <- get
     let w = fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
         w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
     put st{dataRegs = insert r w' dataRegs, zFlag = v == 0, nFlag = v < 0}
@@ -569,13 +571,13 @@ storeByte (IndirectAddrRegPostIncrement r) v = do
 storeByte (Immediate _) _ = error "impossible to store into immediate destination"
 storeByte arg _ = error $ "can not store byte: " <> show arg
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            State{stopped = True} -> return $ Left halted
-            State{internalError = Just err} -> return $ Left err
-            State{pc, mem} ->
+            M68kSt{stopped = True} -> return $ Left halted
+            M68kSt{internalError = Just err} -> return $ Left err
+            M68kSt{pc, mem} ->
                 case readInstruction mem pc of
                     Left err -> return $ Left err
                     Right (mem', instruction) -> do
