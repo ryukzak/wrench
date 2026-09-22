@@ -30,7 +30,7 @@ data St w
     deriving (Show)
 
 evaluateLabels ::
-    (ByteSize isa, MachineWord w) =>
+    (ByteSize isa, IsWord w) =>
     [Section isa w Text]
     -> Either Text (HashMap Text w)
 evaluateLabels sections =
@@ -69,7 +69,7 @@ translate ::
     ( ByteSize (isa_ w (Ref w))
     , ByteSize (isa_ w w)
     , DerefMnemonic (isa_ w) w
-    , MachineWord w
+    , IsWord w
     , MnemonicParser (isa_ w (Ref w))
     , Show (isa_ w w)
     ) =>

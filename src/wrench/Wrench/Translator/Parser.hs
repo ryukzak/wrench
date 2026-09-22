@@ -12,7 +12,7 @@ import Wrench.Translator.Types
 
 asmParser ::
     forall isa w.
-    (MachineWord w, MnemonicParser isa) =>
+    (IsWord w, MnemonicParser isa) =>
     Parser [Section isa w Text]
 asmParser =
     do

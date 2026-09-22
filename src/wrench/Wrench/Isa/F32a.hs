@@ -4,9 +4,9 @@
 
 -- | Inspired by https://www.greenarraychips.com/home/documents/greg/DB001-221113-F18a.pdf
 module Wrench.Isa.F32a (
-    Isa (..),
-    F32aState,
-    MachineState (..),
+    F32aIsa (..),
+    F32aSt (..),
+    F32aMem,
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -24,7 +24,7 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
-data Isa w l
+data F32aIsa w l
     = -- | __;__ return
       Return
     | -- | __call__ to name
@@ -93,10 +93,10 @@ data Isa w l
       Halt
     deriving (Show)
 
-instance CommentStart (Isa w l) where
+instance CommentStart (F32aIsa w l) where
     commentStart = "\\"
 
-instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
+instance (IsWord w) => MnemonicParser (F32aIsa w (Ref w)) where
     mnemonic =
         choice
             [ Lit <$> cmdMnemonic1 "lit"
@@ -142,7 +142,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
                 return $ Call label
             ]
 
-bareLiteral :: (MachineWord w) => Parser (Ref w)
+bareLiteral :: (IsWord w) => Parser (Ref w)
 bareLiteral = try $ do
     hspace
     ref <-
@@ -168,7 +168,7 @@ cmdMnemonic0 mnemonic = try $ do
     void (string mnemonic)
     hspace1 <|> eol' "\\"
 
-cmdMnemonic1 :: (MachineWord w) => String -> Parser (Ref w)
+cmdMnemonic1 :: (IsWord w) => String -> Parser (Ref w)
 cmdMnemonic1 mnemonic = try $ do
     void hspace
     void (string mnemonic)
@@ -177,7 +177,7 @@ cmdMnemonic1 mnemonic = try $ do
     hspace1 <|> eol' "\\"
     return ref
 
-instance DerefMnemonic (Isa w) w where
+instance DerefMnemonic (F32aIsa w) w where
     derefMnemonic f _offset i =
         case i of
             Lit l -> Lit (deref' f l)
@@ -214,7 +214,7 @@ instance DerefMnemonic (Isa w) w where
             Over -> Over
             Halt -> Halt
 
-instance ByteSize (Isa w l) where
+instance ByteSize (F32aIsa w l) where
     -- NOTE: in f18a multiple instructions can be fitted in one machine word.
     -- Here we simplify it: args -- is just a muchine word. Opcode -- one byte.
     byteSize (Lit _) = 5
@@ -227,13 +227,13 @@ instance ByteSize (Isa w l) where
     byteSize (StoreP _) = 5
     byteSize _ = 1
 
-type F32aState w = MachineState (IoMem (Isa w w) w) w
+type F32aMem w = IoMem (F32aIsa w w) w
 
-data MachineState mem w = State
+data F32aSt w = F32aSt
     { p :: Int
     , a :: w
     , b :: w
-    , ram :: mem
+    , ram :: F32aMem w
     , dataStack :: [w]
     , returnStack :: [w]
     , dataStackMax :: !Int
@@ -247,9 +247,9 @@ data MachineState mem w = State
     }
     deriving (Show)
 
-instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
+instance (IsWord w) => InitState (F32aMem w) (F32aSt w) where
     initState pc dump _randomStream =
-        State
+        F32aSt
             { p = pc
             , a = def
             , b = def
@@ -264,23 +264,23 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
-setP :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setP :: forall w. Int -> State (F32aSt w) ()
 setP addr = modify $ \st -> st{p = addr}
 
-getP :: State (MachineState (IoMem (Isa w w) w) w) Int
+getP :: State (F32aSt w) Int
 getP = get <&> (fromEnum . p)
 
-nextP :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextP :: (IsWord w) => State (F32aSt w) ()
 nextP = do
     instructionFetch >>= \case
         Right (p, instruction) -> setP (p + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
-raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError :: Text -> State (F32aSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getWord addr = do
-    st@State{ram} <- get
+    st@F32aSt{ram} <- get
     case readWord ram addr of
         Right (ram', w) -> do
             put st{ram = ram'}
@@ -290,20 +290,20 @@ getWord addr = do
             return def
 
 setWord addr w = do
-    st@State{ram} <- get
+    st@F32aSt{ram} <- get
     case writeWord ram addr w of
         Right ram' -> put st{ram = ram'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 dataPush w = do
     setCarryFlag False
-    st@State{dataStack, dataStackMax} <- get
+    st@F32aSt{dataStack, dataStackMax} <- get
     let dataStack' = w : dataStack
     put st{dataStack = dataStack', dataStackMax = max dataStackMax (length dataStack')}
 
-dataPop :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
+dataPop :: (IsWord w) => State (F32aSt w) w
 dataPop = do
-    st@State{dataStack} <- get
+    st@F32aSt{dataStack} <- get
     case dataStack of
         [] -> do
             raiseInternalError "empty data stack"
@@ -313,13 +313,13 @@ dataPop = do
             return x
 
 returnPush w = do
-    st@State{returnStack, returnStackMax} <- get
+    st@F32aSt{returnStack, returnStackMax} <- get
     let returnStack' = w : returnStack
     put st{returnStack = returnStack', returnStackMax = max returnStackMax (length returnStack')}
 
-returnPop :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) w
+returnPop :: (IsWord w) => State (F32aSt w) w
 returnPop = do
-    st@State{returnStack} <- get
+    st@F32aSt{returnStack} <- get
     case returnStack of
         [] -> do
             raiseInternalError "empty return stack"
@@ -328,35 +328,35 @@ returnPop = do
             put st{returnStack = xs}
             return x
 
-setExtendedArithmeticMode :: Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setExtendedArithmeticMode :: Bool -> State (F32aSt w) ()
 setExtendedArithmeticMode flag = modify $ \st -> st{extendedArithmeticMode = flag}
 
-setCarryFlag :: Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setCarryFlag :: Bool -> State (F32aSt w) ()
 setCarryFlag flag = modify $ \st -> st{carryFlag = flag}
 
-getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getCarryFlag :: State (F32aSt w) Bool
 getCarryFlag = get <&> carryFlag
 
 setA w = modify $ \st -> st{a = w}
 
 setB w = modify $ \st -> st{b = w}
 
-getA :: State (MachineState (IoMem (Isa w w) w) w) w
+getA :: State (F32aSt w) w
 getA = do
-    State{a} <- get
+    F32aSt{a} <- get
     return a
 
-getB :: State (MachineState (IoMem (Isa w w) w) w) w
+getB :: State (F32aSt w) w
 getB = get <&> b
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
-    programCounter State{p} = p
-    memoryDump State{ram} = ram
-    ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
-    isHalted State{stopped} = stopped
+instance (IsWord w) => Inspectable (F32aSt w) (F32aMem w) (F32aIsa w w) w where
+    programCounter F32aSt{p} = p
+    memoryDump F32aSt{ram} = ram
+    ioStreams F32aSt{ram = IoMem{mIoStreams}} = mIoStreams
+    isHalted F32aSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
+    reprState labels st@F32aSt{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
         case T.splitOn ":" v of
             ["EAM"] -> if extendedArithmeticMode then "1" else "0"
             ["C"] -> if carryFlag then "1" else "0"
@@ -375,7 +375,7 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
             stack f _ = unknownFormat f
 
-    summaryView _labels State{dataStackMax, returnStackMax} v = case T.splitOn ":" v of
+    summaryView _labels F32aSt{dataStackMax, returnStackMax} v = case T.splitOn ":" v of
         ["f32a", "data-stack-max"] -> Just $ show dataStackMax
         ["f32a", "return-stack-max"] -> Just $ show returnStackMax
         ["isa-specific"] ->
@@ -387,13 +387,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
                     <> show returnStackMax
         _ -> Nothing
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            State{stopped = True} -> return $ Left halted
-            State{internalError = Just err} -> return $ Left err
-            State{p, ram} ->
+            F32aSt{stopped = True} -> return $ Left halted
+            F32aSt{internalError = Just err} -> return $ Left err
+            F32aSt{p, ram} ->
                 case readInstruction ram p of
                     Left err -> return $ Left err
                     Right (ram', instruction) -> do
@@ -522,7 +522,7 @@ instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w 
             Add -> do
                 t <- dataPop
                 s <- dataPop
-                State{extendedArithmeticMode, carryFlag} <- get
+                F32aSt{extendedArithmeticMode, carryFlag} <- get
                 let Ext{value = v1, carry = c1} = addExt s t
                     (result, carry) =
                         if extendedArithmeticMode && carryFlag

@@ -35,7 +35,7 @@ tests =
 -- | Build an initial state with a LoadImm at address 0 (5 bytes) followed by
 -- the branch instruction at address 5 (5 bytes). After two instructionStep
 -- calls, the acc is set and the branch is evaluated.
-mkState :: Isa Int32 Int32 -> Int32 -> Acc32State Int32
+mkState :: Acc32Isa Int32 Int32 -> Int32 -> Acc32St Int32
 mkState branchInstr accVal =
     let loadInstr = LoadImm accVal
         mem =
@@ -53,7 +53,7 @@ mkState branchInstr accVal =
                 )
      in initState 0 mem []
 
-runBranch :: Isa Int32 Int32 -> Int32 -> Int
+runBranch :: Acc32Isa Int32 Int32 -> Int32 -> Int
 runBranch instr accVal =
     let st = mkState instr accVal
         st' = execState (instructionStep >> instructionStep) st

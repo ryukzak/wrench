@@ -3,8 +3,9 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module Wrench.Isa.Acc32 (
-    Isa (..),
-    Acc32State,
+    Acc32Isa (..),
+    Acc32St,
+    Acc32Mem,
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
@@ -21,9 +22,9 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
--- | The 'Isa' type represents the instruction set architecture for the Acc32 machine.
+-- | The 'Acc32Isa' type represents the instruction set architecture for the Acc32 machine.
 -- Each constructor corresponds to a specific instruction.
-data Isa w l
+data Acc32Isa w l
     = -- | Syntax: @load_imm <address>@ Load an immediate value into the accumulator.
       LoadImm l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
@@ -84,10 +85,10 @@ data Isa w l
       Halt
     deriving (Show)
 
-instance CommentStart (Isa w l) where
+instance CommentStart (Acc32Isa w l) where
     commentStart = ";"
 
-instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
+instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
     mnemonic =
         choice
             [ LoadImm <$> cmdMnemonic1 "load_imm" reference
@@ -123,7 +124,7 @@ instance (MachineWord w) => MnemonicParser (Isa w (Ref w)) where
             , cmdMnemonic0 "halt" >> return Halt
             ]
 
-reference16 :: (MachineWord w) => Parser (Ref w)
+reference16 :: (IsWord w) => Parser (Ref w)
 reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
 
 cmdMnemonic0 :: String -> Parser ()
@@ -141,7 +142,7 @@ cmdMnemonic1 mnemonic refParser = try $ do
     hspace1 <|> eol' "\\"
     return ref
 
-instance (MachineWord w) => DerefMnemonic (Isa w) w where
+instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
          in case i of
@@ -177,7 +178,7 @@ instance (MachineWord w) => DerefMnemonic (Isa w) w where
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
 
-instance ByteSize (Isa w l) where
+instance ByteSize (Acc32Isa w l) where
     byteSize LoadImm{} = 5
     byteSize LoadAddr{} = 5
     byteSize LoadAcc{} = 1
@@ -199,22 +200,22 @@ instance ByteSize (Isa w l) where
     byteSize Halt = 1
     byteSize _ = 3
 
-type Acc32State w = MachineState (IoMem (Isa w w) w) w
+type Acc32Mem w = IoMem (Acc32Isa w w) w
 
-data MachineState mem w = State
+data Acc32St w = Acc32St
     { pc :: Int
     , acc :: w
     , overflowFlag :: Bool
     , carryFlag :: Bool
-    , ram :: mem
+    , ram :: Acc32Mem w
     , stopped :: Bool
     , internalError :: Maybe Text
     }
     deriving (Show)
 
-instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (Isa w w) w) w) where
+instance (IsWord w) => InitState (Acc32Mem w) (Acc32St w) where
     initState pc dump _randomStream =
-        State
+        Acc32St
             { acc = 0
             , overflowFlag = False
             , carryFlag = False
@@ -224,26 +225,26 @@ instance (MachineWord w) => InitState (IoMem (Isa w w) w) (MachineState (IoMem (
             , internalError = Nothing
             }
 
-setPc :: forall w. Int -> State (MachineState (IoMem (Isa w w) w) w) ()
+setPc :: forall w. Int -> State (Acc32St w) ()
 setPc addr = modify $ \st -> st{pc = addr}
 
-setOverflowFlag :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setOverflowFlag :: forall w. Bool -> State (Acc32St w) ()
 setOverflowFlag overflowFlag = modify $ \st -> st{overflowFlag}
 
-setCarryFlag :: forall w. Bool -> State (MachineState (IoMem (Isa w w) w) w) ()
+setCarryFlag :: forall w. Bool -> State (Acc32St w) ()
 setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
-nextPc :: (MachineWord w) => State (MachineState (IoMem (Isa w w) w) w) ()
+nextPc :: (IsWord w) => State (Acc32St w) ()
 nextPc = do
     instructionFetch >>= \case
         Right (pc, instruction) -> setPc (pc + byteSize instruction)
         Left err -> raiseInternalError $ "nextPc: " <> err
 
-raiseInternalError :: Text -> State (MachineState (IoMem (Isa w w) w) w) ()
+raiseInternalError :: Text -> State (Acc32St w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
 getWord addr = do
-    st@State{ram} <- get
+    st@Acc32St{ram} <- get
     case readWord ram addr of
         Right (ram', w) -> put st{ram = ram'} >> return w
         Left err -> do
@@ -251,30 +252,30 @@ getWord addr = do
             return def
 
 setWord addr w = do
-    st@State{ram} <- get
+    st@Acc32St{ram} <- get
     case writeWord ram addr w of
         Right ram' -> put st{ram = ram'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
 setAcc w = modify $ \st -> st{acc = w}
 
-getAcc :: State (MachineState (IoMem (Isa w w) w) w) w
+getAcc :: State (Acc32St w) w
 getAcc = acc <$> get
 
-getOverflowFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getOverflowFlag :: State (Acc32St w) Bool
 getOverflowFlag = overflowFlag <$> get
 
-getCarryFlag :: State (MachineState (IoMem (Isa w w) w) w) Bool
+getCarryFlag :: State (Acc32St w) Bool
 getCarryFlag = carryFlag <$> get
 
-instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) w) (IoMem (Isa w w) w) (Isa w w) w where
-    programCounter State{pc} = pc
-    memoryDump State{ram} = ram
-    ioStreams State{ram = IoMem{mIoStreams}} = mIoStreams
-    isHalted State{stopped} = stopped
+instance (IsWord w) => Inspectable (Acc32St w) (Acc32Mem w) (Acc32Isa w w) w where
+    programCounter Acc32St{pc} = pc
+    memoryDump Acc32St{ram} = ram
+    ioStreams Acc32St{ram = IoMem{mIoStreams}} = mIoStreams
+    isHalted Acc32St{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@State{acc, overflowFlag, carryFlag} v =
+    reprState labels st@Acc32St{acc, overflowFlag, carryFlag} v =
         case T.splitOn ":" v of
             ["V"] -> if overflowFlag then "1" else "0"
             ["C"] -> if carryFlag then "1" else "0"
@@ -283,13 +284,13 @@ instance (MachineWord w) => StateInterspector (MachineState (IoMem (Isa w w) w) 
             [r, _] -> unknownView r
             _ -> errorView v
 
-instance (MachineWord w) => Machine (MachineState (IoMem (Isa w w) w) w) (Isa w w) w where
+instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            State{stopped = True} -> return $ Left halted
-            State{internalError = Just err} -> return $ Left err
-            State{pc, ram} ->
+            Acc32St{stopped = True} -> return $ Left halted
+            Acc32St{internalError = Just err} -> return $ Left err
+            Acc32St{pc, ram} ->
                 case readInstruction ram pc of
                     Left err -> return $ Left err
                     Right (ram', instruction) -> do

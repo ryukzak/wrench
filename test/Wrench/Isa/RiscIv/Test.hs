@@ -76,9 +76,9 @@ tests =
             runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= 42
         ]
 
-initialState :: Int -> HashMap Register Int32 -> Isa Int32 Int32 -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
+initialState :: Int -> HashMap Register Int32 -> RiscIvIsa Int32 Int32 -> RiscIvSt Int32
 initialState pc regs instr =
-    State
+    RiscIvSt
         { pc = pc
         , mem =
             mkIoMem
@@ -99,20 +99,20 @@ initialState pc regs instr =
         , internalError = Nothing
         }
 
-runInstruction :: Isa Int32 Int32 -> [(Register, Int32)] -> Register -> Int32
+runInstruction :: RiscIvIsa Int32 Int32 -> [(Register, Int32)] -> Register -> Int32
 runInstruction instr initRegs result = do
     let st = initialState 0 (fromList initRegs) instr
-        State{regs} = execState instructionStep st
+        RiscIvSt{regs} = execState instructionStep st
     fromMaybe (error "Register not found") (regs !? result)
 
-runInstructionWithMem :: Isa Int32 Int32 -> [(Register, Int32)] -> [(Int, Word8)] -> Register -> Int32
+runInstructionWithMem :: RiscIvIsa Int32 Int32 -> [(Register, Int32)] -> [(Int, Word8)] -> Register -> Int32
 runInstructionWithMem instr initRegs memWrites result = do
     let st = initialStateWithMem 0 (fromList initRegs) instr memWrites
-        State{regs} = execState instructionStep st
+        RiscIvSt{regs} = execState instructionStep st
     fromMaybe (error "Register not found") (regs !? result)
 
 initialStateWithMem ::
-    Int -> HashMap Register Int32 -> Isa Int32 Int32 -> [(Int, Word8)] -> MachineState (IoMem (Isa Int32 Int32) Int32) Int32
+    Int -> HashMap Register Int32 -> RiscIvIsa Int32 Int32 -> [(Int, Word8)] -> RiscIvSt Int32
 initialStateWithMem pc regs instr memWrites =
     let baseMem =
             mkIoMem
@@ -130,7 +130,7 @@ initialStateWithMem pc regs instr memWrites =
                     }
                 )
         mem' = either error id $ foldlM (\m (i, b) -> writeByte m i b) baseMem memWrites
-     in State
+     in RiscIvSt
             { pc = pc
             , mem = mem'
             , regs = regs
@@ -138,7 +138,7 @@ initialStateWithMem pc regs instr memWrites =
             , internalError = Nothing
             }
 
-translate :: String -> Either String (Isa Int32 (Ref Int32))
+translate :: String -> Either String (RiscIvIsa Int32 (Ref Int32))
 translate code =
     case parse mnemonic "-" (code <> "\n") of
         Left err -> Left $ show err

@@ -166,7 +166,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
 --   widened to fit @memory_size@.
 renderMemoryTable ::
     forall m isa w.
-    (MachineWord w, Memory m isa w) =>
+    (IsWord w, Memory m isa w) =>
     DumpStats
     -> m
     -> Text
@@ -248,7 +248,7 @@ splitByAccess accessedAll lo hi =
      in go lo inRange
 
 defaultView ::
-    (ByteSize isa, MachineWord w, Memory m isa w, Show isa, StateInterspector st m isa w) =>
+    (ByteSize isa, Inspectable st m isa w, IsWord w, Memory m isa w, Show isa) =>
     HashMap Text w
     -> st
     -> Text
@@ -266,7 +266,7 @@ defaultView labels st v =
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
-viewMemory :: (ByteSize isa, MachineWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
+viewMemory :: (ByteSize isa, IsWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
 viewMemory a b mem =
     toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 

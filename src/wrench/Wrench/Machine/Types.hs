@@ -6,7 +6,7 @@ module Wrench.Machine.Types (
     mkIoMem,
     Cell (..),
     InitState (..),
-    StateInterspector (..),
+    Inspectable (..),
     Intervals (..),
     emptyIntervals,
     recordRange,
@@ -21,7 +21,7 @@ module Wrench.Machine.Types (
     intervalsDifference,
     AccessLog (..),
     emptyAccessLog,
-    MachineWord,
+    IsWord,
     FromSign (..),
     RegisterId,
     ByteSize (..),
@@ -42,7 +42,7 @@ import Relude.Extra (keys)
 
 -- * State
 
-type MachineWord w =
+type IsWord w =
     ( Bits w
     , FiniteBits w
     , ByteSize w
@@ -130,7 +130,7 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
-class StateInterspector st m isa w | st -> m isa w where
+class Inspectable st m isa w | st -> m isa w where
     programCounter :: st -> Int
     memoryDump :: st -> m
     ioStreams :: st -> IntMap ([w], [w])

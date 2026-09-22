@@ -80,7 +80,7 @@ simulate' prevInstr = do
             Left err -> tellError err
 
 powerOn ::
-    (Machine st isa w, MachineWord w) =>
+    (IsWord w, Machine st isa w) =>
     Int
     -> Int
     -> HashMap Text w
