@@ -83,10 +83,16 @@ values fit within these fields unchanged.
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 
+An unused slot can be written either as an explicit `nop` or simply left blank (just whitespace between the surrounding `/` separators) — the two forms are equivalent, and the blank form is preferred for keeping bundles terse.
+
 **Execution model:** All source operands are read first, then all results are written back simultaneously. The order of register writes from ALU1, ALU2, and Memory slots is non-deterministic — if multiple slots write to the same register, the result is undefined. The control slot always executes last. The compiler/assembler must ensure that parallel operations in the same bundle are independent (no write-write or read-write conflicts across slots).
 
 ```assembly
 add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
+
+; a bundle with only the first ALU slot active; the other three slots are
+; left blank instead of writing `nop / nop / nop`
+addi rd, rs1, k / / /
 ```
 
 ### Slot 0 and Slot 1: ALU Operations (Identical)
@@ -172,7 +178,7 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
     - **Operation:** `rd <- (rs1 < k) ? 1 : 0`
 
 - **NOP**
-    - **Syntax:** `nop`
+    - **Syntax:** `nop`, or leave the slot blank (just whitespace)
     - **Description:** No operation.
 
 ### Slot 2: Memory Operations
@@ -198,7 +204,7 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
     - **Operation:** `M[offset + rs1] <- rs2 & 0xFF`
 
 - **NOP**
-    - **Syntax:** `nop`
+    - **Syntax:** `nop`, or leave the slot blank (just whitespace)
     - **Description:** No operation.
 
 ### Slot 3: Control Operations
@@ -264,7 +270,7 @@ add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
     - **Operation:** `if rs1 < rs2 then pc <- pc + k`
 
 - **NOP**
-    - **Syntax:** `nop`
+    - **Syntax:** `nop`, or leave the slot blank (just whitespace)
     - **Description:** No operation.
 
 - **Halt**
@@ -279,7 +285,7 @@ Available registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `
 
 ### Slot utilization (parallelism)
 
-Each VLIW bundle has four execution slots (memory, ALU1, ALU2, control). A slot containing the corresponding `nop` is idle; everything else counts as active. The simulator tallies how many slots each executed bundle used and exposes three summary view variables. They're typically used with `slice: last` because the values are run-totals.
+Each VLIW bundle has four execution slots (memory, ALU1, ALU2, control). A slot containing the corresponding `nop` (or left blank) is idle; everything else counts as active. The simulator tallies how many slots each executed bundle used and exposes three summary view variables. They're typically used with `slice: last` because the values are run-totals.
 
 - `vliw:load-percent` -- average slot utilization across the run, as an integer percent. `(active_slots * 100) / (bundles * 4)`. `25%` means each bundle used one slot on average; `100%` means every slot of every bundle was active.
 - `vliw:avg-load` -- average number of active processing units (slots) per executed bundle, rendered with two decimals. `active_slots / bundles`, a value in `0.00`–`4.00`. This is the same measure as `vliw:load-percent` expressed as units-per-bundle instead of a percent of the four-wide width.

@@ -302,6 +302,7 @@ parseMemOp =
         , cmd2args "sw" Sw register memRef
         , cmd2args "sb" Sb register memRef
         , string "nop" >> return NopM
+        , pure NopM
         ]
 
 parseAluOp :: (IsWord w) => Parser (AluOp w (Ref w))
@@ -324,6 +325,7 @@ parseAluOp =
         , cmd2args "lui" Lui register referenceWithDirective
         , cmd2args "mv" Mv register register
         , string "nop" >> return NopA
+        , pure NopA
         ]
 
 parseCtrlOp :: (IsWord w) => Parser (ControlOp w (Ref w))
@@ -343,6 +345,7 @@ parseCtrlOp =
         , cmd3args "blt" Blt register register reference
         , string "halt" >> return Halt
         , string "nop" >> return NopC
+        , pure NopC
         ]
 
 instance (IsWord w) => MnemonicParser (VliwIvIsa w (Ref w)) where
