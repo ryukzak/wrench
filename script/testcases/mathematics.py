@@ -271,17 +271,14 @@ def gcd_many(*input_words: int) -> list[int]:
     Returns:
         list: A one-element list containing the GCD.
     """
-    if not input_words:
-        return [-1]
-
     count = input_words[0]
 
-    if count <= 0 or len(input_words) != count + 1:
+    if count <= 0:
         return [-1]
 
     result = abs(input_words[1])
 
-    for value in input_words[2:]:
+    for value in input_words[2 : count + 1]:
         a = result
         b = abs(value)
 
@@ -309,11 +306,11 @@ TEST_CASES["gcd_many"] = TestCase(
         Words2Words([3, -48, 18, -30], [6]),
         Words2Words([1, 42], [42]),
         Words2Words([0], [-1]),
+        Words2Words([2, 48, 18, 5], [6], rest=[5]),
     ],
     is_variant=True,
     category="Mathematics",
 )
-
 
 ###########################################################
 
@@ -621,12 +618,9 @@ def power_many(*input_words: int) -> list[int]:
     Returns:
         list: One result for each pair.
     """
-    if not input_words:
-        return [-1]
-
     count = input_words[0]
 
-    if count <= 0 or len(input_words) != 1 + 2 * count:
+    if count <= 0:
         return [-1]
 
     results = []
@@ -667,7 +661,7 @@ TEST_CASES["power_many"] = TestCase(
         Words2Words([2, 2, 40, 3, 40], [overflow_error_value]),
         Words2Words([1, 5, -1], [-1]),
         Words2Words([0], [-1]),
-        Words2Words([2, 2, 3, 3], [-1]),
+        Words2Words([1, 3, 2, 7, 7], [9], rest=[7, 7]),
     ],
     is_variant=True,
     category="Mathematics",

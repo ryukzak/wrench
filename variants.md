@@ -1674,17 +1674,14 @@ def gcd_many(*input_words: int) -> list[int]:
     Returns:
         list: A one-element list containing the GCD.
     """
-    if not input_words:
-        return [-1]
-
     count = input_words[0]
 
-    if count <= 0 or len(input_words) != count + 1:
+    if count <= 0:
         return [-1]
 
     result = abs(input_words[1])
 
-    for value in input_words[2:]:
+    for value in input_words[2 : count + 1]:
         a = result
         b = abs(value)
 
@@ -1839,12 +1836,9 @@ def power_many(*input_words: int) -> list[int]:
     Returns:
         list: One result for each pair.
     """
-    if not input_words:
-        return [-1]
-
     count = input_words[0]
 
-    if count <= 0 or len(input_words) != 1 + 2 * count:
+    if count <= 0:
         return [-1]
 
     results = []
