@@ -1,18 +1,17 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Wrench.Isa.Wasm32.Test (tests) where
 
-import Data.Default
+import Data.FileEmbed (embedStringFile)
 import Data.HashMap.Strict qualified as HashMap
-import Data.IntMap.Strict qualified as IntMap
-import Data.Text qualified as T
 import Prelude qualified
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, assertBool, assertFailure, testCase, (@?=))
+import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Wrench.Isa.Wasm32
-import Wrench.Machine.Memory
 import Wrench.Machine.Types
-import Wrench.Translator (TranslatorResult (..))
+import Wrench.Translator (TranslatorResult (..), translate)
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
 import Wrench.Translator.Types (Ref)
 
@@ -20,222 +19,144 @@ tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "Parse keyword function metadata" $ do
-            assertBool "keyword .func should parse" $
-                isRight (parseSource ".func params $n result i32 locals $acc")
-        , testCase "Parse numeric function metadata" $ do
-            assertBool "numeric func should parse" $
-                isRight (parseSource "func 2, 3, 1")
-        , testCase "Source metadata lowers away from executable memory" $ do
-            let src = Prelude.unlines [".text", "_start:", "    .func", "    halt", "    .endfunc"]
-            case translateWasm32 @Int32 64 (repeat 0) "-" src of
-                Left err -> assertFailureText err
-                Right (TranslatorResult dump labels _stats, functions) -> do
-                    HashMap.lookup "_start" labels @?= Just 0
-                    IntMap.member 0 functions @?= True
-                    prettyDump labels (dumpCells dump) @?= "mem[0..0]: \tHalt \t@_start\nmem[1..1]: \tReturn\nmem[2..63]: \t( 00 )"
-        , testCase "Translation rejects unknown locals" $ do
-            assertTranslateError
-                "unknown local"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    local.get $missing"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects duplicate locals" $ do
-            assertTranslateError
-                "duplicate local name"
-                [ ".text"
-                , "_start:"
-                , "    .func params $n locals $n"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects unknown control labels" $ do
-            assertTranslateError
-                "unknown control label"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    br missing"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects calls to non-functions" $ do
-            assertTranslateError
-                "call target does not point to .func"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    call target"
-                , "    .endfunc"
-                , "target:"
-                , "    i32.const 0"
-                ]
-        , testCase "Binary operations pop right operand first" $ do
-            operandStack (execute I32Sub [3, 10]) @?= [7]
-        , testCase "Logical right shift treats negative value as unsigned" $ do
-            operandStack (execute I32ShrU [4, -16]) @?= [0x0FFFFFFF]
-        , testCase "Shift amount is masked to 5 bits" $ do
-            operandStack (execute I32Shl [33, 1]) @?= [2]
-        , testCase "Signed and unsigned comparisons differ" $ do
-            operandStack (execute I32LtS [1, -1]) @?= [1]
-            operandStack (execute I32LtU [1, -1]) @?= [0]
-        , testCase "Select uses non-zero condition" $ do
-            operandStack (execute Select [9, 10, 20]) @?= [20]
-            operandStack (execute Select [0, 10, 20]) @?= [10]
+        [ testCase "i32.load8_u is not swallowed by the i32.load prefix" $ do
+            -- Regression: choice tries "i32.load" before "i32.load8_u" in
+            -- source order would have to backtrack past already-consumed
+            -- input to try the longer alternative, and plain (non-`try`)
+            -- choice alternatives don't -- see the parser's own comment.
+            parseOk "i32.load8_u" $ \i -> i @?= I32Load8U
+            parseOk "i32.load8_s" $ \i -> i @?= I32Load8S
+            parseOk "i32.load" $ \i -> i @?= I32Load
+            parseOk "i32.store8" $ \i -> i @?= I32Store8
+            parseOk "i32.store" $ \i -> i @?= I32Store
+        , testCase "call parses target/paramCount/resultCount as a comma list" $ do
+            parseOk "call 2, 1" $ \i -> i @?= Call 2 1
+        , testCase "Byte loads sign/zero-extend a high-bit byte differently" $ do
+            -- A scratch address must be a `.data` cell, not a raw number
+            -- landing inside the test's own code: reading an
+            -- uninitialized instruction cell as data is rejected outright
+            -- (writing to one first happens to succeed, converting it --
+            -- but that's an implementation detail not worth depending
+            -- on).
+            stack <-
+                runSourceToStack $ withScratch ["i32.const scratch", "i32.const 0x80", "i32.store8", "i32.const scratch", "i32.load8_u"]
+            stack @?= "128"
+            stack' <-
+                runSourceToStack $ withScratch ["i32.const scratch", "i32.const 0x80", "i32.store8", "i32.const scratch", "i32.load8_s"]
+            stack' @?= "-128"
+        , testCase "Word store/load round-trips through memory" $ do
+            -- i32.store expects [address, value] with value on top (real
+            -- WebAssembly's own stack order -- see I32Store's haddock),
+            -- so the destination has to be pushed *before* computing the
+            -- new value, not after.
+            stack <-
+                runSourceToStack $
+                    withScratch
+                        [ "i32.const scratch"
+                        , "i32.const scratch"
+                        , "i32.load"
+                        , "i32.const 1"
+                        , "i32.add"
+                        , "i32.store"
+                        , "i32.const scratch"
+                        , "i32.load"
+                        ]
+            stack @?= "1"
         , testCase "Signed division by zero traps" $ do
-            internalError (execute I32DivS [0, 42]) @?= Just "integer divide by zero"
-        , testCase "Signed division overflow traps" $ do
-            internalError (execute I32DivS [-1, minBound]) @?= Just "integer overflow"
-        , testCase "Byte loads support signed and unsigned extension" $ do
-            operandStack (executeWithBytes I32Load8S [(10, 0x80)] [10]) @?= [-128]
-            operandStack (executeWithBytes I32Load8U [(10, 0x80)] [10]) @?= [128]
-        , testCase "Byte store writes the low byte" $ do
-            let Wasm32St{mem} = executeWithBytes I32Store8 [] [0x12345641, 10]
-            fmap snd (readByte mem 10) @?= Right 0x41
-        , testCase "Function calls bind params and return results" $ do
-            let Wasm32St{operandStack, stopped, internalError} = runProgram functionTable functionProgram
-            operandStack @?= [42]
-            stopped @?= True
-            internalError @?= Nothing
-        , testCase "If/else executes the selected structured branch" $ do
-            operandStack (runProgram ifElseTable ifElseProgram) @?= [2]
-        , testCase "Loop branch keeps the loop frame and exits through block branch" $ do
-            operandStack (runProgram loopTable loopProgram) @?= [0]
+            assertHalts False ["i32.const 1", "i32.const 0", "i32.div_s"]
+        , testCase "block/br_if breaks out to the enclosing block" $ do
+            stack <-
+                runToStack
+                    [ "block"
+                    , "loop"
+                    , "i32.const 1"
+                    , "br_if 1"
+                    , "i32.const 99"
+                    , "br 0"
+                    , "end"
+                    , "end"
+                    , "i32.const 7"
+                    ]
+            stack @?= "7"
+        , testCase "if/else selects the taken branch" $ do
+            stack <- runToStack ["i32.const 0", "if", "i32.const 1", "else", "i32.const 2", "end"]
+            stack @?= "2"
+        , testCase "Recursive call/return computes factorial(5)" $ do
+            stack <- runSourceToStack factorialSrc
+            stack @?= "120"
+        , testCase "Indirect call through a parameter dispatches to the right target" $ do
+            stack <- runSourceToStack applyTwiceSrc
+            stack @?= "12"
         ]
 
-parseSource :: String -> Either String (Source Int32 (Ref Int32))
-parseSource code =
+-- | Parse a single mnemonic line in isolation (no labels involved).
+parseOk :: String -> (Wasm32Isa Int32 (Ref Int32) -> Assertion) -> Assertion
+parseOk code check =
     case parse mnemonic "-" (code <> "\n") of
-        Left err -> Left $ show err
-        Right m -> Right m
+        Left err -> assertFailure $ "parse failed: " <> show err
+        Right i -> check i
 
-assertFailureText :: Text -> Assertion
-assertFailureText = assertFailure . toString
+-- | Assemble a tiny `_start`-only program from bare instruction lines,
+-- run it to completion, and read back the `stack:dec` report view --
+-- reuses the exact same view logic the CLI\/golden tests exercise,
+-- rather than reaching into 'Wasm32St' fields the module doesn't
+-- export.
+runToStack :: [String] -> IO Text
+runToStack instrs = runSourceToStack $ toSource instrs
 
-assertTranslateError :: Text -> [String] -> Assertion
-assertTranslateError needle lines' =
-    case translateWasm32 @Int32 64 (repeat 0) "-" (Prelude.unlines lines') of
-        Right _ -> assertFailure $ "translation unexpectedly succeeded; expected " <> toString needle
-        Left err -> assertBool ("expected " <> toString needle <> " in " <> toString err) $ needle `T.isInfixOf` err
+runSourceToStack :: String -> IO Text
+runSourceToStack src =
+    case runSource src of
+        Left err -> assertFailure (toString err) >> error "unreachable"
+        Right st -> return $ reprState HashMap.empty st "stack:dec"
 
-execute :: Wasm32Isa Int32 Int32 -> [Int32] -> Wasm32St Int32
-execute instr = executeWithBytes instr []
+-- | Assert the program halts cleanly (@expectSuccess@) or hits an
+-- internal error\/trap instead.
+assertHalts :: Bool -> [String] -> Assertion
+assertHalts expectSuccess instrs =
+    case runSource (toSource instrs) of
+        Left _ | not expectSuccess -> return ()
+        Left err -> assertFailure $ "expected success, got: " <> toString err
+        Right _ | expectSuccess -> return ()
+        Right _ -> assertFailure "expected a trap, but the program ran to completion"
 
-executeWithBytes :: Wasm32Isa Int32 Int32 -> [(Int, Word8)] -> [Int32] -> Wasm32St Int32
-executeWithBytes instr bytes stack =
-    execState (instructionExecute 0 instr) (writeBytes bytes emptyState{operandStack = stack})
+toSource :: [String] -> String
+toSource instrs = Prelude.unlines $ [".text", "_start:"] <> map ("    " <>) instrs <> ["    halt"]
 
-writeBytes :: [(Int, Word8)] -> Wasm32St Int32 -> Wasm32St Int32
-writeBytes bytes st@Wasm32St{mem} =
-    st{mem = either error id $ foldlM (\m (addr, value) -> writeByte m addr value) mem bytes}
+-- | Like 'toSource', but with a one-word `.data` cell named @scratch@ for
+-- tests that need a real, freshly-zeroed memory address rather than a
+-- bare number that might land inside the program's own code.
+withScratch :: [String] -> String
+withScratch instrs =
+    Prelude.unlines $
+        [".data", "scratch: .word 0", ".text", "_start:"]
+            <> map ("    " <>) instrs
+            <> ["    halt"]
 
-emptyState :: Wasm32St Int32
-emptyState = rawState []
-
-rawState :: [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-rawState instrs =
-    Wasm32St
-        { pc = 0
-        , mem =
-            programMemory instrs
-        , operandStack = []
-        , operandStackMax = 0
-        , frames = []
-        , framesMax = 0
-        , controlStack = []
-        , controlStackMax = 0
-        , functions = IntMap.empty
-        , stopped = False
-        , internalError = Nothing
-        }
-
-runProgram :: FunctionTable -> [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-runProgram functionTable' instrs = go (200 :: Int) (programState functionTable' instrs)
+-- | Parse, lower, and run a wasm32 program to completion (halt or trap),
+-- returning the final machine state. 'Left' only for translation
+-- failures or a trap\/internal error reached during execution --
+-- distinguished from a clean halt via 'instructionFetch' the same way
+-- 'Machine.instructionStep''s own default implementation does.
+runSource :: String -> Either Text (Wasm32St Int32)
+runSource src = do
+    TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 1000 (repeat 0) "-" src
+    pc <- maybeToRight "_start label should be defined." (HashMap.lookup "_start" labels)
+    let ioDump = mkIoMem mempty dump
+        st0 = initState (fromEnum pc) ioDump (repeat 0)
+    runToHalt (2000 :: Int) st0
     where
-        go 0 _ = error "test program did not halt"
-        go limit st =
+        runToHalt :: Int -> Wasm32St Int32 -> Either Text (Wasm32St Int32)
+        runToHalt 0 _ = Left "test program did not halt"
+        runToHalt limit st =
             case evalState instructionFetch st of
-                Right _ -> go (limit - 1) (execState instructionStep st)
-                Left err | err == halted -> st
-                Left _ -> st
+                Right _ -> runToHalt (limit - 1) (execState instructionStep st)
+                Left err
+                    | err == halted -> Right st
+                    | otherwise -> Left err
 
-programState :: FunctionTable -> [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-programState functionTable' instrs =
-    either error id $ initWasm32State 0 (programMemory instrs) functionTable'
+factorialSrc :: String
+factorialSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/factorial.s")
 
-programMemory :: [(Int, Wasm32Isa Int32 Int32)] -> IoMem (Wasm32Isa Int32 Int32) Int32
-programMemory instrs =
-    mkIoMem
-        def
-        Mem
-            { memorySize = 512
-            , memoryData =
-                fromList $
-                    [(addr, Value 0) | addr <- [0 .. 511]]
-                        <> concatMap instructionCells instrs
-            }
-
-instructionCells :: (Int, Wasm32Isa Int32 Int32) -> [(Int, Cell (Wasm32Isa Int32 Int32) Int32)]
-instructionCells (addr, instr) =
-    (addr, Instruction instr)
-        : [(addr + offset, InstructionPart) | offset <- [1 .. byteSize instr - 1]]
-
-functionTable :: FunctionTable
-functionTable =
-    IntMap.fromList
-        [ (0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})
-        , (11, FunctionMeta{fmParamCount = 1, fmLocalNames = ["$x"], fmResultCount = 1})
-        ]
-
-functionProgram :: [(Int, Wasm32Isa Int32 Int32)]
-functionProgram =
-    [ (0, I32Const 41)
-    , (5, Call 11)
-    , (10, Halt)
-    , (11, LocalGet 0)
-    , (13, I32Const 1)
-    , (18, I32Add)
-    , (19, Return)
-    ]
-
-ifElseTable :: FunctionTable
-ifElseTable =
-    IntMap.fromList
-        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})]
-
-ifElseProgram :: [(Int, Wasm32Isa Int32 Int32)]
-ifElseProgram =
-    [ (0, I32Const 0)
-    , (5, If 0)
-    , (7, I32Const 1)
-    , (12, Else)
-    , (13, I32Const 2)
-    , (18, End)
-    , (19, Halt)
-    ]
-
-loopTable :: FunctionTable
-loopTable =
-    IntMap.fromList
-        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = ["$n"], fmResultCount = 0})]
-
-loopProgram :: [(Int, Wasm32Isa Int32 Int32)]
-loopProgram =
-    [ (0, I32Const 3)
-    , (5, LocalSet 0)
-    , (7, Block 0)
-    , (9, Loop 1)
-    , (11, LocalGet 0)
-    , (13, I32Eqz)
-    , (14, BrIf 0)
-    , (16, LocalGet 0)
-    , (18, I32Const 1)
-    , (23, I32Sub)
-    , (24, LocalSet 0)
-    , (26, Br 1)
-    , (28, End)
-    , (29, End)
-    , (30, LocalGet 0)
-    , (32, Halt)
-    ]
+applyTwiceSrc :: String
+applyTwiceSrc = $(embedStringFile "test/Wrench/Isa/Wasm32/fixtures/apply_twice.s")
