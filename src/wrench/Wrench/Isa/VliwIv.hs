@@ -520,7 +520,11 @@ instance (IsWord w) => InitState (VliwIvMem w) (VliwIvSt w) where
             , vliwLoad = emptyVliwLoad
             }
 
-instance (IsWord w) => Inspectable (VliwIvSt w) (VliwIvMem w) (VliwIvIsa w w) w where
+instance (IsWord w) => Inspectable (VliwIvSt w) where
+    type WordOf (VliwIvSt w) = w
+    type IsaOf (VliwIvSt w) = VliwIvIsa w w
+    type MemOf (VliwIvSt w) = VliwIvMem w
+
     programCounter VliwIvSt{pc} = pc
     memoryDump VliwIvSt{mem} = mem
     ioStreams VliwIvSt{mem = IoMem{mIoStreams}} = mIoStreams

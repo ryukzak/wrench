@@ -268,7 +268,11 @@ getOverflowFlag = overflowFlag <$> get
 getCarryFlag :: State (Acc32St w) Bool
 getCarryFlag = carryFlag <$> get
 
-instance (IsWord w) => Inspectable (Acc32St w) (Acc32Mem w) (Acc32Isa w w) w where
+instance (IsWord w) => Inspectable (Acc32St w) where
+    type WordOf (Acc32St w) = w
+    type IsaOf (Acc32St w) = Acc32Isa w w
+    type MemOf (Acc32St w) = Acc32Mem w
+
     programCounter Acc32St{pc} = pc
     memoryDump Acc32St{ram} = ram
     ioStreams Acc32St{ram = IoMem{mIoStreams}} = mIoStreams

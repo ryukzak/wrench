@@ -426,7 +426,11 @@ instance (IsWord w) => InitState (M68kMem w) (M68kSt w) where
             , cFlag = False
             }
 
-instance (IsWord w) => Inspectable (M68kSt w) (M68kMem w) (M68kIsa w w) w where
+instance (IsWord w) => Inspectable (M68kSt w) where
+    type WordOf (M68kSt w) = w
+    type IsaOf (M68kSt w) = M68kIsa w w
+    type MemOf (M68kSt w) = M68kMem w
+
     programCounter M68kSt{pc} = pc
     memoryDump M68kSt{mem} = mem
     ioStreams M68kSt{mem = IoMem{mIoStreams}} = mIoStreams

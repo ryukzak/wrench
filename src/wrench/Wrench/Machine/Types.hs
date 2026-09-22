@@ -130,11 +130,15 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 class InitState mem st | st -> mem where
     initState :: Int -> mem -> [Int] -> st
 
-class Inspectable st m isa w | st -> m isa w where
+class Inspectable st where
+    type WordOf st
+    type IsaOf st
+    type MemOf st
+
     programCounter :: st -> Int
-    memoryDump :: st -> m
-    ioStreams :: st -> IntMap ([w], [w])
-    reprState :: HashMap Text w -> st -> Text -> Text
+    memoryDump :: st -> MemOf st
+    ioStreams :: st -> IntMap ([WordOf st], [WordOf st])
+    reprState :: HashMap Text (WordOf st) -> st -> Text -> Text
     reprState _labels _st var = "unknown variable: " <> var
 
     -- | Per-run summary views, resolved from the simulator's *final* state
@@ -143,7 +147,7 @@ class Inspectable st m isa w | st -> m isa w where
     --   step, where the per-state value would be off by one. Returns
     --   'Nothing' when the variable isn't a summary view, in which case the
     --   resolver falls through to the per-state 'reprState'.
-    summaryView :: HashMap Text w -> st -> Text -> Maybe Text
+    summaryView :: HashMap Text (WordOf st) -> st -> Text -> Maybe Text
     summaryView _labels _st _var = Nothing
 
     isHalted :: st -> Bool

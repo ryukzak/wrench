@@ -53,6 +53,14 @@ data ReportConf = ReportConf
 instance FromJSON ReportConf where
     parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
 
+prepareReport ::
+    (Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>
+    TranslatorResult mem (WordOf st)
+    -> Bool
+    -> st
+    -> [Trace st (IsaOf st)]
+    -> ReportConf
+    -> (Bool, Text)
 prepareReport
     trResult@TranslatorResult{}
     verbose
@@ -248,8 +256,8 @@ splitByAccess accessedAll lo hi =
      in go lo inRange
 
 defaultView ::
-    (ByteSize isa, Inspectable st m isa w, IsWord w, Memory m isa w, Show isa) =>
-    HashMap Text w
+    (ByteSize (IsaOf st), Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>
+    HashMap Text (WordOf st)
     -> st
     -> Text
     -> Maybe Text

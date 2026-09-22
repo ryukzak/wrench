@@ -349,7 +349,11 @@ getA = do
 getB :: State (F32aSt w) w
 getB = get <&> b
 
-instance (IsWord w) => Inspectable (F32aSt w) (F32aMem w) (F32aIsa w w) w where
+instance (IsWord w) => Inspectable (F32aSt w) where
+    type WordOf (F32aSt w) = w
+    type IsaOf (F32aSt w) = F32aIsa w w
+    type MemOf (F32aSt w) = F32aMem w
+
     programCounter F32aSt{p} = p
     memoryDump F32aSt{ram} = ram
     ioStreams F32aSt{ram = IoMem{mIoStreams}} = mIoStreams

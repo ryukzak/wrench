@@ -436,7 +436,11 @@ instance (IsWord w) => InitState (RiscIvMem w) (RiscIvSt w) where
             , internalError = Nothing
             }
 
-instance (IsWord w) => Inspectable (RiscIvSt w) (RiscIvMem w) (RiscIvIsa w w) w where
+instance (IsWord w) => Inspectable (RiscIvSt w) where
+    type WordOf (RiscIvSt w) = w
+    type IsaOf (RiscIvSt w) = RiscIvIsa w w
+    type MemOf (RiscIvSt w) = RiscIvMem w
+
     programCounter RiscIvSt{pc} = pc
     memoryDump RiscIvSt{mem} = mem
     ioStreams RiscIvSt{mem = IoMem{mIoStreams}} = mIoStreams
