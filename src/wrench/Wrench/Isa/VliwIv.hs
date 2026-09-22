@@ -7,7 +7,6 @@
 module Wrench.Isa.VliwIv (
     VliwIvIsa (..),
     VliwIvSt (..),
-    VliwIvMem,
     Register (..),
     VliwLoadAcc,
     emptyVliwLoad,
@@ -28,6 +27,7 @@ import Wrench.Machine.Types (
     Inspectable (..),
     IoMem (..),
     Machine (..),
+    MemOf,
     fromSign,
     halted,
  )
@@ -432,11 +432,9 @@ cmd3args mnemonic constructor a b c =
 
 -- * Machine
 
-type VliwIvMem w = IoMem (VliwIvIsa w w) w
-
 data VliwIvSt w = VliwIvSt
     { pc :: Int
-    , mem :: VliwIvMem w
+    , mem :: IoMem (VliwIvIsa w w) w
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -508,7 +506,9 @@ setByte addr byte = do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-instance (IsWord w) => InitState (VliwIvMem w) (VliwIvSt w) where
+type instance MemOf (VliwIvSt w) = IoMem (VliwIvIsa w w) w
+
+instance (IsWord w) => InitState (VliwIvSt w) where
     initState pc dump randomStream =
         VliwIvSt
             { pc
@@ -523,7 +523,6 @@ instance (IsWord w) => InitState (VliwIvMem w) (VliwIvSt w) where
 instance (IsWord w) => Inspectable (VliwIvSt w) where
     type WordOf (VliwIvSt w) = w
     type IsaOf (VliwIvSt w) = VliwIvIsa w w
-    type MemOf (VliwIvSt w) = VliwIvMem w
 
     programCounter VliwIvSt{pc} = pc
     memoryDump VliwIvSt{mem} = mem

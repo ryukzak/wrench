@@ -7,7 +7,6 @@
 module Wrench.Isa.RiscIv (
     RiscIvIsa (..),
     RiscIvSt (..),
-    RiscIvMem,
     Register (..),
     MemRef (..),
 ) where
@@ -27,6 +26,7 @@ import Wrench.Machine.Types (
     Inspectable (..),
     IoMem (..),
     Machine (..),
+    MemOf,
     fromSign,
     halted,
  )
@@ -359,11 +359,9 @@ cmd3args mnemonic constructor a b c =
 
 -- * Machine
 
-type RiscIvMem w = IoMem (RiscIvIsa w w) w
-
 data RiscIvSt w = RiscIvSt
     { pc :: Int
-    , mem :: RiscIvMem w
+    , mem :: IoMem (RiscIvIsa w w) w
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -426,7 +424,9 @@ setByte addr byte = do
             put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
-instance (IsWord w) => InitState (RiscIvMem w) (RiscIvSt w) where
+type instance MemOf (RiscIvSt w) = IoMem (RiscIvIsa w w) w
+
+instance (IsWord w) => InitState (RiscIvSt w) where
     initState pc dump _randomStream =
         RiscIvSt
             { pc
@@ -439,7 +439,6 @@ instance (IsWord w) => InitState (RiscIvMem w) (RiscIvSt w) where
 instance (IsWord w) => Inspectable (RiscIvSt w) where
     type WordOf (RiscIvSt w) = w
     type IsaOf (RiscIvSt w) = RiscIvIsa w w
-    type MemOf (RiscIvSt w) = RiscIvMem w
 
     programCounter RiscIvSt{pc} = pc
     memoryDump RiscIvSt{mem} = mem

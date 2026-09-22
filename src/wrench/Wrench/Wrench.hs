@@ -115,11 +115,12 @@ wrenchIO ::
     ( ByteSize isa1
     , ByteSize isa2
     , DerefMnemonic (isa_ w) w
-    , InitState (IoMem isa2 w) st
+    , InitState st
     , Inspectable st
     , IsWord w
     , IsaOf st ~ isa2
     , Machine st isa2 w
+    , MemOf st ~ IoMem isa2 w
     , Memory (MemOf st) isa2 w
     , MnemonicParser isa1
     , Show (isa_ w w)
@@ -154,11 +155,12 @@ wrench ::
     ( ByteSize isa1
     , ByteSize isa2
     , DerefMnemonic (isa_ w) w
-    , InitState (IoMem isa2 w) st
+    , InitState st
     , Inspectable st
     , IsWord w
     , IsaOf st ~ isa2
     , Machine st isa2 w
+    , MemOf st ~ IoMem isa2 w
     , Memory (MemOf st) isa2 w
     , MnemonicParser isa1
     , Show (isa_ w w)

@@ -9,7 +9,6 @@ module Wrench.Isa.M68k (
     Argument (..),
     Mode (..),
     M68kSt (..),
-    M68kMem,
     IndexRegister (..),
     DataReg (..),
     dataRegisters,
@@ -383,13 +382,11 @@ instance (ByteSizeT w) => ByteSize (M68kIsa w l) where
     byteSize Unlk{} = 2
     byteSize Halt = 2
 
-type M68kMem w = IoMem (M68kIsa w w) w
-
 data M68kSt w = M68kSt
     { pc :: Int
     , dataRegs :: HashMap DataReg w
     , addrRegs :: HashMap AddrReg w
-    , mem :: M68kMem w
+    , mem :: IoMem (M68kIsa w w) w
     , stopped :: Bool
     , internalError :: Maybe Text
     , nFlag, zFlag, vFlag, cFlag :: Bool
@@ -411,7 +408,9 @@ nextPc = do
 raiseInternalError :: Text -> State (M68kSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
-instance (IsWord w) => InitState (M68kMem w) (M68kSt w) where
+type instance MemOf (M68kSt w) = IoMem (M68kIsa w w) w
+
+instance (IsWord w) => InitState (M68kSt w) where
     initState pc dump _randomStream =
         M68kSt
             { pc
@@ -429,7 +428,6 @@ instance (IsWord w) => InitState (M68kMem w) (M68kSt w) where
 instance (IsWord w) => Inspectable (M68kSt w) where
     type WordOf (M68kSt w) = w
     type IsaOf (M68kSt w) = M68kIsa w w
-    type MemOf (M68kSt w) = M68kMem w
 
     programCounter M68kSt{pc} = pc
     memoryDump M68kSt{mem} = mem

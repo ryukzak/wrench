@@ -5,7 +5,6 @@
 module Wrench.Isa.Acc32 (
     Acc32Isa (..),
     Acc32St,
-    Acc32Mem,
 ) where
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
@@ -200,20 +199,20 @@ instance ByteSize (Acc32Isa w l) where
     byteSize Halt = 1
     byteSize _ = 3
 
-type Acc32Mem w = IoMem (Acc32Isa w w) w
-
 data Acc32St w = Acc32St
     { pc :: Int
     , acc :: w
     , overflowFlag :: Bool
     , carryFlag :: Bool
-    , ram :: Acc32Mem w
+    , ram :: IoMem (Acc32Isa w w) w
     , stopped :: Bool
     , internalError :: Maybe Text
     }
     deriving (Show)
 
-instance (IsWord w) => InitState (Acc32Mem w) (Acc32St w) where
+type instance MemOf (Acc32St w) = IoMem (Acc32Isa w w) w
+
+instance (IsWord w) => InitState (Acc32St w) where
     initState pc dump _randomStream =
         Acc32St
             { acc = 0
@@ -271,7 +270,6 @@ getCarryFlag = carryFlag <$> get
 instance (IsWord w) => Inspectable (Acc32St w) where
     type WordOf (Acc32St w) = w
     type IsaOf (Acc32St w) = Acc32Isa w w
-    type MemOf (Acc32St w) = Acc32Mem w
 
     programCounter Acc32St{pc} = pc
     memoryDump Acc32St{ram} = ram

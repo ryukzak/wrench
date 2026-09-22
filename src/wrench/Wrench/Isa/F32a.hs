@@ -6,7 +6,6 @@
 module Wrench.Isa.F32a (
     F32aIsa (..),
     F32aSt (..),
-    F32aMem,
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -227,13 +226,11 @@ instance ByteSize (F32aIsa w l) where
     byteSize (StoreP _) = 5
     byteSize _ = 1
 
-type F32aMem w = IoMem (F32aIsa w w) w
-
 data F32aSt w = F32aSt
     { p :: Int
     , a :: w
     , b :: w
-    , ram :: F32aMem w
+    , ram :: IoMem (F32aIsa w w) w
     , dataStack :: [w]
     , returnStack :: [w]
     , dataStackMax :: !Int
@@ -247,7 +244,9 @@ data F32aSt w = F32aSt
     }
     deriving (Show)
 
-instance (IsWord w) => InitState (F32aMem w) (F32aSt w) where
+type instance MemOf (F32aSt w) = IoMem (F32aIsa w w) w
+
+instance (IsWord w) => InitState (F32aSt w) where
     initState pc dump _randomStream =
         F32aSt
             { p = pc
@@ -352,7 +351,6 @@ getB = get <&> b
 instance (IsWord w) => Inspectable (F32aSt w) where
     type WordOf (F32aSt w) = w
     type IsaOf (F32aSt w) = F32aIsa w w
-    type MemOf (F32aSt w) = F32aMem w
 
     programCounter F32aSt{p} = p
     memoryDump F32aSt{ram} = ram

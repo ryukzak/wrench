@@ -7,6 +7,7 @@ module Wrench.Machine.Types (
     Cell (..),
     InitState (..),
     Inspectable (..),
+    MemOf,
     Intervals (..),
     emptyIntervals,
     recordRange,
@@ -127,13 +128,14 @@ class ByteSizeT t where
 instance (ByteSize t, Default t) => ByteSizeT t where
     byteSizeT = byteSize (def :: t)
 
-class InitState mem st | st -> mem where
-    initState :: Int -> mem -> [Int] -> st
+type family MemOf st
+
+class InitState st where
+    initState :: Int -> MemOf st -> [Int] -> st
 
 class Inspectable st where
     type WordOf st
     type IsaOf st
-    type MemOf st
 
     programCounter :: st -> Int
     memoryDump :: st -> MemOf st
