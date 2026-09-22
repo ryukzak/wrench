@@ -1,0 +1,23 @@
+name: "assert divmod(17, 5) == (3, 2)"
+limit: 500
+memory_size: 0x200
+memory_mapped_io:
+  0x80: [17]
+  0x84: [5]
+  0x88: []
+  0x8c: []
+reports:
+  - name: Check results
+    slice: last
+    filter:
+      - state
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+      numio[0x88]: {io:0x88:dec}
+      numio[0x8c]: {io:0x8c:dec}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> []
+      numio[0x88]: [] >>> [3]
+      numio[0x8c]: [] >>> [2]

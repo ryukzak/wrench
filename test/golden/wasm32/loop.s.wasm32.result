@@ -1,0 +1,25 @@
+0:	counter
+4:	_start
+---
+mem[0..3]: 	00 00 00 00	@"counter"
+mem[4..8]: 	I32Const 0 	@_start
+mem[9..13]: 	I32Const 1
+mem[14..14]: 	I32Store
+mem[15..15]: 	Loop
+mem[16..20]: 	I32Const 0
+mem[21..25]: 	I32Const 0
+mem[26..26]: 	I32Load
+mem[27..31]: 	I32Const 2
+mem[32..32]: 	I32Mul
+mem[33..33]: 	I32Store
+mem[34..38]: 	I32Const 0
+mem[39..39]: 	I32Load
+mem[40..44]: 	I32Const 100
+mem[45..45]: 	I32LtS
+mem[46..47]: 	BrIf 0
+mem[48..48]: 	End
+mem[49..53]: 	I32Const 0
+mem[54..54]: 	I32Load
+mem[55..55]: 	Halt
+mem[56..999]: 	( 00 )
+---

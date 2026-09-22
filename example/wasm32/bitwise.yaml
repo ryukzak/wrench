@@ -1,0 +1,10 @@
+name: "assert and/or/xor/shl/shr_s/shr_u results"
+limit: 100
+memory_size: 0x100
+reports:
+  - name: Check results
+    slice: last
+    view: |
+      stack: {stack:dec}
+    assert: |
+      stack: 2147483644:-4:24:5:7:2

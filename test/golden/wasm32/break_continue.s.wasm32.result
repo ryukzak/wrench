@@ -1,0 +1,45 @@
+0:	counter
+4:	_start
+---
+mem[0..3]: 	00 00 00 00	@"counter"
+mem[4..8]: 	I32Const 0 	@_start
+mem[9..13]: 	I32Const 5
+mem[14..14]: 	I32Store
+mem[15..15]: 	Block
+mem[16..16]: 	Loop
+mem[17..21]: 	I32Const 0
+mem[22..22]: 	I32Load
+mem[23..27]: 	I32Const 2
+mem[28..28]: 	I32Eq
+mem[29..30]: 	BrIf 1
+mem[31..35]: 	I32Const 0
+mem[36..36]: 	I32Load
+mem[37..41]: 	I32Const 3
+mem[42..42]: 	I32Eq
+mem[43..43]: 	If
+mem[44..48]: 	I32Const 0
+mem[49..53]: 	I32Const 0
+mem[54..54]: 	I32Load
+mem[55..59]: 	I32Const 1
+mem[60..60]: 	I32Sub
+mem[61..61]: 	I32Store
+mem[62..62]: 	Else
+mem[63..67]: 	I32Const 0
+mem[68..68]: 	I32Load
+mem[69..73]: 	I32Const 0
+mem[74..78]: 	I32Const 0
+mem[79..79]: 	I32Load
+mem[80..84]: 	I32Const 1
+mem[85..85]: 	I32Sub
+mem[86..86]: 	I32Store
+mem[87..87]: 	End
+mem[88..92]: 	I32Const 0
+mem[93..93]: 	I32Load
+mem[94..98]: 	I32Const 0
+mem[99..99]: 	I32GtS
+mem[100..101]: 	BrIf 0
+mem[102..102]: 	End
+mem[103..103]: 	End
+mem[104..104]: 	Halt
+mem[105..999]: 	( 00 )
+---

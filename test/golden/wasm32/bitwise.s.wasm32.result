@@ -1,0 +1,23 @@
+0:	_start
+---
+mem[0..4]: 	I32Const 6 	@_start
+mem[5..9]: 	I32Const 3
+mem[10..10]: 	I32And
+mem[11..15]: 	I32Const 6
+mem[16..20]: 	I32Const 3
+mem[21..21]: 	I32Or
+mem[22..26]: 	I32Const 6
+mem[27..31]: 	I32Const 3
+mem[32..32]: 	I32Xor
+mem[33..37]: 	I32Const 6
+mem[38..42]: 	I32Const 2
+mem[43..43]: 	I32Shl
+mem[44..48]: 	I32Const (-8)
+mem[49..53]: 	I32Const 1
+mem[54..54]: 	I32ShrS
+mem[55..59]: 	I32Const (-8)
+mem[60..64]: 	I32Const 1
+mem[65..65]: 	I32ShrU
+mem[66..66]: 	Halt
+mem[67..999]: 	( 00 )
+---

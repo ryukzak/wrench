@@ -366,6 +366,7 @@ test-suite wrench-test
     , base >=4.7 && <5
     , data-default
     , data-interval
+    , file-embed
     , filepath
     , gitrev
     , megaparsec

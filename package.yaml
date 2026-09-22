@@ -148,6 +148,7 @@ tests:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
+      - file-embed
       - tasty
       - tasty-golden
       - tasty-hunit
