@@ -150,15 +150,19 @@ data Wasm32Isa w l
       -- 'collapseControl'.
       Return
     | -- | Pop an address and set both `sp` and `frameBase` to it,
-      -- relocating where the one shared stack begins. Only meaningful
+      -- relocating where the one shared stack starts. Only meaningful
       -- before anything has been pushed -- typically the very first
       -- thing `_start` does -- since it discards no state of its own,
-      -- it just moves where new pushes land. Without this, the stack
-      -- always starts at 'memTop' (half the configured memory), which a
-      -- program with enough `.data` to spill past that point has no way
-      -- to override; nothing checks that the new address doesn't
-      -- overlap `.text`\/`.data` either, same "trust the source" posture
-      -- as everything else here.
+      -- it just moves where new pushes land. `sp` becomes exactly the
+      -- given address, but a push decrements *before* writing (see
+      -- 'pushValue'), so that address itself is never written to -- the
+      -- value given here must leave room *below* it (lower addresses)
+      -- for the deepest this run's stack will ever get -- without this,
+      -- the stack always starts at 'initialSp' (the very top of
+      -- memory), which a program with enough `.data` to spill past
+      -- 'memTop' has no way to override; nothing checks that the new
+      -- address doesn't overlap `.text`\/`.data` either, same "trust
+      -- the source" posture as everything else here.
       SpInit
     | Halt
     deriving (Eq, Show)
@@ -334,12 +338,14 @@ data Scope
       -- `end` -- see 'findControlTarget's guard). Unlike the structured
       -- scopes, closing this one doesn't splice a fixed-width gap out of
       -- the stack: 'csResultCount' values get popped, then 'sp' is
-      -- truncated straight to the *callee's* live 'frameBase', reclaiming
-      -- the record and every one of the callee's locals (its params --
-      -- the only kind there are) in one step, correct because
-      -- 'pushControl' always leaves this record sitting right above them,
-      -- never in between. @csSavedFrameBase@\/@csSavedLocalCount@ are
-      -- what the *caller* had, restored on return.
+      -- reset straight to one word above the *callee's* live
+      -- 'frameBase' -- exactly where 'sp' was before the caller pushed
+      -- this call's first argument -- reclaiming the record and every
+      -- one of the callee's locals (its params -- the only kind there
+      -- are) in one step, correct because 'pushControl' always leaves
+      -- this record sitting right below them, never in between.
+      -- @csSavedFrameBase@\/@csSavedLocalCount@ are what the *caller*
+      -- had, restored on return.
       CallScope {csSavedFrameBase :: Int, csSavedLocalCount :: Int, csReturnPc :: Int, csResultCount :: Int}
     deriving (Show)
 
@@ -422,17 +428,18 @@ bitsFromWord = fromIntegral . fromSign
 -- | Serialize a control record -- @link@ plus the 'Scope' being pushed
 -- at @recordAddr@ -- to exactly 'controlRecordWidth'-many words for
 -- that kind's own tag. @link@ is never stored as its own absolute
--- address: it's folded into the first word as @LinkOffset = recordAddr
--- - link@ (unsigned, since a record only ever points backward to a
--- strictly lower address), with @0@ -- otherwise unreachable, since the
--- previous record always has some nonzero width of its own -- standing
--- in for 'nullAddr' (no enclosing record). The only two representations
--- that matter outside this pair of functions are this one ([w], what's
--- actually in memory) and 'Scope' (the algebraic type code elsewhere
--- works with).
+-- address: it's folded into the first word as @LinkOffset = link -
+-- recordAddr@ (unsigned, since a record only ever points backward to a
+-- strictly higher address -- the stack descends, so whatever was pushed
+-- earlier sits above whatever's pushed now), with @0@ -- otherwise
+-- unreachable, since the previous record always has some nonzero width
+-- of its own -- standing in for 'nullAddr' (no enclosing record). The
+-- only two representations that matter outside this pair of functions
+-- are this one ([w], what's actually in memory) and 'Scope' (the
+-- algebraic type code elsewhere works with).
 serializeControlRecord :: forall w. (IsWord w) => Int -> Int -> Scope -> [w]
 serializeControlRecord recordAddr link scope =
-    let linkOffset = if link == nullAddr then 0 else recordAddr - link
+    let linkOffset = if link == nullAddr then 0 else link - recordAddr
      in case scope of
             BlockScope{csEnd} ->
                 [wordFromBits (packWord0 BlockTag linkOffset csEnd)]
@@ -467,7 +474,7 @@ deserializeControlRecord recordAddr (word0 : rest) =
         (t, ws) -> error $ "deserializeControlRecord: " <> show (length ws) <> " extra words doesn't match tag " <> show t
     where
         (tag, linkOffset, low16) = unpackWord0 (bitsFromWord word0)
-        link = if linkOffset == 0 then nullAddr else recordAddr - linkOffset
+        link = if linkOffset == 0 then nullAddr else recordAddr + linkOffset
 deserializeControlRecord _ ws =
     error $ "deserializeControlRecord: expected at least a header word, got " <> show (length ws) <> " words"
 
@@ -497,7 +504,7 @@ data Wasm32St w = Wasm32St
     -- chain.
     , frameBase :: Int
     -- ^ Base address of the *active* function's locals (param 0's
-    -- address). Starts at 'memTop' -- so a program that never calls
+    -- address). Starts at 'initialSp' -- so a program that never calls
     -- anything behaves exactly as before functions existed -- and is
     -- carved out of the caller's already-pushed arguments by `call`,
     -- saved in the callee's own 'CallScope' record, and restored by
@@ -520,19 +527,30 @@ instance InitState (Wasm32St w) where
     initState pc dump _randomStream =
         Wasm32St
             { pc
-            , sp = memTop dump
+            , sp = initialSp dump
             , ctrlTop = nullAddr
-            , frameBase = memTop dump
+            , frameBase = initialSp dump
             , localCount = 0
             , mem = dump
             , stopped = False
             , internalError = Nothing
             }
 
--- | Where locals (if any) start: the upper half of the configured
--- memory, code+data occupying the lower half.
+-- | Where code+data end and the stack's own region begins: the lower
+-- half of the configured memory holds code+data, the upper half is the
+-- stack's -- used only to mark that boundary in the @dump@ report view
+-- (see 'renderDump'), not by the stack itself, which starts at
+-- 'initialSp' and is otherwise free to use as much of its half as it
+-- needs.
 memTop :: IoMem (Wasm32Isa w w) w -> Int
 memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
+
+-- | Where the stack starts: the very top of memory. The classic
+-- descending-stack convention -- a push decrements 'sp' *then* writes
+-- (see 'pushValue') -- so this is one past the first word actually
+-- written, exactly like a real machine's initial stack pointer.
+initialSp :: IoMem (Wasm32Isa w w) w -> Int
+initialSp IoMem{mIoCells = Mem{memorySize}} = memorySize
 
 setPc :: Int -> State (Wasm32St w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -577,55 +595,72 @@ setByte addr b = do
         Right mem' -> put st{mem = mem'}
         Left err -> raiseInternalError $ "memory access error: " <> err
 
--- | This memory is byte-addressed and a `w` occupies 'byteSizeT' bytes,
--- not one address, so `sp` must step by that width, not by 1.
+-- | The stack grows downward: `sp` is the address of the top (most
+-- recently pushed) word, not the next free slot above it. A push
+-- decrements first, then writes at the new `sp` -- the classic
+-- descending-stack convention (matching real hardware stacks), chosen
+-- over the alternative (write-then-decrement, leaving `sp` pointing at
+-- the next free slot) so `sp` always names an actual live value.
 pushValue :: forall w. (IsWord w) => w -> State (Wasm32St w) ()
 pushValue value = do
     Wasm32St{sp} <- get
-    setWord sp value
-    modify $ \st -> st{sp = sp + byteSizeT @w}
+    let sp' = sp - byteSizeT @w
+    modify $ \st -> st{sp = sp'}
+    setWord sp' value
 
--- | No underflow guard: popping past the bottom of the stack region reads
--- whatever is physically below it (code/data memory, or a memory error at
--- the very bottom) -- a program error this ISA doesn't validate against
--- ahead of time.
+-- | No overflow guard: popping past the top of the stack region reads
+-- whatever is physically above wherever the stack happens to start
+-- (uninitialized memory, or straight into a memory error once
+-- addresses run out) -- a program error this ISA doesn't validate
+-- against ahead of time.
 popValue :: forall w. (IsWord w) => State (Wasm32St w) w
 popValue = do
     Wasm32St{sp} <- get
-    let sp' = sp - byteSizeT @w
-    modify $ \st -> st{sp = sp'}
-    getWord sp'
+    value <- getWord sp
+    modify $ \st -> st{sp = sp + byteSizeT @w}
+    return value
 
 -- | Address of local @i@ (one of the active function's params): a fixed
 -- offset from 'frameBase', unaffected by `sp`\/`ctrlTop` -- the whole
 -- point, since a value merely sitting on the stack isn't (see the module
--- haddock).
+-- haddock). Locals count *down* from 'frameBase' (param 0 is the
+-- highest address, matching the order they were pushed in before `call`
+-- ran -- the first-pushed value ends up highest in a descending stack).
 localAddr :: forall w. (IsWord w) => Int -> State (Wasm32St w) Int
 localAddr i = do
     Wasm32St{frameBase} <- get
-    return $ frameBase + i * byteSizeT @w
+    return $ frameBase - i * byteSizeT @w
 
 -- | Remove the @widthWords@-word record at @r@, shifting everything
--- above it (up to @top@) down to close the gap, and shrinking `sp` to
+-- below it (down to @bottom@, the current `sp`, more-recently-pushed
+-- since the stack descends) up to close the gap, and growing `sp` to
 -- match -- closes a block\/loop record without disturbing whatever its
--- body pushed above it.
+-- body pushed below it. Processes from the address closest to @r@
+-- first: each destination is exactly the previous iteration's source,
+-- so shifting high-to-low never overwrites a word before it's read.
 spliceOut :: forall w. (IsWord w) => Int -> Int -> Int -> State (Wasm32St w) ()
-spliceOut r widthWords top = do
+spliceOut r widthWords bottom = do
     let step = byteSizeT @w
         width = widthWords * step
-    forM_ [0, step .. top - r - width - 1] $ \i -> getWord (r + width + i) >>= setWord (r + i)
-    modify $ \st -> st{sp = top - width}
+    forM_ (reverse [0, step .. r - bottom - step]) $ \i -> getWord (bottom + i) >>= setWord (bottom + width + i)
+    modify $ \st -> st{sp = bottom + width}
 
--- | Push a control record: write it at the current 'sp' (right on top of
--- whatever operand values are already there), link it to the previously
--- innermost record, and make it the new innermost one.
+-- | Push a control record: reserve its words just below the current
+-- 'sp' (right below whatever operand values are already there,
+-- descending like any other push), link it to the previously innermost
+-- record, and make it the new innermost one. 'ctrlTop' names a record
+-- by its lowest address (its first/tag word), so the whole block is
+-- reserved upfront and its words laid out ascending within it -- the
+-- same layout 'readControlAt' expects.
 pushControl :: forall w. (IsWord w) => Scope -> State (Wasm32St w) ()
 pushControl scope = do
     Wasm32St{sp, ctrlTop} <- get
     let step = byteSizeT @w
-        ws = serializeControlRecord @w sp ctrlTop scope
-    forM_ (zip [0 ..] ws) $ \(i, word) -> setWord (sp + i * step) word
-    modify $ \st -> st{ctrlTop = sp, sp = sp + length ws * step}
+        width = controlRecordWidth (tagOfScope scope) * step
+        base = sp - width
+        ws = serializeControlRecord @w base ctrlTop scope
+    forM_ (zip [0 ..] ws) $ \(i, word) -> setWord (base + i * step) word
+    modify $ \st -> st{ctrlTop = base, sp = base}
 
 -- | Read the control record based at @addr@ (not necessarily 'ctrlTop'
 -- itself -- 'branchTo'\/'unwindTo'\/'findCall' walk the chain via `link`
@@ -653,17 +688,20 @@ data FrameLayout = FrameLayout
     -- 'csReturnPc') for every frame below it.
     , flFrameBase :: Int
     , flLocalCount :: Int
-    , flScanUpper :: Int
-    -- ^ Exclusive upper bound of this frame's own visible region --
-    -- 'sp' for the innermost frame, or the next (deeper) frame's own
-    -- 'flFrameBase' otherwise, since everything at or above that address
-    -- belongs to the call this frame made, not to this frame itself.
+    , flScanLower :: Int
+    -- ^ Inclusive lower bound of this frame's own visible region --
+    -- 'sp' for the innermost frame, or one word above the next (deeper)
+    -- frame's own 'flFrameBase' otherwise, since everything at or below
+    -- that address belongs to the call this frame made, not to this
+    -- frame itself (the stack descends, so a deeper call's own region
+    -- sits at lower addresses).
     , flControls :: [(Int, Int, Scope, Int)]
     -- ^ This frame's own open records -- any 'block'\/'loop' it has
     -- open, plus (last) the 'CallScope' that entered it, if any --
-    -- address-ascending, each as @(start, end, scope, link)@, 'link'
-    -- kept alongside purely so the layout view can show where each
-    -- record points, not because anything downstream still needs it.
+    -- address-descending (push order: oldest, highest address, first),
+    -- each as @(start, end, scope, link)@, 'link' kept alongside purely
+    -- so the layout view can show where each record points, not because
+    -- anything downstream still needs it.
     }
 
 -- | Split the one shared stack (see 'sp'\/'ctrlTop'\/'frameBase'\/
@@ -677,19 +715,19 @@ walkFrames st@Wasm32St{sp, ctrlTop, frameBase, localCount, pc} = go frameBase lo
     where
         step = byteSizeT @w
 
-        go fb lc p scanUpper addr =
+        go fb lc p scanLower addr =
             let (controls, next) = collectControls addr
                 frame =
                     FrameLayout
                         { flPc = p
                         , flFrameBase = fb
                         , flLocalCount = lc
-                        , flScanUpper = scanUpper
-                        , flControls = sortOn (\(s, _, _, _) -> s) controls
+                        , flScanLower = scanLower
+                        , flControls = sortOn (Down . \(s, _, _, _) -> s) controls
                         }
              in frame : case next of
                     Nothing -> []
-                    Just (fb', lc', p', link) -> go fb' lc' p' fb link
+                    Just (fb', lc', p', link) -> go fb' lc' p' (fb + step) link
 
         -- \| Walk from @addr@, collecting every open `block`\/`loop` as
         -- this frame's own, stopping at (and including) the first
@@ -789,11 +827,12 @@ findCall = do
 
 -- | Collapse the record at @r@: if @keepOpen@ (a taken branch back into
 -- a loop), just jump to its start -- the record and everything its body
--- has pushed above it stay exactly as they are, since the next iteration
--- needs them. A 'CallScope' is never @keepOpen@ (only `return` closes
--- one, and it always exits); everything else splices the record's own
--- words out of the stack (preserving everything above them), unlinks it,
--- and jumps past its `end`.
+-- has pushed below it (more recent, since the stack descends) stay
+-- exactly as they are, since the next iteration needs them. A
+-- 'CallScope' is never @keepOpen@ (only `return` closes one, and it
+-- always exits); everything else splices the record's own words out of
+-- the stack (preserving everything below them), unlinks it, and jumps
+-- past its `end`.
 collapseControl :: forall w. (IsWord w) => Int -> Bool -> State (Wasm32St w) ()
 collapseControl r keepOpen = do
     (scope, link) <- readControlAt r
@@ -804,7 +843,7 @@ collapseControl r keepOpen = do
             -- results and truncating overwrite this record's own bytes.
             results <- popValues csResultCount
             Wasm32St{frameBase} <- get
-            modify $ \st -> st{sp = frameBase}
+            modify $ \st -> st{sp = frameBase + byteSizeT @w}
             mapM_ pushValue results
             modify $ \st -> st{frameBase = csSavedFrameBase, localCount = csSavedLocalCount, ctrlTop = link}
             setPc csReturnPc
@@ -870,19 +909,23 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
         where
             step = byteSizeT @w
             -- Where the *active* frame's locals end and its own operand
-            -- stack begins -- everything from here up to `sp` is "stack"
-            -- for report-view purposes, which, same as before functions
-            -- existed, includes this frame's own control records (and any
-            -- calls it in turn made) as raw words, not just plain operand
-            -- values -- this view has never distinguished the two (see
-            -- "layout" below for a view that does).
-            frameStackBase = frameBase + localCount * step
-            -- Top first, matching the old list's head-is-top convention.
-            values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp - step, sp - 2 * step .. frameStackBase]
+            -- stack begins -- everything from here down to `sp` is
+            -- "stack" for report-view purposes, which, same as before
+            -- functions existed, includes this frame's own control
+            -- records (and any calls it in turn made) as raw words, not
+            -- just plain operand values -- this view has never
+            -- distinguished the two (see "layout" below for a view that
+            -- does). Locals count down from 'frameBase' (see 'localAddr'),
+            -- so this boundary is below it, not above.
+            frameStackBase = frameBase - localCount * step
+            -- Top first, matching the old list's head-is-top convention:
+            -- `sp` itself already is the top under the descending-stack
+            -- convention (see 'pushValue'), so no offset is needed here.
+            values = mapMaybe (\a -> eitherToMaybe (readWord mem a) <&> snd) [sp, sp + step .. frameStackBase - step]
             localValues =
                 mapMaybe
                     (\a -> eitherToMaybe (readWord mem a) <&> snd)
-                    [frameBase, frameBase + step .. frameStackBase - step]
+                    [frameBase, frameBase - step .. frameStackBase + step]
 
             formatValues "dec" vs = toText $ intercalate ":" $ map show vs
             formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
@@ -922,17 +965,16 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
             formatLayout "hex" = renderLayout (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
             formatLayout f = unknownFormat f
 
-            -- \| The whole configured memory as two contiguous chunks,
-            -- nothing left unaccounted for: `.text`\/`.data` (address 0
-            -- up to 'memTop') dumped exactly the way the static
-            -- translation dump does -- 'prettyDump' itself, reused
-            -- directly, not reimplemented -- followed by the shared
-            -- stack, split the same way 'layout' already does into
-            -- whatever's actually live (`memTop` up to `sp`, decoded)
-            -- and the still-unused tail above it (`sp` up to the end of
-            -- memory), shown the same undifferentiated way as the first
-            -- chunk's own unused space between `.text`\/`.data` and
-            -- `memTop`.
+            -- \| The whole configured memory as three contiguous chunks,
+            -- nothing left unaccounted for, address-ascending overall:
+            -- `.text`\/`.data` (address 0 up to 'memTop') dumped exactly
+            -- the way the static translation dump does -- 'prettyDump'
+            -- itself, reused directly, not reimplemented -- then the
+            -- still-unused tail (`memTop` up to `sp`, the stack hasn't
+            -- reached down this far yet), then the live stack itself
+            -- (`sp` up to the top of memory, decoded) -- the one chunk
+            -- that reads push-order (highest\/oldest address first)
+            -- internally rather than ascending, same as 'layout'.
             formatDump "dec" = renderDump show show
             formatDump "hex" = renderDump (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
             formatDump f = unknownFormat f
@@ -943,40 +985,73 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
                     filter
                         (not . T.null)
                         [ dumpRange 0 (memTop mem)
+                        , dumpRange (memTop mem) sp
                         , renderLayout showWord showAddr
-                        , dumpRange sp (memCapacity mem)
                         ]
                 where
                     dumpRange lo hi = prettyDump labels (fromList (sliceMem [lo .. hi - 1] (dumpCells mem)))
 
             -- \| One line per contiguous span of a frame's own visible
-            -- range, address-ascending across every frame from the
-            -- outermost down to the innermost\/live one -- a plain memory
-            -- dump (same shape as the static one 'prettyDump' produces
-            -- for `.text`\/`.data`), annotated with what each span
-            -- actually is: a frame's locals, one of its own open control
-            -- records (decoded, not raw words), or a run of genuine
-            -- operand values.
+            -- range, push-order (highest\/oldest address first) within
+            -- each frame and across frames from the outermost down to
+            -- the innermost\/live one -- a plain memory dump (same shape
+            -- as the static one 'prettyDump' produces for
+            -- `.text`\/`.data`), annotated with what each span actually
+            -- is: a frame's locals, one of its own open control records
+            -- (decoded, not raw words), or a run of genuine operand
+            -- values.
             renderLayout :: (w -> Text) -> (Int -> Text) -> Text
             renderLayout showWord showAddr =
-                T.intercalate "\n"
-                    $ concatMap (renderFrame showWord showAddr)
-                    $ zip [0 :: Int ..] (reverse (walkFrames st))
-
-            renderFrame showWord showAddr (i, FrameLayout{flPc, flFrameBase, flLocalCount, flScanUpper, flControls}) =
-                header : localsLines <> segmentLines
+                T.intercalate "\n" $ concatMap (renderFrame showWord showAddr) tagged
                 where
-                    header = "#" <> show i <> " " <> funcNameAt flPc <> " (pc=" <> showAddr flPc <> ")"
-                    opStart = flFrameBase + flLocalCount * step
+                    frames = reverse (walkFrames st)
+                    liveIndex = length frames - 1
+                    tagged = zipWith (\i frame -> (i, i == liveIndex, frame)) [0 :: Int ..] frames
+
+            -- \| A suspended (caller) frame gets a @#N funcName (pc=...)@
+            -- header -- @funcName@\/@pc@ genuinely describe something in
+            -- memory, since that @pc@ is the very 'csReturnPc' sitting in
+            -- the 'CallScope' that suspended it (see 'describeControl').
+            -- The live\/innermost frame gets none: neither its @pc@ (held
+            -- only in 'Wasm32St' itself, see 'pc') nor the function name
+            -- derived from it are backed by anything in memory, and
+            -- 'reprState' already surfaces the live @pc@ separately via
+            -- @{pc}@\/@{pc:label}@ -- repeating it here would just be the
+            -- same non-memory value shown twice. Its own spans (already
+            -- self-labeled \"locals\"\/\"(operands)\") print with no
+            -- wrapping header at all.
+            renderFrame showWord showAddr (i, isLive, FrameLayout{flPc, flFrameBase, flLocalCount, flScanLower, flControls}) =
+                header <> localsLines <> segmentLines
+                where
+                    header
+                        | isLive = []
+                        | otherwise = ["#" <> show i <> " " <> funcNameAt flPc <> " (pc=" <> showAddr flPc <> ")"]
+                    -- Exclusive upper bound of the operand region below
+                    -- the locals -- *not* itself a local's address (local
+                    -- 0 is at 'flFrameBase' itself, one word higher; see
+                    -- 'localAddr').
+                    opTop = flFrameBase - flLocalCount * step
                     localsLines
                         | flLocalCount == 0 = []
-                        | otherwise = indexedSpan flFrameBase opStart "locals"
-                    segmentLines = go opStart flControls
-                    go lo [] = valueSpan lo flScanUpper
-                    go lo ((s, e, scope, link) : rest) = valueSpan lo s <> controlSpan s e scope link <> go e rest
+                        | otherwise = indexedSpan (opTop + step) (flFrameBase + step) "locals"
+                    segmentLines = go opTop flControls
+                    -- The trailing gap (nearest `sp`, what's on top of the
+                    -- operand stack *right now*) says so explicitly when
+                    -- there's nothing there -- silence read as "did this
+                    -- even get checked?" often enough to be worth a line.
+                    -- An interior gap between two of this frame's own
+                    -- control records being empty is unremarkable by
+                    -- comparison (blocks/loops with nothing pushed between
+                    -- them are the common case, not a surprise), so it
+                    -- stays silent like before.
+                    go hi [] = trailingSpan flScanLower hi
+                    go hi ((s, e, scope, link) : rest) = valueSpan e hi <> controlSpan s e scope link <> go s rest
                     valueSpan lo hi
                         | lo >= hi = []
-                        | otherwise = indexedSpan lo hi "(stack)"
+                        | otherwise = indexedSpan lo hi "(operands)"
+                    trailingSpan lo hi
+                        | lo >= hi = ["  (operands): empty"]
+                        | otherwise = indexedSpan lo hi "(operands)"
                     -- Just one line: the raw words a control record's
                     -- own bits pack into aren't independently readable
                     -- the way a local's or an operand's own word is (see
@@ -987,17 +1062,20 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
                     controlSpan lo hi scope link =
                         ["  mem[" <> showAddr lo <> ".." <> showAddr (hi - 1) <> "]: " <> describeControl showAddr lo link scope]
                     -- \| This span's address range, on one line, followed
-                    -- by one indented "index: value" line per word --
-                    -- for a frame's locals or its plain operand values,
-                    -- where every word is its own independent thing
-                    -- worth a line, unlike a control record's fields
-                    -- (see 'controlSpan'\/'describeControl').
+                    -- by one indented "index: value" line per word,
+                    -- highest\/oldest address (index 0) first -- for a
+                    -- frame's locals, this also happens to be exactly
+                    -- local\/param index order (see 'localAddr'), and for
+                    -- plain operand values it's push order, where every
+                    -- word is its own independent thing worth a line,
+                    -- unlike a control record's fields (see
+                    -- 'controlSpan'\/'describeControl').
                     indexedSpan lo hi tag =
                         header_
                             : zipWith
                                 (\idx a -> "    " <> show (idx :: Int) <> ": " <> wordAt showWord a)
                                 [0 ..]
-                                [lo, lo + step .. hi - step]
+                                [hi - step, hi - 2 * step .. lo]
                         where
                             header_ = "  mem[" <> showAddr lo <> ".." <> showAddr (hi - 1) <> "]: " <> tag
 
@@ -1021,7 +1099,7 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
                 where
                     linkOffsetText
                         | link == nullAddr = "none"
-                        | otherwise = show (recordAddr - link)
+                        | otherwise = show (link - recordAddr)
 
             describeFields :: (Int -> Text) -> Scope -> Text
             describeFields showAddr LoopScope{csStart, csEnd} =
@@ -1190,7 +1268,7 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
             Call paramCount resultCount -> do
                 target <- popValue
                 Wasm32St{sp, frameBase, localCount, pc} <- get
-                let calleeFrameBase = sp - paramCount * byteSizeT @w
+                let calleeFrameBase = sp + (paramCount - 1) * byteSizeT @w
                 pushControl
                     CallScope
                         { csSavedFrameBase = frameBase

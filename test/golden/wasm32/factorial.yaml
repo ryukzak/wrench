@@ -15,3 +15,8 @@ reports:
     assert: |
       numio[0x80]: [] >>> []
       numio[0x84]: [] >>> [120]
+  - name: Stack layout
+    slice: all
+    view: |
+      pc: {pc}
+      {layout:dec}
