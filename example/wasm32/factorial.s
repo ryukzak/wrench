@@ -28,6 +28,8 @@ factorial:
     return
 
 _start:
+    i32.const 0xffff
+    sp.init
     i32.const 0x84
     i32.const 0x80
     i32.load

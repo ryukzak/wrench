@@ -54,7 +54,7 @@ instance Default Options where
             , stats = False
             , verbose = False
             , maxInstructionLimit = 8000000
-            , maxMemoryLimit = 8192
+            , maxMemoryLimit = 0xFFFF
             , maxStateLogLimit = 10000
             }
 
