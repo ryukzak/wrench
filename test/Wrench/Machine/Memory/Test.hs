@@ -34,8 +34,8 @@ memoryOpsTests =
                         , memoryData = fromList $ map (\x -> (fromEnum x, Value $ 10 + x)) [0 .. 9]
                         }
             Right (mem, 0x0D0C0B0A) @=? readWord mem 0
-            Left "memory[-1]: out of memory\n" @=? readWord mem (-1)
-            Left "memory[10]: out of memory\n" @=? readWord mem 7
+            Left "memory[-0x01]: out of memory\n" @=? readWord mem (-1)
+            Left "memory[0x0a]: out of memory\n" @=? readWord mem 7
         , testCase "Write words & bytes" $ do
             let mem0 :: Mem Isa Int32
                 mem0 =
@@ -53,8 +53,8 @@ memoryOpsTests =
                             )
                     }
                 @=? writeWord mem0 0 0x0D0C0B0A
-            Left "memory[7]: out of memory for word access" @=? writeWord mem0 7 0x0D0C0B0A
-            Left "memory[-1]: out of memory for word access" @=? writeWord mem0 (-1) 0x0D0C0B0A
+            Left "memory[0x07]: out of memory for word access" @=? writeWord mem0 7 0x0D0C0B0A
+            Left "memory[-0x01]: out of memory for word access" @=? writeWord mem0 (-1) 0x0D0C0B0A
             Right
                 Mem
                     { memorySize = 10
@@ -66,17 +66,17 @@ memoryOpsTests =
                             )
                     }
                 @=? writeByte mem0 3 0x0A
-            Left "memory[10]: out of memory" @=? writeByte mem0 10 0x0A
-            Left "memory[-1]: out of memory" @=? writeByte mem0 (-1) 0x0A
+            Left "memory[0x0a]: out of memory" @=? writeByte mem0 10 0x0A
+            Left "memory[-0x01]: out of memory" @=? writeByte mem0 (-1) 0x0A
         , testCase "readWord around IO port" $ do
             Right 0x03020100 @=? (snd <$> readWord iomem 0)
-            Left "iomemory[1]: can't read word from input port" @=? readWord iomem 1
-            Left "iomemory[2]: can't read word from input port" @=? readWord iomem 2
-            Left "iomemory[3]: can't read word from input port" @=? readWord iomem 3
+            Left "iomemory[0x01]: can't read word from input port" @=? readWord iomem 1
+            Left "iomemory[0x02]: can't read word from input port" @=? readWord iomem 2
+            Left "iomemory[0x03]: can't read word from input port" @=? readWord iomem 3
             Right 0x04030201 @=? (snd <$> readWord iomem 4)
-            Left "iomemory[5]: can't read word from input port" @=? readWord iomem 5
-            Left "iomemory[6]: can't read word from input port" @=? readWord iomem 6
-            Left "iomemory[7]: can't read word from input port" @=? readWord iomem 7
+            Left "iomemory[0x05]: can't read word from input port" @=? readWord iomem 5
+            Left "iomemory[0x06]: can't read word from input port" @=? readWord iomem 6
+            Left "iomemory[0x07]: can't read word from input port" @=? readWord iomem 7
             Right 0x0B0A0908 @=? (snd <$> readWord iomem 8)
         , testCase "readByte around IO port" $ do
             Right 3 @=? (snd <$> readByte iomem 3)
@@ -88,39 +88,39 @@ memoryOpsTests =
         , testCase "writeByte around IO port" $ do
             True @=? isRight (writeByte iomem 3 def)
             True @=? isRight (writeByte iomem 4 def)
-            Left "iomemory[5]: can't write byte to input port" @=? writeByte iomem 5 def
-            Left "iomemory[6]: can't write byte to input port" @=? writeByte iomem 6 def
-            Left "iomemory[7]: can't write byte to input port" @=? writeByte iomem 7 def
+            Left "iomemory[0x05]: can't write byte to input port" @=? writeByte iomem 5 def
+            Left "iomemory[0x06]: can't write byte to input port" @=? writeByte iomem 6 def
+            Left "iomemory[0x07]: can't write byte to input port" @=? writeByte iomem 7 def
             True @=? isRight (writeByte iomem 8 def)
         , testCase "writeWord around IO port" $ do
             True @=? isRight (writeWord iomem 0 def)
-            Left "iomemory[1]: can't write word to input port" @=? writeWord iomem 1 def
-            Left "iomemory[2]: can't write word to input port" @=? writeWord iomem 2 def
-            Left "iomemory[3]: can't write word to input port" @=? writeWord iomem 3 def
+            Left "iomemory[0x01]: can't write word to input port" @=? writeWord iomem 1 def
+            Left "iomemory[0x02]: can't write word to input port" @=? writeWord iomem 2 def
+            Left "iomemory[0x03]: can't write word to input port" @=? writeWord iomem 3 def
             True @=? isRight (writeWord iomem 4 def)
-            Left "iomemory[5]: can't write word to input port" @=? writeWord iomem 5 def
-            Left "iomemory[6]: can't write word to input port" @=? writeWord iomem 6 def
-            Left "iomemory[7]: can't write word to input port" @=? writeWord iomem 7 def
+            Left "iomemory[0x05]: can't write word to input port" @=? writeWord iomem 5 def
+            Left "iomemory[0x06]: can't write word to input port" @=? writeWord iomem 6 def
+            Left "iomemory[0x07]: can't write word to input port" @=? writeWord iomem 7 def
             True @=? isRight (writeWord iomem 8 def)
         , testCase "readInstruction around IO port" $ do
             True @=? isRight (readInstruction piomem 0)
-            Left "memory[1]: instruction in memory corrupted" @=? readInstruction piomem 1
+            Left "memory[0x01]: instruction in memory corrupted" @=? readInstruction piomem 1
             True @=? isRight (readInstruction piomem 2)
-            Left "memory[3]: instruction in memory corrupted" @=? readInstruction piomem 3
-            Left "iomemory[4]: instruction in memory corrupted" @=? readInstruction piomem 4
-            Left "memory[5]: instruction in memory corrupted" @=? readInstruction piomem 5
-            Left "iomemory[6]: instruction in memory corrupted" @=? readInstruction piomem 6
-            Left "memory[7]: instruction in memory corrupted" @=? readInstruction piomem 7
-            Left "memory[8]: instruction in memory corrupted" @=? readInstruction piomem 8
+            Left "memory[0x03]: instruction in memory corrupted" @=? readInstruction piomem 3
+            Left "iomemory[0x04]: instruction in memory corrupted" @=? readInstruction piomem 4
+            Left "memory[0x05]: instruction in memory corrupted" @=? readInstruction piomem 5
+            Left "iomemory[0x06]: instruction in memory corrupted" @=? readInstruction piomem 6
+            Left "memory[0x07]: instruction in memory corrupted" @=? readInstruction piomem 7
+            Left "memory[0x08]: instruction in memory corrupted" @=? readInstruction piomem 8
             True @=? isRight (readInstruction piomem 9)
-            Left "iomemory[10]: instruction in memory corrupted" @=? readInstruction piomem 10
-            Left "memory[11]: instruction in memory corrupted" @=? readInstruction piomem 11
-            Left "memory[12]: instruction in memory corrupted" @=? readInstruction piomem 12
-            Left "memory[13]: instruction in memory corrupted" @=? readInstruction piomem 13
-            Left "iomemory[14]: instruction in memory corrupted" @=? readInstruction piomem 14
-            Left "iomemory[15]: instruction in memory corrupted" @=? readInstruction piomem 15
-            Left "iomemory[16]: instruction in memory corrupted" @=? readInstruction piomem 16
-            Left "iomemory[17]: instruction in memory corrupted" @=? readInstruction piomem 17
+            Left "iomemory[0x0a]: instruction in memory corrupted" @=? readInstruction piomem 10
+            Left "memory[0x0b]: instruction in memory corrupted" @=? readInstruction piomem 11
+            Left "memory[0x0c]: instruction in memory corrupted" @=? readInstruction piomem 12
+            Left "memory[0x0d]: instruction in memory corrupted" @=? readInstruction piomem 13
+            Left "iomemory[0x0e]: instruction in memory corrupted" @=? readInstruction piomem 14
+            Left "iomemory[0x0f]: instruction in memory corrupted" @=? readInstruction piomem 15
+            Left "iomemory[0x10]: instruction in memory corrupted" @=? readInstruction piomem 16
+            Left "iomemory[0x11]: instruction in memory corrupted" @=? readInstruction piomem 17
             True @=? isRight (readInstruction piomem 18)
         ]
 

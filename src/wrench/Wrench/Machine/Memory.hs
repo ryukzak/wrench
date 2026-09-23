@@ -185,6 +185,14 @@ word32ToHex w =
     let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
+-- | Render a byte address for error messages, e.g. @0x00ff@ (or @-0x01@ for
+--   the negative indices an out-of-bounds check can still produce).
+hexAddr :: Int -> Text
+hexAddr idx =
+    let hex = showHex (abs idx) ""
+        padded = replicate (max 0 (2 - length hex)) '0' <> hex
+     in toText (if idx < 0 then "-0x" <> padded else "0x" <> padded)
+
 class Memory m isa w | m -> isa w where
     readInstruction :: m -> Int -> Either Text (m, isa)
     readWord :: m -> Int -> Either Text (m, w)
@@ -220,16 +228,16 @@ instance
                     )
                     [idx + 1 .. idx + byteSize i - 1] ->
                     Right (mem, i)
-                | otherwise -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
-            Just InstructionPart -> Left $ "memory[" <> show idx <> "]: instruction in memory corrupted"
-            Just (Value _) -> Left $ "memory[" <> show idx <> "]: can't read instruction from data cell"
-            Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
+                | otherwise -> Left $ "memory[" <> hexAddr idx <> "]: instruction in memory corrupted"
+            Just InstructionPart -> Left $ "memory[" <> hexAddr idx <> "]: instruction in memory corrupted"
+            Just (Value _) -> Left $ "memory[" <> hexAddr idx <> "]: can't read instruction from data cell"
+            Nothing -> Left $ "memory[" <> hexAddr idx <> "]: out of memory"
 
     readByte mem@Mem{memoryData} idx =
         case memoryData !? idx of
             Just (Value v) -> Right (mem, v)
-            Just _ -> Left $ "memory[" <> show idx <> "]: can't read byte from instruction cell"
-            Nothing -> Left $ "memory[" <> show idx <> "]: out of memory"
+            Just _ -> Left $ "memory[" <> hexAddr idx <> "]: can't read byte from instruction cell"
+            Nothing -> Left $ "memory[" <> hexAddr idx <> "]: out of memory"
 
     readWord mem idx =
         let idxs = [idx .. idx + byteSizeT @w - 1]
@@ -240,13 +248,13 @@ instance
 
     writeWord Mem{memorySize} idx _
         | idx < 0 || memorySize < idx + byteSizeT @w =
-            Left $ "memory[" <> show idx <> "]: out of memory for word access"
+            Left $ "memory[" <> hexAddr idx <> "]: out of memory for word access"
     writeWord mem idx word =
         let updates = zip [idx ..] (wordSplit word)
          in foldlM (\m (i, x) -> writeByte m i x) mem updates
 
     writeByte Mem{memorySize} idx _
-        | idx < 0 || memorySize <= idx = Left $ "memory[" <> show idx <> "]: out of memory"
+        | idx < 0 || memorySize <= idx = Left $ "memory[" <> hexAddr idx <> "]: out of memory"
     writeByte mem@Mem{memoryData} idx byte =
         let memoryData' = insert idx (Value byte) memoryData
          in Right $ mem{memoryData = memoryData'}
@@ -286,12 +294,12 @@ noteIoAccess addr len io =
 instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
         case mIoStreams !? idx of
-            Just _ -> Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
+            Just _ -> Left $ "iomemory[" <> hexAddr idx <> "]: instruction in memory corrupted"
             Nothing -> case readInstruction mIoCells idx of
                 Left err -> Left err
                 Right (_mIoCells', instr)
                     | ioPortInstructionCollision io idx instr ->
-                        Left $ "iomemory[" <> show idx <> "]: instruction in memory corrupted"
+                        Left $ "iomemory[" <> hexAddr idx <> "]: instruction in memory corrupted"
                     | otherwise -> Right (noteInstrAccess idx (byteSize instr) io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
@@ -302,10 +310,10 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
         (mIoCells', v) <- readByte mIoCells idx
         return (noteDataAccess idx 1 io{mIoCells = mIoCells'}, v)
 
-    readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't read word from input port"
+    readWord io idx | ioPortWordCollision io idx = Left $ "iomemory[" <> hexAddr idx <> "]: can't read word from input port"
     readWord io@IoMem{mIoStreams, mIoCells} idx = do
         case mIoStreams !? idx of
-            Just ([], _) -> Left $ "iomemory[" <> show idx <> "]: input is depleted"
+            Just ([], _) -> Left $ "iomemory[" <> hexAddr idx <> "]: input is depleted"
             Just (i : is, os) -> do
                 let io' = io{mIoStreams = insert idx (is, os) mIoStreams}
                 Right (noteIoAccess idx (byteSizeT @w) io', i)
@@ -313,7 +321,7 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
                 (mIoCells', w) <- readWord mIoCells idx
                 return (noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}, w)
 
-    writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> show idx <> "]: can't write word to input port"
+    writeWord io idx _word | ioPortWordCollision io idx = Left $ "iomemory[" <> hexAddr idx <> "]: can't write word to input port"
     writeWord io idx word =
         case mIoStreams io !? idx of
             Just (is, os) -> Right $ noteIoAccess idx (byteSizeT @w) io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
@@ -323,7 +331,7 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
 
     writeByte io idx _byte
         | ioPortByteCollision io idx =
-            Left $ "iomemory[" <> show idx <> "]: can't write byte to input port"
+            Left $ "iomemory[" <> hexAddr idx <> "]: can't write byte to input port"
     writeByte io idx byte =
         case mIoStreams io !? idx of
             Just (is, os) -> Right $ noteIoAccess idx 1 io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
