@@ -1,0 +1,9 @@
+name: "demonstrate a LoopScope, a BlockScope, and two CallScopes open at once"
+limit: 200
+memory_size: 0x200
+reports:
+  - name: Stack layout
+    slice: all
+    view: |
+      :::: {pc:hex}: {instruction:prev} {pc:label}
+      {layout:hex}
