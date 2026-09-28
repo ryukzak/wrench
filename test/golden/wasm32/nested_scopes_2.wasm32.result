@@ -1,0 +1,40 @@
+---
+# Check result
+stack: 3
+---
+# Stack layout
+:::: 0x00000000: - @_start
+  (operands): empty, base=0x200
+:::: 0x00000005: I32Const 1 
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000001
+:::: 0x00000006: Block 
+  mem[0x100..0x103]: BlockScope { csEnd = 0x00e, linkOffset = none }
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000001
+:::: 0x00000007: Loop 
+  mem[0x100..0x103]: BlockScope { csEnd = 0x00e, linkOffset = none }
+  mem[0x104..0x10b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000001
+:::: 0x0000000c: I32Const 2 
+  mem[0x100..0x103]: BlockScope { csEnd = 0x00e, linkOffset = none }
+  mem[0x104..0x10b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1f8..0x1ff]: (operands)
+    0: 0x00000001
+    1: 0x00000002
+:::: 0x0000000d: I32Add 
+  mem[0x100..0x103]: BlockScope { csEnd = 0x00e, linkOffset = none }
+  mem[0x104..0x10b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000003
+:::: 0x0000000e: End 
+  mem[0x100..0x103]: BlockScope { csEnd = 0x00e, linkOffset = none }
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000003
+:::: 0x0000000f: End 
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000003
+:::: 0x0000000f: Halt 
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000003

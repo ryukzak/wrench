@@ -15,4 +15,10 @@ _start:
     else
         i32.mul                                  ; not taken
     end
+    if
+    else
+        i32.const 3
+        i32.const 4
+        i32.mul
+    end
     halt

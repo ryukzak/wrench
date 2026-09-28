@@ -5,5 +5,5 @@ reports:
   - name: Stack layout
     slice: all
     view: |
-      :::: {pc:hex}: {instruction:prev} {pc:label} // access: {memAccesses:dec}
+      :::: {pc:hex}: {instruction:prev} {pc:label}
       {layout:hex}

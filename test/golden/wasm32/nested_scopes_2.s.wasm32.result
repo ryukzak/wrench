@@ -1,0 +1,12 @@
+0:	_start
+---
+mem[0..4]: 	I32Const 1 	@_start
+mem[5..5]: 	Block
+mem[6..6]: 	Loop
+mem[7..11]: 	I32Const 2
+mem[12..12]: 	I32Add
+mem[13..13]: 	End
+mem[14..14]: 	End
+mem[15..15]: 	Halt
+mem[16..999]: 	( 00 )
+---

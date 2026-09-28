@@ -4,7 +4,7 @@ stack: 4:5
 ---
 # Stack layout
 pc: 4
-  (operands): empty
+  (operands): empty, base=256
 pc: 9
   mem[252..255]: (operands)
     0: 0
@@ -13,491 +13,491 @@ pc: 14
     0: 0
     1: 5
 pc: 15
-  (operands): empty
+  (operands): empty, base=256
 pc: 16
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  (operands): empty
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  (operands): empty, base=256
 pc: 17
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  (operands): empty
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  (operands): empty, base=256
 pc: 22
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 0
 pc: 23
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 28
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 2
 pc: 29
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 0
 pc: 31
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  (operands): empty
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  (operands): empty, base=256
 pc: 36
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 0
 pc: 37
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 42
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 3
 pc: 43
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 0
 pc: 63
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  (operands): empty
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  (operands): empty, base=256
 pc: 68
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 0
 pc: 69
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 74
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 79
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 0
     2: 0
 pc: 80
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 0
     2: 5
 pc: 85
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 0
     2: 5
     3: 1
 pc: 86
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 0
     2: 4
 pc: 87
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 88
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 93
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 94
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 99
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 100
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 1
 pc: 17
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 22
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 23
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 28
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 2
 pc: 29
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 31
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 36
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 37
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 42
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 3
 pc: 43
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 63
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[240..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[252..255]: (operands)
     0: 5
 pc: 68
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 0
 pc: 69
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 74
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 79
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 0
 pc: 80
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 4
 pc: 85
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[224..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[236..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 4
     4: 1
 pc: 86
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 3
 pc: 87
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 88
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 93
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 94
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 3
 pc: 99
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 3
     3: 0
 pc: 100
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 1
 pc: 17
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 22
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 23
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 3
 pc: 28
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 3
     3: 2
 pc: 29
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 31
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 36
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 37
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 3
 pc: 42
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 3
     3: 3
 pc: 43
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 1
 pc: 44
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 49
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 54
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 0
 pc: 55
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 3
 pc: 60
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[224..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[236..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 3
     4: 1
 pc: 61
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 0
     3: 2
 pc: 62
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 88
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 93
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 94
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 2
 pc: 99
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 2
     3: 0
 pc: 100
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 1
 pc: 17
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[236..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[248..255]: (operands)
     0: 5
     1: 4
 pc: 22
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 0
 pc: 23
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 2
 pc: 28
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[228..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[240..255]: (operands)
     0: 5
     1: 4
     2: 2
     3: 2
 pc: 29
-  mem[252..255]: BlockScope { csEnd = 103, linkOffset = none }
-  mem[244..251]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 8 }
-  mem[232..243]: (operands)
+  mem[128..131]: BlockScope { csEnd = 103, linkOffset = none }
+  mem[132..139]: LoopScope { csStart = 17, csEnd = 102, linkOffset = 4 }
+  mem[244..255]: (operands)
     0: 5
     1: 4
     2: 1

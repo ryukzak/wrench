@@ -1,0 +1,29 @@
+0:	inner
+16:	outer
+34:	_start
+---
+mem[0..4]: 	I32Const 3 	@inner
+mem[5..5]: 	Block
+mem[6..6]: 	Loop
+mem[7..11]: 	I32Const 3
+mem[12..12]: 	I32Add
+mem[13..13]: 	End
+mem[14..14]: 	End
+mem[15..15]: 	Return
+mem[16..17]: 	LocalGet 0 	@outer
+mem[18..19]: 	LocalGet 1
+mem[20..20]: 	I32Add
+mem[21..22]: 	LocalSet 2
+mem[23..27]: 	I32Const 0
+mem[28..30]: 	Call 0 1
+mem[31..32]: 	LocalGet 2
+mem[33..33]: 	Return
+mem[34..38]: 	I32Const 100 	@_start
+mem[39..43]: 	I32Const 10
+mem[44..48]: 	I32Const 20
+mem[49..53]: 	I32Const 0
+mem[54..58]: 	I32Const 16
+mem[59..61]: 	Call 3 2
+mem[62..62]: 	Halt
+mem[63..999]: 	( 00 )
+---

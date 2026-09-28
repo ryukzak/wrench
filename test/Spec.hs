@@ -252,6 +252,8 @@ tests =
                 , goldenTranslate Wasm32 "test/golden/wasm32/hello.s"
                 , goldenTranslate Wasm32 "test/golden/wasm32/logical_not.s"
                 , goldenTranslate Wasm32 "test/golden/wasm32/get_put_char.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/nested_scopes.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/nested_scopes_2.s"
                 ]
             , testGroup
                 "Simulator"
@@ -274,6 +276,8 @@ tests =
                     Wasm32
                     "test/golden/wasm32/get_put_char.s"
                     "test/golden/wasm32/get_put_char_domain_error.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/nested_scopes.s" "test/golden/wasm32/nested_scopes.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/nested_scopes_2.s" "test/golden/wasm32/nested_scopes_2.yaml"
                 ]
             ]
         ]

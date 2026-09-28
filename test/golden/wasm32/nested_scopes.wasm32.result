@@ -1,0 +1,247 @@
+---
+# Stack layout
+:::: 0x00000022: - @_start
+  (operands): empty, base=0x200
+:::: 0x00000027: I32Const 100 
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+:::: 0x0000002c: I32Const 10 
+  mem[0x1f8..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x0000000a
+:::: 0x00000031: I32Const 20 
+  mem[0x1f4..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x0000000a
+    2: 0x00000014
+:::: 0x00000036: I32Const 0 
+  mem[0x1f0..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x0000000a
+    2: 0x00000014
+    3: 0x00000000
+:::: 0x0000003b: I32Const 16 
+  mem[0x1ec..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x0000000a
+    2: 0x00000014
+    3: 0x00000000
+    4: 0x00000010
+:::: 0x00000010: Call 3 2 @outer
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x00000000
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+:::: 0x00000012: LocalGet 0 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x00000000
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x0000000a
+:::: 0x00000014: LocalGet 1 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x00000000
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1e8..0x1ef]: (operands)
+    0: 0x0000000a
+    1: 0x00000014
+:::: 0x00000015: I32Add 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x00000000
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x0000001e
+:::: 0x00000017: LocalSet 2 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+:::: 0x0000001c: I32Const 0 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000000
+:::: 0x00000000: Call 0 1 @inner
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  (operands): empty, base=0x1f0
+:::: 0x00000005: I32Const 3 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000003
+:::: 0x00000006: Block 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x110..0x113]: BlockScope { csEnd = 0x00e, linkOffset = 8 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000003
+:::: 0x00000007: Loop 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x110..0x113]: BlockScope { csEnd = 0x00e, linkOffset = 8 }
+  mem[0x114..0x11b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000003
+:::: 0x0000000c: I32Const 3 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x110..0x113]: BlockScope { csEnd = 0x00e, linkOffset = 8 }
+  mem[0x114..0x11b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1e8..0x1ef]: (operands)
+    0: 0x00000003
+    1: 0x00000003
+:::: 0x0000000d: I32Add 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x110..0x113]: BlockScope { csEnd = 0x00e, linkOffset = 8 }
+  mem[0x114..0x11b]: LoopScope { csStart = 0x007, csEnd = 0x00d, linkOffset = 4 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000006
+:::: 0x0000000e: End 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x110..0x113]: BlockScope { csEnd = 0x00e, linkOffset = 8 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000006
+:::: 0x0000000f: End 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+#1 outer (pc=0x01f)
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  (operands): empty, base=0x1f0
+  mem[0x108..0x10f]: CallScope { csSavedFrameBase = 0x1f8, csSavedLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1, linkOffset = 8 }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000006
+:::: 0x0000001f: Return 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1ec..0x1ef]: (operands)
+    0: 0x00000006
+:::: 0x00000021: LocalGet 2 
+#0 _start (pc=0x03e)
+  mem[0x1fc..0x1ff]: (operands)
+    0: 0x00000064
+  mem[0x1f0..0x1fb]: locals
+    0: 0x0000000a
+    1: 0x00000014
+    2: 0x0000001e
+  mem[0x100..0x107]: CallScope { csSavedFrameBase = 0x200, csSavedLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2, linkOffset = none }
+  mem[0x1e8..0x1ef]: (operands)
+    0: 0x00000006
+    1: 0x0000001e
+:::: 0x0000003e: Return 
+  mem[0x1f4..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x00000006
+    2: 0x0000001e
+:::: 0x0000003e: Halt 
+  mem[0x1f4..0x1ff]: (operands)
+    0: 0x00000064
+    1: 0x00000006
+    2: 0x0000001e
