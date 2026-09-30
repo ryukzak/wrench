@@ -105,7 +105,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_nothing.yaml"
-                , goldenSimulate RiscIv "test/golden/risc-iv-32/ble_bleu.s" "test/golden/risc-iv-32/ble_bleu.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/bge_bgeu.s" "test/golden/risc-iv-32/bge_bgeu.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/lui_addi.s" "test/golden/risc-iv-32/lui_addi.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/imm_sign_extend.s" "test/golden/risc-iv-32/imm_sign_extend.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/sb.s" "test/golden/risc-iv-32/sb.yaml"

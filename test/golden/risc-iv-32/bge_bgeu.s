@@ -16,6 +16,6 @@ make_pos_a1:
     j        continue
 
 continue:
-    ble      a0, zero, make_pos_a0
-    bleu     a1, zero, make_pos_a1
+    bge      zero, a0, make_pos_a0
+    bgeu     zero, a1, make_pos_a1
     halt
