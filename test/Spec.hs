@@ -46,6 +46,7 @@ tests =
             [ goldenConfig "test/golden/config/bad_no_limit.yaml"
             , goldenConfig "test/golden/config/bad_no_memory_size.yaml"
             , goldenConfig "test/golden/config/bad_too_much_limit.yaml"
+            , goldenConfig "test/golden/config/bad_unknown_field.yaml"
             , goldenConfig "test/golden/config/only_strict.yaml"
             , goldenConfig "test/golden/config/smoke.yaml"
             ]

@@ -12,8 +12,6 @@ reports:
       {pc}:	{instruction:next}	{pc:label} buf_ptr=t0={T0:hex} char=t1={T1:hex}
   - name: Check results
     slice: last
-    filter:
-      - state
     view: |
       {memory:0:5}
     assert: |

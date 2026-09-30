@@ -7,8 +7,6 @@ memory_mapped_io:
 reports:
   - name: Check results
     slice: last
-    filter:
-      - state
     view: |
       numio[0x80]: {io:0x80:dec}
       numio[0x84]: {io:0x84:dec}

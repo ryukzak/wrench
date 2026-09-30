@@ -7,8 +7,6 @@ reports:
       {pc}:	{instruction:next}	{pc:label}
   - name: Check results
     slice: last
-    filter:
-      - state
     view: |
       T A B S {T} {A} {B:hex} {S}
     assert: |
