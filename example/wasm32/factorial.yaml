@@ -1,13 +1,17 @@
 name: "assert factorial(5) == 120"
 limit: 500
-memory_size: 0xFFFF
+memory_size: 0x200
 memory_mapped_io:
-  0x80: [2]
+  0x80: [5]
   0x84: []
 reports:
-  - name: Steps
-    slice: all
+  - name: Check results
+    slice: last
+    filter:
+      - state
     view: |
-      ---
-      {pc}: {instruction:prev} {pc:label}
-      {layout:hex}
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [120]
