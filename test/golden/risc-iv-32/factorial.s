@@ -15,7 +15,7 @@ _start:
     lw       t1, 0(t0)                       ; int n = *input_addr;
     ; // t1 <- *t0;
 
-    bgt      zero, t1, negative_case         ; check if negative (if 0 > t1, jump)
+    blt      t1, zero, negative_case         ; check if negative (if t1 < 0, jump)
 
 factorial_begin:
     addi     t2, zero, 1                     ; int acc = 1;

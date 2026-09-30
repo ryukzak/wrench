@@ -14,7 +14,7 @@ mem[0x008..0x00b] (4 B): 	Lui {rd = T0, k = 0} 	@_start
 mem[0x00c..0x00f] (4 B): 	Addi {rd = T0, rs1 = T0, k = 0}
 mem[0x010..0x013] (4 B): 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[0x014..0x017] (4 B): 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x018..0x01b] (4 B): 	Bgt {rs1 = Zero, rs2 = T1, k = 60}
+mem[0x018..0x01b] (4 B): 	Blt {rs1 = T1, rs2 = Zero, k = 60}
 mem[0x01c..0x01f] (4 B): 	Addi {rd = T2, rs1 = Zero, k = 1} 	@factorial_begin
 mem[0x020..0x023] (4 B): 	Beqz {rs1 = T1, k = 76} 	@factorial_while
 mem[0x024..0x027] (4 B): 	Mulh {rd = T3, rs1 = T2, rs2 = T1}

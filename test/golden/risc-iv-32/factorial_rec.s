@@ -2,9 +2,9 @@
 
 factorial:
     addi     t0, zero, -1
-    ble      a0, t0, factorial_return_minus_one
+    bge      t0, a0, factorial_return_minus_one
     addi     t0, zero, 1
-    ble      a0, t0, factorial_return_one
+    bge      t0, a0, factorial_return_one
 
     addi     sp, sp, -8                      ; Save return address and n on stack
     sw       ra, 4(sp)
@@ -18,28 +18,28 @@ factorial:
     lw       ra, 4(sp)
     addi     sp, sp, 8
 
-    bgt      a1, zero, factorial_overflow_case
+    blt      zero, a1, factorial_overflow_case
 
     mulh     t3, a0, t1                      ; Check for overflow
     bnez     t3, factorial_overflow_case
 
     ; Compute n * factorial(n-1)
     mul      a0, a0, t1
-    jr       ra                              ; Return
+    jalr     zero, ra, 0                     ; Return
 
 factorial_return_one:
     addi     a0, zero, 1
-    jr       ra
+    jalr     zero, ra, 0
 
 factorial_return_minus_one:
     addi     a0, zero, -1
-    jr       ra
+    jalr     zero, ra, 0
 
 factorial_overflow_case:
     lui      a0, 0xCCCCC
     addi     a0, a0, 0xCCC                   ; Load overflow indicator (0xCC)
     addi     a1, zero, 1
-    jr       ra
+    jalr     zero, ra, 0
 
     .data
 
