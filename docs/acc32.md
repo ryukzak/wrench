@@ -186,3 +186,21 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
 - **Halt**
     - **Syntax:** `halt`
     - **Description:** Halt the machine.
+
+### Why we don't have:
+
+- **Add Immediate**
+    - **Syntax:** `addi <const>`
+    - **Description:** Add an immediate value to the accumulator.
+    - **Operation:** `acc <- acc + <const>`
+    - Why not: if you have `const_1`, why not just `add const_1`?
+- **Load Indirect**
+    - **Syntax:** `load_ind <address>`
+    - **Description:** Load a value from memory using an indirect address.
+    - **Operation:** `acc <- mem[pc]`
+    - Why not: `load_addr` + `load_acc` looks more natural for accumulator
+- **Compare**
+    - **Syntax:** `cmp <address>`
+    - **Description:** Compare the accumulator and set only flags.
+    - **Operation:** `acc - mem[pc]` and set `Z` (not't exist yet), `C` and `V` flags
+    - Why not: create a lot of inconsistent states
