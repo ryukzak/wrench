@@ -1,5 +1,6 @@
 Config
-    { cLimit = 900
+    { cName = Nothing
+    , cLimit = 900
     , cMemorySize = 144
     , cMemoryMappedIo = Nothing
     , cMemoryMappedIoFlat = Nothing

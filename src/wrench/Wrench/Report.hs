@@ -12,7 +12,7 @@ module Wrench.Report (
     unknownFormat,
 ) where
 
-import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
+import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFields)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Text qualified as T
 import Numeric (showHex)
@@ -51,7 +51,7 @@ data ReportConf = ReportConf
     deriving (Generic, Show)
 
 instance FromJSON ReportConf where
-    parseJSON = genericParseJSON $ aesonDrop 2 snakeCase
+    parseJSON = genericParseJSON $ (aesonDrop 2 snakeCase){rejectUnknownFields = True}
 
 prepareReport ::
     (Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>

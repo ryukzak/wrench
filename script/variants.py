@@ -151,8 +151,6 @@ memory_mapped_io:
 reports:
   - name: Check results
     slice: last
-    filter:
-      - state
     view: |
 {case.yaml_view()}
     assert: |

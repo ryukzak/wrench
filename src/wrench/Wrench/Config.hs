@@ -6,7 +6,7 @@ module Wrench.Config (
     withExecutionStats,
 ) where
 
-import Data.Aeson (FromJSON (..), Value (..), genericParseJSON)
+import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFields)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Default
 import Data.Yaml (decodeFileEither, prettyPrintParseException)
@@ -66,7 +66,9 @@ withExecutionStats conf@Config{cReports} =
 -----------------------------------------------------------
 
 data Config = Config
-    { cLimit :: Int
+    { cName :: Maybe Text
+    -- ^ Optional human-readable name for the configuration, purely descriptive.
+    , cLimit :: Int
     -- ^ The maximum number of instructions to execute.
     , cMemorySize :: Int
     -- ^ The size of the memory in bytes.
@@ -85,7 +87,8 @@ data Config = Config
 instance Default Config where
     def =
         Config
-            { cLimit = 1000
+            { cName = Nothing
+            , cLimit = 1000
             , cMemorySize = 512
             , cMemoryMappedIo = Nothing
             , cMemoryMappedIoFlat = Nothing
@@ -105,7 +108,8 @@ instance Default Config where
 instance Semigroup Config where
     a <> b =
         Config
-            { cMemorySize = cMemorySize a
+            { cName = cName a <|> cName b
+            , cMemorySize = cMemorySize a
             , cMemoryMappedIo = cMemoryMappedIo a <|> cMemoryMappedIo b
             , cMemoryMappedIoFlat = cMemoryMappedIoFlat a <|> cMemoryMappedIoFlat b
             , cLimit = cLimit a
@@ -115,7 +119,7 @@ instance Semigroup Config where
             }
 
 instance FromJSON Config where
-    parseJSON = genericParseJSON $ aesonDrop 1 snakeCase
+    parseJSON = genericParseJSON $ (aesonDrop 1 snakeCase){rejectUnknownFields = True}
 
 -----------------------------------------------------------
 
