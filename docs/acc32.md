@@ -187,7 +187,7 @@ Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for r
     - **Syntax:** `halt`
     - **Description:** Halt the machine.
 
-### Why we don't have:
+### Why we don't have
 
 - **Add Immediate**
     - **Syntax:** `addi <const>`
