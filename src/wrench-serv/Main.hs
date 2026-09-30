@@ -315,6 +315,7 @@ instance FromJSON ExampleEntry where
         genericParseJSON
             defaultOptions
                 { fieldLabelModifier = map toLower . drop 2
+                , rejectUnknownFields = True
                 }
 
 getExamples :: Config -> Handler (Html ())
