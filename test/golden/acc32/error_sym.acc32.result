@@ -14,4 +14,4 @@ numio[0x80]: [] >>> []
 numio[0x84]: [] >>> [-858993460,-1,111]
 symio[0x80]: "" >>> ""
 symio[0x84]: "" >>> "??o"
-mem[0x00..0x0b]: 	cc cc cc cc ff ff ff ff 6f 00 00 00
+mem[0x000..0x00b] (12 B): 	cc cc cc cc ff ff ff ff 6f 00 00 00

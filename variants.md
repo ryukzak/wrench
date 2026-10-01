@@ -2086,9 +2086,9 @@ def capital_case_cstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert capital_case_cstr('hello world\n') == ('Hello World', '')
-# and mem[0x00..0x1f]: 48 65 6c 6c 6f 20 57 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 48 65 6c 6c 6f 20 57 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert capital_case_cstr('python programming\n') == ('Python Programming', '')
-# and mem[0x00..0x1f]: 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `capital_case_pstr`
@@ -2117,9 +2117,9 @@ def capital_case_pstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert capital_case_pstr('hello world\n') == ('Hello World', '')
-# and mem[0x00..0x1f]: 0b 48 65 6c 6c 6f 20 57 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 0b 48 65 6c 6c 6f 20 57 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert capital_case_pstr('python programming\n') == ('Python Programming', '')
-# and mem[0x00..0x1f]: 12 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 12 50 79 74 68 6f 6e 20 50 72 6f 67 72 61 6d 6d 69 6e 67 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `hello_user_cstr`
@@ -2150,9 +2150,9 @@ def hello_user_cstr(input: str) -> tuple[str | list[int | str], str]:
 
 
 assert hello_user_cstr('Alice\n') == ('What is your name?\nHello, Alice!', '')
-# and mem[0x00..0x1f]: 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert hello_user_cstr('Bob\n') == ('What is your name?\nHello, Bob!', '')
-# and mem[0x00..0x1f]: 48 65 6c 6c 6f 2c 20 42 6f 62 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 48 65 6c 6c 6f 2c 20 42 6f 62 21 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `hello_user_pstr`
@@ -2183,9 +2183,9 @@ def hello_user_pstr(input: str) -> tuple[str | list[int | str], str]:
 
 
 assert hello_user_pstr('Alice\n') == ('What is your name?\nHello, Alice!', '')
-# and mem[0x00..0x1f]: 0d 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 0d 48 65 6c 6c 6f 2c 20 41 6c 69 63 65 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert hello_user_pstr('Bob\n') == ('What is your name?\nHello, Bob!', '')
-# and mem[0x00..0x1f]: 0b 48 65 6c 6c 6f 2c 20 42 6f 62 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 0b 48 65 6c 6c 6f 2c 20 42 6f 62 21 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `lower_case_cstr`
@@ -2212,9 +2212,9 @@ def lower_case_cstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert lower_case_cstr('HELLO\n') == ('hello', '')
-# and mem[0x00..0x1f]: 68 65 6c 6c 6f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 68 65 6c 6c 6f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert lower_case_cstr('World\n') == ('world', '')
-# and mem[0x00..0x1f]: 77 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 77 6f 72 6c 64 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `lower_case_pstr`
@@ -2241,9 +2241,9 @@ def lower_case_pstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert lower_case_pstr('HELLO\n') == ('hello', '')
-# and mem[0x00..0x1f]: 05 68 65 6c 6c 6f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 05 68 65 6c 6c 6f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert lower_case_pstr('World\n') == ('world', '')
-# and mem[0x00..0x1f]: 05 77 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 05 77 6f 72 6c 64 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `reverse_string_cstr`
@@ -2270,9 +2270,9 @@ def reverse_string_cstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert reverse_string_cstr('hello\n') == ('olleh', '')
-# and mem[0x00..0x1f]: 6f 6c 6c 65 68 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 6f 6c 6c 65 68 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert reverse_string_cstr('world!\n') == ('!dlrow', '')
-# and mem[0x00..0x1f]: 21 64 6c 72 6f 77 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 21 64 6c 72 6f 77 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `reverse_string_pstr`
@@ -2299,9 +2299,9 @@ def reverse_string_pstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert reverse_string_pstr('hello\n') == ('olleh', '')
-# and mem[0x00..0x1f]: 05 6f 6c 6c 65 68 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 05 6f 6c 6c 65 68 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert reverse_string_pstr('world!\n') == ('!dlrow', '')
-# and mem[0x00..0x1f]: 06 21 64 6c 72 6f 77 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 06 21 64 6c 72 6f 77 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `strstr_cstr`
@@ -2381,9 +2381,9 @@ def upper_case_cstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert upper_case_cstr('Hello\n') == ('HELLO', '')
-# and mem[0x00..0x1f]: 48 45 4c 4c 4f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 48 45 4c 4c 4f 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert upper_case_cstr('world\n') == ('WORLD', '')
-# and mem[0x00..0x1f]: 57 4f 52 4c 44 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 57 4f 52 4c 44 00 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ### `upper_case_pstr`
@@ -2410,9 +2410,9 @@ def upper_case_pstr(s: str) -> tuple[str | list[int], str]:
 
 
 assert upper_case_pstr('Hello\n') == ('HELLO', '')
-# and mem[0x00..0x1f]: 05 48 45 4c 4c 4f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 05 48 45 4c 4c 4f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 assert upper_case_pstr('world\n') == ('WORLD', '')
-# and mem[0x00..0x1f]: 05 57 4f 52 4c 44 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
+# and mem[0x000..0x01f] (32 B): 05 57 4f 52 4c 44 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f 5f
 ```
 
 ## VLIW
@@ -2986,7 +2986,7 @@ def hello(_: str) -> tuple[str, str]:
 
 
 assert hello('') == ('\x1fHello\n\0World!', '')
-# and mem[0x00..0x10]: 1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
+# and mem[0x000..0x010] (17 B): 1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00
 ```
 
 ### `logical_not`

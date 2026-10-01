@@ -2,17 +2,17 @@
 4:	output_addr
 8:	_start
 ---
-mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
-mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
-mem[0x08..0x0d]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0} 	@_start
-mem[0x0e..0x11]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectAddrReg A0}
-mem[0x12..0x15]: 	Move {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectDataReg D0}
-mem[0x16..0x17]: 	Not {mode = Long, dst = DirectDataReg D0}
-mem[0x18..0x1d]: 	Move {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
-mem[0x1e..0x1f]: 	And {mode = Long, src = DirectDataReg D1, dst = DirectDataReg D0}
-mem[0x20..0x25]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A1}
-mem[0x26..0x29]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A1 Nothing, dst = DirectAddrReg A1}
-mem[0x2a..0x2d]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A1 Nothing}
-mem[0x2e..0x2f]: 	Halt
-mem[0x30..0x3e7]: 	( 00 )
+mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
+mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
+mem[0x008..0x00d] (6 B): 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0} 	@_start
+mem[0x00e..0x011] (4 B): 	MoveA {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectAddrReg A0}
+mem[0x012..0x015] (4 B): 	Move {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = DirectDataReg D0}
+mem[0x016..0x017] (2 B): 	Not {mode = Long, dst = DirectDataReg D0}
+mem[0x018..0x01d] (6 B): 	Move {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+mem[0x01e..0x01f] (2 B): 	And {mode = Long, src = DirectDataReg D1, dst = DirectDataReg D0}
+mem[0x020..0x025] (6 B): 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A1}
+mem[0x026..0x029] (4 B): 	MoveA {mode = Long, src = IndirectAddrReg 0 A1 Nothing, dst = DirectAddrReg A1}
+mem[0x02a..0x02d] (4 B): 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A1 Nothing}
+mem[0x02e..0x02f] (2 B): 	Halt
+mem[0x030..0x3e7] (952 B): 	( 00 )
 ---

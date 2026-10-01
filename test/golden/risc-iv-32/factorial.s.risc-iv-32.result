@@ -8,37 +8,37 @@
 108:	factorial_end
 124:	exit
 ---
-mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
-mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
-mem[0x08..0x0b]: 	Lui {rd = T0, k = 0} 	@_start
-mem[0x0c..0x0f]: 	Addi {rd = T0, rs1 = T0, k = 0}
-mem[0x10..0x13]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x14..0x17]: 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x18..0x1b]: 	Bgt {rs1 = Zero, rs2 = T1, k = 60}
-mem[0x1c..0x1f]: 	Addi {rd = T2, rs1 = Zero, k = 1} 	@factorial_begin
-mem[0x20..0x23]: 	Beqz {rs1 = T1, k = 76} 	@factorial_while
-mem[0x24..0x27]: 	Mulh {rd = T3, rs1 = T2, rs2 = T1}
-mem[0x28..0x2b]: 	Bnez {rs1 = T3, k = 16}
-mem[0x2c..0x2f]: 	Mul {rd = T2, rs1 = T2, rs2 = T1}
-mem[0x30..0x33]: 	Addi {rd = T1, rs1 = T1, k = -1}
-mem[0x34..0x37]: 	J {k = -20}
-mem[0x38..0x3b]: 	Lui {rd = T0, k = 0} 	@check_overflow
-mem[0x3c..0x3f]: 	Addi {rd = T0, rs1 = T0, k = 4}
-mem[0x40..0x43]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x44..0x47]: 	Lui {rd = T4, k = 838860}
-mem[0x48..0x4b]: 	Addi {rd = T4, rs1 = T4, k = 3276}
-mem[0x4c..0x4f]: 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x50..0x53]: 	J {k = 44}
-mem[0x54..0x57]: 	Lui {rd = T0, k = 0} 	@negative_case
-mem[0x58..0x5b]: 	Addi {rd = T0, rs1 = T0, k = 4}
-mem[0x5c..0x5f]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x60..0x63]: 	Addi {rd = T4, rs1 = Zero, k = -1}
-mem[0x64..0x67]: 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x68..0x6b]: 	J {k = 20}
-mem[0x6c..0x6f]: 	Lui {rd = T0, k = 0} 	@factorial_end
-mem[0x70..0x73]: 	Addi {rd = T0, rs1 = T0, k = 4}
-mem[0x74..0x77]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x78..0x7b]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x7c..0x7f]: 	Halt 	@exit
-mem[0x80..0x3e7]: 	( 00 )
+mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
+mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
+mem[0x008..0x00b] (4 B): 	Lui {rd = T0, k = 0} 	@_start
+mem[0x00c..0x00f] (4 B): 	Addi {rd = T0, rs1 = T0, k = 0}
+mem[0x010..0x013] (4 B): 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x014..0x017] (4 B): 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x018..0x01b] (4 B): 	Bgt {rs1 = Zero, rs2 = T1, k = 60}
+mem[0x01c..0x01f] (4 B): 	Addi {rd = T2, rs1 = Zero, k = 1} 	@factorial_begin
+mem[0x020..0x023] (4 B): 	Beqz {rs1 = T1, k = 76} 	@factorial_while
+mem[0x024..0x027] (4 B): 	Mulh {rd = T3, rs1 = T2, rs2 = T1}
+mem[0x028..0x02b] (4 B): 	Bnez {rs1 = T3, k = 16}
+mem[0x02c..0x02f] (4 B): 	Mul {rd = T2, rs1 = T2, rs2 = T1}
+mem[0x030..0x033] (4 B): 	Addi {rd = T1, rs1 = T1, k = -1}
+mem[0x034..0x037] (4 B): 	J {k = -20}
+mem[0x038..0x03b] (4 B): 	Lui {rd = T0, k = 0} 	@check_overflow
+mem[0x03c..0x03f] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[0x040..0x043] (4 B): 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x044..0x047] (4 B): 	Lui {rd = T4, k = 838860}
+mem[0x048..0x04b] (4 B): 	Addi {rd = T4, rs1 = T4, k = 3276}
+mem[0x04c..0x04f] (4 B): 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x050..0x053] (4 B): 	J {k = 44}
+mem[0x054..0x057] (4 B): 	Lui {rd = T0, k = 0} 	@negative_case
+mem[0x058..0x05b] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[0x05c..0x05f] (4 B): 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x060..0x063] (4 B): 	Addi {rd = T4, rs1 = Zero, k = -1}
+mem[0x064..0x067] (4 B): 	Sw {rs2 = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x068..0x06b] (4 B): 	J {k = 20}
+mem[0x06c..0x06f] (4 B): 	Lui {rd = T0, k = 0} 	@factorial_end
+mem[0x070..0x073] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[0x074..0x077] (4 B): 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x078..0x07b] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x07c..0x07f] (4 B): 	Halt 	@exit
+mem[0x080..0x3e7] (872 B): 	( 00 )
 ---

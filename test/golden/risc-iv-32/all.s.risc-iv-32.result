@@ -11,44 +11,44 @@
 144:	beq_label
 148:	bne_label
 ---
-mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
-mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
-mem[0x08..0x0b]: 	Addi {rd = T0, rs1 = T0, k = 0} 	@_start
-mem[0x0c..0x0f]: 	Add {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x10..0x13]: 	Sub {rd = T3, rs1 = T1, rs2 = T0}
-mem[0x14..0x17]: 	Mul {rd = T4, rs1 = T1, rs2 = T0}
-mem[0x18..0x1b]: 	Mulh {rd = T5, rs1 = T1, rs2 = T0}
-mem[0x1c..0x1f]: 	Div {rd = T6, rs1 = T1, rs2 = T0}
-mem[0x20..0x23]: 	Rem {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x24..0x27]: 	Sll {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x28..0x2b]: 	Srl {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x2c..0x2f]: 	Sra {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x30..0x33]: 	And {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x34..0x37]: 	Or {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x38..0x3b]: 	Xor {rd = T2, rs1 = T1, rs2 = T0}
-mem[0x3c..0x3f]: 	Mv {rd = T2, rs = T1}
-mem[0x40..0x43]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x44..0x47]: 	Sb {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x48..0x4b]: 	Lui {rd = T2, k = 4660}
-mem[0x4c..0x4f]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x50..0x53]: 	J {k = 36}
-mem[0x54..0x57]: 	Beqz {rs1 = T1, k = 36}
-mem[0x58..0x5b]: 	Bnez {rs1 = T1, k = 36}
-mem[0x5c..0x5f]: 	Bgt {rs1 = T1, rs2 = T0, k = 36}
-mem[0x60..0x63]: 	Ble {rs1 = T1, rs2 = T0, k = 36}
-mem[0x64..0x67]: 	Bgtu {rs1 = T1, rs2 = T0, k = 36}
-mem[0x68..0x6b]: 	Bleu {rs1 = T1, rs2 = T0, k = 36}
-mem[0x6c..0x6f]: 	Beq {rs1 = T1, rs2 = T0, k = 36}
-mem[0x70..0x73]: 	Bne {rs1 = T1, rs2 = T0, k = 36}
-mem[0x74..0x77]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@jump_label
-mem[0x78..0x7b]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beqz_label
-mem[0x7c..0x7f]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bnez_label
-mem[0x80..0x83]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgt_label
-mem[0x84..0x87]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@ble_label
-mem[0x88..0x8b]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgtu_label
-mem[0x8c..0x8f]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
-mem[0x90..0x93]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@beq_label
-mem[0x94..0x97]: 	Addi {rd = T0, rs1 = T0, k = 4} 	@bne_label
-mem[0x98..0x9b]: 	Halt
-mem[0x9c..0x3e7]: 	( 00 )
+mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
+mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
+mem[0x008..0x00b] (4 B): 	Addi {rd = T0, rs1 = T0, k = 0} 	@_start
+mem[0x00c..0x00f] (4 B): 	Add {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x010..0x013] (4 B): 	Sub {rd = T3, rs1 = T1, rs2 = T0}
+mem[0x014..0x017] (4 B): 	Mul {rd = T4, rs1 = T1, rs2 = T0}
+mem[0x018..0x01b] (4 B): 	Mulh {rd = T5, rs1 = T1, rs2 = T0}
+mem[0x01c..0x01f] (4 B): 	Div {rd = T6, rs1 = T1, rs2 = T0}
+mem[0x020..0x023] (4 B): 	Rem {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x024..0x027] (4 B): 	Sll {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x028..0x02b] (4 B): 	Srl {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x02c..0x02f] (4 B): 	Sra {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x030..0x033] (4 B): 	And {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x034..0x037] (4 B): 	Or {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x038..0x03b] (4 B): 	Xor {rd = T2, rs1 = T1, rs2 = T0}
+mem[0x03c..0x03f] (4 B): 	Mv {rd = T2, rs = T1}
+mem[0x040..0x043] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x044..0x047] (4 B): 	Sb {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x048..0x04b] (4 B): 	Lui {rd = T2, k = 4660}
+mem[0x04c..0x04f] (4 B): 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x050..0x053] (4 B): 	J {k = 36}
+mem[0x054..0x057] (4 B): 	Beqz {rs1 = T1, k = 36}
+mem[0x058..0x05b] (4 B): 	Bnez {rs1 = T1, k = 36}
+mem[0x05c..0x05f] (4 B): 	Bgt {rs1 = T1, rs2 = T0, k = 36}
+mem[0x060..0x063] (4 B): 	Ble {rs1 = T1, rs2 = T0, k = 36}
+mem[0x064..0x067] (4 B): 	Bgtu {rs1 = T1, rs2 = T0, k = 36}
+mem[0x068..0x06b] (4 B): 	Bleu {rs1 = T1, rs2 = T0, k = 36}
+mem[0x06c..0x06f] (4 B): 	Beq {rs1 = T1, rs2 = T0, k = 36}
+mem[0x070..0x073] (4 B): 	Bne {rs1 = T1, rs2 = T0, k = 36}
+mem[0x074..0x077] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@jump_label
+mem[0x078..0x07b] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@beqz_label
+mem[0x07c..0x07f] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@bnez_label
+mem[0x080..0x083] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgt_label
+mem[0x084..0x087] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@ble_label
+mem[0x088..0x08b] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@bgtu_label
+mem[0x08c..0x08f] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@bleu_label
+mem[0x090..0x093] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@beq_label
+mem[0x094..0x097] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4} 	@bne_label
+mem[0x098..0x09b] (4 B): 	Halt
+mem[0x09c..0x3e7] (844 B): 	( 00 )
 ---
