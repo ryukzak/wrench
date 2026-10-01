@@ -7,6 +7,7 @@ module Wrench.Wrench (
     runWrenchIO,
     wrench,
     Isa (..),
+    AddrFormat (..),
 ) where
 
 import Data.Default (Default (..), def)
@@ -40,6 +41,7 @@ data Options = Options
     , maxInstructionLimit :: Int
     , maxMemoryLimit :: Int
     , maxStateLogLimit :: Int
+    , dumpAddrFormat :: AddrFormat
     }
     deriving (Show)
 
@@ -55,6 +57,7 @@ instance Default Options where
             , maxInstructionLimit = 8000000
             , maxMemoryLimit = 8192
             , maxStateLogLimit = 10000
+            , dumpAddrFormat = Hex
             }
 
 data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k
@@ -67,6 +70,14 @@ instance Read Isa where
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
     readsPrec _ "m68k" = [(M68k, "")]
+    readsPrec _ _ = []
+
+data AddrFormat = Hex | Dec
+    deriving (Show)
+
+instance Read AddrFormat where
+    readsPrec _ "hex" = [(Hex, "")]
+    readsPrec _ "dec" = [(Dec, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -132,7 +143,7 @@ wrenchIO ::
     -> Config
     -> [Char]
     -> IO ()
-wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
+wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat} conf@Config{} src =
     case wrench @st opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
@@ -142,10 +153,13 @@ wrenchIO opts@Options{isa, onlyTranslation} conf@Config{} src =
                     if rSuccess then exitSuccess else exitFailure
         Left e -> wrenchError e
     where
+        addrShow = case dumpAddrFormat of
+            Hex -> hexAddr
+            Dec -> show
         translationResult rLabels rDump = do
             putText $ prettyLabels rLabels
             putStrLn "---"
-            putText $ prettyDump rLabels rDump
+            putText $ prettyDump addrShow rLabels rDump
         wrenchError e = do
             putStrLn $ "error (" <> isa <> "): " <> toString e
             exitFailure

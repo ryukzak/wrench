@@ -7,6 +7,7 @@ module Wrench.Machine.Memory (
     Memory (..),
     WordParts (..),
     word32ToHex,
+    hexAddr,
     prepareDump,
     prettyDump,
     DumpStats (..),
@@ -141,15 +142,16 @@ sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) a
 prettyDump ::
     forall w isa.
     (ByteSize isa, IsWord w, Show isa) =>
-    HashMap Text w
+    (Int -> Text)
+    -> HashMap Text w
     -> IntMap (Cell isa w)
     -> Text
-prettyDump labels mem = T.intercalate "\n" $ pretty $ toPairs mem
+prettyDump showAddr labels mem = T.intercalate "\n" $ pretty $ toPairs mem
     where
         offset2label :: HashMap Int Text
         offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
         instruction offset n i =
-            let place = "mem[" <> show offset <> ".." <> show (offset + n - 1) <> "]"
+            let place = "mem[" <> showAddr offset <> ".." <> showAddr (offset + n - 1) <> "]"
                 label = maybe "" (" \t@" <>) (offset2label !? offset)
              in place <> ": \t" <> show i <> label
         pretty [] = []
@@ -157,7 +159,7 @@ prettyDump labels mem = T.intercalate "\n" $ pretty $ toPairs mem
             let n = byteSize i
                 cs' = drop (n - 1) cs
              in instruction offset n i : pretty cs'
-        pretty ((offset, InstructionPart) : cs) = (show offset <> ": \tInstructionPart") : pretty cs
+        pretty ((offset, InstructionPart) : cs) = (showAddr offset <> ": \tInstructionPart") : pretty cs
         pretty cs =
             let values = map (second (\case (Value v) -> v; _ -> error "impossible")) $ takeWhile (isValue . snd) cs
                 cs' = dropWhile (isValue . snd) cs
@@ -172,7 +174,14 @@ prettyDump labels mem = T.intercalate "\n" $ pretty $ toPairs mem
             let curValues = takeWhile ((== label) . snd . fst) values
                 b = fst $ fst $ Unsafe.last curValues
                 restValues = dropWhile ((== label) . snd . fst) values
-             in ("mem[" <> show a <> ".." <> show b <> "]: \t" <> hexValues curValues <> maybe "" (\l -> "\t@\"" <> l <> "\"") label)
+             in ( "mem["
+                    <> showAddr a
+                    <> ".."
+                    <> showAddr b
+                    <> "]: \t"
+                    <> hexValues curValues
+                    <> maybe "" (\l -> "\t@\"" <> l <> "\"") label
+                )
                     : merge restValues
         hexValues values | all ((== 0) . snd) values && length values >= 16 = "( 00 )"
         hexValues values = unwords $ map (toText . word8ToHex . snd) values
@@ -184,6 +193,12 @@ word8ToHex w =
 word32ToHex w =
     let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
+
+hexAddr :: Int -> Text
+hexAddr idx =
+    let hex = showHex (abs idx) ""
+        padded = replicate (max 0 (2 - length hex)) '0' <> hex
+     in toText (if idx < 0 then "-0x" <> padded else "0x" <> padded)
 
 class Memory m isa w | m -> isa w where
     readInstruction :: m -> Int -> Either Text (m, isa)

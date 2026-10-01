@@ -89,7 +89,7 @@ This service will be used to send laboratory works to check.
 $ wrench --help
 Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
               [--instruction-limit LIMIT] [--memory-limit SIZE]
-              [--state-log-limit LIMIT]
+              [--state-log-limit LIMIT] [--dump-addr-format FORMAT]
 
   App for laboratory course of computer architecture.
 
@@ -106,6 +106,9 @@ Available options:
   --memory-limit SIZE      Maximum memory size in bytes (default: 8192)
   --state-log-limit LIMIT  Maximum number of state records to log
                            (default: 10000)
+  --dump-addr-format FORMAT
+                           Numeral format for -S dump addresses: hex or dec
+                           (default: hex)
   -h,--help                Show this help text
   --version                Show version information
 ```
