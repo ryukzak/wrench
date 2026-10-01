@@ -23,7 +23,7 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
-Instruction size: 1 byte for opcode, 4 bytes for absolute operand, 2 bytes for relative operand. Control flow, Load/Store Immediate/Indirect/Addr use absolute address, other -- relative.
+Instruction size: 1 byte for opcode, plus the operand. Control flow and Load/Store Immediate/Indirect/Addr take a 4-byte absolute address; `add`/`sub`/`mul`/`div`/`rem`/`shiftl`/`shiftr`/`and`/`or`/`xor` take a 2-byte absolute address; `load`/`store` take a 1-byte offset relative to `pc`.
 
 ### Data Movement Instructions
 

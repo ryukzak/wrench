@@ -29,12 +29,14 @@ data Acc32Isa w l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
     | -- | Syntax: @load <offset>@ Load a value from a relative address into the accumulator.
+      -- @offset@ is a signed byte (-128..127): the instruction is 2 bytes wide.
       Load l
     | -- | Syntax: @load_acc@ Load a value from an address in acc into the accumulator.
       LoadAcc
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
     | -- | Syntax: @store <offset>@ Store the accumulator value into a relative address.
+      -- @offset@ is a signed byte (-128..127): the instruction is 2 bytes wide.
       Store l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
@@ -93,10 +95,10 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
             [ LoadImm <$> cmdMnemonic1 "load_imm" reference
             , LoadAddr <$> cmdMnemonic1 "load_addr" reference
             , cmdMnemonic0 "load_acc" >> return LoadAcc
-            , Load <$> cmdMnemonic1 "load" reference16
+            , Load <$> cmdMnemonic1 "load" reference8
             , StoreAddr <$> cmdMnemonic1 "store_addr" reference
             , StoreInd <$> cmdMnemonic1 "store_ind" reference
-            , Store <$> cmdMnemonic1 "store" reference16
+            , Store <$> cmdMnemonic1 "store" reference8
             , Add <$> cmdMnemonic1 "add" reference16
             , Sub <$> cmdMnemonic1 "sub" reference16
             , Mul <$> cmdMnemonic1 "mul" reference16
@@ -125,6 +127,13 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
 
 reference16 :: (IsWord w) => Parser (Ref w)
 reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
+
+-- | A 'Load'\/'Store' relative offset, truncated to one byte -- these two
+-- instructions are 2 bytes wide (opcode + offset), unlike the other
+-- operand-taking instructions here, which keep a full address and so stay
+-- wider.
+reference8 :: (IsWord w) => Parser (Ref w)
+reference8 = referenceWithFn (`signBitAnd` 0x000000FF)
 
 cmdMnemonic0 :: String -> Parser ()
 cmdMnemonic0 mnemonic = try $ do
@@ -181,6 +190,8 @@ instance ByteSize (Acc32Isa w l) where
     byteSize LoadImm{} = 5
     byteSize LoadAddr{} = 5
     byteSize LoadAcc{} = 1
+    byteSize Load{} = 2
+    byteSize Store{} = 2
     byteSize StoreAddr{} = 5
     byteSize StoreInd{} = 5
     byteSize Beqz{} = 5

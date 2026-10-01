@@ -4,41 +4,41 @@
 12:	result
 16:	const_1
 20:	_start
-32:	factorial_begin
-41:	factorial_while
-74:	factorial_end
-83:	not_in_domain
-94:	factorial_overflow
+30:	factorial_begin
+36:	factorial_while
+65:	factorial_end
+73:	not_in_domain
+84:	factorial_overflow
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
 mem[0x008..0x00b] (4 B): 	00 00 00 00	@"n"
 mem[0x00c..0x00f] (4 B): 	01 00 00 00	@"result"
 mem[0x010..0x013] (4 B): 	01 00 00 00	@"const_1"
-mem[0x014..0x016] (3 B): 	Load (-20) 	@_start
-mem[0x017..0x017] (1 B): 	LoadAcc
-mem[0x018..0x01a] (3 B): 	Store (-16)
-mem[0x01b..0x01f] (5 B): 	Blz 83
-mem[0x020..0x022] (3 B): 	Load (-16) 	@factorial_begin
-mem[0x023..0x025] (3 B): 	Store (-23)
-mem[0x026..0x028] (3 B): 	Load (-30)
-mem[0x029..0x02d] (5 B): 	Beqz 74 	@factorial_while
-mem[0x02e..0x030] (3 B): 	Load (-34)
-mem[0x031..0x033] (3 B): 	Mul 8
-mem[0x034..0x038] (5 B): 	Bvs 94
-mem[0x039..0x03b] (3 B): 	Store (-45)
-mem[0x03c..0x03e] (3 B): 	Load (-52)
-mem[0x03f..0x041] (3 B): 	Sub 16
-mem[0x042..0x044] (3 B): 	Store (-58)
-mem[0x045..0x049] (5 B): 	Jmp 41
-mem[0x04a..0x04c] (3 B): 	Load (-62) 	@factorial_end
-mem[0x04d..0x051] (5 B): 	StoreInd 4
-mem[0x052..0x052] (1 B): 	Halt
-mem[0x053..0x057] (5 B): 	LoadImm (-1) 	@not_in_domain
-mem[0x058..0x05c] (5 B): 	StoreInd 4
-mem[0x05d..0x05d] (1 B): 	Halt
-mem[0x05e..0x062] (5 B): 	LoadImm (-858993460) 	@factorial_overflow
-mem[0x063..0x067] (5 B): 	StoreInd 4
-mem[0x068..0x068] (1 B): 	Halt
-mem[0x069..0x3e7] (895 B): 	( 00 )
+mem[0x014..0x015] (2 B): 	Load (-20) 	@_start
+mem[0x016..0x016] (1 B): 	LoadAcc
+mem[0x017..0x018] (2 B): 	Store (-15)
+mem[0x019..0x01d] (5 B): 	Blz 73
+mem[0x01e..0x01f] (2 B): 	Load (-14) 	@factorial_begin
+mem[0x020..0x021] (2 B): 	Store (-20)
+mem[0x022..0x023] (2 B): 	Load (-26)
+mem[0x024..0x028] (5 B): 	Beqz 65 	@factorial_while
+mem[0x029..0x02a] (2 B): 	Load (-29)
+mem[0x02b..0x02d] (3 B): 	Mul 8
+mem[0x02e..0x032] (5 B): 	Bvs 84
+mem[0x033..0x034] (2 B): 	Store (-39)
+mem[0x035..0x036] (2 B): 	Load (-45)
+mem[0x037..0x039] (3 B): 	Sub 16
+mem[0x03a..0x03b] (2 B): 	Store (-50)
+mem[0x03c..0x040] (5 B): 	Jmp 36
+mem[0x041..0x042] (2 B): 	Load (-53) 	@factorial_end
+mem[0x043..0x047] (5 B): 	StoreInd 4
+mem[0x048..0x048] (1 B): 	Halt
+mem[0x049..0x04d] (5 B): 	LoadImm (-1) 	@not_in_domain
+mem[0x04e..0x052] (5 B): 	StoreInd 4
+mem[0x053..0x053] (1 B): 	Halt
+mem[0x054..0x058] (5 B): 	LoadImm (-858993460) 	@factorial_overflow
+mem[0x059..0x05d] (5 B): 	StoreInd 4
+mem[0x05e..0x05e] (1 B): 	Halt
+mem[0x05f..0x3e7] (905 B): 	( 00 )
 ---
