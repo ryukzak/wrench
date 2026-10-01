@@ -29,14 +29,12 @@ data Acc32Isa w l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
     | -- | Syntax: @load <offset>@ Load a value from a relative address into the accumulator.
-      -- @offset@ is a signed byte (-128..127): the instruction is 2 bytes wide.
       Load l
     | -- | Syntax: @load_acc@ Load a value from an address in acc into the accumulator.
       LoadAcc
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
     | -- | Syntax: @store <offset>@ Store the accumulator value into a relative address.
-      -- @offset@ is a signed byte (-128..127): the instruction is 2 bytes wide.
       Store l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
@@ -128,27 +126,16 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
 reference16 :: (IsWord w) => Parser (Ref w)
 reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
 
--- | A 'Load'\/'Store' relative offset -- these two instructions are 2 bytes
--- wide (opcode + offset), unlike the other operand-taking instructions here,
--- which keep a full address and so stay wider. Unlike 'reference16', an
--- out-of-range value here isn't silently cropped: see 'requireSignedByte'.
 reference8 :: (IsWord w) => Parser (Ref w)
 reference8 = referenceWithFn requireSignedByte
-
--- | Translation-time bounds check for a 'Load'\/'Store' offset: a signed
--- byte only reaches -128..127, so a target further away than that can't be
--- encoded at all (there's no wider encoding to fall back to, unlike
--- 'signBitAnd's crop-and-continue). Raised at the point the final offset
--- (post label resolution\/pc-adjustment) is known -- see the forcing note on
--- 'derefSection'.
-requireSignedByte :: (IsWord w) => w -> w
-requireSignedByte x
-    | x < -128 || x > 127 =
-        error $
-            "load/store offset "
-                <> show x
-                <> " does not fit in a signed byte (-128..127); the target is too far from this instruction"
-    | otherwise = x
+    where
+        requireSignedByte x
+            | x < -128 || x > 127 =
+                error $
+                    "load/store offset "
+                        <> show x
+                        <> " does not fit in a signed byte (-128..127); the target is too far from this instruction"
+            | otherwise = x
 
 cmdMnemonic0 :: String -> Parser ()
 cmdMnemonic0 mnemonic = try $ do
