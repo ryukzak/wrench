@@ -93,10 +93,10 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
             [ LoadImm <$> cmdMnemonic1 "load_imm" reference
             , LoadAddr <$> cmdMnemonic1 "load_addr" reference
             , cmdMnemonic0 "load_acc" >> return LoadAcc
-            , Load <$> cmdMnemonic1 "load" reference8
+            , Load <$> cmdMnemonic1 "load" reference
             , StoreAddr <$> cmdMnemonic1 "store_addr" reference
             , StoreInd <$> cmdMnemonic1 "store_ind" reference
-            , Store <$> cmdMnemonic1 "store" reference8
+            , Store <$> cmdMnemonic1 "store" reference
             , Add <$> cmdMnemonic1 "add" reference16
             , Sub <$> cmdMnemonic1 "sub" reference16
             , Mul <$> cmdMnemonic1 "mul" reference16
@@ -126,17 +126,6 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
 reference16 :: (IsWord w) => Parser (Ref w)
 reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
 
-reference8 :: (IsWord w) => Parser (Ref w)
-reference8 = referenceWithFn requireSignedByte
-    where
-        requireSignedByte x
-            | x < -128 || x > 127 =
-                error $
-                    "load/store offset "
-                        <> show x
-                        <> " does not fit in a signed byte (-128..127); the target is too far from this instruction"
-            | otherwise = x
-
 cmdMnemonic0 :: String -> Parser ()
 cmdMnemonic0 mnemonic = try $ do
     hspace
@@ -158,10 +147,10 @@ instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
          in case i of
                 LoadImm l -> LoadImm (deref' f l)
                 LoadAddr l -> LoadAddr (deref' f l)
-                Load l -> Load (deref' relF l)
+                Load l -> Load (checkOffset "load" (deref' relF l))
                 LoadAcc -> LoadAcc
                 StoreAddr l -> StoreAddr (deref' f l)
-                Store l -> Store (deref' relF l)
+                Store l -> Store (checkOffset "store" (deref' relF l))
                 StoreInd l -> StoreInd (deref' f l)
                 Add l -> Add (deref' f l)
                 Sub l -> Sub (deref' f l)
@@ -187,6 +176,17 @@ instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
                 Bcc l -> Bcc (deref' f l)
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
+        where
+            checkOffset mnemonic x
+                | x < -128 || x > 127 =
+                    error $
+                        mnemonic
+                            <> " offset "
+                            <> show x
+                            <> " at instruction address "
+                            <> show offset
+                            <> " does not fit in a signed byte (-128..127)"
+                | otherwise = x
 
 instance ByteSize (Acc32Isa w l) where
     byteSize LoadImm{} = 5
