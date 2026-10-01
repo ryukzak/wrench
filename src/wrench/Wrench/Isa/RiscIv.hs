@@ -170,20 +170,20 @@ data RiscIvIsa w l
       J {k :: l}
     | -- | Jump and Link: rd = PC + 4, PC += k
       Jal {rd :: Register, k :: l}
-    | -- | Jump register: PC = rs
-      Jr {rs :: Register}
+    | -- | Jump and link register: rd = PC + 4, PC = rs1 + k
+      Jalr {rd, rs1 :: Register, k :: l}
     | -- | Branch if equal to zero: if rs1 == 0 then PC += k
       Beqz {rs1 :: Register, k :: l}
     | -- | Branch if not equal to zero: if rs1 /= 0 then PC += k
       Bnez {rs1 :: Register, k :: l}
-    | -- | Branch if greater than: if rs1 > rs2 then PC += k
-      Bgt {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if less than or equal: if rs1 <= rs2 then PC += k
-      Ble {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if greater than (unsigned): if rs1 > rs2 then PC += k
-      Bgtu {rs1, rs2 :: Register, k :: l}
-    | -- | Branch if less than or equal (unsigned): if rs1 <= rs2 then PC += k
-      Bleu {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if less than: if rs1 < rs2 then PC += k
+      Blt {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if greater than or equal: if rs1 >= rs2 then PC += k
+      Bge {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if less than (unsigned): if rs1 < rs2 then PC += k
+      Bltu {rs1, rs2 :: Register, k :: l}
+    | -- | Branch if greater than or equal (unsigned): if rs1 >= rs2 then PC += k
+      Bgeu {rs1, rs2 :: Register, k :: l}
     | -- | Branch if equal: if rs1 == rs2 then PC += k
       Beq {rs1, rs2 :: Register, k :: l}
     | -- | Branch if not equal: if rs1 /= rs2 then PC += k
@@ -281,13 +281,13 @@ instance (IsWord w) => MnemonicParser (RiscIvIsa w (Ref w)) where
                     , cmd2args "lb" Lb register memRef
                     , cmd1args "j" J reference
                     , cmd2args "jal" Jal register reference
-                    , cmd1args "jr" Jr register
+                    , cmd3args "jalr" Jalr register register referenceWithDirective
                     , cmd2args "beqz" Beqz register reference
                     , cmd2args "bnez" Bnez register reference
-                    , cmd3args "bgt" Bgt register register reference
-                    , cmd3args "ble" Ble register register reference
-                    , cmd3args "bgtu" Bgtu register register reference
-                    , cmd3args "bleu" Bleu register register reference
+                    , cmd3args "blt" Blt register register reference
+                    , cmd3args "bge" Bge register register reference
+                    , cmd3args "bltu" Bltu register register reference
+                    , cmd3args "bgeu" Bgeu register register reference
                     , cmd3args "beq" Beq register register reference
                     , cmd3args "bne" Bne register register reference
                     , string "halt" >> return Halt
@@ -299,7 +299,7 @@ instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
          in case i of
                 J{k} -> J $ deref' relF k
                 Jal{rd, k} -> Jal rd $ deref' relF k
-                Jr{rs} -> Jr{rs}
+                Jalr{rd, rs1, k} -> Jalr{rd, rs1, k = deref' f k}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
                 Slti{rd, rs1, k} -> Slti{rd, rs1, k = deref' f k}
                 Slli{rd, rs1, k} -> Slli{rd, rs1, k = deref' f k}
@@ -328,10 +328,10 @@ instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
                 Lb{rd, offsetRs1} -> Lb{rd, offsetRs1}
                 Beqz{rs1, k} -> Beqz rs1 $ deref' relF k
                 Bnez{rs1, k} -> Bnez rs1 $ deref' relF k
-                Bgt{rs1, rs2, k} -> Bgt rs1 rs2 $ deref' relF k
-                Ble{rs1, rs2, k} -> Ble rs1 rs2 $ deref' relF k
-                Bgtu{rs1, rs2, k} -> Bgtu rs1 rs2 $ deref' relF k
-                Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ deref' relF k
+                Blt{rs1, rs2, k} -> Blt rs1 rs2 $ deref' relF k
+                Bge{rs1, rs2, k} -> Bge rs1 rs2 $ deref' relF k
+                Bltu{rs1, rs2, k} -> Bltu rs1 rs2 $ deref' relF k
+                Bgeu{rs1, rs2, k} -> Bgeu rs1 rs2 $ deref' relF k
                 Beq{rs1, rs2, k} -> Beq rs1 rs2 $ deref' relF k
                 Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
                 Halt -> Halt
@@ -559,7 +559,11 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 RiscIvSt{pc} <- get
                 setReg rd (toEnum pc + 4)
                 setPc (pc + fromEnum k)
-            Jr{rs} -> getReg rs >>= setPc . fromEnum
+            Jalr{rd, rs1, k} -> do
+                RiscIvSt{pc} <- get
+                rs1' <- getReg rs1
+                setReg rd (toEnum pc + 4)
+                setPc (fromEnum (rs1' + k))
             Beqz{rs1, k} -> do
                 RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
@@ -572,32 +576,32 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 if rs1' /= 0
                     then setPc (pc + fromEnum k)
                     else nextPc
-            Bgt{rs1, rs2, k} -> do
+            Blt{rs1, rs2, k} -> do
                 RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
-                if rs1' > rs2'
+                if rs1' < rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
-            Ble{rs1, rs2, k} -> do
+            Bge{rs1, rs2, k} -> do
                 RiscIvSt{pc} <- get
                 rs1' <- getReg rs1
                 rs2' <- getReg rs2
-                if rs1' <= rs2'
+                if rs1' >= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
-            Bgtu{rs1, rs2, k} -> do
+            Bltu{rs1, rs2, k} -> do
                 RiscIvSt{pc} <- get
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
-                if rs1' > rs2'
+                if rs1' < rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
-            Bleu{rs1, rs2, k} -> do
+            Bgeu{rs1, rs2, k} -> do
                 RiscIvSt{pc} <- get
                 rs1' <- fromSign <$> getReg rs1
                 rs2' <- fromSign <$> getReg rs2
-                if rs1' <= rs2'
+                if rs1' >= rs2'
                     then setPc (pc + fromEnum k)
                     else nextPc
             Beq{rs1, rs2, k} -> do

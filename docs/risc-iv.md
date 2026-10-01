@@ -213,10 +213,10 @@ Instruction size: 4 bytes.
     - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
     - **Operation:** `rd <- pc + 4, pc <- pc + k`
 
-- **Jump Register**
-    - **Syntax:** `jr <rs>`
-    - **Description:** Jump to the address stored in the source register.
-    - **Operation:** `pc <- rs`
+- **Jump and Link Register**
+    - **Syntax:** `jalr <rd>, <rs1>, <k>`
+    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the source register. To return from a call, use `jalr zero, ra, 0`.
+    - **Operation:** `rd <- pc + 4, pc <- rs1 + k`
 
 - **Branch if Equal to Zero**
     - **Syntax:** `beqz <rs1>, <k>`
@@ -228,25 +228,25 @@ Instruction size: 4 bytes.
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the source register is not zero.
     - **Operation:** `if rs1 != 0 then pc <- pc + k`
 
-- **Branch if Greater Than**
-    - **Syntax:** `bgt <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is greater than the value in the second source register.
-    - **Operation:** `if rs1 > rs2 then pc <- pc + k`
+- **Branch if Less Than**
+    - **Syntax:** `blt <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than the value in the second source register.
+    - **Operation:** `if rs1 < rs2 then pc <- pc + k`
 
-- **Branch if Less Than or Equal**
-    - **Syntax:** `ble <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than or equal to the value in the second source register.
-    - **Operation:** `if rs1 <= rs2 then pc <- pc + k`
+- **Branch if Greater Than or Equal**
+    - **Syntax:** `bge <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is greater than or equal to the value in the second source register.
+    - **Operation:** `if rs1 >= rs2 then pc <- pc + k`
 
-- **Branch if Greater Than (Unsigned)**
-    - **Syntax:** `bgtu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than the unsigned interpretation of the second source register.
-    - **Operation:** `if unsigned(rs1) > unsigned(rs2) then pc <- pc + k`
+- **Branch if Less Than (Unsigned)**
+    - **Syntax:** `bltu <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) < unsigned(rs2) then pc <- pc + k`
 
-- **Branch if Less Than or Equal (Unsigned)**
-    - **Syntax:** `bleu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than or equal to the unsigned interpretation of the second source register.
-    - **Operation:** `if unsigned(rs1) <= unsigned(rs2) then pc <- pc + k`
+- **Branch if Greater Than or Equal (Unsigned)**
+    - **Syntax:** `bgeu <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than or equal to the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) >= unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Equal**
     - **Syntax:** `beq <rs1>, <rs2>, <k>`
