@@ -1,12 +1,15 @@
 module Wrench.Isa.Acc32.Test (tests) where
 
+import Control.Exception (SomeException, evaluate, try)
 import Data.Default
+import Data.List (isInfixOf)
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Wrench.Isa.Acc32
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Translator (translate)
 
 tests :: TestTree
 tests =
@@ -30,6 +33,15 @@ tests =
             runBranch (Bgez 100) 5 @?= 100
         , testCase "bgez not taken (acc < 0)" $ do
             runBranch (Bgez 100) (-1) @?= 10
+        , testCase "load offset out of range fails translation" $ do
+            let src = ".text\n_start:\n    load 200\n    halt\n"
+            result <-
+                try @SomeException
+                    $ evaluate
+                    $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
+            case result of
+                Left e -> assertBool ("unexpected error: " <> show e) ("offset" `isInfixOf` show e)
+                Right n -> assertFailure ("expected translation to fail, got " <> show n <> " characters")
         ]
 
 -- | Build an initial state with a LoadImm at address 0 (5 bytes) followed by

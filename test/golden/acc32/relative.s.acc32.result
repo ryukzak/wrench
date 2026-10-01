@@ -1,7 +1,6 @@
 0:	_start
 ---
 mem[0x000..0x004] (5 B): 	LoadAddr 305419896 	@_start
-mem[0x005..0x006] (2 B): 	Load 120
-mem[0x007..0x007] (1 B): 	Halt
-mem[0x008..0x3e7] (992 B): 	( 00 )
+mem[0x005..0x005] (1 B): 	Halt
+mem[0x006..0x3e7] (994 B): 	( 00 )
 ---
