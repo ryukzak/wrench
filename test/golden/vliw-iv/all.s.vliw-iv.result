@@ -11,44 +11,44 @@
 732:	beq_label
 746:	bne_label
 ---
-mem[0..3]: 	80 00 00 00	@"input_addr"
-mem[4..255]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
-mem[256..269]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
-mem[270..283]: 	VliwIvIsa {memOp = NopM, alu1Op = Add {addRd = T2, addRs1 = T1, addRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[284..297]: 	VliwIvIsa {memOp = NopM, alu1Op = Sub {subRd = T3, subRs1 = T1, subRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[298..311]: 	VliwIvIsa {memOp = NopM, alu1Op = Mul {mulRd = T4, mulRs1 = T1, mulRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[312..325]: 	VliwIvIsa {memOp = NopM, alu1Op = Mulh {mulhRd = T5, mulhRs1 = T1, mulhRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[326..339]: 	VliwIvIsa {memOp = NopM, alu1Op = Div {divRd = T6, divRs1 = T1, divRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[340..353]: 	VliwIvIsa {memOp = NopM, alu1Op = Rem {remRd = T2, remRs1 = T1, remRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[354..367]: 	VliwIvIsa {memOp = NopM, alu1Op = Sll {sllRd = T2, sllRs1 = T1, sllRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[368..381]: 	VliwIvIsa {memOp = NopM, alu1Op = Srl {srlRd = T2, srlRs1 = T1, srlRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[382..395]: 	VliwIvIsa {memOp = NopM, alu1Op = Sra {sraRd = T2, sraRs1 = T1, sraRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[396..409]: 	VliwIvIsa {memOp = NopM, alu1Op = And {andRd = T2, andRs1 = T1, andRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[410..423]: 	VliwIvIsa {memOp = NopM, alu1Op = Or {orRd = T2, orRs1 = T1, orRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[424..437]: 	VliwIvIsa {memOp = NopM, alu1Op = Xor {xorRd = T2, xorRs1 = T1, xorRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
-mem[438..451]: 	VliwIvIsa {memOp = NopM, alu1Op = Mv {mvRd = T2, mvRs = T1}, alu2Op = NopA, ctrlOp = NopC}
-mem[452..465]: 	VliwIvIsa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-mem[466..479]: 	VliwIvIsa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-mem[480..493]: 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 4660}, alu2Op = NopA, ctrlOp = NopC}
-mem[494..507]: 	VliwIvIsa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-mem[508..521]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 126}}
-mem[522..535]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T1, beqzK = 126}}
-mem[536..549]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T1, bnezK = 126}}
-mem[550..563]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T1, bgtRs2 = T0, bgtK = 126}}
-mem[564..577]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = T1, bleRs2 = T0, bleK = 126}}
-mem[578..591]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgtu {bgtuRs1 = T1, bgtuRs2 = T0, bgtuK = 126}}
-mem[592..605]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = T1, bleuRs2 = T0, bleuK = 126}}
-mem[606..619]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beq {beqRs1 = T1, beqRs2 = T0, beqK = 126}}
-mem[620..633]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bne {bneRs1 = T1, bneRs2 = T0, bneK = 126}}
-mem[634..647]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@jump_label
-mem[648..661]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beqz_label
-mem[662..675]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bnez_label
-mem[676..689]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgt_label
-mem[690..703]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@ble_label
-mem[704..717]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgtu_label
-mem[718..731]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bleu_label
-mem[732..745]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beq_label
-mem[746..759]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bne_label
-mem[760..773]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
-mem[774..999]: 	( 00 )
+mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
+mem[0x04..0xff]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
+mem[0x100..0x10d]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[0x10e..0x11b]: 	VliwIvIsa {memOp = NopM, alu1Op = Add {addRd = T2, addRs1 = T1, addRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x11c..0x129]: 	VliwIvIsa {memOp = NopM, alu1Op = Sub {subRd = T3, subRs1 = T1, subRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x12a..0x137]: 	VliwIvIsa {memOp = NopM, alu1Op = Mul {mulRd = T4, mulRs1 = T1, mulRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x138..0x145]: 	VliwIvIsa {memOp = NopM, alu1Op = Mulh {mulhRd = T5, mulhRs1 = T1, mulhRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x146..0x153]: 	VliwIvIsa {memOp = NopM, alu1Op = Div {divRd = T6, divRs1 = T1, divRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x154..0x161]: 	VliwIvIsa {memOp = NopM, alu1Op = Rem {remRd = T2, remRs1 = T1, remRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x162..0x16f]: 	VliwIvIsa {memOp = NopM, alu1Op = Sll {sllRd = T2, sllRs1 = T1, sllRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x170..0x17d]: 	VliwIvIsa {memOp = NopM, alu1Op = Srl {srlRd = T2, srlRs1 = T1, srlRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x17e..0x18b]: 	VliwIvIsa {memOp = NopM, alu1Op = Sra {sraRd = T2, sraRs1 = T1, sraRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x18c..0x199]: 	VliwIvIsa {memOp = NopM, alu1Op = And {andRd = T2, andRs1 = T1, andRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x19a..0x1a7]: 	VliwIvIsa {memOp = NopM, alu1Op = Or {orRd = T2, orRs1 = T1, orRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1a8..0x1b5]: 	VliwIvIsa {memOp = NopM, alu1Op = Xor {xorRd = T2, xorRs1 = T1, xorRs2 = T0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1b6..0x1c3]: 	VliwIvIsa {memOp = NopM, alu1Op = Mv {mvRd = T2, mvRs = T1}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1c4..0x1d1]: 	VliwIvIsa {memOp = Sw {swRs2 = T2, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1d2..0x1df]: 	VliwIvIsa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1e0..0x1ed]: 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 4660}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1ee..0x1fb]: 	VliwIvIsa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
+mem[0x1fc..0x209]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 126}}
+mem[0x20a..0x217]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T1, beqzK = 126}}
+mem[0x218..0x225]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bnez {bnezRs1 = T1, bnezK = 126}}
+mem[0x226..0x233]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = T1, bgtRs2 = T0, bgtK = 126}}
+mem[0x234..0x241]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = T1, bleRs2 = T0, bleK = 126}}
+mem[0x242..0x24f]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgtu {bgtuRs1 = T1, bgtuRs2 = T0, bgtuK = 126}}
+mem[0x250..0x25d]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = T1, bleuRs2 = T0, bleuK = 126}}
+mem[0x25e..0x26b]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beq {beqRs1 = T1, beqRs2 = T0, beqK = 126}}
+mem[0x26c..0x279]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bne {bneRs1 = T1, bneRs2 = T0, bneK = 126}}
+mem[0x27a..0x287]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@jump_label
+mem[0x288..0x295]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beqz_label
+mem[0x296..0x2a3]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bnez_label
+mem[0x2a4..0x2b1]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgt_label
+mem[0x2b2..0x2bf]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@ble_label
+mem[0x2c0..0x2cd]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bgtu_label
+mem[0x2ce..0x2db]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bleu_label
+mem[0x2dc..0x2e9]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@beq_label
+mem[0x2ea..0x2f7]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC} 	@bne_label
+mem[0x2f8..0x305]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+mem[0x306..0x3e7]: 	( 00 )
 ---

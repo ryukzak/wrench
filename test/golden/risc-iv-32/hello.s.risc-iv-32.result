@@ -4,19 +4,19 @@
 41:	while
 65:	end
 ---
-mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
-mem[17..20]: 	84 00 00 00	@"output_addr"
-mem[21..24]: 	Lui {rd = T0, k = 0} 	@_start
-mem[25..28]: 	Addi {rd = T0, rs1 = T0, k = 17}
-mem[29..32]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[33..36]: 	Addi {rd = T1, rs1 = T1, k = 0}
-mem[37..40]: 	Addi {rd = T2, rs1 = Zero, k = 14}
-mem[41..44]: 	Beqz {rs1 = T2, k = 24} 	@while
-mem[45..48]: 	Addi {rd = T2, rs1 = T2, k = -1}
-mem[49..52]: 	Lw {rd = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}
-mem[53..56]: 	Sb {rs2 = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[57..60]: 	Addi {rd = T1, rs1 = T1, k = 1}
-mem[61..64]: 	J {k = -20}
-mem[65..68]: 	Halt 	@end
-mem[69..999]: 	( 00 )
+mem[0x00..0x10]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
+mem[0x11..0x14]: 	84 00 00 00	@"output_addr"
+mem[0x15..0x18]: 	Lui {rd = T0, k = 0} 	@_start
+mem[0x19..0x1c]: 	Addi {rd = T0, rs1 = T0, k = 17}
+mem[0x1d..0x20]: 	Lw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x21..0x24]: 	Addi {rd = T1, rs1 = T1, k = 0}
+mem[0x25..0x28]: 	Addi {rd = T2, rs1 = Zero, k = 14}
+mem[0x29..0x2c]: 	Beqz {rs1 = T2, k = 24} 	@while
+mem[0x2d..0x30]: 	Addi {rd = T2, rs1 = T2, k = -1}
+mem[0x31..0x34]: 	Lw {rd = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}
+mem[0x35..0x38]: 	Sb {rs2 = T3, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x39..0x3c]: 	Addi {rd = T1, rs1 = T1, k = 1}
+mem[0x3d..0x40]: 	J {k = -20}
+mem[0x41..0x44]: 	Halt 	@end
+mem[0x45..0x3e7]: 	( 00 )
 ---

@@ -15,4 +15,4 @@ reports:
     view: |
       {memory:0:5}
     assert: |
-      mem[0..5]: 	ff 32 33 34 ff 00
+      mem[0x00..0x05]: 	ff 32 33 34 ff 00

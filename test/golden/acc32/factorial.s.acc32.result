@@ -10,35 +10,35 @@
 83:	not_in_domain
 94:	factorial_overflow
 ---
-mem[0..3]: 	80 00 00 00	@"input_addr"
-mem[4..7]: 	84 00 00 00	@"output_addr"
-mem[8..11]: 	00 00 00 00	@"n"
-mem[12..15]: 	01 00 00 00	@"result"
-mem[16..19]: 	01 00 00 00	@"const_1"
-mem[20..22]: 	Load (-20) 	@_start
-mem[23..23]: 	LoadAcc
-mem[24..26]: 	Store (-16)
-mem[27..31]: 	Blz 83
-mem[32..34]: 	Load (-16) 	@factorial_begin
-mem[35..37]: 	Store (-23)
-mem[38..40]: 	Load (-30)
-mem[41..45]: 	Beqz 74 	@factorial_while
-mem[46..48]: 	Load (-34)
-mem[49..51]: 	Mul 8
-mem[52..56]: 	Bvs 94
-mem[57..59]: 	Store (-45)
-mem[60..62]: 	Load (-52)
-mem[63..65]: 	Sub 16
-mem[66..68]: 	Store (-58)
-mem[69..73]: 	Jmp 41
-mem[74..76]: 	Load (-62) 	@factorial_end
-mem[77..81]: 	StoreInd 4
-mem[82..82]: 	Halt
-mem[83..87]: 	LoadImm (-1) 	@not_in_domain
-mem[88..92]: 	StoreInd 4
-mem[93..93]: 	Halt
-mem[94..98]: 	LoadImm (-858993460) 	@factorial_overflow
-mem[99..103]: 	StoreInd 4
-mem[104..104]: 	Halt
-mem[105..999]: 	( 00 )
+mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
+mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
+mem[0x08..0x0b]: 	00 00 00 00	@"n"
+mem[0x0c..0x0f]: 	01 00 00 00	@"result"
+mem[0x10..0x13]: 	01 00 00 00	@"const_1"
+mem[0x14..0x16]: 	Load (-20) 	@_start
+mem[0x17..0x17]: 	LoadAcc
+mem[0x18..0x1a]: 	Store (-16)
+mem[0x1b..0x1f]: 	Blz 83
+mem[0x20..0x22]: 	Load (-16) 	@factorial_begin
+mem[0x23..0x25]: 	Store (-23)
+mem[0x26..0x28]: 	Load (-30)
+mem[0x29..0x2d]: 	Beqz 74 	@factorial_while
+mem[0x2e..0x30]: 	Load (-34)
+mem[0x31..0x33]: 	Mul 8
+mem[0x34..0x38]: 	Bvs 94
+mem[0x39..0x3b]: 	Store (-45)
+mem[0x3c..0x3e]: 	Load (-52)
+mem[0x3f..0x41]: 	Sub 16
+mem[0x42..0x44]: 	Store (-58)
+mem[0x45..0x49]: 	Jmp 41
+mem[0x4a..0x4c]: 	Load (-62) 	@factorial_end
+mem[0x4d..0x51]: 	StoreInd 4
+mem[0x52..0x52]: 	Halt
+mem[0x53..0x57]: 	LoadImm (-1) 	@not_in_domain
+mem[0x58..0x5c]: 	StoreInd 4
+mem[0x5d..0x5d]: 	Halt
+mem[0x5e..0x62]: 	LoadImm (-858993460) 	@factorial_overflow
+mem[0x63..0x67]: 	StoreInd 4
+mem[0x68..0x68]: 	Halt
+mem[0x69..0x3e7]: 	( 00 )
 ---

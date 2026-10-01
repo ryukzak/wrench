@@ -11,72 +11,72 @@
 40:	_start
 284:	jump_target
 ---
-mem[0..3]: 	80 00 00 00	@"input_addr"
-mem[4..7]: 	84 00 00 00	@"output_addr"
-mem[8..11]: 	00 00 00 00	@"n"
-mem[12..15]: 	01 00 00 00	@"result"
-mem[16..19]: 	01 00 00 00	@"const_1"
-mem[20..23]: 	02 00 00 00	@"const_2"
-mem[24..27]: 	03 00 00 00	@"const_3"
-mem[28..31]: 	04 00 00 00	@"const_4"
-mem[32..35]: 	05 00 00 00	@"const_5"
-mem[36..39]: 	00 00 00 00	@"temp"
-mem[40..44]: 	LoadImm 16 	@_start
-mem[45..49]: 	StoreAddr 36
-mem[50..54]: 	LoadAddr 16
-mem[55..59]: 	StoreAddr 36
-mem[60..62]: 	Load 2
-mem[63..67]: 	StoreAddr 36
-mem[68..70]: 	Load (-68)
-mem[71..71]: 	LoadAcc
-mem[72..76]: 	StoreAddr 36
-mem[77..81]: 	LoadImm 32
-mem[82..86]: 	StoreAddr 36
-mem[87..89]: 	Load 48
-mem[90..92]: 	Store 2
-mem[93..97]: 	LoadImm 64
-mem[98..102]: 	StoreInd 0
-mem[103..107]: 	LoadAddr 20
-mem[108..110]: 	Add 24
-mem[111..115]: 	StoreAddr 36
-mem[116..120]: 	LoadAddr 32
-mem[121..123]: 	Sub 24
-mem[124..128]: 	StoreAddr 36
-mem[129..133]: 	LoadAddr 20
-mem[134..136]: 	Mul 24
-mem[137..141]: 	StoreAddr 36
-mem[142..146]: 	LoadAddr 32
-mem[147..149]: 	Div 20
-mem[150..154]: 	StoreAddr 36
-mem[155..159]: 	LoadAddr 32
-mem[160..162]: 	Rem 24
-mem[163..167]: 	StoreAddr 36
-mem[168..172]: 	LoadAddr 16
-mem[173..175]: 	ShiftL 20
-mem[176..180]: 	StoreAddr 36
-mem[181..185]: 	LoadAddr 28
-mem[186..188]: 	ShiftR 16
-mem[189..193]: 	StoreAddr 36
-mem[194..198]: 	LoadAddr 24
-mem[199..201]: 	And 16
-mem[202..206]: 	StoreAddr 36
-mem[207..211]: 	LoadAddr 20
-mem[212..214]: 	Or 16
-mem[215..219]: 	StoreAddr 36
-mem[220..224]: 	LoadAddr 24
-mem[225..227]: 	Xor 16
-mem[228..232]: 	StoreAddr 36
-mem[233..237]: 	LoadAddr 32
-mem[238..238]: 	Not
-mem[239..243]: 	StoreAddr 36
-mem[244..248]: 	LoadImm 0
-mem[249..253]: 	Beqz 284
-mem[254..258]: 	LoadImm 1
-mem[259..263]: 	Bnez 284
-mem[264..268]: 	LoadImm 2
-mem[269..273]: 	Bgz 284
-mem[274..278]: 	LoadImm 255
-mem[279..283]: 	Blz 284
-mem[284..284]: 	Halt 	@jump_target
-mem[285..999]: 	( 00 )
+mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
+mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
+mem[0x08..0x0b]: 	00 00 00 00	@"n"
+mem[0x0c..0x0f]: 	01 00 00 00	@"result"
+mem[0x10..0x13]: 	01 00 00 00	@"const_1"
+mem[0x14..0x17]: 	02 00 00 00	@"const_2"
+mem[0x18..0x1b]: 	03 00 00 00	@"const_3"
+mem[0x1c..0x1f]: 	04 00 00 00	@"const_4"
+mem[0x20..0x23]: 	05 00 00 00	@"const_5"
+mem[0x24..0x27]: 	00 00 00 00	@"temp"
+mem[0x28..0x2c]: 	LoadImm 16 	@_start
+mem[0x2d..0x31]: 	StoreAddr 36
+mem[0x32..0x36]: 	LoadAddr 16
+mem[0x37..0x3b]: 	StoreAddr 36
+mem[0x3c..0x3e]: 	Load 2
+mem[0x3f..0x43]: 	StoreAddr 36
+mem[0x44..0x46]: 	Load (-68)
+mem[0x47..0x47]: 	LoadAcc
+mem[0x48..0x4c]: 	StoreAddr 36
+mem[0x4d..0x51]: 	LoadImm 32
+mem[0x52..0x56]: 	StoreAddr 36
+mem[0x57..0x59]: 	Load 48
+mem[0x5a..0x5c]: 	Store 2
+mem[0x5d..0x61]: 	LoadImm 64
+mem[0x62..0x66]: 	StoreInd 0
+mem[0x67..0x6b]: 	LoadAddr 20
+mem[0x6c..0x6e]: 	Add 24
+mem[0x6f..0x73]: 	StoreAddr 36
+mem[0x74..0x78]: 	LoadAddr 32
+mem[0x79..0x7b]: 	Sub 24
+mem[0x7c..0x80]: 	StoreAddr 36
+mem[0x81..0x85]: 	LoadAddr 20
+mem[0x86..0x88]: 	Mul 24
+mem[0x89..0x8d]: 	StoreAddr 36
+mem[0x8e..0x92]: 	LoadAddr 32
+mem[0x93..0x95]: 	Div 20
+mem[0x96..0x9a]: 	StoreAddr 36
+mem[0x9b..0x9f]: 	LoadAddr 32
+mem[0xa0..0xa2]: 	Rem 24
+mem[0xa3..0xa7]: 	StoreAddr 36
+mem[0xa8..0xac]: 	LoadAddr 16
+mem[0xad..0xaf]: 	ShiftL 20
+mem[0xb0..0xb4]: 	StoreAddr 36
+mem[0xb5..0xb9]: 	LoadAddr 28
+mem[0xba..0xbc]: 	ShiftR 16
+mem[0xbd..0xc1]: 	StoreAddr 36
+mem[0xc2..0xc6]: 	LoadAddr 24
+mem[0xc7..0xc9]: 	And 16
+mem[0xca..0xce]: 	StoreAddr 36
+mem[0xcf..0xd3]: 	LoadAddr 20
+mem[0xd4..0xd6]: 	Or 16
+mem[0xd7..0xdb]: 	StoreAddr 36
+mem[0xdc..0xe0]: 	LoadAddr 24
+mem[0xe1..0xe3]: 	Xor 16
+mem[0xe4..0xe8]: 	StoreAddr 36
+mem[0xe9..0xed]: 	LoadAddr 32
+mem[0xee..0xee]: 	Not
+mem[0xef..0xf3]: 	StoreAddr 36
+mem[0xf4..0xf8]: 	LoadImm 0
+mem[0xf9..0xfd]: 	Beqz 284
+mem[0xfe..0x102]: 	LoadImm 1
+mem[0x103..0x107]: 	Bnez 284
+mem[0x108..0x10c]: 	LoadImm 2
+mem[0x10d..0x111]: 	Bgz 284
+mem[0x112..0x116]: 	LoadImm 255
+mem[0x117..0x11b]: 	Blz 284
+mem[0x11c..0x11c]: 	Halt 	@jump_target
+mem[0x11d..0x3e7]: 	( 00 )
 ---

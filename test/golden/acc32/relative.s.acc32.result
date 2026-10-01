@@ -1,7 +1,7 @@
 0:	_start
 ---
-mem[0..4]: 	LoadAddr 305419896 	@_start
-mem[5..7]: 	Load 22136
-mem[8..8]: 	Halt
-mem[9..999]: 	( 00 )
+mem[0x00..0x04]: 	LoadAddr 305419896 	@_start
+mem[0x05..0x07]: 	Load 22136
+mem[0x08..0x08]: 	Halt
+mem[0x09..0x3e7]: 	( 00 )
 ---

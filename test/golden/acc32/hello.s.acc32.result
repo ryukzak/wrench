@@ -9,29 +9,29 @@
 59:	while
 103:	end
 ---
-mem[0..16]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
-mem[17..20]: 	00 00 00 00	@"i"
-mem[21..24]: 	00 00 00 00	@"ptr"
-mem[25..28]: 	84 00 00 00	@"output_addr"
-mem[29..32]: 	0e 00 00 00	@"buf_size"
-mem[33..36]: 	01 00 00 00	@"const_1"
-mem[37..40]: 	ff 00 00 00	@"const_FF"
-mem[41..45]: 	LoadImm 0 	@_start
-mem[46..50]: 	StoreAddr 21
-mem[51..55]: 	LoadAddr 29
-mem[56..58]: 	Store (-39)
-mem[59..63]: 	Beqz 103 	@while
-mem[64..66]: 	Load (-43)
-mem[67..67]: 	LoadAcc
-mem[68..70]: 	And 37
-mem[71..75]: 	StoreInd 25
-mem[76..80]: 	LoadAddr 21
-mem[81..83]: 	Add 33
-mem[84..88]: 	StoreAddr 21
-mem[89..91]: 	Load (-72)
-mem[92..94]: 	Sub 33
-mem[95..97]: 	Store (-78)
-mem[98..102]: 	Jmp 59
-mem[103..103]: 	Halt 	@end
-mem[104..999]: 	( 00 )
+mem[0x00..0x10]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
+mem[0x11..0x14]: 	00 00 00 00	@"i"
+mem[0x15..0x18]: 	00 00 00 00	@"ptr"
+mem[0x19..0x1c]: 	84 00 00 00	@"output_addr"
+mem[0x1d..0x20]: 	0e 00 00 00	@"buf_size"
+mem[0x21..0x24]: 	01 00 00 00	@"const_1"
+mem[0x25..0x28]: 	ff 00 00 00	@"const_FF"
+mem[0x29..0x2d]: 	LoadImm 0 	@_start
+mem[0x2e..0x32]: 	StoreAddr 21
+mem[0x33..0x37]: 	LoadAddr 29
+mem[0x38..0x3a]: 	Store (-39)
+mem[0x3b..0x3f]: 	Beqz 103 	@while
+mem[0x40..0x42]: 	Load (-43)
+mem[0x43..0x43]: 	LoadAcc
+mem[0x44..0x46]: 	And 37
+mem[0x47..0x4b]: 	StoreInd 25
+mem[0x4c..0x50]: 	LoadAddr 21
+mem[0x51..0x53]: 	Add 33
+mem[0x54..0x58]: 	StoreAddr 21
+mem[0x59..0x5b]: 	Load (-72)
+mem[0x5c..0x5e]: 	Sub 33
+mem[0x5f..0x61]: 	Store (-78)
+mem[0x62..0x66]: 	Jmp 59
+mem[0x67..0x67]: 	Halt 	@end
+mem[0x68..0x3e7]: 	( 00 )
 ---
