@@ -6,27 +6,27 @@
 64:	count
 84:	end
 ---
-mem[0x00..0x03]: 	00 00 00 00	@"acc"
-mem[0x04..0x07]: 	02 00 00 00	@"step"
-mem[0x08..0x0b]: 	58 00 00 00	@"out_port"
-mem[0x0c..0x0f]: 	15 00 00 00	@"limit"
-mem[0x10..0x13]: 	Lui {rd = T0, k = 0} 	@_start
-mem[0x14..0x17]: 	Addi {rd = T0, rs1 = T0, k = 4}
-mem[0x18..0x1b]: 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x1c..0x1f]: 	Lui {rd = T0, k = 0}
-mem[0x20..0x23]: 	Addi {rd = T0, rs1 = T0, k = 0}
-mem[0x24..0x27]: 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x28..0x2b]: 	Lui {rd = T3, k = 0}
-mem[0x2c..0x2f]: 	Addi {rd = T3, rs1 = T3, k = 8}
-mem[0x30..0x33]: 	Lw {rd = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T3}}
-mem[0x34..0x37]: 	Lui {rd = T6, k = 0}
-mem[0x38..0x3b]: 	Addi {rd = T6, rs1 = T6, k = 12}
-mem[0x3c..0x3f]: 	Lw {rd = T5, offsetRs1 = MemRef {mrOffset = 0, mrReg = T6}}
-mem[0x40..0x43]: 	Add {rd = T2, rs1 = T2, rs2 = T1} 	@count
-mem[0x44..0x47]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
-mem[0x48..0x4b]: 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}
-mem[0x4c..0x4f]: 	Bgt {rs1 = T2, rs2 = T5, k = 8}
-mem[0x50..0x53]: 	J {k = -16}
-mem[0x54..0x57]: 	Halt 	@end
-mem[0x58..0x3e7]: 	( 00 )
+mem[0x000..0x003] (4 B): 	00 00 00 00	@"acc"
+mem[0x004..0x007] (4 B): 	02 00 00 00	@"step"
+mem[0x008..0x00b] (4 B): 	58 00 00 00	@"out_port"
+mem[0x00c..0x00f] (4 B): 	15 00 00 00	@"limit"
+mem[0x010..0x013] (4 B): 	Lui {rd = T0, k = 0} 	@_start
+mem[0x014..0x017] (4 B): 	Addi {rd = T0, rs1 = T0, k = 4}
+mem[0x018..0x01b] (4 B): 	Lw {rd = T1, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x01c..0x01f] (4 B): 	Lui {rd = T0, k = 0}
+mem[0x020..0x023] (4 B): 	Addi {rd = T0, rs1 = T0, k = 0}
+mem[0x024..0x027] (4 B): 	Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x028..0x02b] (4 B): 	Lui {rd = T3, k = 0}
+mem[0x02c..0x02f] (4 B): 	Addi {rd = T3, rs1 = T3, k = 8}
+mem[0x030..0x033] (4 B): 	Lw {rd = T4, offsetRs1 = MemRef {mrOffset = 0, mrReg = T3}}
+mem[0x034..0x037] (4 B): 	Lui {rd = T6, k = 0}
+mem[0x038..0x03b] (4 B): 	Addi {rd = T6, rs1 = T6, k = 12}
+mem[0x03c..0x03f] (4 B): 	Lw {rd = T5, offsetRs1 = MemRef {mrOffset = 0, mrReg = T6}}
+mem[0x040..0x043] (4 B): 	Add {rd = T2, rs1 = T2, rs2 = T1} 	@count
+mem[0x044..0x047] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+mem[0x048..0x04b] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}
+mem[0x04c..0x04f] (4 B): 	Bgt {rs1 = T2, rs2 = T5, k = 8}
+mem[0x050..0x053] (4 B): 	J {k = -16}
+mem[0x054..0x057] (4 B): 	Halt 	@end
+mem[0x058..0x3e7] (912 B): 	( 00 )
 ---

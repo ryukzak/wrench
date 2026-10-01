@@ -10,4 +10,4 @@
 340:	-	 buf_ptr=t0=0x00000000 char=t1=0x000000ff
 ---
 # Check results
-mem[0x00..0x05]: 	ff 32 33 34 ff 00
+mem[0x000..0x005] (6 B): 	ff 32 33 34 ff 00

@@ -1,7 +1,7 @@
 0:	_start
 5:	halt
 ---
-mem[0x00..0x04]: 	Jmp 5 	@_start
-mem[0x05..0x05]: 	Halt 	@halt
-mem[0x06..0x3e7]: 	( 00 )
+mem[0x000..0x004] (5 B): 	Jmp 5 	@_start
+mem[0x005..0x005] (1 B): 	Halt 	@halt
+mem[0x006..0x3e7] (994 B): 	( 00 )
 ---

@@ -1,6 +1,6 @@
 ---
 # Explicitly initialized data (stays 0xDEADBEEF)
-mem[0x00..0x03]: 	ef be ad de
+mem[0x00..0x03] (4 B): 	ef be ad de
 ---
 # Unallocated memory (random bytes; try changing seed)
-mem[0x20..0x2f]: 	c1 06 7c ce fb f1 cc d5 60 3b 7a 8f b3 18 08 19
+mem[0x20..0x2f] (16 B): 	c1 06 7c ce fb f1 cc d5 60 3b 7a 8f b3 18 08 19

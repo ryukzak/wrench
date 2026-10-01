@@ -4,13 +4,13 @@
 298:	while
 326:	end
 ---
-mem[0x00..0x10]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
-mem[0x11..0xff]: 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
-mem[0x100..0x10d]: 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
-mem[0x10e..0x11b]: 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 17}, alu2Op = NopA, ctrlOp = NopC}
-mem[0x11c..0x129]: 	VliwIvIsa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 0}, alu2Op = Addi {addiRd = T3, addiRs1 = Zero, addiK = 14}, ctrlOp = NopC}
-mem[0x12a..0x137]: 	VliwIvIsa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}, alu1Op = Addi {addiRd = T4, addiRs1 = T3, addiK = -1}, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T3, beqzK = 28}} 	@while
-mem[0x138..0x145]: 	VliwIvIsa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Mv {mvRd = T3, mvRs = T4}, alu2Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 1}, ctrlOp = J {jK = -14}}
-mem[0x146..0x153]: 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt} 	@end
-mem[0x154..0x3e7]: 	( 00 )
+mem[0x000..0x010] (17 B): 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
+mem[0x011..0x0ff] (239 B): 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
+mem[0x100..0x10d] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[0x10e..0x11b] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 17}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x11c..0x129] (14 B): 	VliwIvIsa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 0}, alu2Op = Addi {addiRd = T3, addiRs1 = Zero, addiK = 14}, ctrlOp = NopC}
+mem[0x12a..0x137] (14 B): 	VliwIvIsa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T1}}, alu1Op = Addi {addiRd = T4, addiRs1 = T3, addiK = -1}, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T3, beqzK = 28}} 	@while
+mem[0x138..0x145] (14 B): 	VliwIvIsa {memOp = Sb {sbRs2 = T2, sbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = Mv {mvRd = T3, mvRs = T4}, alu2Op = Addi {addiRd = T1, addiRs1 = T1, addiK = 1}, ctrlOp = J {jK = -14}}
+mem[0x146..0x153] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt} 	@end
+mem[0x154..0x3e7] (660 B): 	( 00 )
 ---

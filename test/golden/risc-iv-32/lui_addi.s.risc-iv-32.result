@@ -1,9 +1,9 @@
 0:	_start
 ---
-mem[0x00..0x03]: 	Lui {rd = T1, k = 74565} 	@_start
-mem[0x04..0x07]: 	Addi {rd = T1, rs1 = T1, k = 1656}
-mem[0x08..0x0b]: 	Lui {rd = T2, k = 74565}
-mem[0x0c..0x0f]: 	Addi {rd = T2, rs1 = T2, k = 1656}
-mem[0x10..0x13]: 	Halt
-mem[0x14..0x3e7]: 	( 00 )
+mem[0x000..0x003] (4 B): 	Lui {rd = T1, k = 74565} 	@_start
+mem[0x004..0x007] (4 B): 	Addi {rd = T1, rs1 = T1, k = 1656}
+mem[0x008..0x00b] (4 B): 	Lui {rd = T2, k = 74565}
+mem[0x00c..0x00f] (4 B): 	Addi {rd = T2, rs1 = T2, k = 1656}
+mem[0x010..0x013] (4 B): 	Halt
+mem[0x014..0x3e7] (980 B): 	( 00 )
 ---
