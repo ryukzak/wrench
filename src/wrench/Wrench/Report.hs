@@ -276,7 +276,7 @@ defaultView labels st v =
 
 viewMemory :: (ByteSize isa, IsWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
 viewMemory a b mem =
-    toText $ prettyDump mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
+    toText $ prettyDump hexAddr mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)

@@ -85,6 +85,13 @@ options =
                 <> value (maxStateLogLimit def)
                 <> showDefault
             )
+        <*> option
+            auto
+            ( long "dump-addr-format"
+                <> metavar "FORMAT"
+                <> help "Numeral format for -S dump addresses: hex or dec (default: hex)"
+                <> value (dumpAddrFormat def)
+            )
 
 main :: IO ()
 main = runWrenchIO =<< execParser opts

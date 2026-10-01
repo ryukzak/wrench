@@ -228,7 +228,10 @@ class String2String:
         res = f"assert {name}({py_str(self.input)}) == ({py_str(self.output)}, {py_str(self.rest)})"
         if len(self.mem_view) > 0:
             res += "\n# and " + ", ".join(
-                [f"mem[{a}..{b}]: {dump_symbols(dump)}" for a, b, dump in self.mem_view]
+                [
+                    f"mem[0x{a:02x}..0x{b:02x}]: {dump_symbols(dump)}"
+                    for a, b, dump in self.mem_view
+                ]
             )
         return res
 
@@ -266,7 +269,7 @@ class String2String:
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
             ]
             + [
-                f"      mem[{a}..{b}]: \t{dump_symbols(dump)}"
+                f"      mem[0x{a:02x}..0x{b:02x}]: \t{dump_symbols(dump)}"
                 for a, b, dump in self.mem_view
             ]
         )
