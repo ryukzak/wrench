@@ -147,10 +147,10 @@ instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
          in case i of
                 LoadImm l -> LoadImm (deref' f l)
                 LoadAddr l -> LoadAddr (deref' f l)
-                Load l -> Load (checkOffset "load" (deref' relF l))
+                Load l -> Load (checkOffset8 "load" (deref' relF l))
                 LoadAcc -> LoadAcc
                 StoreAddr l -> StoreAddr (deref' f l)
-                Store l -> Store (checkOffset "store" (deref' relF l))
+                Store l -> Store (checkOffset8 "store" (deref' relF l))
                 StoreInd l -> StoreInd (deref' f l)
                 Add l -> Add (deref' f l)
                 Sub l -> Sub (deref' f l)
@@ -177,7 +177,7 @@ instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
                 Jmp l -> Jmp (deref' f l)
                 Halt -> Halt
         where
-            checkOffset mnemonic x
+            checkOffset8 mnemonic x
                 | x < -128 || x > 127 =
                     error $
                         mnemonic
