@@ -91,6 +91,16 @@ def dump_symbols(s: str) -> str:
     return " ".join([hex_byte(ord(c)) for c in s])
 
 
+# Must match the memory_size literal in variants.py's generate_wrench_test_cases
+# template -- every generated .yaml uses this same fixed capacity.
+GENERATED_MEMORY_SIZE = 0x1000
+HEX_ADDR_WIDTH = len(f"{GENERATED_MEMORY_SIZE - 1:x}")
+
+
+def hex_addr(a: int) -> str:
+    return f"0x{a:0{HEX_ADDR_WIDTH}x}"
+
+
 def limit_to_int32(f: Callable[..., int]) -> Callable[..., int]:
     def foo(*args: Any, **kwargs: Any) -> int:
         tmp = f(*args, **kwargs)
@@ -229,7 +239,7 @@ class String2String:
         if len(self.mem_view) > 0:
             res += "\n# and " + ", ".join(
                 [
-                    f"mem[0x{a:02x}..0x{b:02x}]: {dump_symbols(dump)}"
+                    f"mem[{hex_addr(a)}..{hex_addr(b)}] ({b - a + 1} B): {dump_symbols(dump)}"
                     for a, b, dump in self.mem_view
                 ]
             )
@@ -269,7 +279,7 @@ class String2String:
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
             ]
             + [
-                f"      mem[0x{a:02x}..0x{b:02x}]: \t{dump_symbols(dump)}"
+                f"      mem[{hex_addr(a)}..{hex_addr(b)}] ({b - a + 1} B): \t{dump_symbols(dump)}"
                 for a, b, dump in self.mem_view
             ]
         )

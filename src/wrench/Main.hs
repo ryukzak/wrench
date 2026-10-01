@@ -92,6 +92,13 @@ options =
                 <> help "Numeral format for -S dump addresses: hex or dec (default: hex)"
                 <> value (dumpAddrFormat def)
             )
+        <*> option
+            auto
+            ( long "dump-size"
+                <> metavar "MODE"
+                <> help "Show or hide the (N B) byte-count suffix on -S dump address ranges: show or hide (default: show)"
+                <> value (dumpSize def)
+            )
 
 main :: IO ()
 main = runWrenchIO =<< execParser opts

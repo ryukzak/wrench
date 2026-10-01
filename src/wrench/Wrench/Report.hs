@@ -269,14 +269,14 @@ defaultView labels st v =
     case T.splitOn ":" v of
         ["pc"] -> Just $ reprState labels st "pc:dec"
         ["pc", f] -> Just $ viewRegister f (programCounter st)
-        ["memory", a, b] -> Just $ viewMemory a b $ dumpCells $ memoryDump st
+        ["memory", a, b] -> Just $ viewMemory (memCapacity (memoryDump st)) a b $ dumpCells $ memoryDump st
         ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
-viewMemory :: (ByteSize isa, IsWord w, Show isa) => Text -> Text -> IntMap (Cell isa w) -> Text
-viewMemory a b mem =
-    toText $ prettyDump hexAddr mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
+viewMemory :: (ByteSize isa, IsWord w, Show isa) => Int -> Text -> Text -> IntMap (Cell isa w) -> Text
+viewMemory capacity a b mem =
+    toText $ prettyDump True (hexAddr (hexAddrWidth capacity)) mempty $ fromList $ sliceMem [readAddr a .. readAddr b] mem
 
 viewIO "dec" addr st = case ioStreams st !? readAddr addr of
     Just (is, os) -> show is <> " >>> " <> show (reverse os)

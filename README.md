@@ -90,6 +90,7 @@ $ wrench --help
 Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
               [--instruction-limit LIMIT] [--memory-limit SIZE]
               [--state-log-limit LIMIT] [--dump-addr-format FORMAT]
+              [--dump-size MODE]
 
   App for laboratory course of computer architecture.
 
@@ -109,6 +110,8 @@ Available options:
   --dump-addr-format FORMAT
                            Numeral format for -S dump addresses: hex or dec
                            (default: hex)
+  --dump-size MODE         Show or hide the (N B) byte-count suffix on -S dump
+                           address ranges: show or hide (default: show)
   -h,--help                Show this help text
   --version                Show version information
 ```

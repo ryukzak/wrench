@@ -8,6 +8,7 @@ module Wrench.Machine.Memory (
     WordParts (..),
     word32ToHex,
     hexAddr,
+    hexAddrWidth,
     prepareDump,
     prettyDump,
     DumpStats (..),
@@ -142,16 +143,18 @@ sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) a
 prettyDump ::
     forall w isa.
     (ByteSize isa, IsWord w, Show isa) =>
-    (Int -> Text)
+    Bool
+    -> (Int -> Text)
     -> HashMap Text w
     -> IntMap (Cell isa w)
     -> Text
-prettyDump showAddr labels mem = T.intercalate "\n" $ pretty $ toPairs mem
+prettyDump showSize showAddr labels mem = T.intercalate "\n" $ pretty $ toPairs mem
     where
+        sizeSuffix n = if showSize then " (" <> show n <> " B)" else ""
         offset2label :: HashMap Int Text
         offset2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
         instruction offset n i =
-            let place = "mem[" <> showAddr offset <> ".." <> showAddr (offset + n - 1) <> "]"
+            let place = "mem[" <> showAddr offset <> ".." <> showAddr (offset + n - 1) <> "]" <> sizeSuffix n
                 label = maybe "" (" \t@" <>) (offset2label !? offset)
              in place <> ": \t" <> show i <> label
         pretty [] = []
@@ -178,7 +181,9 @@ prettyDump showAddr labels mem = T.intercalate "\n" $ pretty $ toPairs mem
                     <> showAddr a
                     <> ".."
                     <> showAddr b
-                    <> "]: \t"
+                    <> "]"
+                    <> sizeSuffix (length curValues)
+                    <> ": \t"
                     <> hexValues curValues
                     <> maybe "" (\l -> "\t@\"" <> l <> "\"") label
                 )
@@ -194,10 +199,18 @@ word32ToHex w =
     let hex = showHex (fromIntegral (fromIntegral w :: Int32) :: Word32) ""
      in "0x" <> replicate (8 - length hex) '0' <> hex
 
-hexAddr :: Int -> Text
-hexAddr idx =
+-- | How many hex digits an address into a memory of this capacity could
+--   ever need, e.g. a 512-byte memory only ever needs 3 (up to 0x1ff).
+hexAddrWidth :: Int -> Int
+hexAddrWidth capacity = max 1 (length (showHex (max 0 (capacity - 1)) ""))
+
+-- | Render a byte address padded to 'width' hex digits, e.g. @0x00ff@ (or
+--   @-0x01@ for the negative indices an out-of-bounds check can still
+--   produce).
+hexAddr :: Int -> Int -> Text
+hexAddr width idx =
     let hex = showHex (abs idx) ""
-        padded = replicate (max 0 (2 - length hex)) '0' <> hex
+        padded = replicate (max 0 (width - length hex)) '0' <> hex
      in toText (if idx < 0 then "-0x" <> padded else "0x" <> padded)
 
 class Memory m isa w | m -> isa w where

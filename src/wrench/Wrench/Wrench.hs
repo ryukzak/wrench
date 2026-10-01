@@ -8,6 +8,7 @@ module Wrench.Wrench (
     wrench,
     Isa (..),
     AddrFormat (..),
+    DumpSize (..),
 ) where
 
 import Data.Default (Default (..), def)
@@ -42,6 +43,7 @@ data Options = Options
     , maxMemoryLimit :: Int
     , maxStateLogLimit :: Int
     , dumpAddrFormat :: AddrFormat
+    , dumpSize :: DumpSize
     }
     deriving (Show)
 
@@ -58,6 +60,7 @@ instance Default Options where
             , maxMemoryLimit = 8192
             , maxStateLogLimit = 10000
             , dumpAddrFormat = Hex
+            , dumpSize = SizeShown
             }
 
 data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k
@@ -78,6 +81,14 @@ data AddrFormat = Hex | Dec
 instance Read AddrFormat where
     readsPrec _ "hex" = [(Hex, "")]
     readsPrec _ "dec" = [(Dec, "")]
+    readsPrec _ _ = []
+
+data DumpSize = SizeShown | SizeHidden
+    deriving (Show)
+
+instance Read DumpSize where
+    readsPrec _ "show" = [(SizeShown, "")]
+    readsPrec _ "hide" = [(SizeHidden, "")]
     readsPrec _ _ = []
 
 data Result mem w = Result
@@ -143,7 +154,7 @@ wrenchIO ::
     -> Config
     -> [Char]
     -> IO ()
-wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat} conf@Config{} src =
+wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src =
     case wrench @st opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
@@ -154,12 +165,15 @@ wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat} conf@Config{} src =
         Left e -> wrenchError e
     where
         addrShow = case dumpAddrFormat of
-            Hex -> hexAddr
+            Hex -> hexAddr (hexAddrWidth cMemorySize)
             Dec -> show
+        showSize = case dumpSize of
+            SizeShown -> True
+            SizeHidden -> False
         translationResult rLabels rDump = do
             putText $ prettyLabels rLabels
             putStrLn "---"
-            putText $ prettyDump addrShow rLabels rDump
+            putText $ prettyDump showSize addrShow rLabels rDump
         wrenchError e = do
             putStrLn $ "error (" <> isa <> "): " <> toString e
             exitFailure
