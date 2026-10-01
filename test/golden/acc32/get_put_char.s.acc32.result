@@ -6,8 +6,8 @@
 20:	cccccccc
 24:	ffffffff
 28:	_start
-69:	x_case
-80:	y_case
+68:	x_case
+79:	y_case
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
@@ -16,22 +16,22 @@ mem[0x00c..0x00f] (4 B): 	58 00 00 00	@"x"
 mem[0x010..0x013] (4 B): 	59 00 00 00	@"y"
 mem[0x014..0x017] (4 B): 	cc cc cc cc	@"cccccccc"
 mem[0x018..0x01b] (4 B): 	ff ff ff ff	@"ffffffff"
-mem[0x01c..0x01e] (3 B): 	Load (-28) 	@_start
-mem[0x01f..0x01f] (1 B): 	LoadAcc
-mem[0x020..0x024] (5 B): 	StoreAddr 8
-mem[0x025..0x027] (3 B): 	Sub 12
-mem[0x028..0x02c] (5 B): 	Beqz 69
-mem[0x02d..0x031] (5 B): 	LoadAddr 8
-mem[0x032..0x034] (3 B): 	Sub 16
-mem[0x035..0x039] (5 B): 	Beqz 80
-mem[0x03a..0x03e] (5 B): 	LoadAddr 8
-mem[0x03f..0x043] (5 B): 	StoreInd 4
-mem[0x044..0x044] (1 B): 	Halt
-mem[0x045..0x049] (5 B): 	LoadAddr 24 	@x_case
-mem[0x04a..0x04e] (5 B): 	StoreInd 4
-mem[0x04f..0x04f] (1 B): 	Halt
-mem[0x050..0x054] (5 B): 	LoadAddr 20 	@y_case
-mem[0x055..0x059] (5 B): 	StoreInd 4
-mem[0x05a..0x05a] (1 B): 	Halt
-mem[0x05b..0x3e7] (909 B): 	( 00 )
+mem[0x01c..0x01d] (2 B): 	Load (-28) 	@_start
+mem[0x01e..0x01e] (1 B): 	LoadAcc
+mem[0x01f..0x023] (5 B): 	StoreAddr 8
+mem[0x024..0x026] (3 B): 	Sub 12
+mem[0x027..0x02b] (5 B): 	Beqz 68
+mem[0x02c..0x030] (5 B): 	LoadAddr 8
+mem[0x031..0x033] (3 B): 	Sub 16
+mem[0x034..0x038] (5 B): 	Beqz 79
+mem[0x039..0x03d] (5 B): 	LoadAddr 8
+mem[0x03e..0x042] (5 B): 	StoreInd 4
+mem[0x043..0x043] (1 B): 	Halt
+mem[0x044..0x048] (5 B): 	LoadAddr 24 	@x_case
+mem[0x049..0x04d] (5 B): 	StoreInd 4
+mem[0x04e..0x04e] (1 B): 	Halt
+mem[0x04f..0x053] (5 B): 	LoadAddr 20 	@y_case
+mem[0x054..0x058] (5 B): 	StoreInd 4
+mem[0x059..0x059] (1 B): 	Halt
+mem[0x05a..0x3e7] (910 B): 	( 00 )
 ---

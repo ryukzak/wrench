@@ -1,12 +1,14 @@
 module Wrench.Isa.Acc32.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit (assertFailure, testCase, (@?=))
 import Wrench.Isa.Acc32
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Translator (translate)
 
 tests :: TestTree
 tests =
@@ -30,6 +32,26 @@ tests =
             runBranch (Bgez 100) 5 @?= 100
         , testCase "bgez not taken (acc < 0)" $ do
             runBranch (Bgez 100) (-1) @?= 10
+        , testCase "load offset out of range reports the mnemonic and address" $ do
+            let src = ".text\n_start:\n    load 200\n    halt\n"
+            result <-
+                try @ErrorCall
+                    $ evaluate
+                    $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
+            case result of
+                Left (ErrorCall msg) ->
+                    msg @?= "load offset 200 at instruction address 0 does not fit in a signed byte (-128..127)"
+                Right n -> assertFailure ("expected translation to fail, got " <> show n <> " characters")
+        , testCase "store offset out of range reports the mnemonic and a nonzero address" $ do
+            let src = ".text\n_start:\n    halt\n    store 200\n    halt\n"
+            result <-
+                try @ErrorCall
+                    $ evaluate
+                    $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
+            case result of
+                Left (ErrorCall msg) ->
+                    msg @?= "store offset 200 at instruction address 1 does not fit in a signed byte (-128..127)"
+                Right n -> assertFailure ("expected translation to fail, got " <> show n <> " characters")
         ]
 
 -- | Build an initial state with a LoadImm at address 0 (5 bytes) followed by

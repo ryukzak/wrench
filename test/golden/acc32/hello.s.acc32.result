@@ -6,8 +6,8 @@
 33:	const_1
 37:	const_FF
 41:	_start
-59:	while
-103:	end
+58:	while
+99:	end
 ---
 mem[0x000..0x010] (17 B): 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
 mem[0x011..0x014] (4 B): 	00 00 00 00	@"i"
@@ -19,19 +19,19 @@ mem[0x025..0x028] (4 B): 	ff 00 00 00	@"const_FF"
 mem[0x029..0x02d] (5 B): 	LoadImm 0 	@_start
 mem[0x02e..0x032] (5 B): 	StoreAddr 21
 mem[0x033..0x037] (5 B): 	LoadAddr 29
-mem[0x038..0x03a] (3 B): 	Store (-39)
-mem[0x03b..0x03f] (5 B): 	Beqz 103 	@while
-mem[0x040..0x042] (3 B): 	Load (-43)
-mem[0x043..0x043] (1 B): 	LoadAcc
-mem[0x044..0x046] (3 B): 	And 37
-mem[0x047..0x04b] (5 B): 	StoreInd 25
-mem[0x04c..0x050] (5 B): 	LoadAddr 21
-mem[0x051..0x053] (3 B): 	Add 33
-mem[0x054..0x058] (5 B): 	StoreAddr 21
-mem[0x059..0x05b] (3 B): 	Load (-72)
-mem[0x05c..0x05e] (3 B): 	Sub 33
-mem[0x05f..0x061] (3 B): 	Store (-78)
-mem[0x062..0x066] (5 B): 	Jmp 59
-mem[0x067..0x067] (1 B): 	Halt 	@end
-mem[0x068..0x3e7] (896 B): 	( 00 )
+mem[0x038..0x039] (2 B): 	Store (-39)
+mem[0x03a..0x03e] (5 B): 	Beqz 99 	@while
+mem[0x03f..0x040] (2 B): 	Load (-42)
+mem[0x041..0x041] (1 B): 	LoadAcc
+mem[0x042..0x044] (3 B): 	And 37
+mem[0x045..0x049] (5 B): 	StoreInd 25
+mem[0x04a..0x04e] (5 B): 	LoadAddr 21
+mem[0x04f..0x051] (3 B): 	Add 33
+mem[0x052..0x056] (5 B): 	StoreAddr 21
+mem[0x057..0x058] (2 B): 	Load (-70)
+mem[0x059..0x05b] (3 B): 	Sub 33
+mem[0x05c..0x05d] (2 B): 	Store (-75)
+mem[0x05e..0x062] (5 B): 	Jmp 58
+mem[0x063..0x063] (1 B): 	Halt 	@end
+mem[0x064..0x3e7] (900 B): 	( 00 )
 ---
