@@ -4,27 +4,27 @@
 12:	_start
 44:	multiply_begin
 ---
-mem[0..3]: 	80 00 00 00	@"input_addr"
-mem[4..7]: 	84 00 00 00	@"output_addr"
-mem[8..11]: 	88 00 00 00	@"divisor"
-mem[12..16]: 	FetchP 0 	@_start
-mem[17..17]: 	AStore
-mem[18..18]: 	Fetch
-mem[19..19]: 	Fetch
-mem[20..24]: 	FetchP 8
-mem[25..25]: 	BStore
-mem[26..26]: 	StoreB
-mem[27..27]: 	AStore
-mem[28..32]: 	Lit 0
-mem[33..37]: 	Lit 0
-mem[38..42]: 	Lit 31
-mem[43..43]: 	TIntoR
-mem[44..44]: 	DivStep 	@multiply_begin
-mem[45..49]: 	Next 44
-mem[50..54]: 	FetchP 0
-mem[55..55]: 	AStore
-mem[56..56]: 	Store
-mem[57..57]: 	Store
-mem[58..58]: 	Halt
-mem[59..999]: 	( 00 )
+mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
+mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
+mem[0x08..0x0b]: 	88 00 00 00	@"divisor"
+mem[0x0c..0x10]: 	FetchP 0 	@_start
+mem[0x11..0x11]: 	AStore
+mem[0x12..0x12]: 	Fetch
+mem[0x13..0x13]: 	Fetch
+mem[0x14..0x18]: 	FetchP 8
+mem[0x19..0x19]: 	BStore
+mem[0x1a..0x1a]: 	StoreB
+mem[0x1b..0x1b]: 	AStore
+mem[0x1c..0x20]: 	Lit 0
+mem[0x21..0x25]: 	Lit 0
+mem[0x26..0x2a]: 	Lit 31
+mem[0x2b..0x2b]: 	TIntoR
+mem[0x2c..0x2c]: 	DivStep 	@multiply_begin
+mem[0x2d..0x31]: 	Next 44
+mem[0x32..0x36]: 	FetchP 0
+mem[0x37..0x37]: 	AStore
+mem[0x38..0x38]: 	Store
+mem[0x39..0x39]: 	Store
+mem[0x3a..0x3a]: 	Halt
+mem[0x3b..0x3e7]: 	( 00 )
 ---

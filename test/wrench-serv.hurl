@@ -29,4 +29,4 @@ xpath "normalize-space(//div[@id='simulation-log-text-element']//div[@class='cod
 xpath "normalize-space(//pre[@id='test-cases-status-element'])" isEmpty
 xpath "normalize-space(//div[@id='test_cases_result-text-element']//div[@class='code-content'])" isEmpty
 xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "_start"
-xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "mem[0..0]: Halt"
+xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "mem[0x00..0x00]: Halt"

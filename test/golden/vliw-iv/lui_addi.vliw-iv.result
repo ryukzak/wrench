@@ -8,10 +8,10 @@
 56:	-	0x00000000 0x12345678 0x12345678 0x00000000
 ---
 # Result
-4: 	InstructionPart
-5: 	InstructionPart
-6: 	InstructionPart
-7: 	InstructionPart
+0x04: 	InstructionPart
+0x05: 	InstructionPart
+0x06: 	InstructionPart
+0x07: 	InstructionPart
 [] >>> []
 [] >>> []
 "" >>> ""

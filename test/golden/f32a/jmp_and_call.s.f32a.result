@@ -2,12 +2,12 @@
 20:	next_call
 22:	halt_jmp
 ---
-mem[0..4]: 	Lit 25 	@_start
-mem[5..9]: 	Lit 25
-mem[10..14]: 	Call 20
-mem[15..19]: 	Jump 22
-mem[20..20]: 	Add 	@next_call
-mem[21..21]: 	Return
-mem[22..22]: 	Halt 	@halt_jmp
-mem[23..999]: 	( 00 )
+mem[0x00..0x04]: 	Lit 25 	@_start
+mem[0x05..0x09]: 	Lit 25
+mem[0x0a..0x0e]: 	Call 20
+mem[0x0f..0x13]: 	Jump 22
+mem[0x14..0x14]: 	Add 	@next_call
+mem[0x15..0x15]: 	Return
+mem[0x16..0x16]: 	Halt 	@halt_jmp
+mem[0x17..0x3e7]: 	( 00 )
 ---

@@ -7,28 +7,28 @@
 96:	factorial_overflow
 108:	factorial_end
 ---
-mem[0..3]: 	80 00 00 00	@"input_addr"
-mem[4..7]: 	84 00 00 00	@"output_addr"
-mem[8..13]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A6} 	@_start
-mem[14..17]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectAddrReg A6}
-mem[18..23]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A7}
-mem[24..27]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
-mem[28..31]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D0}
-mem[32..37]: 	Beq {ref = 72}
-mem[38..43]: 	Ble {ref = 84}
-mem[44..45]: 	Move {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
-mem[46..51]: 	Sub {mode = Long, src = Immediate 1, dst = DirectDataReg D1} 	@factorial_while
-mem[52..57]: 	Beq {ref = 108}
-mem[58..59]: 	Mul {mode = Long, src = DirectDataReg D1, dst = DirectDataReg D0}
-mem[60..65]: 	Bvs {ref = 96}
-mem[66..71]: 	Jmp {ref = 46}
-mem[72..77]: 	Move {mode = Long, src = Immediate 1, dst = DirectDataReg D0} 	@factorial_0
-mem[78..83]: 	Jmp {ref = 108}
-mem[84..89]: 	Move {mode = Long, src = Immediate (-1), dst = DirectDataReg D0} 	@factorial_not_in_domain
-mem[90..95]: 	Jmp {ref = 108}
-mem[96..101]: 	Move {mode = Long, src = Immediate (-858993460), dst = DirectDataReg D0} 	@factorial_overflow
-mem[102..107]: 	Jmp {ref = 108}
-mem[108..111]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing} 	@factorial_end
-mem[112..113]: 	Halt
-mem[114..999]: 	( 00 )
+mem[0x00..0x03]: 	80 00 00 00	@"input_addr"
+mem[0x04..0x07]: 	84 00 00 00	@"output_addr"
+mem[0x08..0x0d]: 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A6} 	@_start
+mem[0x0e..0x11]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectAddrReg A6}
+mem[0x12..0x17]: 	MoveA {mode = Long, src = Immediate 4, dst = DirectAddrReg A7}
+mem[0x18..0x1b]: 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
+mem[0x1c..0x1f]: 	Move {mode = Long, src = IndirectAddrReg 0 A6 Nothing, dst = DirectDataReg D0}
+mem[0x20..0x25]: 	Beq {ref = 72}
+mem[0x26..0x2b]: 	Ble {ref = 84}
+mem[0x2c..0x2d]: 	Move {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x2e..0x33]: 	Sub {mode = Long, src = Immediate 1, dst = DirectDataReg D1} 	@factorial_while
+mem[0x34..0x39]: 	Beq {ref = 108}
+mem[0x3a..0x3b]: 	Mul {mode = Long, src = DirectDataReg D1, dst = DirectDataReg D0}
+mem[0x3c..0x41]: 	Bvs {ref = 96}
+mem[0x42..0x47]: 	Jmp {ref = 46}
+mem[0x48..0x4d]: 	Move {mode = Long, src = Immediate 1, dst = DirectDataReg D0} 	@factorial_0
+mem[0x4e..0x53]: 	Jmp {ref = 108}
+mem[0x54..0x59]: 	Move {mode = Long, src = Immediate (-1), dst = DirectDataReg D0} 	@factorial_not_in_domain
+mem[0x5a..0x5f]: 	Jmp {ref = 108}
+mem[0x60..0x65]: 	Move {mode = Long, src = Immediate (-858993460), dst = DirectDataReg D0} 	@factorial_overflow
+mem[0x66..0x6b]: 	Jmp {ref = 108}
+mem[0x6c..0x6f]: 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A7 Nothing} 	@factorial_end
+mem[0x70..0x71]: 	Halt
+mem[0x72..0x3e7]: 	( 00 )
 ---
