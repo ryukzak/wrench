@@ -1,11 +1,10 @@
 module Wrench.Isa.Acc32.Test (tests) where
 
-import Control.Exception (SomeException, evaluate, try)
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
-import Data.List (isInfixOf)
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
+import Test.Tasty.HUnit (assertFailure, testCase, (@?=))
 import Wrench.Isa.Acc32
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -33,14 +32,25 @@ tests =
             runBranch (Bgez 100) 5 @?= 100
         , testCase "bgez not taken (acc < 0)" $ do
             runBranch (Bgez 100) (-1) @?= 10
-        , testCase "load offset out of range fails translation" $ do
+        , testCase "load offset out of range reports the mnemonic and address" $ do
             let src = ".text\n_start:\n    load 200\n    halt\n"
             result <-
-                try @SomeException
+                try @ErrorCall
                     $ evaluate
                     $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
             case result of
-                Left e -> assertBool ("unexpected error: " <> show e) ("offset" `isInfixOf` show e)
+                Left (ErrorCall msg) ->
+                    msg @?= "load offset 200 at instruction address 0 does not fit in a signed byte (-128..127)"
+                Right n -> assertFailure ("expected translation to fail, got " <> show n <> " characters")
+        , testCase "store offset out of range reports the mnemonic and a nonzero address" $ do
+            let src = ".text\n_start:\n    halt\n    store 200\n    halt\n"
+            result <-
+                try @ErrorCall
+                    $ evaluate
+                    $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
+            case result of
+                Left (ErrorCall msg) ->
+                    msg @?= "store offset 200 at instruction address 1 does not fit in a signed byte (-128..127)"
                 Right n -> assertFailure ("expected translation to fail, got " <> show n <> " characters")
         ]
 
