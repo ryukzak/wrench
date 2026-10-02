@@ -1,10 +1,10 @@
-0:	input_addr
-4:	output_addr
-8:	cccccccc
-12:	ffffffff
-16:	_start
-74:	x_case
-86:	y_case
+0x000:	input_addr
+0x004:	output_addr
+0x008:	cccccccc
+0x00c:	ffffffff
+0x010:	_start
+0x04a:	x_case
+0x056:	y_case
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"

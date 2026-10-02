@@ -1,4 +1,4 @@
-0:	_start
+0x000:	_start
 ---
 mem[0x000..0x004] (5 B): 	LoadAddr 305419896 	@_start
 mem[0x005..0x007] (3 B): 	Load 22136

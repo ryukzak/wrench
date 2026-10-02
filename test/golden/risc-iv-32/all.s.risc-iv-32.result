@@ -1,15 +1,15 @@
-0:	input_addr
-4:	output_addr
-8:	_start
-116:	jump_label
-120:	beqz_label
-124:	bnez_label
-128:	bgt_label
-132:	ble_label
-136:	bgtu_label
-140:	bleu_label
-144:	beq_label
-148:	bne_label
+0x000:	input_addr
+0x004:	output_addr
+0x008:	_start
+0x074:	jump_label
+0x078:	beqz_label
+0x07c:	bnez_label
+0x080:	bgt_label
+0x084:	ble_label
+0x088:	bgtu_label
+0x08c:	bleu_label
+0x090:	beq_label
+0x094:	bne_label
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"

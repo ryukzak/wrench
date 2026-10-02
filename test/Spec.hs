@@ -296,11 +296,12 @@ goldenTranslate' isa fn =
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats) ->
-                return
-                    $ encodeUtf8
-                    $ T.intercalate
-                        "\n---\n"
-                        [prettyLabels labels, prettyDump True (hexAddr (hexAddrWidth (memorySize dump))) labels $ dumpCells dump, ""]
+                let addrShow = hexAddr (hexAddrWidth (memorySize dump))
+                 in return
+                        $ encodeUtf8
+                        $ T.intercalate
+                            "\n---\n"
+                            [prettyLabels addrShow labels, prettyDump True addrShow labels $ dumpCells dump, ""]
             Left err ->
                 error $ "Translation failed: " <> show err
 

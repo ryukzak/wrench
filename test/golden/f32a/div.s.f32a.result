@@ -1,8 +1,8 @@
-0:	input_addr
-4:	output_addr
-8:	divisor
-12:	_start
-44:	multiply_begin
+0x000:	input_addr
+0x004:	output_addr
+0x008:	divisor
+0x00c:	_start
+0x02c:	multiply_begin
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"

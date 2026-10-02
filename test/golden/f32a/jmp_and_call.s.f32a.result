@@ -1,6 +1,6 @@
-0:	_start
-20:	next_call
-22:	halt_jmp
+0x000:	_start
+0x014:	next_call
+0x016:	halt_jmp
 ---
 mem[0x000..0x004] (5 B): 	Lit 25 	@_start
 mem[0x005..0x009] (5 B): 	Lit 25

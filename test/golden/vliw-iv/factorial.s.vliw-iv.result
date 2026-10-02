@@ -1,12 +1,12 @@
-0:	input_addr
-4:	output_addr
-144:	_start
-214:	factorial_begin
-228:	factorial_while
-312:	check_overflow
-410:	negative_case
-494:	factorial_end
-550:	exit
+0x000:	input_addr
+0x004:	output_addr
+0x090:	_start
+0x0d6:	factorial_begin
+0x0e4:	factorial_while
+0x138:	check_overflow
+0x19a:	negative_case
+0x1ee:	factorial_end
+0x226:	exit
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x08f] (140 B): 	84 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00	@"output_addr"
