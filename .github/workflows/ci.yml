@@ -145,6 +145,53 @@ jobs:
       - run: make generate-stack-deps
       - run: git diff --exit-code
 
+  haddock:
+    needs:
+      - wrench
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/cache@v6
+        name: Cache ~/.stack
+        with:
+          path: ${{ '~/.stack' }}
+          key: haddock-job-${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
+
+      - name: Install haskell-stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: "latest"
+          stack-no-global: true
+          ghc-version: "9.10.3"
+
+      - name: Build Haddock docs
+        run: make docs-haddock
+
+      - name: Locate docs output
+        id: docs
+        run: echo "path=$(stack path --dist-dir)/doc/html/wrench" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.docs.outputs.path }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   build-binaries:
     needs:
       - wrench

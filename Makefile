@@ -6,6 +6,7 @@
         lint-fix lint-fix-hs lint-fix-py \
         generate generate-variants generate-stack-deps \
         run-server \
+        docs-haddock \
         docker-build docker-push-builder docker-push-edge \
         fix clean
 
@@ -34,6 +35,11 @@ build-fmt:
 
 build-examples:
 	python script/build_examples.py --fail-fast
+
+# Docs
+
+docs-haddock:
+	stack haddock --no-haddock-deps --haddock-hyperlink-source
 
 # Run
 
