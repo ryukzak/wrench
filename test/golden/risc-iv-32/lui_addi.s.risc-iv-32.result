@@ -1,4 +1,4 @@
-0:	_start
+0x000:	_start
 ---
 mem[0x000..0x003] (4 B): 	Lui {rd = T1, k = 74565} 	@_start
 mem[0x004..0x007] (4 B): 	Addi {rd = T1, rs1 = T1, k = 1656}

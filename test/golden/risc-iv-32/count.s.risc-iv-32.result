@@ -1,10 +1,10 @@
-0:	acc
-4:	step
-8:	out_port
-12:	limit
-16:	_start
-64:	count
-84:	end
+0x000:	acc
+0x004:	step
+0x008:	out_port
+0x00c:	limit
+0x010:	_start
+0x040:	count
+0x054:	end
 ---
 mem[0x000..0x003] (4 B): 	00 00 00 00	@"acc"
 mem[0x004..0x007] (4 B): 	02 00 00 00	@"step"

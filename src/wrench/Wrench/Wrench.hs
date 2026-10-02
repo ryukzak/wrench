@@ -99,10 +99,10 @@ data Result mem w = Result
     }
     deriving (Show)
 
-prettyLabels :: (IsWord w) => HashMap Text w -> Text
-prettyLabels rLabels =
+prettyLabels :: (IsWord w) => (Int -> Text) -> HashMap Text w -> Text
+prettyLabels showAddr rLabels =
     T.intercalate "\n"
-        $ map (\(l, w) -> show w <> ":\t" <> l)
+        $ map (\(l, w) -> showAddr (fromEnum w) <> ":\t" <> l)
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
@@ -171,7 +171,7 @@ wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Confi
             SizeShown -> True
             SizeHidden -> False
         translationResult rLabels rDump = do
-            putText $ prettyLabels rLabels
+            putTextLn $ prettyLabels addrShow rLabels
             putStrLn "---"
             putText $ prettyDump showSize addrShow rLabels rDump
         wrenchError e = do

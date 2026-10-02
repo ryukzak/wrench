@@ -1,22 +1,22 @@
-0:	input_addr
-4:	output_addr
-8:	tmp_divisor
-12:	tmp_prev
-16:	alligment
-144:	_start
-168:	continue
-181:	handler_negative
-194:	handler_overflow
-207:	multiply
-213:	multiply_do
-223:	divide
-229:	divide_do
-236:	factorial
-247:	factorial_while
-267:	continue_factorial
-312:	continue_factorial2
-335:	continue_factorial3
-346:	factorial_finish
+0x000:	input_addr
+0x004:	output_addr
+0x008:	tmp_divisor
+0x00c:	tmp_prev
+0x010:	alligment
+0x090:	_start
+0x0a8:	continue
+0x0b5:	handler_negative
+0x0c2:	handler_overflow
+0x0cf:	multiply
+0x0d5:	multiply_do
+0x0df:	divide
+0x0e5:	divide_do
+0x0ec:	factorial
+0x0f7:	factorial_while
+0x10b:	continue_factorial
+0x138:	continue_factorial2
+0x14f:	continue_factorial3
+0x15a:	factorial_finish
 ---
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"

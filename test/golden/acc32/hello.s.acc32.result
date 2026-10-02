@@ -1,13 +1,13 @@
-0:	buf
-17:	i
-21:	ptr
-25:	output_addr
-29:	buf_size
-33:	const_1
-37:	const_FF
-41:	_start
-59:	while
-103:	end
+0x000:	buf
+0x011:	i
+0x015:	ptr
+0x019:	output_addr
+0x01d:	buf_size
+0x021:	const_1
+0x025:	const_FF
+0x029:	_start
+0x03b:	while
+0x067:	end
 ---
 mem[0x000..0x010] (17 B): 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21 00 00 00	@"buf"
 mem[0x011..0x014] (4 B): 	00 00 00 00	@"i"
