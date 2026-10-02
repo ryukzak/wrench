@@ -40,6 +40,15 @@ build-examples:
 
 docs-haddock:
 	stack haddock --no-haddock-deps --haddock-hyperlink-source
+	stack haddock --no-haddock-deps --haddock-hyperlink-source --haddock-for-hackage
+	dist_dir=$$(stack path --dist-dir); \
+	hackage_dir=$$(ls -d $$dist_dir/doc/html/wrench-*-docs); \
+	cp $$dist_dir/doc/html/wrench/index.html $$hackage_dir/index.html; \
+	find $$hackage_dir -name '*.html' -exec sed -i.bak \
+	    -e 's#href="/package/wrench-[^"]*"#href="index.html"#g' \
+	    -e 's#href="/package/\([^"]*\)"#href="https://hackage.haskell.org/package/\1"#g' \
+	    {} +; \
+	find $$hackage_dir -name '*.bak' -delete
 
 # Run
 

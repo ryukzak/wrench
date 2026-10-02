@@ -180,7 +180,10 @@ jobs:
 
       - name: Locate docs output
         id: docs
-        run: echo "path=$(stack path --dist-dir)/doc/html/wrench" >> "$GITHUB_OUTPUT"
+        run: |
+          dist_dir=$(stack path --dist-dir)
+          hackage_dir=$(ls -d "$dist_dir"/doc/html/wrench-*-docs)
+          echo "path=$hackage_dir" >> "$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v5
 
