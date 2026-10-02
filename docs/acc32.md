@@ -23,7 +23,17 @@ Comments in Acc32 assembly code are denoted by the `;` character.
 
 ## Instructions
 
-Instruction size: 1 byte for opcode, plus the operand. Control flow and Load/Store Immediate/Indirect/Addr take a 4-byte absolute address; `add`/`sub`/`mul`/`div`/`rem`/`shiftl`/`shiftr`/`and`/`or`/`xor` take a 2-byte absolute address; `load`/`store` take a 1-byte offset relative to `pc`.
+Instruction layouts (opcode byte first, `/signed` marks a sign-extended field --
+note these describe the logical field layout, not literal bit-packing: nothing
+here is actually assembled with `shiftL`/`.&.` the way e.g. Wasm32's control
+records are):
+
+- No operand -- 1 byte: `<<Opcode:8>>`
+  (`load_acc`, `not`, `clv`, `clc`, `halt`)
+- `load`/`store` -- 2 bytes, offset relative to `pc`: `<<Opcode:8, Offset:8/signed>>`
+- Arithmetic/bitwise -- 3 bytes, truncated absolute address: `<<Opcode:8, Address:16/signed>>`
+  (`add`, `sub`, `mul`, `div`, `rem`, `shiftl`, `shiftr`, `and`, `or`, `xor`)
+- Control flow, `load_imm`/`load_addr`/`store_addr`/`store_ind` -- 5 bytes, full absolute address: `<<Opcode:8, Address:32/signed>>`
 
 ### Data Movement Instructions
 
