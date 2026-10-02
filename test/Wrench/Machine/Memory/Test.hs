@@ -5,9 +5,10 @@ module Wrench.Machine.Memory.Test (tests) where
 import Data.Default (def)
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertFailure, testCase, (@=?), (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@=?), (@?=))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Translator.Types
 
 newtype Isa = Isa Int deriving (Eq, Show)
 
@@ -20,6 +21,7 @@ tests =
         "Machine.Memory"
         [ memoryOpsTests
         , accessLogTests
+        , sectionOverlapTests
         ]
 
 memoryOpsTests :: TestTree
@@ -285,3 +287,31 @@ accessLogTests =
                     Left e -> assertFailure (toString e)
             ]
         ]
+
+sectionOverlapTests :: TestTree
+sectionOverlapTests =
+    testGroup
+        "prepareDump section overlap"
+        [ testCase "overlapping text/data sections are rejected" $
+            Left
+                "sections overlap: data section at mem[0x02..0x05 (4 B)] overlaps bytes already placed at mem[0x02..0x03 (2 B)]"
+                @=? prepareDump 16 (repeat 0) [codeSection 0, dataSection 2]
+        , testCase "overlapping same-kind sections are rejected" $
+            Left
+                "sections overlap: data section at mem[0x03..0x06 (4 B)] overlaps bytes already placed at mem[0x03..0x03 (1 B)]"
+                @=? prepareDump 16 (repeat 0) [dataSection 0, dataSection 3]
+        , testCase "adjacent (touching, non-overlapping) sections are fine"
+            $ assertBool "expected success"
+            $ isRight
+            $ prepareDump 16 (repeat 0) [codeSection 0, dataSection 4]
+        , testCase "sections reordered by .org, but non-overlapping, are fine"
+            $ assertBool "expected success"
+            $ isRight
+            $ prepareDump 16 (repeat 0) [codeSection 8, dataSection 0]
+        ]
+    where
+        codeSection :: Int -> Section Isa Int32 Int32
+        codeSection n = Code{org = Just n, codeTokens = [Mnemonic (Isa 4)]}
+
+        dataSection :: Int -> Section Isa Int32 Int32
+        dataSection n = Data{org = Just n, dataTokens = [DataToken{dtLabel = 0, dtValue = DWord [0]}]}
