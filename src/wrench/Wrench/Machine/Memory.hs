@@ -47,18 +47,59 @@ prepareDump ::
     -> [Word8]
     -> [Section isa w w]
     -> Either Text (Mem isa w)
-prepareDump memorySize fillBytes sections =
-    let addSection cells offset dump =
-            let dump' = zip [offset ..] cells
-             in (offset + length dump', dump' <> dump)
-        processCode =
+prepareDump memorySize fillBytes sections = do
+    (_, sectionCells, _) <- foldlM place (0, [], emptyIntervals) sections
+    let maxAddress = maximum1 $ 0 :| keys sectionCells
+        placeholder = zip [0 .. memorySize - 1] (map Value fillBytes)
+    if maxAddress > memorySize
+        then
+            Left $
+                "program does not fit in memory: it needs "
+                    <> show maxAddress
+                    <> " bytes, but memory_size is "
+                    <> show memorySize
+                    <> " bytes. Increase memory_size in the configuration."
+        else
+            Right
+                Mem
+                    { memorySize
+                    , memoryData = fromList (placeholder <> sectionCells)
+                    }
+    where
+        place (offset, dump, used) section =
+            let start = fromMaybe offset (org section)
+                cells = case section of
+                    Code{codeTokens} -> codeCells codeTokens
+                    Data{dataTokens} -> dataCells dataTokens
+                len = length cells
+                newRange =
+                    if len > 0
+                        then recordRange start len emptyIntervals
+                        else emptyIntervals
+                overlap = intervalsIntersect newRange used
+             in if intervalsSize overlap > 0
+                    then
+                        Left $
+                            "sections overlap: "
+                                <> sectionKind section
+                                <> " section at mem["
+                                <> renderIntervalsHex newRange
+                                <> "] overlaps bytes already placed at mem["
+                                <> renderIntervalsHex overlap
+                                <> "]"
+                    else
+                        let (offset', dump') = addSection cells start dump
+                         in Right (offset', dump', intervalsUnion newRange used)
+
+        codeCells =
             concatMap
                 ( \case
                     Mnemonic m ->
                         Instruction m : replicate (byteSize m - 1) InstructionPart
                     _other -> []
                 )
-        processData =
+
+        dataCells =
             concatMap
                 ( \case
                     DataToken{dtValue} ->
@@ -68,33 +109,13 @@ prepareDump memorySize fillBytes sections =
                                 DByte bs -> bs
                                 DWord ws -> concatMap wordSplit ws
                 )
-        fromSections =
-            snd $
-                foldl'
-                    ( \(offset, dump) ->
-                        ( \case
-                            Code{org, codeTokens} -> addSection (processCode codeTokens) (fromMaybe offset org) dump
-                            Data{org, dataTokens} -> addSection (processData dataTokens) (fromMaybe offset org) dump
-                        )
-                    )
-                    (0, [])
-                    sections
-        dumpSize = maximum1 $ 0 :| keys fromSections
-        placeholder = zip [0 .. memorySize - 1] (map Value fillBytes)
-     in if dumpSize > memorySize
-            then
-                Left $
-                    "program does not fit in memory: it needs "
-                        <> show dumpSize
-                        <> " bytes, but memory_size is "
-                        <> show memorySize
-                        <> " bytes. Increase memory_size in the configuration."
-            else
-                Right
-                    Mem
-                        { memorySize
-                        , memoryData = fromList (placeholder <> fromSections)
-                        }
+
+        sectionKind Code{} = "text" :: Text
+        sectionKind Data{} = "data"
+
+        addSection cells offset dump =
+            let dump' = zip [offset ..] cells
+             in (offset + length dump', dump' <> dump)
 
 -- | Translation-time layout summary derived from the section list.
 computeDumpStats :: (ByteSize isa, ByteSizeT w) => [Section isa w l] -> DumpStats
