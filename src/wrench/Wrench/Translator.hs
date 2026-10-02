@@ -34,27 +34,22 @@ evaluateLabels ::
     [Section isa w Text]
     -> Either Text (HashMap Text w)
 evaluateLabels sections =
-    let processCode st'@St{sOffset, sLabels} token =
+    let markCodeToken st'@St{sOffset, sLabels} token =
             case token of
                 Mnemonic m -> st'{sOffset = sOffset + toEnum (byteSize m)}
                 Label l -> st'{sLabels = (l, sOffset) : sLabels}
-        processData st'@St{sOffset, sLabels} DataToken{dtLabel, dtValue} =
+        markDataToken st'@St{sOffset, sLabels} DataToken{dtLabel, dtValue} =
             st'
                 { sOffset = sOffset + toEnum (byteSize dtValue)
                 , sLabels = (dtLabel, sOffset) : sLabels
                 }
-        offsetError org offset = error $ ".org directive set " <> show org <> " but we already at " <> show offset
         St{sLabels = labels} =
             foldl'
                 ( \st@St{sOffset} -> \case
-                    Code{org = Nothing, codeTokens} -> foldl' processCode st codeTokens
-                    Data{org = Nothing, dataTokens} -> foldl' processData st dataTokens
-                    Code{org = Just offset, codeTokens}
-                        | toEnum offset < sOffset -> offsetError offset sOffset
-                        | otherwise -> foldl' processCode st{sOffset = toEnum offset} codeTokens
-                    Data{org = Just offset, dataTokens}
-                        | toEnum offset < sOffset -> offsetError offset sOffset
-                        | otherwise -> foldl' processData st{sOffset = toEnum offset} dataTokens
+                    Code{org, codeTokens} ->
+                        foldl' markCodeToken st{sOffset = maybe sOffset toEnum org} codeTokens
+                    Data{org, dataTokens} ->
+                        foldl' markDataToken st{sOffset = maybe sOffset toEnum org} dataTokens
                 )
                 St{sOffset = 0, sLabels = []}
                 sections
