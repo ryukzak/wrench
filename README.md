@@ -2,6 +2,7 @@
 
 ![Wrench CI](https://github.com/ryukzak/wrench/actions/workflows/ci.yml/badge.svg?branch=master)
 ![License](https://img.shields.io/github/license/ryukzak/wrench)
+[![Haddock](https://img.shields.io/badge/docs-haddock-purple)](https://ryukzak.github.io/wrench/)
 
 Wrench is a teaching platform for computer architecture: one assembler/simulator toolchain shared across five deliberately different CPU paradigms, plus a formatter and a grading service for running real coursework. Every architecture uses the same assembly conventions, YAML-driven configuration, and report/assertion language, so a single lab exercise can be solved once and compared instruction-for-instruction across an accumulator machine, a stack machine, a load-store RISC, a register-memory CISC, a VLIW design, etc.
 
