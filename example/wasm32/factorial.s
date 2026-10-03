@@ -1,57 +1,23 @@
     .text
 
-_start:
-    .func    locals $result
-        i32.const 0x84
-        i32.const 0x80
-        i32.load
-        call     factorial
-        i32.store
-        halt
-    .endfunc
-
+    ; factorial(n), recursive. No separate direct-call instruction: a
+    ; statically-known call site is just `i32.const target` before `call`.
 factorial:
-    .func    params $n result i32 locals $acc
+    local.get 0 i32.const 1 i32.le_s
+    if
+        i32.const 1 return
+    end
+    ; n stays on the stack under the recursive call's own frame, untouched
+    ; however deep it goes, ready for the multiply after it returns.
+    local.get 0
+    local.get 0 i32.const 1 i32.sub
+    i32.const factorial call 1, 1
+    i32.mul
+    return
 
-        local.get $n
-        i32.const 0
-        i32.lt_s
-        if       negative
-            i32.const -1
-            return
-        end
-
-        local.get $n
-        i32.const 12
-        i32.gt_s
-        if       overflow
-            i32.const -858993460
-            return
-        end
-
-        i32.const 1
-        local.set $acc
-
-        block    done
-            loop     again
-                local.get $n
-                i32.const 1
-                i32.le_s
-                br_if    done
-
-                local.get $acc
-                local.get $n
-                i32.mul
-                local.set $acc
-
-                local.get $n
-                i32.const 1
-                i32.sub
-                local.set $n
-
-                br       again
-            end
-        end
-
-        local.get $acc
-    .endfunc
+_start:
+    i32.const 0x84
+    i32.const 0x80 i32.load
+    i32.const factorial call 1, 1
+    i32.store
+    halt

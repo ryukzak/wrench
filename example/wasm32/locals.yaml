@@ -1,0 +1,10 @@
+name: "assert fib(10) == 55, with scratch in a reserved local"
+limit: 4000
+memory_size: 0x400
+reports:
+  - name: Check result
+    slice: last
+    view: |
+      stack: {stack:dec}
+    assert: |
+      stack: 55

@@ -2,7 +2,6 @@
 
 module Wrench.Translator (
     translate,
-    evaluateLabels,
     TranslatorResult (..),
 ) where
 
@@ -81,9 +80,8 @@ translate memorySize fillBytes fn src =
                 Left err -> Left err
                 (Right labels) ->
                     let resolveLabel l = (labels !? l)
-                        code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
-                        stats = computeDumpStats code
                      in do
+                            code <- mapM (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
                             dump <- prepareDump memorySize fillBytes code
-                            Right $ TranslatorResult dump labels stats
+                            Right $ TranslatorResult dump labels (computeDumpStats code)
         Left err -> Left $ toText $ errorBundlePretty err

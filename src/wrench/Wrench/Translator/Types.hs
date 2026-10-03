@@ -25,6 +25,17 @@ import Wrench.Machine.Types
 class DerefMnemonic m w where
     derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w
 
+    -- | Resolve operands that depend on the surrounding instruction
+    --   stream rather than on a label -- structured control flow, where
+    --   an instruction's target is "wherever my own matching @end@ is"
+    --   instead of a name. Runs once per code section, after
+    --   'derefMnemonic', over every mnemonic paired with its own
+    --   offset; 'Left' aborts translation, which is where a malformed
+    --   nesting should be reported. Defaults to leaving the stream
+    --   alone, for the ISAs whose operands are all labels or immediates.
+    resolveStructure :: [(w, m w)] -> Either Text [m w]
+    resolveStructure = Right . map snd
+
 data Section isa w l
     = Code
         { org :: Maybe Int
@@ -46,40 +57,41 @@ derefSection ::
     (Text -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w Text
-    -> Section (isa w) w w
-derefSection f offset code@Code{codeTokens} =
+    -> Either Text (Section (isa w) w w)
+derefSection f offset code@Code{codeTokens} = do
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]
         marked = markupOffsets offset mnemonics
-     in code
-            { codeTokens =
-                map
-                    ( \(offset', m) ->
-                        let m' = derefMnemonic f offset' m
-                            -- Force every Ref-derived field of m' to WHNF so that
-                            -- an unresolved label aborts translation here, not
-                            -- lazily at execution when something happens to read
-                            -- the value (see issue #143). Walking @show@ visits
-                            -- every constructor field, which is enough since
-                            -- @w@ is a machine word and forcing it to WHNF is
-                            -- already full evaluation.
-                            !_ = length (show m' :: String)
-                         in Mnemonic m'
-                    )
-                    marked
-            }
-derefSection f _offset dt@Data{dataTokens} =
-    dt
-        { dataTokens =
+        dereferenced =
             map
-                ( \DataToken{dtLabel, dtValue} ->
-                    DataToken
-                        { dtLabel = fromMaybe (error $ "unknown label: " <> show dtLabel) $ f dtLabel
-                        , dtValue = dtValue
-                        }
+                ( \(offset', m) ->
+                    let m' = derefMnemonic f offset' m
+                        -- Force every Ref-derived field of m' to WHNF so that
+                        -- an unresolved label aborts translation here, not
+                        -- lazily at execution when something happens to read
+                        -- the value (see issue #143). Walking @show@ visits
+                        -- every constructor field, which is enough since
+                        -- @w@ is a machine word and forcing it to WHNF is
+                        -- already full evaluation.
+                        !_ = length (show m' :: String)
+                     in (offset', m')
                 )
-                dataTokens
-        }
+                marked
+    resolved <- resolveStructure dereferenced
+    return code{codeTokens = map Mnemonic resolved}
+derefSection f _offset dt@Data{dataTokens} =
+    Right
+        dt
+            { dataTokens =
+                map
+                    ( \DataToken{dtLabel, dtValue} ->
+                        DataToken
+                            { dtLabel = fromMaybe (error $ "unknown label: " <> show dtLabel) $ f dtLabel
+                            , dtValue = dtValue
+                            }
+                    )
+                    dataTokens
+            }
 
 markupOffsets :: (ByteSize t, IsWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
