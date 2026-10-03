@@ -1,9 +1,30 @@
-{- | The control-record binary format: the typed payload ('Scope') and pure
+{- |
+The control-record binary format: the typed payload ('Scope') and pure
 (de)serialization to\/from the words one record occupies on the control
-stack. Stateful operations (push, read, close) live in
-@Wrench.Isa.Wasm32@ itself.
+stack. Stateful operations -- push, read, close -- live in
+"Wrench.Isa.Wasm32" itself, as does the description of where the control
+stack sits in memory.
+
+Each open @block@, @loop@ or call is one record, written at the moment the
+scope is entered. Every kind is the same width whatever it needs to store:
+
+* a @block@ records where its own matching @end@ is (@csEnd@), so a branch
+  to it knows where to jump and its @end@ knows it is the one that closes
+  it;
+* a @loop@ records both its re-entry point (@csStart@, just after the
+  @loop@ instruction) and its @csEnd@;
+* a call records the caller's @frameBase@ and local count, to restore on
+  return, plus its own return address and declared result count.
+
+A @block@ leaves its second word unused. Paying that word is what makes the
+control stack a fixed-stride array: the record @n@ scopes out starts exactly
+@n + 1@ strides below the frontier. That is why a branch finds its target by
+arithmetic -- no chain of stored links to walk, and no memory read just to
+discover how wide the next record is.
 -}
 module Wrench.Isa.Wasm32.ControlRecord (
+    -- * Layout
+    -- $layout
     Scope (..),
     scopeRecordWords,
     scopeRecordBytes,
@@ -24,20 +45,20 @@ import Wrench.Machine.Types
 -- Every record is the same 'scopeRecordWords' words whatever its kind,
 -- making the control stack a fixed-stride array: the record @n@ scopes
 -- out starts exactly @n+1@ strides below the frontier. That is what lets
--- `br` reach its target by arithmetic rather than a chain of stored
+-- @br@ reach its target by arithmetic rather than a chain of stored
 -- links, and why no record describes its own predecessor.
 --
--- 'LoopScope' and 'BlockScope' both carry @csEnd@: a plain `end`
+-- 'LoopScope' and 'BlockScope' both carry @csEnd@: a plain @end@
 -- compares its own address against it to tell "closes this scope" from
--- "closes an `if`" (only the former pops).
+-- "closes an @if@" (only the former pops).
 data Scope
-    = -- | Reaching this (via `br`\/`br_if`) leaves it open: jump to
-      -- @csStart@ (just after `loop`) to run the body again.
+    = -- | Reaching this (via @br@\/@br_if@) leaves it open: jump to
+      -- @csStart@ (just after @loop@) to run the body again.
       LoopScope {csStart :: Int, csEnd :: Int}
     | -- | Reaching this closes it: jump just past @csEnd@, popping it
       -- off the stack -- unlike a loop, nothing left to continue.
       BlockScope {csEnd :: Int}
-    | -- | Pushed by `call`, closed by `return` only. @csCallerFrameBase@\/
+    | -- | Pushed by @call@, closed by @return@ only. @csCallerFrameBase@\/
       -- @csCallerLocalCount@ are the caller's own values, restored on
       -- return; @csReturnPc@\/@csResultCount@ drive where to jump back
       -- to and how many values to carry across.
@@ -45,7 +66,7 @@ data Scope
     deriving (Eq, Show)
 
 -- | How many machine words one record occupies, whatever its kind. A
--- `block` leaves its second word unused; paying that word buys a
+-- @block@ leaves its second word unused; paying that word buys a
 -- fixed-stride control stack (see 'Scope').
 scopeRecordWords :: Int
 scopeRecordWords = 2
@@ -70,19 +91,8 @@ tagOfScope LoopScope{} = LoopTag
 tagOfScope BlockScope{} = BlockTag
 tagOfScope CallScope{} = CallTag
 
--- | The field layout, in Erlang bit syntax -- illustrative notation, but
--- a precise way to say which bits are which. Most significant first:
---
--- @
--- %% block
--- \<\<Tag:2, 0:8, CsEnd:22\>\>, \<\<0:32\>\>
---
--- %% loop
--- \<\<Tag:2, 0:8, CsStart:22\>\>, \<\<0:10, CsEnd:22\>\>
---
--- %% call
--- \<\<Tag:2, CsCallerLocalCount:8, CsCallerFrameBase:22\>\>, \<\<0:2, CsResultCount:8, CsReturnPc:22\>\>
--- @
+-- | See the @Layout@ section at the foot of this module for the field
+-- layout these widths produce.
 --
 -- Every address field is the same 'addrBitWidth' in the same bits, and
 -- every count the same 'countBitWidth' in theirs: no part of the address
@@ -206,3 +216,36 @@ describeScope showAddr scope = case scope of
             <> ", csResultCount = "
             <> show csResultCount
             <> " }"
+
+-- $layout
+--
+-- The exact byte layout, in Erlang bit syntax -- illustrative notation
+-- only, the project is Haskell, but a precise and standard way to say
+-- exactly which bits are which. Most-significant field first:
+--
+-- > %% block -- 8 bytes
+-- > <<Tag:2, 0:8, CsEnd:22>>, <<0:32>>
+-- >
+-- > %% loop -- 8 bytes
+-- > <<Tag:2, 0:8, CsStart:22>>, <<0:10, CsEnd:22>>
+-- >
+-- > %% call -- 8 bytes
+-- > <<Tag:2, CsCallerLocalCount:8, CsCallerFrameBase:22>>, <<0:2, CsResultCount:8, CsReturnPc:22>>
+--
+-- Every address-shaped field -- @CsStart@, @CsEnd@ and @CsReturnPc@ (code
+-- addresses) and @CsCallerFrameBase@ (a stack address) -- gets the same
+-- uniform 'addrBitWidth' of 22 bits, and every count the same
+-- 'countBitWidth' of 8, in the same bit positions. There is no ISA-level
+-- reason to trust one part of the address space more than another, and a
+-- uniform layout means one decoder rather than three. 22 bits covers 4 MiB,
+-- far past the 64 KiB memory limit; 8 bits matches the one-byte counts
+-- @call@ itself carries, so what a call site can declare and what its
+-- record can hold agree exactly.
+--
+-- Nothing is silently truncated. A field value that does not fit stops the
+-- program naming the field ('packField'), and an instruction immediate out
+-- of range for its own encoding is rejected at translate time.
+--
+-- @Tag@ needs only 2 bits for three kinds. The one unused pattern is not a
+-- valid record, and reading it reports a corrupted control stack rather
+-- than guessing at a shape -- see 'decodeScope'.

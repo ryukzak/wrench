@@ -2,13 +2,57 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-{- | A WebAssembly-inspired 32-bit ISA: push a constant, combine values
-with arithmetic\/comparison ops, structured control flow, locals, and function
-calls.
+{- |
+A 32-bit stack-based instruction set for teaching, inspired by
+<https://webassembly.github.io/spec/core/ WebAssembly>. It features:
+
+* Two stacks, both in ordinary memory: an /operand stack/ holding locals
+  and values, and a /control stack/ holding the bookkeeping for open
+  @block@\/@loop@\/call scopes -- no general-purpose registers.
+* Structured control flow (@block@, @loop@, @if@\/@else@) instead of
+  arbitrary jumps, with every scope's target resolved at assembly time.
+* Function calls where a function address is just an ordinary value, so a
+  direct call and a call through a value computed at run time are the same
+  instruction.
+* Memory-mapped I\/O.
+
+Which makes it useful for studying function calls, local variables, loops
+and low-level memory access in a model that fits in one sitting.
+
+Comments in Wasm32 assembly are introduced by @;@.
+
+The per-instruction reference is on 'Wasm32Isa's own constructors. The
+sections below describe how the machine works underneath: start with
+\"The two stacks\", since everything else refers to it.
 -}
 module Wrench.Isa.Wasm32 (
+    -- * Instructions
+    -- $instructionIndex
     Wasm32Isa (..),
+
+    -- * Machine state
     Wasm32St (..),
+
+    -- * Program structure
+    -- $programStructure
+
+    -- * The two stacks
+    -- $stacks
+
+    -- ** Locals
+    -- $locals
+
+    -- ** Operand values
+    -- $operands
+
+    -- * Control flow
+    -- $controlFlow
+
+    -- * Functions
+    -- $functions
+
+    -- * Differences from WebAssembly
+    -- $differences
 ) where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -28,102 +72,207 @@ import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
 data Wasm32Isa w l
-    = I32Const l
-    | I32Add
-    | I32Sub
-    | I32Mul
-    | I32DivS
-    | I32RemS
-    | I32And
-    | I32Or
-    | I32Xor
-    | I32Shl
-    | I32ShrS
-    | I32ShrU
-    | I32Eq
-    | I32LtS
-    | I32LeS
-    | I32GtS
-    | I32GeS
-    | I32LtU
-    | I32LeU
-    | I32GtU
-    | I32GeU
-    | -- Each memory instruction carries a static offset, added to the
-      -- popped address; 'immediateBitWidth' bounds it. A store takes
-      -- the value on top of the address, matching real WebAssembly.
-
-      -- | Pop an address; push the word at address + offset.
+    = -- | @i32.const \<value\>@ -- push an immediate onto the operand stack.
+      -- A label reference is an ordinary immediate, which is how a function
+      -- address is produced (see the \"Functions\" section).
+      --
+      -- > stack.push(value)
+      I32Const l
+    | -- | @i32.add@ -- > y <- pop; x <- pop; push (x + y)
+      I32Add
+    | -- | @i32.sub@ -- subtract the second-pushed from the first-pushed.
+      --
+      -- > y <- pop; x <- pop; push (x - y)
+      I32Sub
+    | -- | @i32.mul@ -- > y <- pop; x <- pop; push (x * y)
+      I32Mul
+    | -- | @i32.div_s@ -- signed division, truncating toward zero, so
+      -- @-7 \/ 2@ is @-3@ and not @-4@. Traps on a zero divisor and on the
+      -- one unrepresentable quotient, @minBound \/ -1@.
+      --
+      -- > y <- pop; x <- pop; push (trunc (x / y))
+      I32DivS
+    | -- | @i32.rem_s@ -- signed remainder, whose sign follows the dividend,
+      -- so @-7 % 2@ is @-1@. Only a zero divisor traps: unlike 'I32DivS',
+      -- @minBound % -1@ is defined, and is @0@.
+      --
+      -- > y <- pop; x <- pop; push (x - y * trunc (x / y))
+      I32RemS
+    | -- | @i32.and@ -- > y <- pop; x <- pop; push (x .&. y)
+      I32And
+    | -- | @i32.or@ -- > y <- pop; x <- pop; push (x .|. y)
+      I32Or
+    | -- | @i32.xor@ -- > y <- pop; x <- pop; push (xor x y)
+      I32Xor
+    | -- | @i32.shl@ -- shift left, masking the shift amount to its low 5
+      -- bits, so a shift of 33 is a shift of 1.
+      --
+      -- > y <- pop; x <- pop; push (x << (y .&. 0x1F))
+      I32Shl
+    | -- | @i32.shr_s@ -- arithmetic (sign-extending) shift right, same
+      -- 5-bit masking.
+      --
+      -- > y <- pop; x <- pop; push (x >>arithmetic (y .&. 0x1F))
+      I32ShrS
+    | -- | @i32.shr_u@ -- logical (zero-filling) shift right, same 5-bit
+      -- masking.
+      --
+      -- > y <- pop; x <- pop; push (unsigned x >>logical (y .&. 0x1F))
+      I32ShrU
+    | -- | @i32.eq@ -- push @1@ if the two values are equal, else @0@. With
+      -- @i32.const 0@ in front of it this is also the ISA's zero test and
+      -- its only negation (see the instruction index above).
+      --
+      -- > y <- pop; x <- pop; push (if x == y then 1 else 0)
+      I32Eq
+    | -- | @i32.lt_s@ -- signed @\<@. > y <- pop; x <- pop; push (x < y)
+      I32LtS
+    | -- | @i32.le_s@ -- signed @\<=@.
+      I32LeS
+    | -- | @i32.gt_s@ -- signed @\>@.
+      I32GtS
+    | -- | @i32.ge_s@ -- signed @\>=@.
+      I32GeS
+    | -- | @i32.lt_u@ -- unsigned @\<@, reading both operands as unsigned,
+      -- so @-1@ compares /greater/ than @1@.
+      I32LtU
+    | -- | @i32.le_u@ -- unsigned @\<=@.
+      I32LeU
+    | -- | @i32.gt_u@ -- unsigned @\>@.
+      I32GtU
+    | -- | @i32.ge_u@ -- unsigned @\>=@.
+      I32GeU
+    | -- | @i32.load [\<offset\>]@ -- pop an address, push the 4-byte word at
+      -- address plus offset.
+      --
+      -- Every memory instruction carries a static offset, added to the
+      -- popped address: the base is computed at run time and pushed, the
+      -- displacement into it is written into the instruction, which makes
+      -- indexing a struct field or a small array one instruction rather
+      -- than three. The offset is unsigned and one byte
+      -- ('immediateBitWidth'), so @0@-@255@; omit it when it is zero, and
+      -- reach further by computing the address with @i32.add@.
+      --
+      -- > i32.const point       ; base address
+      -- > i32.load 4            ; point.y, no i32.add needed
+      --
+      -- > addr <- pop; push mem[addr + offset]
       I32Load Int
-    | -- | Pop a value then an address; write the word at address + offset.
+    | -- | @i32.store [\<offset\>]@ -- pop a value, then an address, and write
+      -- the value's 4 bytes at address plus offset. The value sits /above/
+      -- the address, matching real WebAssembly, so the destination has to
+      -- be pushed before the value is computed.
+      --
+      -- > value <- pop; addr <- pop; mem[addr + offset] <- value
       I32Store Int
-    | I32Load8U Int
-    | I32Load8S Int
-    | I32Store8 Int
-    | -- Each scope instruction carries a byte distance resolved at
-      -- translate time (see 'resolveScopeTargets'): for `if`\/`else`,
-      -- where to resume on the skip path; for `block`\/`loop`, where
-      -- their own matching `end` is. `if` pushes no control record --
-      -- nothing branches out of a taken branch early.
-
-      -- | Pop a condition; skip forward if it is zero.
+    | -- | @i32.load8_u [\<offset\>]@ -- like 'I32Load', but reads one byte
+      -- and zero-extends it.
+      I32Load8U Int
+    | -- | @i32.load8_s [\<offset\>]@ -- like 'I32Load8U', but sign-extends.
+      I32Load8S Int
+    | -- | @i32.store8 [\<offset\>]@ -- like 'I32Store', but writes only the
+      -- value's low byte.
+      I32Store8 Int
+    | -- | @if@ -- pop a condition; fall into the body that follows if it is
+      -- non-zero, otherwise skip to the matching @else@ (if there is one) or
+      -- past the matching @end@.
+      --
+      -- The @Int@ is the byte distance to resume at on the skip path,
+      -- resolved at translate time by 'resolveScopeTargets' and not written
+      -- in source. @if@ pushes no control record: nothing branches out of a
+      -- taken branch early, so there is nothing to remember.
       If Int
-    | -- | Skip past the matching `end`; reached by a taken `if` body
-      -- falling through.
+    | -- | @else@ -- marks the alternative body, reached only by a taken
+      -- @if@-body falling through to it, at which point it skips
+      -- unconditionally past the matching @end@. So the @else@-body never
+      -- runs after the @if@-body already did.
       Else Int
-    | End
-    | -- | A `br` target that jumps backward, to just after here.
+    | -- | @end@ -- closes the innermost open @block@ or @loop@. An @if@\'s
+      -- @end@ closes nothing, since @if@ opened nothing.
+      End
+    | -- | @loop@ -- open a scope a branch can jump /backward/ into, landing
+      -- just after this instruction. On its own it runs its body once, like
+      -- @block@. The @Int@ is the byte distance to its own matching @end@.
       Loop Int
-    | -- | A `br` target that jumps forward, past its matching `end` --
-      -- what makes "break" possible, which `loop` alone does not.
+    | -- | @block@ -- open a scope a branch can jump /forward/ past, landing
+      -- just after its matching @end@. This is what makes a \"break\"
+      -- possible, which @loop@ alone does not. The @Int@ is the byte
+      -- distance to that @end@.
       Block Int
-    | -- | Branch to the enclosing scope @depth@ levels out (0 =
-      -- innermost): a `loop` re-enters and stays open, a `block` closes
-      -- along with everything nested inside it. See 'branchTo'.
+    | -- | @br \<depth\>@ -- branch unconditionally to the enclosing scope
+      -- @depth@ levels out, @0@ being the innermost. See the \"Control
+      -- flow\" section for what reaching a @loop@ versus a @block@ does.
       Br Int
-    | -- | 'Br' behind a popped condition.
+    | -- | @br_if \<depth\>@ -- pop a condition and branch like 'Br' only
+      -- if it is non-zero, otherwise fall through. Branching on /zero/ is
+      -- @i32.const 0@, @i32.eq@, @br_if@.
       BrIf Int
-    | -- | Duplicate the top of the operand stack.
+    | -- | @dup@ -- duplicate the top of the operand stack.
+      --
+      -- > x <- pop; push x; push x
       Dup
-    | -- | Discard the top of the operand stack.
+    | -- | @drop@ -- discard the top of the operand stack. 'Dup' the
+      -- other way round, and the only way to get rid of a value the program
+      -- does not want -- a callee result the caller ignores, say. Nothing
+      -- else can do it: @local.set@ needs a spare local to land in, and
+      -- @i32.store@ needs its destination pushed /under/ the value.
+      --
+      -- > pop
       Drop
-    | -- | Pop a condition, then two values; push the first-pushed of the
-      -- two if the condition is non-zero, the second otherwise.
+    | -- | @select@ -- pop a condition, then two values; push the
+      -- first-pushed of the two if the condition is non-zero, the second
+      -- otherwise. A branchless two-way choice.
+      --
+      -- > c <- pop; y <- pop; x <- pop; push (if c /= 0 then x else y)
       Select
-    | -- | Trap: a point the program believes it can never reach.
+    | -- | @unreachable@ -- trap. Marks a point the program believes it can
+      -- never reach, and says so if it does.
       Unreachable
-    | -- | Push local @i@'s value.
+    | -- | @local.get \<i\>@ -- push local @i@\'s value.
+      --
+      -- > push locals[i]
       LocalGet Int
-    | -- | Pop a value into local @i@.
+    | -- | @local.set \<i\>@ -- pop the top of the stack into local @i@.
+      --
+      -- > locals[i] <- pop
       LocalSet Int
-    | -- | 'LocalSet' that pushes the value back, leaving stack depth
-      -- unchanged.
+    | -- | @local.tee \<i\>@ -- like @local.set@, but pushes the value back,
+      -- leaving the stack depth unchanged.
+      --
+      -- > x <- pop; locals[i] <- x; push x
       LocalTee Int
-    | -- | Claim @n@ more locals, zeroed, at indices @localCount@
-      -- onward: the operand stack descends, so the words directly below
-      -- the current frame's locals are exactly where the next ones
-      -- belong. Written as a function's first instruction, it is what
-      -- gives a function scratch space of its own -- private per
-      -- activation, so unlike a `.data` cell it survives recursion.
+    | -- | @locals.reserve \<n\>@ -- claim @n@ more locals, zeroed, at the
+      -- indices directly after the ones the frame already has. Belongs at a
+      -- function's entry, before anything is pushed and outside any loop --
+      -- see the \"Locals\" section for what happens otherwise. @n@ is one
+      -- byte, so @0@-@255@, and reserving past the operand stack's wall is
+      -- an @operand stack overflow@. @return@ reclaims them along with the
+      -- parameters.
+      --
+      -- > sp <- sp - n*4; mem[sp .. sp + n*4 - 4] <- 0; localCount <- localCount + n
       LocalsReserve Int
-    | -- | Pop the call target -- an ordinary value, so a known target and
-      -- one computed at run time are the same instruction -- with
-      -- @paramCount@ values already pushed below it (they become the
-      -- callee's locals) and @resultCount@ expected back. Neither count
-      -- is checked against the callee.
+    | -- | @call \<paramCount\>, \<resultCount\>@ -- pop a target address, an
+      -- ordinary value, so a known target and one computed at run time are
+      -- the same instruction. The @paramCount@ values pushed just before it
+      -- become the callee's locals; @resultCount@ values are expected back.
+      -- Neither count is checked against the callee. See the \"Functions\"
+      -- section.
       Call Int Int
-    | -- | Return from the nearest enclosing 'Call', forwarding its
-      -- declared results and closing any scope left open along the way.
-      -- See 'closeScope'.
+    | -- | @return@ -- return from the nearest enclosing call, closing any
+      -- @block@ or @loop@ still open along the way and forwarding the
+      -- declared results to the caller.
       Return
-    | -- | Pop an address and make it the root both stacks grow from:
-      -- operands descend below it, control records ascend above it. This
-      -- is how a program trades operand space against scope and call
+    | -- | @sp.init@ -- pop an address and make it the root both stacks grow
+      -- from: operands descend below it, control records ascend above it.
+      -- This is how a program trades operand space against scope and call
       -- depth; 'stackRoot' is the default split. Only meaningful before
       -- anything has been pushed, and nothing checks the address leaves
       -- either stack enough room.
+      --
+      -- > addr <- pop; sp <- addr; ctrlSp <- addr; frameBase <- addr - 4
       SpInit
-    | Halt
+    | -- | @halt@ -- stop execution.
+      Halt
     deriving (Eq, Functor, Show)
 
 instance CommentStart (Wasm32Isa w l) where
@@ -168,7 +317,7 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
                     , memOp "i32.store8" I32Store8
                     , memOp "i32.store" I32Store
                     , -- The four scope instructions take no operand in
-                      -- source: their target is their own matching `end`,
+                      -- source: their target is their own matching @end@,
                       -- which 'resolveStructure' fills in at translate
                       -- time. 'unresolvedTarget' marks the placeholder.
                       cmd0 "if" (If unresolvedTarget)
@@ -212,8 +361,8 @@ memOp mnemonic constructor =
     string mnemonic >> (constructor <$> (try (hspace1 >> intLit) <|> pure 0))
 
 -- | An integer immediate -- a branch depth, a local index, one of
--- `call`'s counts, a load\/store offset -- in decimal or @0x@ hex.
--- Fails as a parser rather than handing an empty string to 'read':
+-- @call@'s counts, a load\/store offset -- in decimal or @0x@ hex.
+-- Fails as a parser rather than handing an empty string to @read@:
 -- 'num' is built from 'many', so it matches nothing happily, and an
 -- optional immediate (see 'memOp') needs to find that out by
 -- backtracking.
@@ -222,7 +371,7 @@ intLit = do
     digits <- try hexNum <|> num
     maybe (fail $ "expected an integer literal, got " <> show digits) return (readMaybe digits)
 
--- | Separates `call`'s two operands (paramCount, resultCount).
+-- | Separates @call@'s two operands (paramCount, resultCount).
 comma :: Parser ()
 comma = hspace >> void (char ',') >> hspace
 
@@ -235,10 +384,10 @@ instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
     -- the one line that does anything.
     derefMnemonic f _offset = fmap (deref' f)
 
--- | Match every `block`\/`loop`\/`if`\/`else` with its own `end` and
+-- | Match every @block@\/@loop@\/@if@\/@else@ with its own @end@ and
 -- write the byte distance between them into the instruction, once, at
 -- translate time -- so the interpreter only ever adds it to @pc@, and an
--- unbalanced `end` is a translation error rather than something found
+-- unbalanced @end@ is a translation error rather than something found
 -- when a run-time forward scan falls off the end of memory.
 resolveScopeTargets :: forall w. (IsWord w) => [(w, Wasm32Isa w w)] -> Either Text [Wasm32Isa w w]
 resolveScopeTargets marked = do
@@ -247,7 +396,7 @@ resolveScopeTargets marked = do
     mapM_ checkScopeTarget resolved
     return (map snd resolved)
 
--- | Walk the stream pairing each scope instruction with its own `end`,
+-- | Walk the stream pairing each scope instruction with its own @end@,
 -- and write the byte distance between them into it. Unbalanced nesting
 -- is a 'Left' naming the offending address.
 matchScopes :: forall w. (IsWord w) => [(w, Wasm32Isa w w)] -> Either Text [(w, Wasm32Isa w w)]
@@ -257,11 +406,11 @@ matchScopes marked = do
         resolve i (addr, instruction) = (addr, maybe instruction (retarget instruction) (patched !? i))
     return (zipWith resolve [0 ..] marked)
     where
-        -- \| One entry per scope still waiting for its `end`: the index of
+        -- \| One entry per scope still waiting for its @end@: the index of
         -- the instruction to patch, its own address, and whether that
-        -- instruction wants the `end`'s own address ('AtEnd', for
-        -- `block`\/`loop`, which store it as @csEnd@) or the address just
-        -- past it ('PastEnd', for the `if`\/`else` that skip over it).
+        -- instruction wants the @end@'s own address ('AtEnd', for
+        -- @block@\/@loop@, which store it as @csEnd@) or the address just
+        -- past it ('PastEnd', for the @if@\/@else@ that skip over it).
         go open [] = case open of
             [] -> Right []
             (_, addr, _) : _ -> Left $ "block/loop/if at " <> hexAddr 2 addr <> " has no matching end"
@@ -270,9 +419,9 @@ matchScopes marked = do
             Loop{} -> go ((i, fromEnum addr, AtEnd) : open) rest
             If{} -> go ((i, fromEnum addr, PastEnd) : open) rest
             Else{} -> case open of
-                -- The `if` resumes at the first instruction of this
-                -- `else`'s body; this `else` takes the `if`'s place in the
-                -- open list, to be closed by the same `end`.
+                -- The @if@ resumes at the first instruction of this
+                -- @else@'s body; this @else@ takes the @if@'s place in the
+                -- open list, to be closed by the same @end@.
                 (j, ifAddr, PastEnd) : outer ->
                     ((j, fromEnum addr + byteSize instruction - ifAddr) :)
                         <$> go ((i, fromEnum addr, PastEnd) : outer) rest
@@ -346,7 +495,7 @@ fieldFits addr what width value
                 <> " bits"
 
 -- | Which address a scope instruction wants out of its own matching
--- `end` -- see 'resolveScopeTargets'.
+-- @end@ -- see 'resolveScopeTargets'.
 data ScopeTargetKind = AtEnd | PastEnd
 
 instance ByteSize (Wasm32Isa w l) where
@@ -366,7 +515,7 @@ instance ByteSize (Wasm32Isa w l) where
     byteSize I32Load8S{} = memOpBytes
     byteSize I32Store8{} = memOpBytes
     -- One opcode byte plus a 'wideImmediateBitWidth'-wide forward distance,
-    -- the same shape as `call`'s two trailing counts.
+    -- the same shape as @call@'s two trailing counts.
     byteSize If{} = scopeInstructionBytes
     byteSize Else{} = scopeInstructionBytes
     byteSize Loop{} = scopeInstructionBytes
@@ -379,22 +528,22 @@ memOpBytes = 1 + immediateBytes
 immediateBytes = immediateBitWidth `div` 8
 wideImmediateBytes = wideImmediateBitWidth `div` 8
 
--- | A scope instruction's forward distance to its own matching `end`.
+-- | A scope instruction's forward distance to its own matching @end@.
 -- Two bytes, so any body that fits in the largest configurable memory
 -- can be jumped over.
 wideImmediateBitWidth :: Int
 wideImmediateBitWidth = 16
 
 -- | Every one-byte instruction immediate: a branch depth, a local index,
--- one of `call`'s counts, a load\/store offset. A 'CallScope' stores the
+-- one of @call@'s counts, a load\/store offset. A 'CallScope' stores the
 -- counts at this same width, so what the source can say and what a call
 -- record can hold agree. A 0-255 offset covers a struct field or a small
--- array index; further is still reachable with `i32.add`.
+-- array index; further is still reachable with @i32.add@.
 immediateBitWidth :: Int
 immediateBitWidth = 8
 
 -- | What the parser puts in a scope instruction's target slot before
--- 'resolveStructure' matches it with its own `end`. Out of range on
+-- 'resolveStructure' matches it with its own @end@. Out of range on
 -- purpose, so an unresolved target can't pass for a real distance.
 unresolvedTarget :: Int
 unresolvedTarget = -1
@@ -406,21 +555,21 @@ data Wasm32St w = Wasm32St
     , ctrlBase :: Int
     -- ^ The root both stacks grow from: the operand stack descends from
     -- it, the control stack ascends from it. Set by 'initState' and
-    -- relocated by `sp.init` (see 'stackRoot').
+    -- relocated by @sp.init@ (see 'stackRoot').
     , ctrlSp :: Int
     -- ^ The control stack's frontier: one past the innermost live
-    -- control record, ascending from 'ctrlBase' the way 'sp' descends
+    -- control record, ascending from 'ctrlBase' the way @sp@ descends
     -- from the top of memory. Every record is the same width and they
     -- close in strict LIFO order, so this one pointer locates all of
     -- them ('scopeAddrs') and closing one is a bump-pointer retreat.
     , frameBase :: Int
     -- ^ Base address of the *active* function's locals (param 0's
     -- address): carved out of the caller's already-pushed arguments by
-    -- `call`, saved in the callee's 'CallScope', restored by `return`.
+    -- @call@, saved in the callee's 'CallScope', restored by @return@.
     , localCount :: Int
-    -- ^ How many words at 'frameBase' are locals rather than operand
+    -- ^ How many words at @frameBase@ are locals rather than operand
     -- stack -- the active function's own paramCount, saved and restored
-    -- alongside 'frameBase' so the report views know where this frame's
+    -- alongside @frameBase@ so the report views know where this frame's
     -- stack really starts.
     , memAccessCount :: Int
     -- ^ How many memory accesses the *last executed* instruction made,
@@ -462,13 +611,13 @@ memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
 -- Neither can reach the other, and each has one fixed wall of its own.
 --
 -- Three quarters rather than half because a program pushes far more
--- operands than it opens scopes -- a `block` or a call is eight bytes,
+-- operands than it opens scopes -- a @block@ or a call is eight bytes,
 -- and the deepest nesting in the examples is four. A program wanting
--- the other balance moves the root with `sp.init`.
+-- the other balance moves the root with @sp.init@.
 --
 -- A push decrements before writing, so the root itself is never written
--- to, and @_start@'s 'frameBase' sits one word below it -- the relation
--- `call` sets up for a frame with no parameters (see 'localAddr').
+-- to, and @_start@'s @frameBase@ sits one word below it -- the relation
+-- @call@ sets up for a frame with no parameters (see 'localAddr').
 stackRoot :: IoMem (Wasm32Isa w w) w -> Int
 stackRoot mem@IoMem{mIoCells = Mem{memorySize}} =
     let base = memTop mem in base + 3 * (memorySize - base) `div` 4
@@ -561,7 +710,7 @@ checkControlRoom newCtrlSp act = do
                     <> " would reach past the end of memory at "
                     <> hexAddr 2 wall
 
--- | The operand stack grows downward, and `sp` names the top word
+-- | The operand stack grows downward, and @sp@ names the top word
 -- rather than the next free slot -- so a push decrements, then writes.
 pushValue :: forall w. (IsWord w) => w -> State (Wasm32St w) ()
 pushValue value = do
@@ -581,7 +730,7 @@ popValue = do
     modify $ \st -> st{sp = sp + byteSizeT @w}
     return value
 
--- | Address of local @i@: a fixed offset from 'frameBase', unaffected by
+-- | Address of local @i@: a fixed offset from @frameBase@, unaffected by
 -- either stack pointer -- which is the point, since a value merely
 -- sitting on a stack isn't. Locals count *down*, so param 0 sits
 -- highest: the order the caller pushed them in.
@@ -601,7 +750,7 @@ scopeAddrs Wasm32St{ctrlSp, ctrlBase} =
         stride = scopeRecordBytes @w
 
 -- | Address of the innermost open record, or 'nullAddr' when nothing is
--- open -- derived from 'ctrlSp' rather than tracked alongside it.
+-- open -- derived from @ctrlSp@ rather than tracked alongside it.
 ctrlTopOf :: forall w. (IsWord w) => Wasm32St w -> Int
 ctrlTopOf = fromMaybe nullAddr . listToMaybe . scopeAddrs @w
 
@@ -634,7 +783,7 @@ readTopScope :: forall w. (IsWord w) => State (Wasm32St w) (Either Text (Maybe (
 readTopScope = fmap listToMaybe <$> readScope 1
 
 -- | Push a scope at the current frontier and advance it. Never touches
--- 'sp' -- the two stacks grow apart from 'ctrlBase'.
+-- @sp@ -- the two stacks grow apart from 'ctrlBase'.
 pushScope :: forall w. (IsWord w) => Scope -> State (Wasm32St w) ()
 pushScope scope = do
     Wasm32St{ctrlSp} <- get
@@ -653,10 +802,10 @@ popScope = modify $ \st -> st{ctrlSp = ctrlSp st - scopeRecordBytes @w}
 
 -- | Find the control record @depth@ levels out from the innermost open
 -- one (0 = innermost). Errors at a 'CallScope' rather than reaching
--- through it: a `br` is scoped to its own function's nesting, and
--- leaving a function is `return`'s job. The two failures get different
+-- through it: a @br@ is scoped to its own function's nesting, and
+-- leaving a function is @return@'s job. The two failures get different
 -- messages -- a reader told only "out of range" tries a different depth
--- when the fix is a `return`.
+-- when the fix is a @return@.
 findBranchTarget :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text Int)
 findBranchTarget depth = do
     records <- readScope (depth + 1)
@@ -672,9 +821,9 @@ isCallScope :: Scope -> Bool
 isCallScope CallScope{} = True
 isCallScope _ = False
 
--- | Find the nearest enclosing 'CallScope' -- what `return` closes.
--- Unlike 'findBranchTarget', this reaches *through* any `block`\/`loop`
--- in the way: a `return` inside a loop must still close it.
+-- | Find the nearest enclosing 'CallScope' -- what @return@ closes.
+-- Unlike 'findBranchTarget', this reaches *through* any @block@\/@loop@
+-- in the way: a @return@ inside a loop must still close it.
 findCall :: forall w. (IsWord w) => State (Wasm32St w) (Either Text Int)
 findCall = do
     st <- get
@@ -689,8 +838,8 @@ findCall = do
 
 -- | Close the innermost open record (always a LIFO pop). If @keepOpen@
 -- (a taken branch back into a loop), just jump to its start. A
--- 'CallScope' is never @keepOpen@; everything else retreats 'ctrlSp'
--- past it and jumps past its `end`.
+-- 'CallScope' is never @keepOpen@; everything else retreats @ctrlSp@
+-- past it and jumps past its @end@.
 closeScope :: forall w. (IsWord w) => Bool -> State (Wasm32St w) ()
 closeScope keepOpen =
     readTopScope >>= \case
@@ -724,8 +873,8 @@ unwindTo r keepOpen = do
             closeScope False
             unwindTo r keepOpen
 
--- | Branch to the `block`\/`loop` @depth@ levels out (0 = innermost): a
--- `loop` stays open (continue), a `block` closes along with everything
+-- | Branch to the @block@\/@loop@ @depth@ levels out (0 = innermost): a
+-- @loop@ stays open (continue), a @block@ closes along with everything
 -- nested inside it (break). 'findBranchTarget' already guarantees the
 -- target is never a 'CallScope'.
 branchTo :: forall w. (IsWord w) => Int -> State (Wasm32St w) ()
@@ -858,10 +1007,10 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     else skipForward skip
             Else skip -> skipForward skip
             End -> do
-                -- A plain `end` closes a `block`\/`loop` only when it is
-                -- that scope's own matching `end`; an `if`'s `end` finds
-                -- some enclosing scope on top instead, whose own `end`
-                -- is elsewhere. It never closes a call -- `return` does.
+                -- A plain @end@ closes a @block@\/@loop@ only when it is
+                -- that scope's own matching @end@; an @if@'s @end@ finds
+                -- some enclosing scope on top instead, whose own @end@
+                -- is elsewhere. It never closes a call -- @return@ does.
                 top <- readTopScope
                 case top of
                     Left err -> raiseInternalError err
@@ -941,7 +1090,7 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     Right r -> unwindTo r False
             SpInit -> do
                 addr <- fromEnum <$> popValue
-                -- 'frameBase' keeps the same relation to `sp` that
+                -- @frameBase@ keeps the same relation to @sp@ that
                 -- 'initState' sets up: one word below, where the first
                 -- push lands (see 'localAddr').
                 modify $ \st ->
@@ -1017,3 +1166,297 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 y <- fromSign <$> popValue
                 x <- fromSign <$> popValue
                 pushValue $ if x `op` y then 1 else 0
+
+-- $instructionIndex
+--
+-- Each constructor below documents one instruction: its assembly syntax,
+-- what it does, and its effect written as pseudo-operations on the operand
+-- stack. Every comparison pushes @1@ for true and @0@ for false.
+--
+-- For a two-operand instruction the /second/ operand pushed ends up on top
+-- and is popped first, so @i32.const 10@, @i32.const 3@, @i32.sub@ computes
+-- @10 - 3 = 7@. That holds for every non-commutative instruction:
+-- subtraction, division, remainder, shifts, and all comparisons read their
+-- operands as (first-pushed, second-pushed).
+--
+-- There is no dedicated zero test and no inequality test. @i32.const 0@,
+-- @i32.eq@ serves as both: against a value it asks \"is this zero\", and
+-- against a comparison's own @0@\/@1@ result it negates it. That is how the
+-- comparisons this ISA does not have are written --
+--
+-- > i32.gt_s                  ; a <= b  ==  not (a > b)
+-- > i32.const 0
+-- > i32.eq
+--
+-- and the same idiom turns @br_if@, which branches on non-zero, into a
+-- branch-if-zero.
+
+-- $programStructure
+--
+-- A program uses the normal @.data@ and @.text@ sections, and execution
+-- starts at the @_start@ label. A function is nothing more than an ordinary
+-- label followed by instructions: no directive declares one, no header
+-- instruction sits at its entry and no footer at its exit. A function ends
+-- wherever its last @return@ -- or its last instruction, falling through --
+-- happens to be.
+--
+-- > .text
+-- >
+-- > _start:
+-- >     i32.const 5
+-- >     i32.const factorial
+-- >     call 1, 1
+-- >     halt
+-- >
+-- > factorial:
+-- >     local.get 0
+-- >     i32.const 1
+-- >     i32.le_s
+-- >     if
+-- >         i32.const 1
+-- >         return
+-- >     end
+-- >     local.get 0
+-- >     local.get 0
+-- >     i32.const 1
+-- >     i32.sub
+-- >     i32.const factorial
+-- >     call 1, 1
+-- >     i32.mul
+-- >     return
+
+-- $stacks
+--
+-- Memory is split in half: the lower half holds code and @.data@, the upper
+-- half is where the two stacks live. Both grow from a single __root__, in
+-- opposite directions.
+--
+-- > 0                     memTop                  root            memorySize
+-- > |-- .text, .data ------ | -------------------- R ----------------- |
+-- >                         |    <- operand stack  |  control stack -> |
+-- >                         ^ wall          sp <-- R --> ctrlSp        ^ wall
+--
+-- [operand stack]: Holds a function's locals and its values. It descends
+-- from the root, the classic hardware convention: @sp@ is the address of
+-- the most recently pushed word, decremented /before/ a push writes and
+-- incremented /after/ a pop reads. Its wall is 'memTop'.
+--
+-- [control stack]: Holds one fixed-size record per open @block@, @loop@ or
+-- call -- see "Wrench.Isa.Wasm32.ControlRecord". It ascends from the root.
+-- @ctrlSp@ is its frontier, one past the innermost live record. Its wall is
+-- the end of memory.
+--
+-- Because they grow /apart/, neither can ever reach the other: an
+-- arithmetic instruction cannot pop into a live control record, and pushing
+-- a scope cannot scribble over a local. What each /can/ reach is its own
+-- wall, and the machine checks every push against it:
+--
+-- > operand stack overflow: push to 0xfc would reach below the stack region at 0x100
+-- > control stack overflow: scope record ending at 0x208 would reach past the end of memory at 0x200
+--
+-- Two messages rather than one, because the fixes differ: too much on the
+-- operand stack, or too deep a nesting of scopes and calls. This is the one
+-- place the ISA stops a malformed program instead of letting it corrupt
+-- itself.
+--
+-- The root defaults to three quarters of the way up the stack region (see
+-- 'stackRoot'), since a program pushes far more operands than it opens
+-- scopes and a record is eight bytes. 'SpInit' moves it, which is how a
+-- program that needs the other balance asks for it: a deeply recursive
+-- function wants the root low, a value-heavy loop wants it high. Nothing
+-- checks that the split leaves either stack enough room.
+--
+-- Code and @.data@ spilling past 'memTop' is /not/ checked either, so a
+-- program whose code and data exceed half the configured memory will have
+-- the operand stack descend into its own globals.
+--
+-- @if@ is the exception among scopes: it pushes nothing. Nothing branches
+-- out of a taken branch early, so there is nothing to remember.
+
+-- $locals
+--
+-- A function's locals start with its parameters. They occupy a contiguous
+-- run of words from @frameBase@, one per index, addressed directly as
+-- @frameBase - index * 4@ -- the operand stack descends, so local @0@, the
+-- first argument pushed, ends up at the /highest/ address and each later
+-- one lower. Whatever values the caller pushed just before @call@ are, from
+-- the callee's perspective, its locals @0@ through @paramCount - 1@.
+-- @frameBase@ is not fixed: it moves to wherever the current function's
+-- locals start, and is saved and restored across calls.
+--
+-- 'LocalsReserve' claims @n@ more, zeroed, at the indices directly after
+-- the parameters. Since the operand stack descends, the words just below
+-- the current locals are exactly where the next ones belong, so this is a
+-- stack-pointer decrement and nothing more -- @call@ never needed to know
+-- how wide a callee's frame is, and @return@ already discards everything
+-- below @frameBase@ in one step.
+--
+-- > fact:
+-- >     locals.reserve 1       ; local 1: scratch, this activation only
+-- >     local.get 0
+-- >     local.set 1
+--
+-- The point is that a reserved local is private to the activation. A
+-- recursive function that keeps scratch in a @.data@ cell has one cell
+-- shared by every level, so the nested call overwrites what the caller was
+-- holding -- and the result is silently wrong, not a trap. @_start@ can
+-- reserve locals too, which matters because @_start@ is never called and so
+-- has no parameters at all.
+--
+-- Being a stack-pointer decrement and nothing more, @locals.reserve@ is not
+-- checked against the two ways to misuse it, and both fail silently:
+--
+-- * __Reserving after pushing operands__ claims the words /below/ them, so
+--   values already on the stack get renumbered as locals. @i32.const 42@,
+--   @locals.reserve 1@, @local.get 0@ pushes @42@ -- the constant became
+--   local @0@, and the zeroed word it reserved became an operand. Reserve
+--   before pushing anything.
+-- * __Reserving inside a loop body__ reserves again on every iteration, so
+--   the frame grows until the operand stack hits its wall. Reserve once, at
+--   the function's entry.
+--
+-- A local index is one byte, and nothing checks it against the active
+-- function's actual local count: @local.get 7@ in a one-parameter function
+-- that reserved nothing reads whatever word happens to sit there.
+
+-- $operands
+--
+-- Every arithmetic, comparison and memory instruction reads its operands
+-- from the top of the operand stack and pushes its result back; see the
+-- instruction index above for the operand order that implies.
+--
+-- 'Dup' duplicates whatever is on top and 'Drop' discards it, neither
+-- needing a local. A value pushed before a @block@ or @loop@ is opened
+-- stays reachable inside it, because scope records are on their own stack
+-- and so nothing gets in the way of reaching down the operand stack. A
+-- counter can live on the operand stack across loop iterations the same way
+-- it can live in a local or a @.data@ cell.
+--
+-- Nothing checks for operand-stack /underflow/. Popping more than the
+-- active frame pushed reads into its locals, and past those into the
+-- caller's frame -- whatever is physically there.
+
+-- $controlFlow
+--
+-- @block@, @loop@ and @if@ each open a scope; @end@ closes the innermost
+-- one still open. All three are written bare in source: the assembler finds
+-- each one's matching @end@ and writes the byte distance into the
+-- instruction (see 'resolveScopeTargets'), so nothing is scanned for at run
+-- time and an unbalanced @block@, @else@ or @end@ is a translation error
+-- rather than something discovered mid-execution.
+--
+-- 'Br' and 'BrIf' name a scope not by label but by /depth/: how many
+-- enclosing scopes out to reach, counting the innermost currently-open one
+-- as @0@. An @if@ does not count as a level -- only @block@ and @loop@ do.
+--
+-- > block                  ; depth 1 from inside the loop below
+-- >     loop                ; depth 0 from inside its own body
+-- >         local.get 0
+-- >         i32.const 0
+-- >         i32.eq
+-- >         br_if 1          ; exit the block: "break"
+-- >         local.get 0
+-- >         i32.const 1
+-- >         i32.sub
+-- >         local.set 0
+-- >         br 0             ; jump back to the loop's own start: "continue"
+-- >     end
+-- > end
+--
+-- Reaching a @loop@ by depth jumps back to just after the @loop@
+-- instruction and leaves the scope open -- this is how a loop continues.
+-- Reaching a @block@ jumps forward to just after its matching @end@ and
+-- closes it, along with every scope nested between the branch and it --
+-- this is how a program breaks out of one or more levels at once.
+--
+-- A branch to depth @n@ steps out @n@ records, closes every record strictly
+-- between the branch and the target whatever its kind, and finally either
+-- re-enters the target (a loop) or closes it too (a block). Closing a
+-- record is nothing but retreating @ctrlSp@; the operand stack is
+-- untouched, so anything a scope's body pushed and never popped survives
+-- the scope closing.
+--
+-- A branch's depth can never reach across a function call boundary:
+-- stepping outward stops with an error the moment it would pass through a
+-- call's own record. A structured branch is scoped to the function it
+-- appears in; leaving a function is @return@'s job, not a branch's, and the
+-- diagnostic says so.
+
+-- $functions
+--
+-- @i32.const some_function@ produces a function's address exactly the way
+-- it produces any other label's address -- a function is just data once you
+-- have its address. 'Call' always pops its target off the top of the stack;
+-- there is no separate instruction for a statically-known target. A call
+-- whose target is known when the program is written is simply @i32.const
+-- target@ immediately before the @call@, and because the target is /just/ a
+-- value a program can equally compute it -- read it out of a local that was
+-- set to a function's address earlier -- and call through that instead.
+-- Both are the same instruction; only where the value came from differs.
+--
+-- @call@ takes two more operands written directly after it: how many values
+-- pushed just before the target are this call's arguments, and how many
+-- values the call is expected to leave behind. Neither is looked up
+-- anywhere, and nothing checks that a callee's actual behaviour matches what
+-- a particular call site declared. Getting it wrong is not caught; it
+-- corrupts the stack silently, the same way any other malformed program
+-- does.
+--
+-- At the moment @call@ executes, the values pushed immediately before the
+-- popped target -- as many as its declared argument count -- become the
+-- callee's locals @0@ downward, without being copied anywhere: @call@
+-- records where they already are as the new @frameBase@ and jumps to the
+-- target. A record describing the call goes on the control stack.
+--
+-- 'Return' finds the nearest enclosing call, closing any @block@ or @loop@
+-- still open along the way, pops exactly as many values as that call
+-- declared it would return, discards the callee's entire frame -- its
+-- locals and its own record -- in one step, and pushes the results back for
+-- the caller at exactly the depth they would be at had the call consumed
+-- its arguments and produced its results in place. Falling off the end of a
+-- function's instructions without an explicit @return@ is only correct if
+-- nothing is left open.
+
+-- $differences
+--
+-- This ISA borrows WebAssembly's shape, not its semantics, and the gaps are
+-- deliberate. The ones worth knowing:
+--
+-- * __Blocks have no result arity.__ Real WebAssembly gives every
+--   @block@\/@loop@\/@if@ a block type, and a branch carries exactly that
+--   many values out, dropping the rest. Here a scope has no type at all:
+--   whatever the body pushed and did not pop simply stays on the operand
+--   stack. That makes a branch cheap and the model smaller, but a branch
+--   out of a half-finished computation leaves its partial results behind.
+-- * __@if@ is not a branch target.__ In real WebAssembly an @if@ is a label
+--   like any other block, so @br 0@ inside one exits the @if@. Here only
+--   @block@ and @loop@ count toward a depth.
+-- * __A call's arity lives at the call site.__ Real WebAssembly takes both
+--   counts from the callee's declared type and validates every call against
+--   it. Here the caller writes both numbers itself and nothing checks them.
+-- * __Locals are reserved by an instruction, not declared in a header.__
+--   Real WebAssembly encodes a function's extra locals in a declaration
+--   vector ahead of its body. Here 'LocalsReserve' does the same job at run
+--   time, as the function's first instruction -- same zeroing, same
+--   per-activation privacy, but nothing validates that a function reserves
+--   before it indexes.
+-- * __The target of a call is an address, not an index.__ Real WebAssembly
+--   has @call@ by function index and @call_indirect@ through a table. Here a
+--   function address is an ordinary value, so one instruction covers both.
+-- * __A lot is simply absent, on purpose.__ There is no
+--   @i32.clz@\/@i32.ctz@\/@i32.popcnt@, no @i32.rotl@\/@i32.rotr@, no
+--   @i32.div_u@\/@i32.rem_u@, no 16-bit loads or stores, no @br_table@, no
+--   @nop@, and neither @i32.eqz@ nor @i32.ne@. The bit-counting and rotate
+--   instructions are left out precisely /because/ counting leading zeros,
+--   counting set bits, computing parity and rotating a word are exercises
+--   in this course -- an instruction that is the whole answer to an
+--   assignment teaches nothing. The rest are out because no other ISA here
+--   has them: a capability absent from risc-iv and m68k is one the course
+--   has already decided its students don't need. Rotates are @i32.shl@,
+--   @i32.shr_u@ and @i32.or@; a switch is a chain of @i32.eq@ and @br_if@;
+--   a halfword is two byte accesses.
+-- * __Operand order and arithmetic follow the spec.__ Where this ISA does
+--   implement something WebAssembly has, it matches: @i32.store@ takes its
+--   value above its address, shift amounts mask to 5 bits, @i32.div_s@
+--   truncates toward zero and traps on @INT_MIN \/ -1@, and @i32.rem_s@
+--   traps only on a zero divisor.
