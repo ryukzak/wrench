@@ -24,6 +24,7 @@ import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
 import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.VliwIv (VliwIvSt)
+import Wrench.Isa.Wasm32 (Wasm32St)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -57,13 +58,19 @@ instance Default Options where
             , stats = False
             , verbose = False
             , maxInstructionLimit = 8000000
-            , maxMemoryLimit = 8192
+            , -- 64 KiB, the most an address can name in the one place a
+              -- wrench ISA pins its address width down: a wasm32 control
+              -- record gives every address field 22 bits, and `memory_size`
+              -- has to stay well inside that. Raising it costs nothing on
+              -- its own -- a run allocates `memory_size`, not this -- but it
+              -- is the ceiling `wrench-serv` accepts from a submission.
+              maxMemoryLimit = 0xFFFF
             , maxStateLogLimit = 10000
             , dumpAddrFormat = Hex
             , dumpSize = SizeShown
             }
 
-data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k
+data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k | Wasm32
     deriving (Show)
 
 instance Read Isa where
@@ -73,6 +80,7 @@ instance Read Isa where
     readsPrec _ "f32a" = [(F32a, "")]
     readsPrec _ "acc32" = [(Acc32, "")]
     readsPrec _ "m68k" = [(M68k, "")]
+    readsPrec _ "wasm32" = [(Wasm32, "")]
     readsPrec _ _ = []
 
 data AddrFormat = Hex | Dec
@@ -130,6 +138,7 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
         Just F32a -> wrenchIO @(F32aSt Int32) opts conf src
         Just Acc32 -> wrenchIO @(Acc32St Int32) opts conf src
         Just M68k -> wrenchIO @(M68kSt Int32) opts conf src
+        Just Wasm32 -> wrenchIO @(Wasm32St Int32) opts conf src
         Nothing -> error $ "unknown isa:" <> toText isa
 
 wrenchIO ::

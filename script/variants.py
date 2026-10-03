@@ -77,6 +77,7 @@ Additional requirements for all variants:
     - `F32a`: use procedures.
     - `RISC-IV`: use nested procedures and stack. Where applicable -- recursive solutions are recommended.
     - `M68k`: use different instruction modes and addressing modes. Use nested procedures and stack.
+    - `Wasm32`: use functions, locals, and structured control flow (`block`, `loop`, `if`, `br`, `br_if`).
 1. When using procedures, develop a label naming convention that helps visualize code structure.
 
 Also we have the following helper functions not from builtins:
@@ -196,16 +197,34 @@ def inf_shuffle(xs: list[str]) -> Iterator[str]:
         yield from buf
 
 
+def inf_shuffle_distinct_pairs(xs: list[str]) -> Iterator[tuple[str, str]]:
+    """Endless stream of `(a, b)` drawn from one pool, with `a != b`.
+
+    M68k and Wasm32 both get a Complex Task, and a variant that handed
+    the same one to both would be asking for one task, not two. Taking
+    two from a single `inf_shuffle` keeps that stream's coverage -- every
+    task comes up once per pass over the pool -- and only has to skip a
+    repeat where one pass's last element meets the next pass's first.
+    """
+    stream = inf_shuffle(xs)
+    while True:
+        a = next(stream)
+        b = next(stream)
+        while b == a:
+            b = next(stream)
+        yield a, b
+
+
 def gen_variants(
     cases: dict[str, TestCase],
-) -> Iterator[tuple[str, str, str, str, str, str]]:
+) -> Iterator[tuple[str, str, str, str, str, str, str]]:
     categories = get_categories(cases)
-    yield "acc32", "f32a", "risc-iv", "m68k", "vliw", "scheme"
-    for string, bit, math, complex, vliw, schema in zip(
+    yield "acc32", "f32a", "risc-iv", "m68k", "wasm32", "vliw", "scheme"
+    for string, bit, math, (complex_m68k, complex_wasm32), vliw, schema in zip(
         inf_shuffle(categories["String Manipulation"]),
         inf_shuffle(categories["Bitwise Operations"]),
         inf_shuffle(categories["Mathematics"]),
-        inf_shuffle(categories["Complex Tasks"]),
+        inf_shuffle_distinct_pairs(categories["Complex Tasks"]),
         inf_shuffle(categories["VLIW"]),
         inf_shuffle(
             [
@@ -236,7 +255,7 @@ def gen_variants(
     ):
         basic = [string, bit, math]
         random.shuffle(basic)
-        yield *basic, complex, vliw, schema
+        yield *basic, complex_m68k, complex_wasm32, vliw, schema
 
 
 def generate_variants(n: int, fn: str) -> None:

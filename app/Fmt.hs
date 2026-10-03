@@ -29,7 +29,7 @@ options =
         <*> strOption
             ( long "isa"
                 <> metavar "ISA"
-                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k)"
+                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k, wasm32)"
             )
         <*> switch
             ( long "inplace"
@@ -64,6 +64,7 @@ main = do
 
 data LineLayout
     = StandardLayout
+    | Wasm32Layout
     | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
@@ -118,6 +119,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
+            Just Wasm32 -> formatFile def{lineLayout = Wasm32Layout} content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -142,34 +144,56 @@ data Statement
     deriving (Show)
 
 formatFile :: FmtConfig -> Text -> Text
-formatFile fmt content =
-    let statements = formatLines fmt $ map (tokenize fmt) $ lines content
-     in unlines statements
+formatFile fmt content = unlines $ formatLines fmt $ lines content
 
-formatLines :: FmtConfig -> [[Text]] -> [Text]
-formatLines fmt tokenss =
-    let (source, comments) = unzip $ map (splitComment fmt) tokenss
+formatLines :: FmtConfig -> [Text] -> [Text]
+formatLines fmt rawLines =
+    let (source, comments) = unzip $ map (splitComment fmt . tokenize fmt) rawLines
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
             VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
-            StandardLayout -> StandardLayout
+            other -> other
         fmt' = fmt{lineLayout = lineLayout'}
-        source' = map (pprint fmt') statements
+        indents = lineIndents fmt' statements
+        source' = zipWith (\indent -> pprint fmt'{textCommandIndent = indent}) indents statements
         comments' =
-            zipWith
-                ( \s c ->
-                    if T.null c
-                        then c
-                        else case s of
-                            OutOfSection [] -> c
-                            DataLine [] -> T.replicate 4 " " <> c
-                            TextLine [] -> T.replicate 4 " " <> c
-                            _ -> c
-                )
-                statements
-                comments
+            [ alignComment statement raw indent comment
+            | ((statement, raw, indent), comment) <- zip (zip3 statements rawLines indents) comments
+            ]
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+lineIndents :: FmtConfig -> [Statement] -> [Int]
+lineIndents FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
+    where
+        go _ [] = []
+        go depth (statement : rest) =
+            let (lineDepth, nextDepth) = wasm32Depths depth statement
+             in textCommandIndent * (1 + lineDepth) : go nextDepth rest
+lineIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
+
+alignComment :: Statement -> Text -> Int -> Text -> Text
+alignComment statement raw indent comment
+    | T.null comment || not indented = comment
+    | otherwise = case statement of
+        DataLine [] -> aligned
+        TextLine [] -> aligned
+        _ -> comment
+    where
+        indented = raw /= T.stripStart raw
+        aligned = T.replicate indent " " <> comment
+
+-- | How deep to indent one wasm32 line, and how deep the line after it
+--   sits: @block@/@loop@/@if@ open a level, @end@ closes one, and @else@
+--   steps out for its own line while leaving the level open.
+wasm32Depths :: Int -> Statement -> (Int, Int)
+wasm32Depths depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
+    | token == "end" = (outer, outer)
+    | token == "else" = (outer, depth)
+    where
+        outer = max 0 (depth - 1)
+wasm32Depths depth _ = (depth, depth)
 
 calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
 calculateVliwSlotWidths configWidths statements =
@@ -248,8 +272,19 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                StandardLayout ->
-                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                -- Wasm32Layout lays a line out exactly like StandardLayout.
+                -- All it changes is how far the line is indented, and that
+                -- arrives as `textCommandIndent` from 'lineIndents'.
+                _ ->
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                -- `zipWith` stops at the shorter list, so
+                                -- without this the tokens past the last
+                                -- configured width were dropped from the
+                                -- output -- deleting source, which for a
+                                -- wasm32 line holding several instructions
+                                -- means deleting instructions.
+                                <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
@@ -290,4 +325,4 @@ tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwLayout = case lineLayout of
             VliwLayout _ -> True
-            StandardLayout -> False
+            _ -> False

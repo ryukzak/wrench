@@ -1,0 +1,10 @@
+name: "assert sum(1..20) == 210 after sp.init buys call depth"
+limit: 500
+memory_size: 0x400
+reports:
+  - name: Check result
+    slice: last
+    view: |
+      stack: {stack:dec}
+    assert: |
+      stack: 210
