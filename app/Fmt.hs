@@ -153,8 +153,7 @@ formatLines fmt rawLines =
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
             VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
-            Wasm32Layout -> Wasm32Layout
-            StandardLayout -> StandardLayout
+            other -> other
         fmt' = fmt{lineLayout = lineLayout'}
         indents = lineIndents fmt' statements
         source' = zipWith (\indent -> pprint fmt'{textCommandIndent = indent}) indents statements
@@ -184,6 +183,9 @@ alignComment statement raw indent comment
         indented = raw /= T.stripStart raw
         aligned = T.replicate indent " " <> comment
 
+-- | How deep to indent one wasm32 line, and how deep the line after it
+--   sits: @block@/@loop@/@if@ open a level, @end@ closes one, and @else@
+--   steps out for its own line while leaving the level open.
 wasm32Depths :: Int -> Statement -> (Int, Int)
 wasm32Depths depth (TextLine (token : _))
     | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
@@ -270,15 +272,18 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                Wasm32Layout ->
+                -- Wasm32Layout lays a line out exactly like StandardLayout.
+                -- All it changes is how far the line is indented, and that
+                -- arrives as `textCommandIndent` from 'lineIndents'.
+                _ ->
                     let cmdTokens =
                             zipWith width textCommandTokenWidths tokens
-                                <> drop (length textCommandTokenWidths) tokens
-                        cmd = width textCommandWidth $ unwords cmdTokens
-                     in T.replicate textCommandIndent " " <> cmd
-                StandardLayout ->
-                    let cmdTokens =
-                            zipWith width textCommandTokenWidths tokens
+                                -- `zipWith` stops at the shorter list, so
+                                -- without this the tokens past the last
+                                -- configured width were dropped from the
+                                -- output -- deleting source, which for a
+                                -- wasm32 line holding several instructions
+                                -- means deleting instructions.
                                 <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
@@ -320,5 +325,4 @@ tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwLayout = case lineLayout of
             VliwLayout _ -> True
-            Wasm32Layout -> False
-            StandardLayout -> False
+            _ -> False
