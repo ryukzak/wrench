@@ -11,7 +11,6 @@ import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Wrench.Isa.Wasm32
 import Wrench.Isa.Wasm32.ControlRecord (Scope (..), decodeScope, encodeScope)
-import Wrench.Machine.Memory (Mem (..))
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..), translate)
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
@@ -168,8 +167,40 @@ tests =
         , testCase "Pushing forever hits the operand stack's own wall" $ do
             -- The two stacks grow apart from the root, so an operand push
             -- can never reach a control record; what it can reach is the
-            -- bottom of the stack region.
-            assertTrap "operand stack overflow" ["block", "loop", "i32.const -1", "br 0", "end", "end"]
+            -- bottom of the stack region -- memTop, which is half of the
+            -- 1000 bytes these tests translate into.
+            assertTrap
+                "operand stack overflow: push to 0x1f3 would reach below the stack region at 0x1f4"
+                pushForever
+        , testCase "A port inside the stack region raises the operand floor above it" $ do
+            -- A port is ordinary memory to i32.store, so an operand stack
+            -- allowed to descend onto one would do I/O by pushing: this
+            -- used to walk straight through a port mapped at memTop and
+            -- emit a character instead of reporting the overflow. The wall
+            -- is now the port's own end, four bytes higher.
+            assertSourceTrapIo
+                (IntMap.singleton 0x1f4 ([], []))
+                "operand stack overflow: push to 0x1f7 would reach below the stack region at 0x1f8"
+                (toSource pushForever)
+            -- Only a port that actually intrudes moves the wall; one in
+            -- the code+data half, where every example puts them, does not.
+            assertSourceTrapIo
+                (IntMap.singleton 0x80 ([], []))
+                "operand stack overflow: push to 0x1f3 would reach below the stack region at 0x1f4"
+                (toSource pushForever)
+        , testCase "sp.init rejects a root outside the stack region" $ do
+            -- A root below the region would put the frame's locals in
+            -- .data, and one far below made `call` fail opaquely later,
+            -- when a negative csCallerFrameBase didn't fit its field.
+            assertTrap "sp.init: root 0x04 is outside the stack region" ["i32.const 4", "sp.init"]
+            assertTrap "sp.init: root 0x7d0 is outside the stack region" ["i32.const 2000", "sp.init"]
+        , testCase "sp.init resets the frame to having no locals" $ do
+            -- The root moves frameBase, so a local count left over from
+            -- before it pointed the views at words that were not locals.
+            locals <-
+                runSourceToView "locals:dec" $
+                    toSource ["locals.reserve 2", "i32.const 0x300", "sp.init"]
+            locals @?= ""
         , testCase "Unbounded recursion hits the control stack's own wall" $ do
             -- A different wall and a different message, because the fix
             -- is different: this one is too deep a nesting, not too much
@@ -342,10 +373,16 @@ runToStack :: [String] -> IO Text
 runToStack instrs = runSourceToStack $ toSource instrs
 
 runSourceToStack :: String -> IO Text
-runSourceToStack src =
+runSourceToStack = runSourceToView "stack:dec"
+
+-- | Run to completion and read back one report view, so a test asserts
+-- through the same view logic the CLI\/golden tests exercise rather than
+-- reaching into 'Wasm32St' fields the module does not export.
+runSourceToView :: Text -> String -> IO Text
+runSourceToView view src =
     case runSource src of
         Left err -> assertFailure (toString err) >> error "unreachable"
-        Right st -> return $ reprState HashMap.empty st "stack:dec"
+        Right st -> return $ reprState HashMap.empty st view
 
 -- | Assert the program halts cleanly (@expectSuccess@) or hits an
 -- internal error\/trap instead.
@@ -374,8 +411,11 @@ assertTrap :: Text -> [String] -> Assertion
 assertTrap expected = assertSourceTrap expected . toSource
 
 assertSourceTrap :: Text -> String -> Assertion
-assertSourceTrap expected src =
-    case runSource src of
+assertSourceTrap = assertSourceTrapIo mempty
+
+assertSourceTrapIo :: IntMap ([Int32], [Int32]) -> Text -> String -> Assertion
+assertSourceTrapIo streams expected src =
+    case runSourceIo streams src of
         Left err | expected `T.isInfixOf` err -> return ()
         Left err -> assertFailure $ "expected " <> show expected <> ", got: " <> toString err
         Right _ -> assertFailure $ "expected a trap matching " <> show expected
@@ -386,6 +426,11 @@ assertTranslationError expected instrs =
         Left err | expected `T.isInfixOf` err -> return ()
         Left err -> assertFailure $ "expected " <> show expected <> ", got: " <> toString err
         Right _ -> assertFailure $ "expected a translation error matching " <> show expected
+
+-- | A loop that pushes and never pops, for the tests about where the
+-- operand stack runs out of room.
+pushForever :: [String]
+pushForever = ["block", "loop", "i32.const -1", "br 0", "end", "end"]
 
 toSource :: [String] -> String
 toSource instrs = Prelude.unlines $ [".text", "_start:"] <> map ("    " <>) instrs <> ["    halt"]
@@ -406,10 +451,15 @@ withScratch instrs =
 -- distinguished from a clean halt via 'instructionFetch' the same way
 -- 'Machine.instructionStep''s own default implementation does.
 runSource :: String -> Either Text (Wasm32St Int32)
-runSource src = do
+runSource = runSourceIo mempty
+
+-- | 'runSource' with memory-mapped I\/O ports, for the tests that care
+-- where the ports sit relative to the stack region.
+runSourceIo :: IntMap ([Int32], [Int32]) -> String -> Either Text (Wasm32St Int32)
+runSourceIo streams src = do
     TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 1000 (repeat 0) "-" src
     pc <- maybeToRight "_start label should be defined." (HashMap.lookup "_start" labels)
-    let ioDump = mkIoMem mempty dump
+    let ioDump = mkIoMem streams dump
         st0 = initState (fromEnum pc) ioDump (repeat 0)
     runToHalt (2000 :: Int) st0
     where

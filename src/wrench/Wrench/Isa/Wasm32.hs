@@ -266,8 +266,14 @@ data Wasm32Isa w l
       -- from: operands descend below it, control records ascend above it.
       -- This is how a program trades operand space against scope and call
       -- depth; 'stackRoot' is the default split. Only meaningful before
-      -- anything has been pushed, and nothing checks the address leaves
-      -- either stack enough room.
+      -- anything has been pushed: it resets the frame to having no locals,
+      -- and abandons rather than unwinds any control record already open.
+      --
+      -- The address has to land in the stack region ('operandFloor' to the
+      -- end of memory) -- outside it there is no root to speak of, and a
+      -- root below the region would put a frame's locals in @.data@.
+      -- Within the region nothing checks the split leaves either stack
+      -- enough room; that is the trade the instruction exists to make.
       --
       -- > addr <- pop; sp <- addr; ctrlSp <- addr; frameBase <- addr - 4
       SpInit
@@ -599,11 +605,27 @@ instance (IsWord w) => InitState (Wasm32St w) where
             }
 
 -- | Where code+data end and the stacks' own region begins: the lower
--- half of memory holds code+data, the upper half the stacks. Also the
--- operand stack's floor -- pushing past it is a reported overflow,
--- though code+data spilling past it in the first place is not checked.
+-- half of memory holds code+data, the upper half the stacks. Code+data
+-- spilling past it is not checked.
 memTop :: IoMem (Wasm32Isa w w) w -> Int
 memTop IoMem{mIoCells = Mem{memorySize}} = memorySize `div` 2
+
+-- | The lowest address the operand stack may occupy: 'memTop', except
+-- that a memory-mapped I\/O port mapped at or above it pushes the floor
+-- up past the port.
+--
+-- A port is ordinary memory to every instruction, so without this a
+-- deep-enough operand stack writes /through/ a port: with
+-- @memory_size: 0x100@ the stack region starts at @0x80@, which is
+-- exactly where the examples map theirs, and the 24th push would emit a
+-- character instead of reporting an overflow. Every example that maps
+-- ports gives itself at least @0x200@, keeping them in the code+data
+-- half where they belong, so this only ever fires on a memory too small
+-- for the ports it asks for -- and then it fires as a stack overflow
+-- naming the port, instead of silently doing I\/O.
+operandFloor :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> Int
+operandFloor mem@IoMem{mIoKeys} =
+    foldr max (memTop mem) [port + byteSizeT @w | port <- mIoKeys, port >= memTop mem]
 
 -- | The root both stacks grow from, three quarters of the way up the
 -- stack's half of memory: the operand stack descends from it toward
@@ -684,10 +706,10 @@ setByte addr b = do
 -- different messages because the fixes differ: too much on the operand
 -- stack, or too deep a nesting of scopes and calls. A real machine
 -- draws these lines with a stack-limit register.
-checkOperandRoom :: Int -> State (Wasm32St w) () -> State (Wasm32St w) ()
+checkOperandRoom :: forall w. (IsWord w) => Int -> State (Wasm32St w) () -> State (Wasm32St w) ()
 checkOperandRoom newSp act = do
     Wasm32St{mem} <- get
-    let wall = memTop mem
+    let wall = operandFloor mem
     if newSp >= wall
         then act
         else
@@ -947,7 +969,7 @@ stackView st@Wasm32St{mem, pc, sp, ctrlSp, ctrlBase, frameBase, localCount} =
         , svLocalCount = localCount
         , svCtrlSp = ctrlSp
         , svCtrlBase = ctrlBase
-        , svDataTop = memTop mem
+        , svDataTop = operandFloor mem
         , svScopeAddrs = scopeAddrs st
         }
 
@@ -1090,16 +1112,35 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     Right r -> unwindTo r False
             SpInit -> do
                 addr <- fromEnum <$> popValue
-                -- @frameBase@ keeps the same relation to @sp@ that
-                -- 'initState' sets up: one word below, where the first
-                -- push lands (see 'localAddr').
-                modify $ \st ->
-                    st
-                        { sp = addr
-                        , ctrlBase = addr
-                        , ctrlSp = addr
-                        , frameBase = addr - byteSizeT @w
-                        }
+                Wasm32St{mem} <- get
+                let floor_ = operandFloor mem
+                    ceiling_ = memCapacity mem
+                if addr < floor_ || addr > ceiling_
+                    then
+                        raiseInternalError $
+                            "sp.init: root "
+                                <> hexAddr 2 addr
+                                <> " is outside the stack region "
+                                <> hexAddr 2 floor_
+                                <> ".."
+                                <> hexAddr 2 ceiling_
+                    else do
+                        -- Every field @initState@ sets from the root is set
+                        -- again here, @localCount@ included: the frame this
+                        -- lands in starts out with no locals, and leaving a
+                        -- stale count behind would point the @locals@ and
+                        -- @layout@ views at words that are not locals at
+                        -- all. @frameBase@ keeps the same relation to @sp@
+                        -- that 'initState' sets up: one word below, where
+                        -- the first push lands (see 'localAddr').
+                        modify $ \st ->
+                            st
+                                { sp = addr
+                                , ctrlBase = addr
+                                , ctrlSp = addr
+                                , frameBase = addr - byteSizeT @w
+                                , localCount = 0
+                                }
                 nextPc instruction
             Halt -> modify $ \st -> st{stopped = True}
         where
@@ -1239,7 +1280,9 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- [operand stack]: Holds a function's locals and its values. It descends
 -- from the root, the classic hardware convention: @sp@ is the address of
 -- the most recently pushed word, decremented /before/ a push writes and
--- incremented /after/ a pop reads. Its wall is 'memTop'.
+-- incremented /after/ a pop reads. Its wall is 'operandFloor' -- 'memTop',
+-- raised past any memory-mapped I\/O port that would otherwise sit inside
+-- the stack region.
 --
 -- [control stack]: Holds one fixed-size record per open @block@, @loop@ or
 -- call -- see "Wrench.Isa.Wasm32.ControlRecord". It ascends from the root.
@@ -1263,8 +1306,16 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- 'stackRoot'), since a program pushes far more operands than it opens
 -- scopes and a record is eight bytes. 'SpInit' moves it, which is how a
 -- program that needs the other balance asks for it: a deeply recursive
--- function wants the root low, a value-heavy loop wants it high. Nothing
--- checks that the split leaves either stack enough room.
+-- function wants the root low, a value-heavy loop wants it high. The new
+-- root has to stay inside the stack region, but within it nothing checks
+-- that the split leaves either stack enough room.
+--
+-- A memory-mapped I\/O port is ordinary memory to every instruction, so a
+-- port mapped inside the stack region would be writable by a deep enough
+-- operand stack -- a push doing I\/O. 'operandFloor' raises the wall past
+-- any such port, turning that into the overflow it should have been.
+-- Keeping ports in the code+data half avoids the question entirely, which
+-- is what every example does.
 --
 -- Code and @.data@ spilling past 'memTop' is /not/ checked either, so a
 -- program whose code and data exceed half the configured memory will have
