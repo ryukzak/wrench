@@ -1,0 +1,6 @@
+---
+# Check results
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> []
+numio[0x88]: [] >>> [3]
+numio[0x8c]: [] >>> [2]

@@ -175,28 +175,26 @@ formatLines fmt tokenss =
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
 formatStatements :: FmtConfig -> [Statement] -> [Text]
-formatStatements fmt@FmtConfig{lineLayout = Wasm32Layout} statements = go 0 statements
+formatStatements fmt@FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
     where
         go _ [] = []
         go depth (statement : rest) =
-            let lineDepth = wasm32LineDepth depth statement
-                nextDepth = wasm32NextDepth depth statement
-                fmt' = fmt{textCommandIndent = textCommandIndent fmt + lineDepth * 4}
+            let (lineDepth, nextDepth) = wasm32Depths depth statement
+                fmt' = fmt{textCommandIndent = textCommandIndent * (1 + lineDepth)}
              in pprint fmt' statement : go nextDepth rest
 formatStatements fmt statements = map (pprint fmt) statements
 
-wasm32LineDepth :: Int -> Statement -> Int
-wasm32LineDepth depth (TextLine (token : _))
-    | token `elem` ["else", "end", ".endfunc", "endfunc"] = max 0 (depth - 1)
-    | otherwise = depth
-wasm32LineDepth depth _ = depth
-
-wasm32NextDepth :: Int -> Statement -> Int
-wasm32NextDepth depth (TextLine (token : _))
-    | token `elem` ["block", "loop", "if", ".func", "func"] = depth + 1
-    | token `elem` ["end", ".endfunc", "endfunc"] = max 0 (depth - 1)
-    | otherwise = depth
-wasm32NextDepth depth _ = depth
+-- | How deep to indent one wasm32 line, and how deep the line after it
+--   sits: @block@/@loop@/@if@ open a level, @end@ closes one, and @else@
+--   steps out for its own line while leaving the level open.
+wasm32Depths :: Int -> Statement -> (Int, Int)
+wasm32Depths depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
+    | token == "end" = (outer, outer)
+    | token == "else" = (outer, depth)
+    where
+        outer = max 0 (depth - 1)
+wasm32Depths depth _ = (depth, depth)
 
 calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
 calculateVliwSlotWidths configWidths statements =

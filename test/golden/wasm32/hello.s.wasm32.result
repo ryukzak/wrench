@@ -1,31 +1,35 @@
-0:	buf
-14:	buf_end
-17:	_start
+0x000:	buf
+0x00e:	buf_end
+0x011:	ptr
+0x015:	_start
 ---
-mem[0..13]: 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
-mem[14..16]: 	00 00 00	@"buf_end"
-mem[17..21]: 	I32Const 0 	@_start
-mem[22..23]: 	LocalSet 0
-mem[24..28]: 	I32Const 14
-mem[29..30]: 	LocalSet 1
-mem[31..32]: 	Block 0
-mem[33..34]: 	Loop 1
-mem[35..36]: 	LocalGet 0
-mem[37..38]: 	LocalGet 1
-mem[39..39]: 	I32GeU
-mem[40..41]: 	BrIf 0
-mem[42..46]: 	I32Const 132
-mem[47..48]: 	LocalGet 0
-mem[49..49]: 	I32Load8U
-mem[50..50]: 	I32Store8
-mem[51..52]: 	LocalGet 0
-mem[53..57]: 	I32Const 1
-mem[58..58]: 	I32Add
-mem[59..60]: 	LocalSet 0
-mem[61..62]: 	Br 1
-mem[63..63]: 	End
-mem[64..64]: 	End
-mem[65..65]: 	Halt
-mem[66..66]: 	Return
-mem[67..999]: 	( 00 )
+mem[0x000..0x00d] (14 B): 	1f 48 65 6c 6c 6f 0a 00 57 6f 72 6c 64 21	@"buf"
+mem[0x00e..0x010] (3 B): 	00 00 00	@"buf_end"
+mem[0x011..0x014] (4 B): 	00 00 00 00	@"ptr"
+mem[0x015..0x019] (5 B): 	I32Const 17 	@_start
+mem[0x01a..0x01e] (5 B): 	I32Const 0
+mem[0x01f..0x020] (2 B): 	I32Store 0
+mem[0x021..0x023] (3 B): 	Block 60
+mem[0x024..0x026] (3 B): 	Loop 56
+mem[0x027..0x02b] (5 B): 	I32Const 17
+mem[0x02c..0x02d] (2 B): 	I32Load 0
+mem[0x02e..0x032] (5 B): 	I32Const 14
+mem[0x033..0x033] (1 B): 	I32GeU
+mem[0x034..0x035] (2 B): 	BrIf 1
+mem[0x036..0x03a] (5 B): 	I32Const 132
+mem[0x03b..0x03f] (5 B): 	I32Const 17
+mem[0x040..0x041] (2 B): 	I32Load 0
+mem[0x042..0x043] (2 B): 	I32Load8U 0
+mem[0x044..0x045] (2 B): 	I32Store8 0
+mem[0x046..0x04a] (5 B): 	I32Const 17
+mem[0x04b..0x04f] (5 B): 	I32Const 17
+mem[0x050..0x051] (2 B): 	I32Load 0
+mem[0x052..0x056] (5 B): 	I32Const 1
+mem[0x057..0x057] (1 B): 	I32Add
+mem[0x058..0x059] (2 B): 	I32Store 0
+mem[0x05a..0x05b] (2 B): 	Br 0
+mem[0x05c..0x05c] (1 B): 	End
+mem[0x05d..0x05d] (1 B): 	End
+mem[0x05e..0x05e] (1 B): 	Halt
+mem[0x05f..0x3e7] (905 B): 	( 00 )
 ---
