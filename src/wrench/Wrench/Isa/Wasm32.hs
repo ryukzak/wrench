@@ -472,12 +472,30 @@ resolveScopeTargets = go []
 -- @end@ -- see 'resolveScopeTargets'.
 data ScopeTargetKind = AtEnd | PastEnd
 
--- | The instructions a loaded program consists of, each with its own
--- address, in address order -- what 'resolveScopeTargets' matches over.
--- Reads the dump's cells rather than memory, so it sees the program as
--- laid out and never a byte of @.data@ as an instruction.
-codeStream :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> [(Int, Wasm32Isa w w)]
-codeStream mem = [(addr, i) | (addr, Instruction i) <- toPairs (dumpCells mem)]
+-- | The instruction runs a loaded program consists of: each one a
+-- maximal stretch of instructions that follow one another with no gap,
+-- in address order. Reads the dump's cells rather than memory, so it
+-- sees the program as laid out and never a byte of @.data@ as an
+-- instruction.
+--
+-- Split at the gaps rather than handed over as one stream, because a
+-- scope cannot span one: a @block@ whose body runs off the end of its
+-- own @.text@ into the @.data@ that follows has no path to an @end@ on
+-- the far side, so pairing it with one there would accept a program that
+-- cannot execute. Matching each run on its own keeps an unbalanced
+-- stretch unbalanced.
+codeRuns :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> [[(Int, Wasm32Isa w w)]]
+codeRuns mem = foldr step [] [(addr, i) | (addr, Instruction i) <- toPairs (dumpCells mem)]
+    where
+        step entry@(addr, instruction) (run@((next, _) : _) : rest)
+            | addr + byteSize instruction == next = (entry : run) : rest
+        step entry runs = [entry] : runs
+
+-- | Every scope target in a loaded program -- 'resolveScopeTargets' over
+-- each of its 'codeRuns'. Addresses are unique across runs, so the
+-- tables merge without overlapping.
+resolveProgram :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> Either Text (IntMap Int)
+resolveProgram = fmap mconcat . traverse resolveScopeTargets . codeRuns
 
 -- | The widths in bits of the operands an instruction encodes after its
 -- opcode byte, which is all 'byteSize' needs to know about any of them.
@@ -609,7 +627,7 @@ instance (IsWord w) => InitState (Wasm32St w) where
               internalError = leftToMaybe resolved
             }
         where
-            resolved = resolveScopeTargets (codeStream dump)
+            resolved = resolveProgram dump
 
 -- | Where code+data end and the stacks' own region begins: the lower
 -- half of memory holds code+data, the upper half the stacks. Code+data
