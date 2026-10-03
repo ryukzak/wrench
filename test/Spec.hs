@@ -24,6 +24,9 @@ import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
+import Wrench.Isa.Wasm32 (Wasm32St)
+import Wrench.Isa.Wasm32 qualified as Wasm32
+import Wrench.Isa.Wasm32.Test qualified
 import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
@@ -234,6 +237,51 @@ tests =
                     ]
                 ]
             ]
+        , testGroup
+            "Wasm32"
+            [ Wrench.Isa.Wasm32.Test.tests
+            , testGroup
+                "Translator"
+                [ goldenTranslate Wasm32 "example/wasm32/arithmetic.s"
+                , goldenTranslate Wasm32 "example/wasm32/bitwise.s"
+                , goldenTranslate Wasm32 "example/wasm32/signed_vs_unsigned.s"
+                , goldenTranslate Wasm32 "example/wasm32/loop.s"
+                , goldenTranslate Wasm32 "example/wasm32/break_continue.s"
+                , goldenTranslate Wasm32 "example/wasm32/if_else.s"
+                , goldenTranslate Wasm32 "example/wasm32/sum.s"
+                , goldenTranslate Wasm32 "example/wasm32/factorial.s"
+                , goldenTranslate Wasm32 "example/wasm32/divmod.s"
+                , goldenTranslate Wasm32 "example/wasm32/hello.s"
+                , goldenTranslate Wasm32 "example/wasm32/get-put-char.s"
+                , goldenTranslate Wasm32 "example/wasm32/nested_scopes.s"
+                , goldenTranslate Wasm32 "example/wasm32/locals.s"
+                , goldenTranslate Wasm32 "example/wasm32/stack_root.s"
+                ]
+            , testGroup
+                "Simulator"
+                [ goldenSimulate Wasm32 "example/wasm32/arithmetic.s" "example/wasm32/arithmetic.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/bitwise.s" "example/wasm32/bitwise.yaml"
+                , goldenSimulate
+                    Wasm32
+                    "example/wasm32/signed_vs_unsigned.s"
+                    "example/wasm32/signed_vs_unsigned.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/loop.s" "example/wasm32/loop.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/break_continue.s" "example/wasm32/break_continue.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/if_else.s" "example/wasm32/if_else.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/sum.s" "example/wasm32/sum.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/factorial.s" "example/wasm32/factorial.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/divmod.s" "example/wasm32/divmod.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/hello.s" "example/wasm32/hello.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/get-put-char.s" "example/wasm32/get-put-char-65.yaml"
+                , goldenSimulate
+                    Wasm32
+                    "example/wasm32/get-put-char.s"
+                    "example/wasm32/get-put-char-88.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/nested_scopes.s" "example/wasm32/nested_scopes.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/locals.s" "example/wasm32/locals.yaml"
+                , goldenSimulate Wasm32 "example/wasm32/stack_root.s" "example/wasm32/stack_root.yaml"
+                ]
+            ]
         ]
 
 isaPath :: (IsString a) => Isa -> a
@@ -243,6 +291,7 @@ isaPath isa = case isa of
     Acc32 -> "acc32"
     M68k -> "m68k"
     VliwIv -> "vliw-iv"
+    Wasm32 -> "wasm32"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -274,12 +323,26 @@ fn2name fn =
         $ dropExtension
         $ takeFileName fn
 
+-- | Golden-result paths are normally derived straight from the source
+-- file's own path (see 'goldenTranslate''\/'goldenSimulateInner'). An
+-- @example\/@ source maps to @test\/golden\/@ instead, so a golden test
+-- can read its @.s@\/@.yaml@ straight from @example\/@ (when that's a
+-- pure duplicate not worth maintaining twice) without writing results
+-- there too. A no-op for every path that isn't under @example\/@.
+goldenResultBase :: FilePath -> FilePath
+goldenResultBase fn
+    | examplePrefix `isPrefixOf` fn = "test/golden/" <> drop (length examplePrefix) fn
+    | otherwise = fn
+    where
+        examplePrefix = "example/" :: FilePath
+
 goldenTranslate :: Isa -> FilePath -> TestTree
 goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.RiscIvIsa RiscIv fn
 goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Acc32Isa Acc32 fn
 goldenTranslate M68k fn = goldenTranslate' @M68k.M68kIsa M68k fn
 goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.VliwIvIsa VliwIv fn
+goldenTranslate Wasm32 fn = goldenTranslate' @Wasm32.Wasm32Isa Wasm32 fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -293,7 +356,7 @@ goldenTranslate' ::
     -> FilePath
     -> TestTree
 goldenTranslate' isa fn =
-    goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
+    goldenVsString (fn2name fn) (goldenResultBase fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats) ->
@@ -320,10 +383,11 @@ goldenSimulate' shouldFail isa =
         Acc32 -> goldenSimulateInner (wrench @(Acc32St Int32)) ".acc32.result" shouldFail
         M68k -> goldenSimulateInner (wrench @(M68kSt Int32)) ".m68k.result" shouldFail
         VliwIv -> goldenSimulateInner (wrench @(VliwIvSt Int32)) ".vliw-iv.result" shouldFail
+        Wasm32 -> goldenSimulateInner (wrench @(Wasm32St Int32)) ".wasm32.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn
-                goldenPath = dropExtension confFn <> ext
+                goldenPath = dropExtension (goldenResultBase confFn) <> ext
                 action = do
                     src <- decodeUtf8 <$> readFileBS fn
                     conf <- either (error . toText) id <$> readConfig confFn

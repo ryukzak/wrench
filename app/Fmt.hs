@@ -29,7 +29,7 @@ options =
         <*> strOption
             ( long "isa"
                 <> metavar "ISA"
-                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k)"
+                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k, wasm32)"
             )
         <*> switch
             ( long "inplace"
@@ -64,6 +64,7 @@ main = do
 
 data LineLayout
     = StandardLayout
+    | Wasm32Layout
     | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
@@ -118,6 +119,7 @@ process Options{isa, inplace, check} fileName = do
             Just Acc32 -> formatFile acc32Fmt content
             Just M68k -> formatFile def content
             Just VliwIv -> formatFile vliwIvFmt content
+            Just Wasm32 -> formatFile def{lineLayout = Wasm32Layout} content
             _ -> error $ "Invalid ISA: " <> show isa
         msgFormatted = toText fileName <> " already formatted"
         msgReformatted = toText fileName <> " reformatted"
@@ -153,9 +155,10 @@ formatLines fmt tokenss =
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
             VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
+            Wasm32Layout -> Wasm32Layout
             StandardLayout -> StandardLayout
         fmt' = fmt{lineLayout = lineLayout'}
-        source' = map (pprint fmt') statements
+        source' = formatStatements fmt' statements
         comments' =
             zipWith
                 ( \s c ->
@@ -170,6 +173,28 @@ formatLines fmt tokenss =
                 statements
                 comments
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+formatStatements :: FmtConfig -> [Statement] -> [Text]
+formatStatements fmt@FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
+    where
+        go _ [] = []
+        go depth (statement : rest) =
+            let (lineDepth, nextDepth) = wasm32Depths depth statement
+                fmt' = fmt{textCommandIndent = textCommandIndent * (1 + lineDepth)}
+             in pprint fmt' statement : go nextDepth rest
+formatStatements fmt statements = map (pprint fmt) statements
+
+-- | How deep to indent one wasm32 line, and how deep the line after it
+--   sits: @block@/@loop@/@if@ open a level, @end@ closes one, and @else@
+--   steps out for its own line while leaving the level open.
+wasm32Depths :: Int -> Statement -> (Int, Int)
+wasm32Depths depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
+    | token == "end" = (outer, outer)
+    | token == "else" = (outer, depth)
+    where
+        outer = max 0 (depth - 1)
+wasm32Depths depth _ = (depth, depth)
 
 calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
 calculateVliwSlotWidths configWidths statements =
@@ -248,8 +273,16 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
+                Wasm32Layout ->
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
+                        cmd = width textCommandWidth $ unwords cmdTokens
+                     in T.replicate textCommandIndent " " <> cmd
                 StandardLayout ->
-                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
@@ -290,4 +323,5 @@ tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwLayout = case lineLayout of
             VliwLayout _ -> True
+            Wasm32Layout -> False
             StandardLayout -> False
