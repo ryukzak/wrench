@@ -142,6 +142,46 @@ tests =
             assertTranslationError "local.get index 300" ["local.get 300"]
             assertTranslationError "br depth -1" ["block", "br -1", "end"]
             assertTranslationError "call resultCount 300" ["i32.const 0", "call 0, 300"]
+        , testCase "A scope cannot span the gap between two code sections" $ do
+            -- Matching is per contiguous run of instructions, not over
+            -- the whole loaded program. A `block` whose body runs off the
+            -- end of its own .text has no path to an `end` on the far
+            -- side of the .data in between, so pairing the two would
+            -- accept a program that cannot execute.
+            assertSourceTrap "no matching end" $
+                Prelude.unlines
+                    [ ".text"
+                    , "helper:"
+                    , "    block"
+                    , ".data"
+                    , "pad: .word 0"
+                    , ".text"
+                    , "_start:"
+                    , "    end"
+                    , "    halt"
+                    ]
+            -- Two self-contained sections are each fine on their own.
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".text"
+                        , "helper:"
+                        , "    block"
+                        , "        i32.const 1"
+                        , "        br       0"
+                        , "    end"
+                        , "    return"
+                        , ".data"
+                        , "pad: .word 0"
+                        , ".text"
+                        , "_start:"
+                        , "    block"
+                        , "        i32.const 7"
+                        , "        br       0"
+                        , "    end"
+                        , "    halt"
+                        ]
+            stack @?= "7"
         , testCase "Unbalanced scopes stop the program before its first step" $ do
             -- Matching happens once, when the machine loads the program,
             -- so this is reported whatever the program would have
