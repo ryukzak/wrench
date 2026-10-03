@@ -37,6 +37,7 @@ module Wrench.Isa.Wasm32.ControlRecord (
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Relude
+import Relude.Extra (safeToEnum)
 import Wrench.Machine.Types
 
 -- | One control record's payload -- a typed shape per kind, so a
@@ -173,12 +174,19 @@ encodeScope scope =
 -- number of words -- rather than guessing at a shape, since the only way
 -- to see one is a control stack something has corrupted.
 decodeScope :: forall w. (IsWord w) => [w] -> Either Text Scope
-decodeScope [word0, word1] =
-    case unpackField tagBitWidth tagShift bits0 of
-        t
-            | t == fromEnum BlockTag -> Right BlockScope{csEnd = unpackAddr bits0}
-            | t == fromEnum LoopTag -> Right LoopScope{csStart = unpackAddr bits0, csEnd = unpackAddr bits1}
-            | t == fromEnum CallTag ->
+decodeScope words_
+    | [word0, word1] <- words_
+    , let bits0 = bitsFromWord word0
+    , let bits1 = bitsFromWord word1
+    , let tag = unpackField tagBitWidth tagShift bits0 =
+        -- Matched over the tag's own constructors rather than against
+        -- 'fromEnum' of each: a fourth record kind is then a
+        -- missing-pattern warning here, not a bit pattern this silently
+        -- reports as corruption.
+        case safeToEnum tag of
+            Just BlockTag -> Right BlockScope{csEnd = unpackAddr bits0}
+            Just LoopTag -> Right LoopScope{csStart = unpackAddr bits0, csEnd = unpackAddr bits1}
+            Just CallTag ->
                 Right
                     CallScope
                         { csCallerFrameBase = unpackAddr bits0
@@ -186,11 +194,9 @@ decodeScope [word0, word1] =
                         , csReturnPc = unpackAddr bits1
                         , csResultCount = unpackCount bits1
                         }
-            | otherwise -> Left $ "no record kind has tag " <> show t
-    where
-        bits0 = bitsFromWord word0
-        bits1 = bitsFromWord word1
-decodeScope ws = Left $ "expected " <> show scopeRecordWords <> " words, got " <> show (length ws)
+            Nothing -> Left $ "no record kind has tag " <> show tag
+    | otherwise =
+        Left $ "expected " <> show scopeRecordWords <> " words, got " <> show (length words_)
 
 -- | Sentinel for "no enclosing control record" and "no active function
 -- frame".
