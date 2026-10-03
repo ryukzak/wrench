@@ -397,9 +397,9 @@ instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
 -- when a run-time forward scan falls off the end of memory.
 resolveScopeTargets :: forall w. (IsWord w) => [(w, Wasm32Isa w w)] -> Either Text [Wasm32Isa w w]
 resolveScopeTargets marked = do
-    mapM_ checkImmediate marked
+    mapM_ checkSourceOperands marked
     resolved <- matchScopes marked
-    mapM_ checkScopeTarget resolved
+    mapM_ checkResolvedOperands resolved
     return (map snd resolved)
 
 -- | Walk the stream pairing each scope instruction with its own @end@,
@@ -448,91 +448,131 @@ matchScopes marked = do
             Else{} -> Else d
             other -> other
 
--- | An immediate that doesn't fit the field the instruction encodes it in
--- is a source error, not something to mask off at run time -- see
--- 'immediateBitWidth'.
-checkImmediate :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
-checkImmediate (addr, instruction) = case instruction of
-    Br d -> fits "br depth" immediateBitWidth d
-    BrIf d -> fits "br_if depth" immediateBitWidth d
-    LocalGet i -> fits "local.get index" immediateBitWidth i
-    LocalSet i -> fits "local.set index" immediateBitWidth i
-    LocalTee i -> fits "local.tee index" immediateBitWidth i
-    LocalsReserve n -> fits "locals.reserve count" immediateBitWidth n
-    Call p r -> do
-        fits "call paramCount" immediateBitWidth p
-        fits "call resultCount" immediateBitWidth r
-    I32Load o -> memOffset o
-    I32Store o -> memOffset o
-    I32Load8U o -> memOffset o
-    I32Load8S o -> memOffset o
-    I32Store8 o -> memOffset o
-    _ -> Right ()
-    where
-        fits = fieldFits addr
-        memOffset = fits "load/store offset" immediateBitWidth
+-- | One operand an instruction encodes after its opcode byte. Three
+-- things need to agree about every one of them -- how many bytes the
+-- instruction occupies, what range the assembler accepts, and when it
+-- is in a position to check -- so they are all read off a single
+-- description of the instruction's shape ('operands') rather than
+-- maintained as three parallel case expressions.
+data Operand
+    = -- | An immediate written in source: already final when the
+      -- assembler first sees the instruction.
+      Source Text Int Int
+    | -- | A target 'resolveScopeTargets' fills in, holding
+      -- 'unresolvedTarget' until it does -- so it is only worth checking
+      -- once resolution has run.
+      Target Text Int Int
+    | -- | A full machine word. No range for a value to fall outside, which
+      -- is why a label reference needs no check.
+      FullWord
 
--- | A body too long for the forward distance its own scope instruction
--- can carry.
-checkScopeTarget :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
-checkScopeTarget (addr, instruction) = case instruction of
-    Block d -> fits "block body" d
-    Loop d -> fits "loop body" d
-    If d -> fits "if body" d
-    Else d -> fits "else body" d
-    _ -> Right ()
+-- | Every operand an instruction carries, in the order it encodes them.
+--
+-- Listed exhaustively, with no catch-all: an instruction added without a
+-- line here is a missing-pattern warning, where a catch-all would have
+-- silently given it a bare opcode's size and no range check on its
+-- immediate. That combination is how @call 0, 70@ once assembled happily
+-- and then became @call 0, 6@.
+operands :: Wasm32Isa w l -> [Operand]
+operands instruction = case instruction of
+    I32Const{} -> [FullWord]
+    I32Add -> []
+    I32Sub -> []
+    I32Mul -> []
+    I32DivS -> []
+    I32RemS -> []
+    I32And -> []
+    I32Or -> []
+    I32Xor -> []
+    I32Shl -> []
+    I32ShrS -> []
+    I32ShrU -> []
+    I32Eq -> []
+    I32LtS -> []
+    I32LeS -> []
+    I32GtS -> []
+    I32GeS -> []
+    I32LtU -> []
+    I32LeU -> []
+    I32GtU -> []
+    I32GeU -> []
+    I32Load o -> [offset o]
+    I32Store o -> [offset o]
+    I32Load8U o -> [offset o]
+    I32Load8S o -> [offset o]
+    I32Store8 o -> [offset o]
+    If d -> [target "if body" d]
+    Else d -> [target "else body" d]
+    End -> []
+    Loop d -> [target "loop body" d]
+    Block d -> [target "block body" d]
+    Br d -> [narrow "br depth" d]
+    BrIf d -> [narrow "br_if depth" d]
+    Dup -> []
+    Drop -> []
+    Select -> []
+    Unreachable -> []
+    LocalGet i -> [narrow "local.get index" i]
+    LocalSet i -> [narrow "local.set index" i]
+    LocalTee i -> [narrow "local.tee index" i]
+    LocalsReserve n -> [narrow "locals.reserve count" n]
+    Call p r -> [narrow "call paramCount" p, narrow "call resultCount" r]
+    Return -> []
+    SpInit -> []
+    Halt -> []
     where
-        fits what = fieldFits addr what wideImmediateBitWidth
+        narrow name = Source name immediateBitWidth
+        offset = narrow "load/store offset"
+        target name = Target name wideImmediateBitWidth
 
--- | Reject a @width@-bit field's value, naming the field and the
--- instruction's own address.
-fieldFits :: (IsWord w) => w -> Text -> Int -> Int -> Either Text ()
-fieldFits addr what width value
-    | value >= 0 && value < 1 `shiftL` width = Right ()
-    | otherwise =
-        Left $
-            what
-                <> " "
-                <> show value
-                <> " at "
-                <> hexAddr 2 (fromEnum addr)
-                <> " doesn't fit in "
-                <> show width
-                <> " bits"
+-- | How many bytes an operand occupies, rounding a field that is not a
+-- whole number of bits up: it still has to be stored in whole bytes.
+operandBytes :: Operand -> Int
+operandBytes FullWord = byteSizeT @Int32
+operandBytes (Source _ width _) = (width + 7) `div` 8
+operandBytes (Target _ width _) = (width + 7) `div` 8
+
+-- | Reject an operand whose value doesn't fit the field it is encoded in,
+-- naming the field and the instruction's own address. Masking a high bit
+-- off doesn't make a smaller number, it makes a different one, so this is
+-- a source error rather than something to fix up at run time.
+operandFits :: (IsWord w) => w -> Operand -> Either Text ()
+operandFits addr operand = case operand of
+    FullWord -> Right ()
+    Source name width value -> fits name width value
+    Target name width value -> fits name width value
+    where
+        fits name width value
+            | value >= 0 && value < 1 `shiftL` width = Right ()
+            | otherwise =
+                Left $
+                    name
+                        <> " "
+                        <> show value
+                        <> " at "
+                        <> hexAddr 2 (fromEnum addr)
+                        <> " doesn't fit in "
+                        <> show width
+                        <> " bits"
+
+-- | Check the operands written in source. Runs before resolution, so it
+-- has to skip the scope targets -- they are still 'unresolvedTarget'.
+checkSourceOperands :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
+checkSourceOperands (addr, instruction) =
+    traverse_ (operandFits addr) [o | o@Source{} <- operands instruction]
+
+-- | Check the targets 'matchScopes' just wrote: a body too long for the
+-- forward distance its own scope instruction can carry.
+checkResolvedOperands :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
+checkResolvedOperands (addr, instruction) =
+    traverse_ (operandFits addr) [o | o@Target{} <- operands instruction]
 
 -- | Which address a scope instruction wants out of its own matching
 -- @end@ -- see 'resolveScopeTargets'.
 data ScopeTargetKind = AtEnd | PastEnd
 
 instance ByteSize (Wasm32Isa w l) where
-    byteSize I32Const{} = 1 + byteSizeT @Int32
-    byteSize Br{} = 1 + immediateBytes
-    byteSize BrIf{} = 1 + immediateBytes
-    byteSize LocalGet{} = 1 + immediateBytes
-    byteSize LocalSet{} = 1 + immediateBytes
-    byteSize LocalTee{} = 1 + immediateBytes
-    byteSize LocalsReserve{} = 1 + immediateBytes
-    byteSize Call{} = 1 + 2 * immediateBytes
-    -- One opcode byte, one byte of table length, then one byte per entry
-    -- (the default included).
-    byteSize I32Load{} = memOpBytes
-    byteSize I32Store{} = memOpBytes
-    byteSize I32Load8U{} = memOpBytes
-    byteSize I32Load8S{} = memOpBytes
-    byteSize I32Store8{} = memOpBytes
-    -- One opcode byte plus a 'wideImmediateBitWidth'-wide forward distance,
-    -- the same shape as @call@'s two trailing counts.
-    byteSize If{} = scopeInstructionBytes
-    byteSize Else{} = scopeInstructionBytes
-    byteSize Loop{} = scopeInstructionBytes
-    byteSize Block{} = scopeInstructionBytes
-    byteSize _ = 1
-
-scopeInstructionBytes, memOpBytes, immediateBytes, wideImmediateBytes :: Int
-scopeInstructionBytes = 1 + wideImmediateBytes
-memOpBytes = 1 + immediateBytes
-immediateBytes = immediateBitWidth `div` 8
-wideImmediateBytes = wideImmediateBitWidth `div` 8
+    byteSize instruction = 1 + sum (map operandBytes (operands instruction))
 
 -- | A scope instruction's forward distance to its own matching @end@.
 -- Two bytes, so any body that fits in the largest configurable memory
