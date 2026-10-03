@@ -250,7 +250,8 @@ describeScope showAddr scope = case scope of
 --
 -- Nothing is silently truncated. A field value that does not fit stops the
 -- program naming the field ('packField'), and an instruction immediate out
--- of range for its own encoding is rejected at translate time.
+-- of range for its own encoding is rejected where it is written, by the
+-- parser.
 --
 -- @Tag@ needs only 2 bits for three kinds. The one unused pattern is not a
 -- valid record, and reading it reports a corrupted control stack rather
