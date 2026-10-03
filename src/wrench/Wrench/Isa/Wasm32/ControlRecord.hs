@@ -26,6 +26,8 @@ module Wrench.Isa.Wasm32.ControlRecord (
     -- * Layout
     -- $layout
     Scope (..),
+    ControlTag (..),
+    decodeScopeTag,
     scopeRecordWords,
     scopeRecordBytes,
     scopeWordAddrs,
@@ -86,6 +88,18 @@ scopeWordAddrs addr = [addr + i * byteSizeT @w | i <- [0 .. scopeRecordWords - 1
 -- bits leaves one bit pattern unused, which 'decodeScope' rejects.
 data ControlTag = LoopTag | BlockTag | CallTag
     deriving (Bounded, Enum, Eq, Show)
+
+-- | Which kind of record a word pair starts, from its first word alone.
+--
+-- The tag sits in the top bits of word 0 ('tagShift'), so asking only
+-- what kind of record is here costs half of what 'decodeScope' costs --
+-- and a caller that has already worked out what a record /should/ say
+-- needs nothing more than this to find out whether it was right.
+decodeScopeTag :: forall w. (IsWord w) => w -> Either Text ControlTag
+decodeScopeTag word0 =
+    maybe (Left $ "no record kind has tag " <> show tag) Right (safeToEnum tag)
+    where
+        tag = unpackField tagBitWidth tagShift (bitsFromWord word0)
 
 tagOfScope :: Scope -> ControlTag
 tagOfScope LoopScope{} = LoopTag

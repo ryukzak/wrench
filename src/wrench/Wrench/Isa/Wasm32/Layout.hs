@@ -61,7 +61,7 @@ import Wrench.Machine.Types
 -- of which are functions of the same arity.
 data LayoutFormat w = LayoutFormat
     { lfWord :: w -> Text
-    -- ^ A word value. Gets 'word32ToHex''s full eight digits under
+    -- ^ A word value. Gets @word32ToHex@'s full eight digits under
     -- @:hex@: a value is arbitrary 32-bit data however small the memory.
     , lfAddr :: Int -> Text
     -- ^ An address -- a @mem[a..b]@ bound, a frame's @pc=@, or one of a

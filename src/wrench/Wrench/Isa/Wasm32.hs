@@ -61,6 +61,7 @@ module Wrench.Isa.Wasm32 (
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
+import Data.IntSet qualified as IntSet
 import Data.Text qualified as T
 import Relude
 import Relude.Extra (insert, toPairs, (!?))
@@ -193,7 +194,10 @@ data Wasm32Isa w l
       -- runs after the @if@-body already did.
       Else
     | -- | @end@ -- closes the innermost open @block@ or @loop@. An @if@\'s
-      -- @end@ closes nothing, since @if@ opened nothing.
+      -- @end@ closes nothing, since @if@ opened nothing -- which of the two
+      -- a given @end@ is follows from the nesting, so loading the program
+      -- settles it ('spEndPops') rather than a record being read at run
+      -- time to find out.
       End
     | -- | @loop@ -- open a scope a branch can jump /backward/ into, landing
       -- just after this instruction. On its own it runs its body once, like
@@ -206,6 +210,11 @@ data Wasm32Isa w l
     | -- | @br \<depth\>@ -- branch unconditionally to the enclosing scope
       -- @depth@ levels out, @0@ being the innermost. See the \"Control
       -- flow\" section for what reaching a @loop@ versus a @block@ does.
+      --
+      -- The depth is what the source says and what a dump shows; where it
+      -- leads, and how many control records go with it, are worked out
+      -- when the program loads ('resolveBranches'). A depth with no such
+      -- scope around it is rejected then.
       Br Int
     | -- | @br_if \<depth\>@ -- pop a condition and branch like 'Br' only
       -- if it is non-zero, otherwise fall through. Branching on /zero/ is
@@ -491,11 +500,133 @@ codeRuns mem = foldr step [] [(addr, i) | (addr, Instruction i) <- toPairs (dump
             | addr + byteSize instruction == next = (entry : run) : rest
         step entry runs = [entry] : runs
 
--- | Every scope target in a loaded program -- 'resolveScopeTargets' over
--- each of its 'codeRuns'. Addresses are unique across runs, so the
--- tables merge without overlapping.
-resolveProgram :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> Either Text (IntMap Int)
-resolveProgram = fmap mconcat . traverse resolveScopeTargets . codeRuns
+-- | What a @br@ does, worked out from where it is written.
+--
+-- Both halves are static: the scope @depth@ levels out is fixed by the
+-- nesting the branch sits in, and so is whether reaching it means
+-- re-entering a @loop@ or stepping out of a @block@. The machine needs
+-- no stored link to follow and no record to read in order to decide.
+data BranchPlan = BranchPlan
+    { bpTarget :: Int
+    -- ^ Where to jump: a @loop@'s first body instruction, or just past a
+    -- @block@'s own matching @end@.
+    , bpPop :: Int
+    -- ^ Records to retire -- the ones nested between the branch and its
+    -- target, plus the target itself when it is a @block@, since
+    -- reaching a block closes it and reaching a loop does not.
+    , bpCheck :: Int
+    -- ^ Records whose kind the machine confirms before touching
+    -- anything: everything it would pop, plus the one it lands on. See
+    -- 'checkOwnScopes'.
+    }
+    deriving (Eq, Show)
+
+-- | Everything about a loaded program's control flow that is fixed
+-- before it runs, so that nothing has to be searched for while it does.
+data ScopePlan = ScopePlan
+    { spTargets :: IntMap Int
+    -- ^ @block@\/@loop@ to its own matching @end@, @if@\/@else@ to where
+    -- its skip path resumes. See 'resolveScopeTargets'.
+    , spBranches :: IntMap BranchPlan
+    -- ^ @br@\/@br_if@ to what it does. See 'resolveBranches'.
+    , spEndPops :: IntSet
+    -- ^ The @end@s that close a @block@ or @loop@, as opposed to an
+    -- @if@\'s @end@, which closes nothing. Knowing which is which here
+    -- is what replaced comparing a record's @csEnd@ against @pc@ at run
+    -- time to find out.
+    }
+    deriving (Eq, Show)
+
+instance Semigroup ScopePlan where
+    a <> b =
+        ScopePlan
+            { spTargets = spTargets a <> spTargets b
+            , spBranches = spBranches a <> spBranches b
+            , spEndPops = spEndPops a <> spEndPops b
+            }
+
+instance Monoid ScopePlan where
+    mempty = ScopePlan mempty mempty mempty
+
+-- | Work out what every @br@ and @br_if@ in one run does, and which of
+-- its @end@s close a scope.
+--
+-- A second walk over the same run, because a @br@ out of a @block@ jumps
+-- past that block's @end@ -- which the first walk only learns when it
+-- gets there. Takes the first walk's answers ('resolveScopeTargets') and
+-- reads the blocks' ends straight out of them.
+--
+-- A depth deeper than the nesting the branch sits in is rejected here.
+-- At run time that was a branch stepping outward until it hit the
+-- enclosing call's record; written down, it is a branch naming a scope
+-- that is not there, and saying so needs no execution to discover.
+resolveBranches :: forall w. IntMap Int -> [(Int, Wasm32Isa w w)] -> Either Text ScopePlan
+resolveBranches targets = go []
+    where
+        -- \| The scopes open at this point, innermost first, each as its
+        -- kind and its own address. @if@ is in here so that an @end@
+        -- knows what it closes, but filtered out for a branch depth --
+        -- only @block@ and @loop@ count as levels.
+        go _ [] = Right mempty
+        go open ((addr, instruction) : rest) = case instruction of
+            Block -> go ((Block, addr) : open) rest
+            Loop -> go ((Loop, addr) : open) rest
+            If -> go ((If, addr) : open) rest
+            -- The @end@ still closes an @if@; only the address moves.
+            Else -> go ((If, addr) : drop 1 open) rest
+            End -> case open of
+                (kind, _) : outer
+                    | isScopeRecord kind ->
+                        withEndPop addr <$> go outer rest
+                _ : outer -> go outer rest
+                [] -> Right mempty
+            Br depth -> plan addr depth rest
+            BrIf depth -> plan addr depth rest
+            _ -> go open rest
+            where
+                plan brAddr depth rest' = do
+                    p <- branchPlan brAddr depth (filter (isScopeRecord . fst) open)
+                    withBranch brAddr p <$> go open rest'
+
+        isScopeRecord Block = True
+        isScopeRecord Loop = True
+        isScopeRecord _ = False
+
+        branchPlan brAddr depth levels = case drop depth levels of
+            (Loop, loopAddr) : _ ->
+                -- Re-entering a loop leaves its own record open, so only
+                -- what is nested inside it retires.
+                Right BranchPlan{bpTarget = loopAddr + byteSize (Loop @w @w), bpPop = depth, bpCheck = depth + 1}
+            (Block, blockAddr) : _ -> do
+                end <-
+                    maybe
+                        (Left $ "block at " <> hexAddr 2 blockAddr <> " has no resolved end")
+                        Right
+                        (targets !? blockAddr)
+                Right BranchPlan{bpTarget = end + byteSize (End @w @w), bpPop = depth + 1, bpCheck = depth + 1}
+            _ ->
+                Left $
+                    "br/br_if at "
+                        <> hexAddr 2 brAddr
+                        <> ": depth "
+                        <> show depth
+                        <> " names a scope that does not enclose it, only "
+                        <> show (length levels)
+                        <> " open here"
+
+        withEndPop addr plan = plan{spEndPops = IntSet.insert addr (spEndPops plan)}
+        withBranch addr p plan = plan{spBranches = insert addr p (spBranches plan)}
+
+-- | Everything fixed about a loaded program's control flow -- the two
+-- walks above over each of its 'codeRuns'. Addresses are unique across
+-- runs, so the tables merge without overlapping.
+resolveProgram :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> Either Text ScopePlan
+resolveProgram = fmap mconcat . traverse runPlan . codeRuns
+    where
+        runPlan run = do
+            targets <- resolveScopeTargets run
+            plan <- resolveBranches targets run
+            return plan{spTargets = targets}
 
 -- | The widths in bits of the operands an instruction encodes after its
 -- opcode byte, which is all 'byteSize' needs to know about any of them.
@@ -503,7 +634,7 @@ resolveProgram = fmap mconcat . traverse resolveScopeTargets . codeRuns
 -- Listed exhaustively, with no catch-all: an instruction added without a
 -- line here is a missing-pattern warning, where a catch-all would have
 -- silently given it a bare opcode's size. Range-checking the values is
--- 'narrowLit''s job, at parse time.
+-- @narrowLit@'s job, at parse time.
 operandWidths :: Wasm32Isa w l -> [Int]
 operandWidths instruction = case instruction of
     I32Const{} -> [8 * byteSizeT @Int32]
@@ -593,12 +724,13 @@ data Wasm32St w = Wasm32St
     -- ^ How many memory accesses the *last executed* instruction made,
     -- its own fetch included. Reset per step in 'instructionStep';
     -- exposed to reports as @memAccesses@.
-    , scopeTargets :: IntMap Int
-    -- ^ Where each @block@\/@loop@\/@if@\/@else@ in the loaded program
-    -- jumps to, keyed by its own address: built once by 'initState' (see
-    -- 'resolveScopeTargets'), read-only thereafter. A real engine keeps
-    -- the same table, for the same reason -- the alternative is scanning
-    -- forward for the matching @end@ every time the instruction runs.
+    , scopePlan :: ScopePlan
+    -- ^ Everything about the loaded program's control flow that is fixed
+    -- before it runs -- where each scope instruction jumps to, what each
+    -- @br@ does, which @end@s close a record. Built once by 'initState'
+    -- (see 'resolveProgram'), read-only thereafter. A real engine keeps
+    -- the same tables, for the same reason: the alternative is searching
+    -- memory for an answer that was never going to change.
     , mem :: IoMem (Wasm32Isa w w) w
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -617,7 +749,7 @@ instance (IsWord w) => InitState (Wasm32St w) where
             , frameBase = stackRoot dump - byteSizeT @w
             , localCount = 0
             , memAccessCount = 0
-            , scopeTargets = fromRight mempty resolved
+            , scopePlan = fromRight mempty resolved
             , mem = dump
             , stopped = False
             , -- Malformed nesting stops the program before its first
@@ -801,33 +933,47 @@ scopeAddrs Wasm32St{ctrlSp, ctrlBase} =
 ctrlTopOf :: forall w. (IsWord w) => Wasm32St w -> Int
 ctrlTopOf = fromMaybe nullAddr . listToMaybe . scopeAddrs @w
 
--- | Read and decode the control record at @addr@. 'Left' when the words
--- there don't decode as a record at all, which can only mean the control
--- stack has been corrupted -- reported rather than guessed at.
-readScopeAt :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text Scope)
-readScopeAt addr = do
-    let step = byteSizeT @w
-    words_ <- mapM (\i -> getWord (addr + i * step)) [0 .. scopeRecordWords - 1]
-    return $ first (\err -> "control stack corrupted at " <> hexAddr 2 addr <> ": " <> err) (decodeScope @w words_)
+-- | Which kind of record sits at @addr@, reading its first word only --
+-- half of what decoding a whole record costs. Enough for a caller that
+-- already knows what the record should be and only has to confirm it.
+readScopeTagAt :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text ControlTag)
+readScopeTagAt addr = do
+    word0 <- getWord @w addr
+    return $ first (\err -> "control stack corrupted at " <> hexAddr 2 addr <> ": " <> err) (decodeScopeTag word0)
 
--- | Read up to @n@ records from the innermost outward, each with its own
--- address -- fewer if the stack is shallower, and stopping at the first
--- record that fails to decode.
-readScope :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text [(Int, Scope)])
-readScope n = do
+-- | Confirm the innermost @n@ records are the @block@\/@loop@ records the
+-- 'ScopePlan' says enclose this point, before a branch retires any of
+-- them.
+--
+-- A branch's target and its pop count come from where it is written, so
+-- the one thing the machine cannot know from that alone is whether
+-- control /arrived/ the way the nesting implies. It cannot if a function
+-- body sits inside another function's scope and is entered by @call@ --
+-- and then the records the branch would pop include that call's own,
+-- whose loss would strand the callee. One word per record is what it
+-- costs to refuse instead: the tag, nothing else.
+--
+-- The branch that matters most pays least. @br 0@ back into a loop
+-- retires nothing and checks the one record it re-enters.
+checkOwnScopes :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text ())
+checkOwnScopes n = do
     st <- get
-    go (take n (scopeAddrs st))
+    let addrs = take n (scopeAddrs @w st)
+    if length addrs < n
+        then
+            return
+                $ Left
+                $ "br/br_if: depth reaches past the "
+                    <> show (length addrs)
+                    <> " scope(s) actually open"
+        else go addrs
     where
-        go [] = return $ Right []
+        go [] = return $ Right ()
         go (addr : rest) =
-            readScopeAt addr >>= \case
+            readScopeTagAt @w addr >>= \case
                 Left err -> return $ Left err
-                Right scope -> fmap ((addr, scope) :) <$> go rest
-
--- | Read the innermost open record. 'Nothing' when nothing is open,
--- which some callers treat as "nothing to do" rather than an error.
-readTopScope :: forall w. (IsWord w) => State (Wasm32St w) (Either Text (Maybe (Int, Scope)))
-readTopScope = fmap listToMaybe <$> readScope 1
+                Right CallTag -> return $ Left "br/br_if: depth reaches past the enclosing function; use return to leave it"
+                Right _ -> go rest
 
 -- | Push a scope at the current frontier and advance it. Never touches
 -- @sp@ -- the two stacks grow apart from 'ctrlBase'.
@@ -847,93 +993,78 @@ pushScope scope = do
 popScope :: forall w. (IsWord w) => State (Wasm32St w) ()
 popScope = modify $ \st -> st{ctrlSp = ctrlSp st - scopeRecordBytes @w}
 
--- | Find the control record @depth@ levels out from the innermost open
--- one (0 = innermost). Errors at a 'CallScope' rather than reaching
--- through it: a @br@ is scoped to its own function's nesting, and
--- leaving a function is @return@'s job. The two failures get different
--- messages -- a reader told only "out of range" tries a different depth
--- when the fix is a @return@.
-findBranchTarget :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Either Text Int)
-findBranchTarget depth = do
-    records <- readScope (depth + 1)
-    return $ do
-        records' <- records
-        case drop depth records' of
-            _
-                | any (isCallScope . snd) records' -> Left "br/br_if: depth reaches past the enclosing function; use return to leave it"
-            (target, _) : _ -> Right target
-            [] -> Left $ "br/br_if: depth " <> show depth <> " is out of range, only " <> show (length records') <> " scope(s) open"
-
-isCallScope :: Scope -> Bool
-isCallScope CallScope{} = True
-isCallScope _ = False
-
--- | Find the nearest enclosing 'CallScope' -- what @return@ closes.
--- Unlike 'findBranchTarget', this reaches *through* any @block@\/@loop@
--- in the way: a @return@ inside a loop must still close it.
-findCall :: forall w. (IsWord w) => State (Wasm32St w) (Either Text Int)
-findCall = do
+-- | Return from the nearest enclosing call: forward the declared
+-- results, discard the callee's frame, and restore the caller's.
+--
+-- Everything the callee still had open inside that frame goes with it.
+-- Those records need no reading: closing a @block@ or @loop@ is only a
+-- retreat of @ctrlSp@, so finding the call's own record is the only part
+-- that has to touch memory -- one word per record on the way out to read
+-- its tag, then the record itself, once.
+returnFromCall :: forall w. (IsWord w) => State (Wasm32St w) ()
+returnFromCall = do
     st <- get
-    go (scopeAddrs st)
+    go (scopeAddrs @w st)
     where
-        go [] = return $ Left "return without active function frame"
-        go (addr : outer) =
-            readScopeAt addr >>= \case
-                Left err -> return $ Left err
-                Right CallScope{} -> return $ Right addr
+        go [] = raiseInternalError "return without active function frame"
+        go (addr : outer) = do
+            -- Word 0 carries the tag, so one read per record is enough to
+            -- step over a @block@ or @loop@. Only the call record itself
+            -- is worth completing, and its word 0 is already in hand.
+            word0 <- getWord @w addr
+            case decodeScopeTag word0 of
+                Left err -> raiseInternalError $ corrupted addr err
+                Right CallTag -> closeCall addr word0
                 Right _ -> go outer
 
--- | Close the innermost open record (always a LIFO pop). If @keepOpen@
--- (a taken branch back into a loop), just jump to its start. A
--- 'CallScope' is never @keepOpen@; everything else retreats @ctrlSp@
--- past it and jumps past its @end@.
-closeScope :: forall w. (IsWord w) => Bool -> State (Wasm32St w) ()
-closeScope keepOpen =
-    readTopScope >>= \case
-        Left err -> raiseInternalError err
-        Right Nothing -> raiseInternalError "closeScope: no open control record"
-        Right (Just (_, scope)) -> case scope of
-            LoopScope{csStart} | keepOpen -> setPc csStart
-            LoopScope{csEnd} -> popScope @w >> setPc (csEnd + byteSize End)
-            BlockScope{csEnd} -> popScope @w >> setPc (csEnd + byteSize End)
-            CallScope{csCallerFrameBase, csCallerLocalCount, csReturnPc, csResultCount} -> do
-                results <- popValues csResultCount
-                Wasm32St{frameBase} <- get
-                modify $ \st -> st{sp = frameBase + byteSizeT @w}
-                mapM_ pushValue results
-                popScope @w
-                modify $ \st -> st{frameBase = csCallerFrameBase, localCount = csCallerLocalCount}
-                setPc csReturnPc
+        closeCall addr word0 = do
+            rest <- mapM (getWord @w) (drop 1 (scopeWordAddrs @w addr))
+            case decodeScope @w (word0 : rest) of
+                Left err -> raiseInternalError $ corrupted addr err
+                Right CallScope{csCallerFrameBase, csCallerLocalCount, csReturnPc, csResultCount} -> do
+                    results <- popValues csResultCount
+                    Wasm32St{frameBase} <- get
+                    modify $ \st ->
+                        st
+                            { sp = frameBase + byteSizeT @w
+                            , -- Everything from this record up was the
+                              -- callee's; the record goes too.
+                              ctrlSp = addr
+                            , frameBase = csCallerFrameBase
+                            , localCount = csCallerLocalCount
+                            }
+                    mapM_ pushValue results
+                    setPc csReturnPc
+                Right other -> raiseInternalError $ corrupted addr ("expected a call record, found " <> show other)
+
+        corrupted addr err = "control stack corrupted at " <> hexAddr 2 addr <> ": " <> err
 
 popValues :: forall w. (IsWord w) => Int -> State (Wasm32St w) [w]
 popValues n = reverse <$> replicateM n popValue
 
--- | Close every open record from the innermost down to and including
--- @r@, keeping @r@ open only if @keepOpen@ (branching back into a loop).
--- Anything nested inside @r@ is closed whatever its kind.
-unwindTo :: forall w. (IsWord w) => Int -> Bool -> State (Wasm32St w) ()
-unwindTo r keepOpen = do
-    st <- get
-    if ctrlTopOf @w st == r
-        then closeScope keepOpen
-        else do
-            closeScope False
-            unwindTo r keepOpen
-
--- | Branch to the @block@\/@loop@ @depth@ levels out (0 = innermost): a
--- @loop@ stays open (continue), a @block@ closes along with everything
--- nested inside it (break). 'findBranchTarget' already guarantees the
--- target is never a 'CallScope'.
+-- | Branch to the @block@\/@loop@ the 'BranchPlan' for this @br@ names:
+-- a @loop@ stays open (continue), a @block@ closes along with everything
+-- nested inside it (break).
+--
+-- Both where to jump and how many records to retire were settled when
+-- the program loaded, so neither is searched for here. What is checked
+-- is that the records really are the ones the plan expects -- see
+-- 'checkOwnScopes' -- and then retiring them is arithmetic on @ctrlSp@.
 branchTo :: forall w. (IsWord w) => Int -> State (Wasm32St w) ()
-branchTo depth = do
-    result <- findBranchTarget depth
-    case result of
-        Left err -> raiseInternalError err
-        Right target ->
-            readScopeAt target >>= \case
+branchTo pc = do
+    Wasm32St{scopePlan = ScopePlan{spBranches}} <- get
+    case spBranches !? pc of
+        Nothing ->
+            raiseInternalError $
+                "control flow error: the branch at "
+                    <> hexAddr 2 pc
+                    <> " is not one the loaded program resolved"
+        Just BranchPlan{bpTarget, bpPop, bpCheck} ->
+            checkOwnScopes @w bpCheck >>= \case
                 Left err -> raiseInternalError err
-                Right LoopScope{} -> unwindTo target True
-                Right _ -> unwindTo target False
+                Right () -> do
+                    modify $ \st -> st{ctrlSp = ctrlSp st - bpPop * scopeRecordBytes @w}
+                    setPc bpTarget
 
 instance (IsWord w) => Inspectable (Wasm32St w) where
     type WordOf (Wasm32St w) = w
@@ -1060,17 +1191,29 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     else withScopeTarget setPc
             Else -> withScopeTarget setPc
             End -> do
-                -- A plain @end@ closes a @block@\/@loop@ only when it is
-                -- that scope's own matching @end@; an @if@'s @end@ finds
-                -- some enclosing scope on top instead, whose own @end@
-                -- is elsewhere. It never closes a call -- @return@ does.
-                top <- readTopScope
-                case top of
-                    Left err -> raiseInternalError err
-                    Right (Just (_, LoopScope{csEnd})) | csEnd == pc -> popScope @w
-                    Right (Just (_, BlockScope{csEnd})) | csEnd == pc -> popScope @w
-                    Right _ -> return ()
-                nextPc instruction
+                -- Whether this @end@ closes a record is settled: an
+                -- @if@'s @end@ closes nothing, since @if@ opened nothing.
+                -- Comparing a record's @csEnd@ against @pc@ used to be
+                -- how that was told apart, which cost reading the record.
+                Wasm32St{scopePlan = ScopePlan{spEndPops}} <- get
+                if not (pc `IntSet.member` spEndPops)
+                    then nextPc instruction
+                    else
+                        -- One word, to be sure the record being retired
+                        -- is a scope's and not some call's -- the same
+                        -- thing 'checkOwnScopes' guards for a branch.
+                        ctrlTopOf @w <$> get >>= \top ->
+                            if top == nullAddr
+                                then raiseInternalError "end: no open control record to close" >> nextPc instruction
+                                else
+                                    readScopeTagAt @w top >>= \case
+                                        Left err -> raiseInternalError err
+                                        Right CallTag ->
+                                            raiseInternalError $
+                                                "end at "
+                                                    <> hexAddr 2 pc
+                                                    <> " would close the enclosing function's own record"
+                                        Right _ -> popScope @w >> nextPc instruction
             Loop ->
                 withScopeTarget $ \endPc -> do
                     pushScope LoopScope{csStart = pc + byteSize instruction, csEnd = endPc}
@@ -1079,12 +1222,12 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 withScopeTarget $ \endPc -> do
                     pushScope BlockScope{csEnd = endPc}
                     nextPc instruction
-            Br depth -> branchTo depth
-            BrIf depth -> do
+            Br{} -> branchTo pc
+            BrIf{} -> do
                 condition <- popValue
                 if condition == 0
                     then nextPc instruction
-                    else branchTo depth
+                    else branchTo pc
             Dup -> do
                 top <- popValue
                 pushValue top
@@ -1136,11 +1279,7 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                         }
                 modify $ \st -> st{frameBase = calleeFrameBase, localCount = paramCount}
                 setPc (fromEnum target)
-            Return -> do
-                result <- findCall
-                case result of
-                    Left err -> raiseInternalError err
-                    Right r -> unwindTo r False
+            Return -> returnFromCall
             SpInit -> do
                 addr <- fromEnum <$> popValue
                 Wasm32St{mem} <- get
@@ -1197,8 +1336,8 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
             -- the program that was loaded -- memory rewritten under the
             -- machine, say -- so it is reported rather than guessed at.
             withScopeTarget k = do
-                Wasm32St{scopeTargets} <- get
-                case scopeTargets !? pc of
+                Wasm32St{scopePlan = ScopePlan{spTargets}} <- get
+                case spTargets !? pc of
                     Just target -> k target
                     Nothing ->
                         raiseInternalError $
@@ -1456,18 +1595,27 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- closes it, along with every scope nested between the branch and it --
 -- this is how a program breaks out of one or more levels at once.
 --
--- A branch to depth @n@ steps out @n@ records, closes every record strictly
--- between the branch and the target whatever its kind, and finally either
--- re-enters the target (a loop) or closes it too (a block). Closing a
--- record is nothing but retreating @ctrlSp@; the operand stack is
--- untouched, so anything a scope's body pushed and never popped survives
+-- Both halves of what a branch does are fixed before the program runs: the
+-- scope @n@ levels out is whichever one the nesting puts there, and whether
+-- reaching it re-enters a @loop@ or steps out of a @block@ follows from
+-- which it is. So a branch searches for nothing -- it retires @n@ records
+-- (or @n + 1@, for a block, which closes too) by moving @ctrlSp@, and jumps
+-- to an address 'resolveBranches' already worked out. A depth naming a
+-- scope that does not enclose the branch is rejected when the program
+-- loads, not when the branch runs.
+--
+-- Retiring a record is nothing but retreating @ctrlSp@; the operand stack
+-- is untouched, so anything a scope's body pushed and never popped survives
 -- the scope closing.
 --
--- A branch's depth can never reach across a function call boundary:
--- stepping outward stops with an error the moment it would pass through a
--- call's own record. A structured branch is scoped to the function it
--- appears in; leaving a function is @return@'s job, not a branch's, and the
--- diagnostic says so.
+-- A branch's depth still cannot reach across a function call boundary. The
+-- one thing the nesting cannot say is how control /arrived/ -- a function
+-- whose body sits inside another function's scope and is entered by @call@
+-- reaches its branch with that call's record in the way -- so before
+-- retiring anything a branch confirms the records are the ones it expects,
+-- at one word each ('checkOwnScopes'). Finding the call's record there is
+-- an error: a structured branch is scoped to the function it appears in,
+-- and leaving a function is @return@'s job.
 
 -- $functions
 --
@@ -1533,7 +1681,7 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- * __Scope nesting is checked when the program loads, not before.__ Real
 --   WebAssembly validates a module's structure up front and refuses to
 --   instantiate a malformed one. Here the same matching happens at the same
---   point -- 'initState' builds 'scopeTargets' and reports an unbalanced
+--   point -- 'initState' builds a 'ScopePlan' and reports an unbalanced
 --   @block@ before the first instruction runs -- but it is the machine
 --   doing it, not a separate validation pass, and nothing else about a
 --   program is validated alongside it.

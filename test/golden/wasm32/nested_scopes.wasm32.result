@@ -186,7 +186,7 @@ stack: 30:6:100
   mem[0x1d8..0x1df]: LoopScope { csStart = 0x007, csEnd = 0x00d }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x0000000e: End  // access: 3
+:::: 0x0000000e: End  // access: 2
 #0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
@@ -201,7 +201,7 @@ stack: 30:6:100
   mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x0000000f: End  // access: 3
+:::: 0x0000000f: End  // access: 2
 #0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
@@ -215,7 +215,7 @@ stack: 30:6:100
   mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x0000001f: Return  // access: 7
+:::: 0x0000001f: Return  // access: 5
 #0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
@@ -238,7 +238,7 @@ stack: 30:6:100
   mem[0x1a8..0x1af]: (operands)
     0: 0x00000006
     1: 0x0000001e
-:::: 0x0000003e: Return  // access: 9
+:::: 0x0000003e: Return  // access: 7
   mem[0x1b4..0x1bf]: (operands)
     0: 0x00000064
     1: 0x00000006

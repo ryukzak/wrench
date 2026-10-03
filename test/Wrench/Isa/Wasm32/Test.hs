@@ -142,6 +142,50 @@ tests =
             assertTranslationError "local.get index 300" ["local.get 300"]
             assertTranslationError "br depth -1" ["block", "br -1", "end"]
             assertTranslationError "call resultCount 300" ["i32.const 0", "call 0, 300"]
+        , testCase "A br depth deeper than its own nesting is rejected on load" $ do
+            -- Where a br goes is fixed by the nesting it sits in, so a
+            -- depth naming a scope that is not there needs no execution
+            -- to spot. This used to be found only if the br ran.
+            assertTrap "depth 3 names a scope that does not enclose it, only 1 open here" ["block", "br 3", "end"]
+            assertTrap "depth 0 names a scope that does not enclose it, only 0 open here" ["br 0"]
+            -- An `if` is not a level -- only block and loop are.
+            assertTrap
+                "depth 0 names a scope that does not enclose it, only 0 open here"
+                ["i32.const 1", "if", "br 0", "end"]
+        , testCase "A br still cannot reach past the enclosing function" $ do
+            -- The one thing a load-time plan cannot know is how control
+            -- \*arrived*. Put a function's body inside the caller's block
+            -- and call into it, and the records the br would retire
+            -- include the call's own -- which would strand the callee.
+            -- `checkOwnScopes` reads one word per record to refuse.
+            let viaCall body =
+                    Prelude.unlines $
+                        [ ".text"
+                        , "_start:"
+                        , "    block"
+                        ]
+                            <> body
+                            <> [ "    end"
+                               , "    halt"
+                               ]
+            assertSourceTrap "depth reaches past the enclosing function" $
+                viaCall
+                    [ "        i32.const f"
+                    , "        call     0, 0"
+                    , "f:"
+                    , "        br       0"
+                    ]
+            -- And a loop target, where the branch retires nothing at all
+            -- and the only record it looks at is the one it re-enters.
+            assertSourceTrap "depth reaches past the enclosing function" $
+                viaCall
+                    [ "        loop"
+                    , "            i32.const g"
+                    , "            call     0, 0"
+                    , "g:"
+                    , "            br       0"
+                    , "        end"
+                    ]
         , testCase "A scope cannot span the gap between two code sections" $ do
             -- Matching is per contiguous run of instructions, not over
             -- the whole loaded program. A `block` whose body runs off the
