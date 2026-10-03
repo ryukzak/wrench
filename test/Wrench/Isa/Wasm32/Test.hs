@@ -109,20 +109,21 @@ tests =
             assertHalts False ["i32.const -2147483648", "i32.const -1", "i32.div_s"]
             stack <- runToStack ["i32.const -2147483648", "i32.const -1", "i32.rem_s"]
             stack @?= "0"
-        , testCase "Scope targets resolve to the matching end at translate time" $ do
-            -- `if` skips to the first instruction of the else-body (or
-            -- past the `end` when there is none); `else` skips past the
-            -- `end`; `block`/`loop` carry the `end`'s own address, which
-            -- is what lands in the control record as csEnd.
+        , testCase "Scope targets resolve to the matching end when the program loads" $ do
+            -- `if` resumes at the first instruction of the else-body (or
+            -- past the `end` when there is none); `else` resumes past the
+            -- `end`; `block`/`loop` resolve to the `end`'s own address,
+            -- which is what lands in the control record as csEnd.
+            -- Addresses count from _start at 0, and i32.const is 5 bytes.
             assertResolved
                 ["i32.const 0", "if", "dup", "else", "dup", "end"]
-                [If 7, Dup, Else 5, Dup, End]
+                [(5, 8), (7, 10)]
             assertResolved
                 ["i32.const 0", "if", "dup", "end"]
-                [If 5, Dup, End]
+                [(5, 8)]
             assertResolved
                 ["block", "loop", "dup", "end", "end"]
-                [Block 8, Loop 4, Dup, End, End]
+                [(0, 4), (1, 3)]
         , testCase "Control records round-trip through their packed form" $ do
             forM_ sampleScopes $ \scope ->
                 (encodeScope @Int32 scope >>= decodeScope @Int32) @?= Right scope
@@ -133,20 +134,23 @@ tests =
             isLeft (encodeScope @Int32 BlockScope{csEnd = 1 `shiftL` 22}) @?= True
             isLeft (encodeScope @Int32 (CallScope 0 256 0 0)) @?= True
             isRight (encodeScope @Int32 (CallScope 0 255 0 255)) @?= True
-        , testCase "Out-of-range immediates are rejected by the translator" $ do
+        , testCase "Out-of-range immediates are rejected where they are written" $ do
             -- `call 0, 70` used to assemble happily and then quietly
             -- become `call 0, 6` once its control record packed the
-            -- count into six bits.
+            -- count into six bits. Rejected by the parser now, so the
+            -- message carries the operand's own line and column.
             assertTranslationError "local.get index 300" ["local.get 300"]
             assertTranslationError "br depth -1" ["block", "br -1", "end"]
             assertTranslationError "call resultCount 300" ["i32.const 0", "call 0, 300"]
-        , testCase "Unbalanced scopes are rejected by the translator" $ do
-            -- Used to be a run-time "control flow error" discovered only
-            -- when the forward scan ran off the end of memory.
-            assertTranslationError "no matching block/loop/if" ["end"]
-            assertTranslationError "no matching end" ["block"]
-            assertTranslationError "no matching end" ["loop", "block", "end"]
-            assertTranslationError "no matching if" ["else", "end"]
+        , testCase "Unbalanced scopes stop the program before its first step" $ do
+            -- Matching happens once, when the machine loads the program,
+            -- so this is reported whatever the program would have
+            -- executed -- unlike a forward scan, which only notices on a
+            -- path that actually runs it.
+            assertTrap "no matching block/loop/if" ["end"]
+            assertTrap "no matching end" ["block"]
+            assertTrap "no matching end" ["loop", "block", "end"]
+            assertTrap "no matching if" ["else", "end"]
         , testCase "block/br_if breaks out to the enclosing block" $ do
             stack <-
                 runToStack
@@ -394,16 +398,17 @@ assertHalts expectSuccess instrs =
         Right _ | expectSuccess -> return ()
         Right _ -> assertFailure "expected a trap, but the program ran to completion"
 
--- | Assemble @instrs@ and check the resolved instruction stream, so a
--- scope instruction's translate-time target is asserted directly rather
--- than only through where the program happens to jump.
-assertResolved :: [String] -> [Wasm32Isa Int32 Int32] -> Assertion
+-- | Assemble @instrs@ and check the scope-target table the program would
+-- load with, as @(scope instruction address, target address)@ pairs --
+-- so a target is asserted directly rather than only through where the
+-- program happens to jump.
+assertResolved :: [String] -> [(Int, Int)] -> Assertion
 assertResolved instrs expected =
     case translate @Wasm32Isa @Int32 1000 (repeat 0) "-" (toSource instrs) of
         Left err -> assertFailure $ "translation failed: " <> toString err
         Right TranslatorResult{dump} ->
-            let got = [i | (_, Instruction i) <- IntMap.toAscList (memoryData dump)]
-             in drop (length got - length expected - 1) got @?= expected <> [Halt]
+            let code = [(addr, i) | (addr, Instruction i) <- IntMap.toAscList (memoryData dump)]
+             in resolveScopeTargets code @?= Right (IntMap.fromList expected)
 
 -- | Assert the program stops with an error whose message contains
 -- @expected@, rather than merely stopping somehow.

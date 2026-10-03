@@ -10,7 +10,8 @@ A 32-bit stack-based instruction set for teaching, inspired by
   and values, and a /control stack/ holding the bookkeeping for open
   @block@\/@loop@\/call scopes -- no general-purpose registers.
 * Structured control flow (@block@, @loop@, @if@\/@else@) instead of
-  arbitrary jumps, with every scope's target resolved at assembly time.
+  arbitrary jumps, with every scope's target worked out once when the
+  program loads -- never by scanning for a matching @end@ as it runs.
 * Function calls where a function address is just an ordinary value, so a
   direct call and a call through a value computed at run time are the same
   instruction.
@@ -32,6 +33,9 @@ module Wrench.Isa.Wasm32 (
 
     -- * Machine state
     Wasm32St (..),
+
+    -- * Program loading
+    resolveScopeTargets,
 
     -- * Program structure
     -- $programStructure
@@ -59,9 +63,9 @@ import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
 import Data.Text qualified as T
 import Relude
-import Relude.Extra ((!?))
-import Text.Megaparsec (choice, try)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Relude.Extra (insert, toPairs, (!?))
+import Text.Megaparsec (choice, lookAhead, try)
+import Text.Megaparsec.Char (char, digitChar, hspace, hspace1, string)
 import Wrench.Isa.Wasm32.ControlRecord
 import Wrench.Isa.Wasm32.Layout
 import Wrench.Machine.Memory
@@ -177,28 +181,28 @@ data Wasm32Isa w l
       -- non-zero, otherwise skip to the matching @else@ (if there is one) or
       -- past the matching @end@.
       --
-      -- The @Int@ is the byte distance to resume at on the skip path,
-      -- resolved at translate time by 'resolveScopeTargets' and not written
-      -- in source. @if@ pushes no control record: nothing branches out of a
-      -- taken branch early, so there is nothing to remember.
-      If Int
+      -- Where that skip lands is not encoded in the instruction: like every
+      -- scope instruction here it is a bare opcode, and 'resolveScopeTargets'
+      -- works the targets out once, when the machine loads the program. @if@
+      -- pushes no control record: nothing branches out of a taken branch
+      -- early, so there is nothing to remember.
+      If
     | -- | @else@ -- marks the alternative body, reached only by a taken
       -- @if@-body falling through to it, at which point it skips
       -- unconditionally past the matching @end@. So the @else@-body never
       -- runs after the @if@-body already did.
-      Else Int
+      Else
     | -- | @end@ -- closes the innermost open @block@ or @loop@. An @if@\'s
       -- @end@ closes nothing, since @if@ opened nothing.
       End
     | -- | @loop@ -- open a scope a branch can jump /backward/ into, landing
       -- just after this instruction. On its own it runs its body once, like
-      -- @block@. The @Int@ is the byte distance to its own matching @end@.
-      Loop Int
+      -- @block@.
+      Loop
     | -- | @block@ -- open a scope a branch can jump /forward/ past, landing
       -- just after its matching @end@. This is what makes a \"break\"
-      -- possible, which @loop@ alone does not. The @Int@ is the byte
-      -- distance to that @end@.
-      Block Int
+      -- possible, which @loop@ alone does not.
+      Block
     | -- | @br \<depth\>@ -- branch unconditionally to the enclosing scope
       -- @depth@ levels out, @0@ being the innermost. See the \"Control
       -- flow\" section for what reaching a @loop@ versus a @block@ does.
@@ -322,33 +326,30 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
                     , memOp "i32.load" I32Load
                     , memOp "i32.store8" I32Store8
                     , memOp "i32.store" I32Store
-                    , -- The four scope instructions take no operand in
-                      -- source: their target is their own matching @end@,
-                      -- which 'resolveStructure' fills in at translate
-                      -- time. 'unresolvedTarget' marks the placeholder.
-                      cmd0 "if" (If unresolvedTarget)
-                    , cmd0 "else" (Else unresolvedTarget)
+                    , -- A scope instruction is a bare opcode, as in real
+                      -- WebAssembly: where it jumps to is its own matching
+                      -- @end@, which 'resolveScopeTargets' works out when
+                      -- the machine loads the program.
+                      cmd0 "if" If
+                    , cmd0 "else" Else
                     , cmd0 "end" End
-                    , cmd0 "loop" (Loop unresolvedTarget)
-                    , cmd0 "block" (Block unresolvedTarget)
-                    , try (Br <$> cmd1 "br" intLit)
-                    , try (BrIf <$> cmd1 "br_if" intLit)
+                    , cmd0 "loop" Loop
+                    , cmd0 "block" Block
+                    , Br <$> cmd1 "br" (narrowLit "br depth")
+                    , BrIf <$> cmd1 "br_if" (narrowLit "br_if depth")
                     , cmd0 "dup" Dup
                     , cmd0 "drop" Drop
                     , cmd0 "select" Select
                     , cmd0 "unreachable" Unreachable
-                    , try (LocalGet <$> cmd1 "local.get" intLit)
-                    , try (LocalSet <$> cmd1 "local.set" intLit)
-                    , try (LocalTee <$> cmd1 "local.tee" intLit)
-                    , try (LocalsReserve <$> cmd1 "locals.reserve" intLit)
-                    , try
-                        ( do
-                            void $ string "call"
-                            hspace1
-                            params <- intLit
-                            comma
-                            Call params <$> intLit
-                        )
+                    , LocalGet <$> cmd1 "local.get" (narrowLit "local.get index")
+                    , LocalSet <$> cmd1 "local.set" (narrowLit "local.set index")
+                    , LocalTee <$> cmd1 "local.tee" (narrowLit "local.tee index")
+                    , LocalsReserve <$> cmd1 "locals.reserve" (narrowLit "locals.reserve count")
+                    , do
+                        void $ cmd1 "call" (pure ())
+                        params <- narrowLit "call paramCount"
+                        comma
+                        Call params <$> narrowLit "call resultCount"
                     , cmd0 "return" Return
                     , cmd0 "sp.init" SpInit
                     , cmd0 "halt" Halt
@@ -357,33 +358,64 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
 cmd0 :: String -> a -> Parser a
 cmd0 mnemonic constructor = string mnemonic >> return constructor
 
+-- | A mnemonic and its one operand.
+--
+-- The @try@ covers only the mnemonic and the space after it -- just
+-- enough to let @local.get@, @local.set@ and @local.tee@, which share a
+-- prefix, be told apart, and to let @br@ fall through to @br_if@. The
+-- operand is parsed committed, so a complaint about it (see 'narrowLit')
+-- is reported where it happened instead of being backtracked away and
+-- resurfacing as \"no mnemonic matched here\".
 cmd1 :: String -> Parser a -> Parser a
-cmd1 mnemonic arg = string mnemonic >> hspace1 >> arg
+cmd1 mnemonic arg = try (string mnemonic >> hspace1) >> arg
 
 -- | A load\/store, whose static offset may be left off when it is zero:
 -- @i32.load@ and @i32.load 0@ assemble to the same thing.
+--
+-- Deciding which it is needs one character of lookahead and nothing
+-- more: a digit starts an offset, anything else (another mnemonic on the
+-- same line, a comment, the end of the line) means there isn't one. That
+-- keeps 'narrowLit' outside the backtracking, where an offset of 256
+-- would otherwise be silently rejected, replaced by @0@, and left to
+-- fail later as a stray number.
 memOp :: String -> (Int -> a) -> Parser a
 memOp mnemonic constructor =
-    string mnemonic >> (constructor <$> (try (hspace1 >> intLit) <|> pure 0))
+    string mnemonic >> (constructor <$> (offset <|> pure 0))
+    where
+        offset = try (hspace1 >> void (lookAhead digitChar)) >> narrowLit "load/store offset"
 
--- | An integer immediate -- a branch depth, a local index, one of
--- @call@'s counts, a load\/store offset -- in decimal or @0x@ hex.
--- Fails as a parser rather than handing an empty string to @read@:
--- 'num' is built from 'many', so it matches nothing happily, and an
--- optional immediate (see 'memOp') needs to find that out by
--- backtracking.
+-- | An integer immediate in decimal or @0x@ hex. Fails as a parser
+-- rather than handing an empty string to @read@: 'num' is built from
+-- 'many', so it matches nothing happily, and an optional immediate (see
+-- 'memOp') needs to find that out by backtracking.
 intLit :: Parser Int
 intLit = do
     digits <- try hexNum <|> num
     maybe (fail $ "expected an integer literal, got " <> show digits) return (readMaybe digits)
 
+-- | An immediate that has to fit the one-byte field its instruction
+-- encodes it in -- a branch depth, a local index, one of @call@'s
+-- counts, a load\/store offset.
+--
+-- Checked here, where the field's name and the operand's own line and
+-- column are both to hand, rather than later over an instruction stream
+-- that only knows addresses. Masking a high bit off doesn't make a
+-- smaller number, it makes a different one: @call 0, 300@ assembling as
+-- @call 0, 44@ would pop the wrong number of results, silently.
+narrowLit :: String -> Parser Int
+narrowLit what = do
+    value <- intLit
+    if value >= 0 && value < 1 `shiftL` immediateBitWidth
+        then return value
+        else
+            fail $
+                what <> " " <> show value <> " doesn't fit in " <> show immediateBitWidth <> " bits"
+
 -- | Separates @call@'s two operands (paramCount, resultCount).
 comma :: Parser ()
 comma = hspace >> void (char ',') >> hspace
 
-instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
-    resolveStructure = resolveScopeTargets
-
+instance DerefMnemonic (Wasm32Isa w) w where
     -- Exactly one constructor carries a label, and @l@ is this type's
     -- last parameter, so the derived 'Functor' already is this
     -- traversal: the longhand version was 44 lines of @X -> X@ around
@@ -391,91 +423,72 @@ instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
     derefMnemonic f _offset = fmap (deref' f)
 
 -- | Match every @block@\/@loop@\/@if@\/@else@ with its own @end@ and
--- write the byte distance between them into the instruction, once, at
--- translate time -- so the interpreter only ever adds it to @pc@, and an
--- unbalanced @end@ is a translation error rather than something found
--- when a run-time forward scan falls off the end of memory.
-resolveScopeTargets :: forall w. (IsWord w) => [(w, Wasm32Isa w w)] -> Either Text [Wasm32Isa w w]
-resolveScopeTargets marked = do
-    mapM_ checkSourceOperands marked
-    resolved <- matchScopes marked
-    mapM_ checkResolvedOperands resolved
-    return (map snd resolved)
-
--- | Walk the stream pairing each scope instruction with its own @end@,
--- and write the byte distance between them into it. Unbalanced nesting
--- is a 'Left' naming the offending address.
-matchScopes :: forall w. (IsWord w) => [(w, Wasm32Isa w w)] -> Either Text [(w, Wasm32Isa w w)]
-matchScopes marked = do
-    patches <- go [] (zip [0 ..] marked)
-    let patched = fromList patches :: IntMap Int
-        resolve i (addr, instruction) = (addr, maybe instruction (retarget instruction) (patched !? i))
-    return (zipWith resolve [0 ..] marked)
+-- report where each one jumps to, keyed by its own address.
+--
+-- Run once, by 'initState', over the instructions the program loaded --
+-- never per execution. Real WebAssembly's scope instructions carry no
+-- target either: an engine validates the nesting and builds exactly this
+-- table while loading a module, which is also why a @block@ whose @end@
+-- is missing is caught here, before the first instruction runs, rather
+-- than whenever some forward scan happens to fall off the end of memory.
+--
+-- A @block@ or @loop@ maps to its own matching @end@, which is what goes
+-- into its control record as @csEnd@. An @if@ maps to where its skip
+-- path resumes -- the first instruction of the @else@ body, or just past
+-- the @end@ when there is none -- and an @else@ to just past its @end@.
+resolveScopeTargets :: [(Int, Wasm32Isa w w)] -> Either Text (IntMap Int)
+resolveScopeTargets = go []
     where
-        -- \| One entry per scope still waiting for its @end@: the index of
-        -- the instruction to patch, its own address, and whether that
-        -- instruction wants the @end@'s own address ('AtEnd', for
-        -- @block@\/@loop@, which store it as @csEnd@) or the address just
-        -- past it ('PastEnd', for the @if@\/@else@ that skip over it).
+        -- \| One entry per scope still waiting for its @end@: the address
+        -- of the instruction to resolve, and whether it wants the @end@'s
+        -- own address ('AtEnd', for @block@\/@loop@, which store it as
+        -- @csEnd@) or the address just past it ('PastEnd', for the
+        -- @if@\/@else@ that skip over it).
         go open [] = case open of
-            [] -> Right []
-            (_, addr, _) : _ -> Left $ "block/loop/if at " <> hexAddr 2 addr <> " has no matching end"
-        go open ((i, (addr, instruction)) : rest) = case instruction of
-            Block{} -> go ((i, fromEnum addr, AtEnd) : open) rest
-            Loop{} -> go ((i, fromEnum addr, AtEnd) : open) rest
-            If{} -> go ((i, fromEnum addr, PastEnd) : open) rest
-            Else{} -> case open of
+            [] -> Right mempty
+            (addr, _) : _ -> Left $ "block/loop/if at " <> hexAddr 2 addr <> " has no matching end"
+        go open ((addr, instruction) : rest) = case instruction of
+            Block -> go ((addr, AtEnd) : open) rest
+            Loop -> go ((addr, AtEnd) : open) rest
+            If -> go ((addr, PastEnd) : open) rest
+            Else -> case open of
                 -- The @if@ resumes at the first instruction of this
                 -- @else@'s body; this @else@ takes the @if@'s place in the
                 -- open list, to be closed by the same @end@.
-                (j, ifAddr, PastEnd) : outer ->
-                    ((j, fromEnum addr + byteSize instruction - ifAddr) :)
-                        <$> go ((i, fromEnum addr, PastEnd) : outer) rest
-                _ -> Left $ "else at " <> hexAddr 2 (fromEnum addr) <> " has no matching if"
+                (ifAddr, PastEnd) : outer ->
+                    insert ifAddr (addr + byteSize instruction)
+                        <$> go ((addr, PastEnd) : outer) rest
+                _ -> Left $ "else at " <> hexAddr 2 addr <> " has no matching if"
             End -> case open of
-                (j, openAddr, want) : outer ->
+                (openAddr, want) : outer ->
                     let target = case want of
-                            AtEnd -> fromEnum addr
-                            PastEnd -> fromEnum addr + byteSize End
-                     in ((j, target - openAddr) :) <$> go outer rest
-                [] -> Left $ "end at " <> hexAddr 2 (fromEnum addr) <> " has no matching block/loop/if"
+                            AtEnd -> addr
+                            PastEnd -> addr + byteSize End
+                     in insert openAddr target <$> go outer rest
+                [] -> Left $ "end at " <> hexAddr 2 addr <> " has no matching block/loop/if"
             _ -> go open rest
 
-        retarget instruction d = case instruction of
-            Block{} -> Block d
-            Loop{} -> Loop d
-            If{} -> If d
-            Else{} -> Else d
-            other -> other
+-- | Which address a scope instruction wants out of its own matching
+-- @end@ -- see 'resolveScopeTargets'.
+data ScopeTargetKind = AtEnd | PastEnd
 
--- | One operand an instruction encodes after its opcode byte. Three
--- things need to agree about every one of them -- how many bytes the
--- instruction occupies, what range the assembler accepts, and when it
--- is in a position to check -- so they are all read off a single
--- description of the instruction's shape ('operands') rather than
--- maintained as three parallel case expressions.
-data Operand
-    = -- | An immediate written in source: already final when the
-      -- assembler first sees the instruction.
-      Source Text Int Int
-    | -- | A target 'resolveScopeTargets' fills in, holding
-      -- 'unresolvedTarget' until it does -- so it is only worth checking
-      -- once resolution has run.
-      Target Text Int Int
-    | -- | A full machine word. No range for a value to fall outside, which
-      -- is why a label reference needs no check.
-      FullWord
+-- | The instructions a loaded program consists of, each with its own
+-- address, in address order -- what 'resolveScopeTargets' matches over.
+-- Reads the dump's cells rather than memory, so it sees the program as
+-- laid out and never a byte of @.data@ as an instruction.
+codeStream :: forall w. (IsWord w) => IoMem (Wasm32Isa w w) w -> [(Int, Wasm32Isa w w)]
+codeStream mem = [(addr, i) | (addr, Instruction i) <- toPairs (dumpCells mem)]
 
--- | Every operand an instruction carries, in the order it encodes them.
+-- | The widths in bits of the operands an instruction encodes after its
+-- opcode byte, which is all 'byteSize' needs to know about any of them.
 --
 -- Listed exhaustively, with no catch-all: an instruction added without a
 -- line here is a missing-pattern warning, where a catch-all would have
--- silently given it a bare opcode's size and no range check on its
--- immediate. That combination is how @call 0, 70@ once assembled happily
--- and then became @call 0, 6@.
-operands :: Wasm32Isa w l -> [Operand]
-operands instruction = case instruction of
-    I32Const{} -> [FullWord]
+-- silently given it a bare opcode's size. Range-checking the values is
+-- 'narrowLit''s job, at parse time.
+operandWidths :: Wasm32Isa w l -> [Int]
+operandWidths instruction = case instruction of
+    I32Const{} -> [8 * byteSizeT @Int32]
     I32Add -> []
     I32Sub -> []
     I32Mul -> []
@@ -496,103 +509,44 @@ operands instruction = case instruction of
     I32LeU -> []
     I32GtU -> []
     I32GeU -> []
-    I32Load o -> [offset o]
-    I32Store o -> [offset o]
-    I32Load8U o -> [offset o]
-    I32Load8S o -> [offset o]
-    I32Store8 o -> [offset o]
-    If d -> [target "if body" d]
-    Else d -> [target "else body" d]
+    I32Load{} -> [immediateBitWidth]
+    I32Store{} -> [immediateBitWidth]
+    I32Load8U{} -> [immediateBitWidth]
+    I32Load8S{} -> [immediateBitWidth]
+    I32Store8{} -> [immediateBitWidth]
+    If -> []
+    Else -> []
     End -> []
-    Loop d -> [target "loop body" d]
-    Block d -> [target "block body" d]
-    Br d -> [narrow "br depth" d]
-    BrIf d -> [narrow "br_if depth" d]
+    Loop -> []
+    Block -> []
+    Br{} -> [immediateBitWidth]
+    BrIf{} -> [immediateBitWidth]
     Dup -> []
     Drop -> []
     Select -> []
     Unreachable -> []
-    LocalGet i -> [narrow "local.get index" i]
-    LocalSet i -> [narrow "local.set index" i]
-    LocalTee i -> [narrow "local.tee index" i]
-    LocalsReserve n -> [narrow "locals.reserve count" n]
-    Call p r -> [narrow "call paramCount" p, narrow "call resultCount" r]
+    LocalGet{} -> [immediateBitWidth]
+    LocalSet{} -> [immediateBitWidth]
+    LocalTee{} -> [immediateBitWidth]
+    LocalsReserve{} -> [immediateBitWidth]
+    Call{} -> [immediateBitWidth, immediateBitWidth]
     Return -> []
     SpInit -> []
     Halt -> []
-    where
-        narrow name = Source name immediateBitWidth
-        offset = narrow "load/store offset"
-        target name = Target name wideImmediateBitWidth
-
--- | How many bytes an operand occupies, rounding a field that is not a
--- whole number of bits up: it still has to be stored in whole bytes.
-operandBytes :: Operand -> Int
-operandBytes FullWord = byteSizeT @Int32
-operandBytes (Source _ width _) = (width + 7) `div` 8
-operandBytes (Target _ width _) = (width + 7) `div` 8
-
--- | Reject an operand whose value doesn't fit the field it is encoded in,
--- naming the field and the instruction's own address. Masking a high bit
--- off doesn't make a smaller number, it makes a different one, so this is
--- a source error rather than something to fix up at run time.
-operandFits :: (IsWord w) => w -> Operand -> Either Text ()
-operandFits addr operand = case operand of
-    FullWord -> Right ()
-    Source name width value -> fits name width value
-    Target name width value -> fits name width value
-    where
-        fits name width value
-            | value >= 0 && value < 1 `shiftL` width = Right ()
-            | otherwise =
-                Left $
-                    name
-                        <> " "
-                        <> show value
-                        <> " at "
-                        <> hexAddr 2 (fromEnum addr)
-                        <> " doesn't fit in "
-                        <> show width
-                        <> " bits"
-
--- | Check the operands written in source. Runs before resolution, so it
--- has to skip the scope targets -- they are still 'unresolvedTarget'.
-checkSourceOperands :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
-checkSourceOperands (addr, instruction) =
-    traverse_ (operandFits addr) [o | o@Source{} <- operands instruction]
-
--- | Check the targets 'matchScopes' just wrote: a body too long for the
--- forward distance its own scope instruction can carry.
-checkResolvedOperands :: forall w. (IsWord w) => (w, Wasm32Isa w w) -> Either Text ()
-checkResolvedOperands (addr, instruction) =
-    traverse_ (operandFits addr) [o | o@Target{} <- operands instruction]
-
--- | Which address a scope instruction wants out of its own matching
--- @end@ -- see 'resolveScopeTargets'.
-data ScopeTargetKind = AtEnd | PastEnd
 
 instance ByteSize (Wasm32Isa w l) where
-    byteSize instruction = 1 + sum (map operandBytes (operands instruction))
+    -- One opcode byte, then each operand in whole bytes -- rounding a
+    -- width that is not a whole number of bits up, since it still has to
+    -- be stored in whole bytes.
+    byteSize instruction = 1 + sum [(width + 7) `div` 8 | width <- operandWidths instruction]
 
--- | A scope instruction's forward distance to its own matching @end@.
--- Two bytes, so any body that fits in the largest configurable memory
--- can be jumped over.
-wideImmediateBitWidth :: Int
-wideImmediateBitWidth = 16
-
--- | Every one-byte instruction immediate: a branch depth, a local index,
--- one of @call@'s counts, a load\/store offset. A 'CallScope' stores the
--- counts at this same width, so what the source can say and what a call
--- record can hold agree. A 0-255 offset covers a struct field or a small
--- array index; further is still reachable with @i32.add@.
+-- | Every instruction immediate: a branch depth, a local index, one of
+-- @call@'s counts, a load\/store offset. A 'CallScope' stores the counts
+-- at this same width, so what the source can say and what a call record
+-- can hold agree. A 0-255 offset covers a struct field or a small array
+-- index; further is still reachable with @i32.add@.
 immediateBitWidth :: Int
 immediateBitWidth = 8
-
--- | What the parser puts in a scope instruction's target slot before
--- 'resolveStructure' matches it with its own @end@. Out of range on
--- purpose, so an unresolved target can't pass for a real distance.
-unresolvedTarget :: Int
-unresolvedTarget = -1
 
 data Wasm32St w = Wasm32St
     { pc :: Int
@@ -621,6 +575,12 @@ data Wasm32St w = Wasm32St
     -- ^ How many memory accesses the *last executed* instruction made,
     -- its own fetch included. Reset per step in 'instructionStep';
     -- exposed to reports as @memAccesses@.
+    , scopeTargets :: IntMap Int
+    -- ^ Where each @block@\/@loop@\/@if@\/@else@ in the loaded program
+    -- jumps to, keyed by its own address: built once by 'initState' (see
+    -- 'resolveScopeTargets'), read-only thereafter. A real engine keeps
+    -- the same table, for the same reason -- the alternative is scanning
+    -- forward for the matching @end@ every time the instruction runs.
     , mem :: IoMem (Wasm32Isa w w) w
     , stopped :: Bool
     , internalError :: Maybe Text
@@ -639,10 +599,17 @@ instance (IsWord w) => InitState (Wasm32St w) where
             , frameBase = stackRoot dump - byteSizeT @w
             , localCount = 0
             , memAccessCount = 0
+            , scopeTargets = fromRight mempty resolved
             , mem = dump
             , stopped = False
-            , internalError = Nothing
+            , -- Malformed nesting stops the program before its first
+              -- instruction, through the same field a trap uses: nothing
+              -- about it depends on which path would have executed, so
+              -- there is no reason to wait and find out.
+              internalError = leftToMaybe resolved
             }
+        where
+            resolved = resolveScopeTargets (codeStream dump)
 
 -- | Where code+data end and the stacks' own region begins: the lower
 -- half of memory holds code+data, the upper half the stacks. Code+data
@@ -1062,12 +1029,12 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
             I32Load8S offset -> load offset getByte (fromIntegral . (fromIntegral :: Word8 -> Int8))
             I32Store offset -> store offset setWord id
             I32Store8 offset -> store offset setByte fromIntegral
-            If skip -> do
+            If -> do
                 condition <- popValue
                 if condition /= 0
                     then nextPc instruction
-                    else skipForward skip
-            Else skip -> skipForward skip
+                    else withScopeTarget setPc
+            Else -> withScopeTarget setPc
             End -> do
                 -- A plain @end@ closes a @block@\/@loop@ only when it is
                 -- that scope's own matching @end@; an @if@'s @end@ finds
@@ -1080,12 +1047,12 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     Right (Just (_, BlockScope{csEnd})) | csEnd == pc -> popScope @w
                     Right _ -> return ()
                 nextPc instruction
-            Loop toEnd ->
-                withScopeEnd toEnd $ \endPc -> do
+            Loop ->
+                withScopeTarget $ \endPc -> do
                     pushScope LoopScope{csStart = pc + byteSize instruction, csEnd = endPc}
                     nextPc instruction
-            Block toEnd ->
-                withScopeEnd toEnd $ \endPc -> do
+            Block ->
+                withScopeTarget $ \endPc -> do
                     pushScope BlockScope{csEnd = endPc}
                     nextPc instruction
             Br depth -> branchTo depth
@@ -1201,15 +1168,19 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 addr <- popValue
                 writeAt (fromEnum addr + offset) (narrow value)
                 nextPc instruction
-            -- \| Resolve a scope instruction's own forward distance, which
-            -- 'resolveScopeTargets' already computed at translate time.
-            -- Only an instruction that never went through it can be
-            -- unresolved, so this is a sanity check, not a code path a
-            -- program can reach.
-            withScopeEnd d k
-                | d < 0 = raiseInternalError "control flow error: unresolved scope target"
-                | otherwise = k (pc + d)
-            skipForward d = withScopeEnd d setPc
+            -- \| Where this scope instruction jumps to, from the table
+            -- 'initState' built. A miss means the instruction was not in
+            -- the program that was loaded -- memory rewritten under the
+            -- machine, say -- so it is reported rather than guessed at.
+            withScopeTarget k = do
+                Wasm32St{scopeTargets} <- get
+                case scopeTargets !? pc of
+                    Just target -> k target
+                    Nothing ->
+                        raiseInternalError $
+                            "control flow error: the scope instruction at "
+                                <> hexAddr 2 pc
+                                <> " is not one the loaded program resolved"
             binary op = do
                 y <- popValue
                 x <- popValue
@@ -1430,11 +1401,12 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- $controlFlow
 --
 -- @block@, @loop@ and @if@ each open a scope; @end@ closes the innermost
--- one still open. All three are written bare in source: the assembler finds
--- each one's matching @end@ and writes the byte distance into the
--- instruction (see 'resolveScopeTargets'), so nothing is scanned for at run
--- time and an unbalanced @block@, @else@ or @end@ is a translation error
--- rather than something discovered mid-execution.
+-- one still open. All four are bare opcodes carrying nothing, exactly as in
+-- real WebAssembly: loading the program matches each one with its own @end@
+-- once and remembers where it jumps to ('resolveScopeTargets'), so nothing
+-- is scanned for while the program runs, and an unbalanced @block@, @else@
+-- or @end@ stops it before its first instruction rather than whenever some
+-- forward scan happens to fall off the end of memory.
 --
 -- 'Br' and 'BrIf' name a scope not by label but by /depth/: how many
 -- enclosing scopes out to reach, counting the innermost currently-open one
@@ -1534,6 +1506,13 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- * __The target of a call is an address, not an index.__ Real WebAssembly
 --   has @call@ by function index and @call_indirect@ through a table. Here a
 --   function address is an ordinary value, so one instruction covers both.
+-- * __Scope nesting is checked when the program loads, not before.__ Real
+--   WebAssembly validates a module's structure up front and refuses to
+--   instantiate a malformed one. Here the same matching happens at the same
+--   point -- 'initState' builds 'scopeTargets' and reports an unbalanced
+--   @block@ before the first instruction runs -- but it is the machine
+--   doing it, not a separate validation pass, and nothing else about a
+--   program is validated alongside it.
 -- * __A lot is simply absent, on purpose.__ There is no
 --   @i32.clz@\/@i32.ctz@\/@i32.popcnt@, no @i32.rotl@\/@i32.rotr@, no
 --   @i32.div_u@\/@i32.rem_u@, no 16-bit loads or stores, no @br_table@, no

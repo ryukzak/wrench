@@ -3,247 +3,247 @@
 stack: 30:6:100
 ---
 # Stack layout
-:::: 0x00000026: - @_start // access: 0
+:::: 0x00000022: - @_start // access: 0
   (operands): empty, base=0x1c0
-:::: 0x0000002b: I32Const 100  // access: 2
+:::: 0x00000027: I32Const 100  // access: 2
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-:::: 0x00000030: I32Const 10  // access: 2
+:::: 0x0000002c: I32Const 10  // access: 2
   mem[0x1b8..0x1bf]: (operands)
     0: 0x00000064
     1: 0x0000000a
-:::: 0x00000035: I32Const 20  // access: 2
+:::: 0x00000031: I32Const 20  // access: 2
   mem[0x1b4..0x1bf]: (operands)
     0: 0x00000064
     1: 0x0000000a
     2: 0x00000014
-:::: 0x0000003a: I32Const 0  // access: 2
+:::: 0x00000036: I32Const 0  // access: 2
   mem[0x1b0..0x1bf]: (operands)
     0: 0x00000064
     1: 0x0000000a
     2: 0x00000014
     3: 0x00000000
-:::: 0x0000003f: I32Const 20  // access: 2
+:::: 0x0000003b: I32Const 16  // access: 2
   mem[0x1ac..0x1bf]: (operands)
     0: 0x00000064
     1: 0x0000000a
     2: 0x00000014
     3: 0x00000000
-    4: 0x00000014
-:::: 0x00000014: Call 3 2 @outer // access: 4
-#0 _start (pc=0x042)
+    4: 0x00000010
+:::: 0x00000010: Call 3 2 @outer // access: 4
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x00000000
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-:::: 0x00000016: LocalGet 0  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000012: LocalGet 0  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x00000000
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x0000000a
-:::: 0x00000018: LocalGet 1  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000014: LocalGet 1  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x00000000
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1a8..0x1af]: (operands)
     0: 0x0000000a
     1: 0x00000014
-:::: 0x00000019: I32Add  // access: 4
-#0 _start (pc=0x042)
+:::: 0x00000015: I32Add  // access: 4
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x00000000
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x0000001e
-:::: 0x0000001b: LocalSet 2  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000017: LocalSet 2  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-:::: 0x00000020: I32Const 0  // access: 2
-#0 _start (pc=0x042)
+:::: 0x0000001c: I32Const 0  // access: 2
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000000
 :::: 0x00000000: Call 0 1 @inner // access: 4
-#0 _start (pc=0x042)
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
   (operands): empty, base=0x1b0
 :::: 0x00000005: I32Const 3  // access: 2
-#0 _start (pc=0x042)
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000003
-:::: 0x00000008: Block 13  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000006: Block  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
-  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x012 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
+  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000003
-:::: 0x0000000b: Loop 9  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000007: Loop  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
-  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x012 }
-  mem[0x1d8..0x1df]: LoopScope { csStart = 0x00b, csEnd = 0x011 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
+  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
+  mem[0x1d8..0x1df]: LoopScope { csStart = 0x007, csEnd = 0x00d }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000003
-:::: 0x00000010: I32Const 3  // access: 2
-#0 _start (pc=0x042)
+:::: 0x0000000c: I32Const 3  // access: 2
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
-  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x012 }
-  mem[0x1d8..0x1df]: LoopScope { csStart = 0x00b, csEnd = 0x011 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
+  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
+  mem[0x1d8..0x1df]: LoopScope { csStart = 0x007, csEnd = 0x00d }
   mem[0x1a8..0x1af]: (operands)
     0: 0x00000003
     1: 0x00000003
-:::: 0x00000011: I32Add  // access: 4
-#0 _start (pc=0x042)
+:::: 0x0000000d: I32Add  // access: 4
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
-  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x012 }
-  mem[0x1d8..0x1df]: LoopScope { csStart = 0x00b, csEnd = 0x011 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
+  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
+  mem[0x1d8..0x1df]: LoopScope { csStart = 0x007, csEnd = 0x00d }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x00000012: End  // access: 3
-#0 _start (pc=0x042)
+:::: 0x0000000e: End  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
-  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x012 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
+  mem[0x1d0..0x1d7]: BlockScope { csEnd = 0x00e }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x00000013: End  // access: 3
-#0 _start (pc=0x042)
+:::: 0x0000000f: End  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
-#1 outer (pc=0x023)
+#1 outer (pc=0x01f)
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   (operands): empty, base=0x1b0
-  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x023, csResultCount = 1 }
+  mem[0x1c8..0x1cf]: CallScope { csCallerFrameBase = 0x1b8, csCallerLocalCount = 3, csReturnPc = 0x01f, csResultCount = 1 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x00000023: Return  // access: 7
-#0 _start (pc=0x042)
+:::: 0x0000001f: Return  // access: 7
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000006
-:::: 0x00000025: LocalGet 2  // access: 3
-#0 _start (pc=0x042)
+:::: 0x00000021: LocalGet 2  // access: 3
+#0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
   mem[0x1b0..0x1bb]: locals
     0: 0x0000000a
     1: 0x00000014
     2: 0x0000001e
-  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x042, csResultCount = 2 }
+  mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1a8..0x1af]: (operands)
     0: 0x00000006
     1: 0x0000001e
-:::: 0x00000042: Return  // access: 9
+:::: 0x0000003e: Return  // access: 9
   mem[0x1b4..0x1bf]: (operands)
     0: 0x00000064
     1: 0x00000006
     2: 0x0000001e
-:::: 0x00000042: Halt  // access: 1
+:::: 0x0000003e: Halt  // access: 1
   mem[0x1b4..0x1bf]: (operands)
     0: 0x00000064
     1: 0x00000006
