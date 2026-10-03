@@ -25,7 +25,7 @@ _start:
             i32.const 3
             i32.eq
             if
-    ; continue: skip the marker
+                ; continue: skip the marker
                 i32.const counter
                 i32.const counter
                 i32.load
@@ -33,7 +33,7 @@ _start:
                 i32.sub
                 i32.store
             else
-    ; mark the current counter, then decrement
+                ; mark the current counter, then decrement
                 i32.const counter
                 i32.load
                 i32.const counter
