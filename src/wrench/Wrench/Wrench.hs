@@ -58,7 +58,13 @@ instance Default Options where
             , stats = False
             , verbose = False
             , maxInstructionLimit = 8000000
-            , maxMemoryLimit = 0xFFFF
+            , -- 64 KiB, the most an address can name in the one place a
+              -- wrench ISA pins its address width down: a wasm32 control
+              -- record gives every address field 22 bits, and `memory_size`
+              -- has to stay well inside that. Raising it costs nothing on
+              -- its own -- a run allocates `memory_size`, not this -- but it
+              -- is the ceiling `wrench-serv` accepts from a submission.
+              maxMemoryLimit = 0xFFFF
             , maxStateLogLimit = 10000
             , dumpAddrFormat = Hex
             , dumpSize = SizeShown

@@ -931,10 +931,10 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
         case T.splitOn ":" v of
             ["stack", f] -> formatValues f (stackWords view)
             ["locals", f] -> formatValues f (localWords view)
-            ["layout", f] -> withShow f (renderLayout labels view) Nothing
-            ["layout", f, n] -> withFrameLimit n (withShow f (renderLayout labels view))
-            ["dump", f] -> withShow f (renderDump labels view) Nothing
-            ["dump", f, n] -> withFrameLimit n (withShow f (renderDump labels view))
+            ["layout", f] -> withFormat f (renderLayout labels view) Nothing
+            ["layout", f, n] -> withFrameLimit n (withFormat f (renderLayout labels view))
+            ["dump", f] -> withFormat f (renderDump labels view) Nothing
+            ["dump", f, n] -> withFrameLimit n (withFormat f (renderDump labels view))
             ["memAccesses", "dec"] -> show memAccessCount
             ["memAccesses", f] -> unknownFormat f
             [r] -> reprState labels st (r <> ":dec")
@@ -949,13 +949,19 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
 
             -- Both formats already exist for the word *values* a span
             -- shows; extend the same choice to every address it mentions
-            -- rather than leaving addresses permanently decimal.
-            -- 'word32ToHex's full 8 digits stays for word values, which
-            -- are arbitrary 32-bit data however small the memory is;
-            -- addresses get only the digits this memory could need.
-            withShow "dec" render = render show show
-            withShow "hex" render = render (toText . word32ToHex) (hexAddr (hexAddrWidth (memCapacity mem)))
-            withShow f _ = const (unknownFormat f)
+            -- rather than leaving addresses permanently decimal. See
+            -- 'LayoutFormat' for what each half gets.
+            withFormat :: Text -> (LayoutFormat w -> Text) -> Maybe Int -> Text
+            withFormat "dec" render limit =
+                render LayoutFormat{lfWord = show, lfAddr = show, lfFrameLimit = limit}
+            withFormat "hex" render limit =
+                render
+                    LayoutFormat
+                        { lfWord = toText . word32ToHex
+                        , lfAddr = hexAddr (hexAddrWidth (memCapacity mem))
+                        , lfFrameLimit = limit
+                        }
+            withFormat f _ _ = unknownFormat f
 
             -- \| Parse @layout:hex:N@\/@dump:hex:N@'s trailing @N@ -- how
             -- many of the most recent frames (the live one, then its
@@ -1513,6 +1519,10 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 --   @block@ before the first instruction runs -- but it is the machine
 --   doing it, not a separate validation pass, and nothing else about a
 --   program is validated alongside it.
+-- * __A memory instruction has no alignment immediate.__ Real
+--   WebAssembly's loads and stores carry an alignment hint alongside the
+--   offset, which an engine uses to pick a faster access and which has no
+--   effect on semantics. There is nothing here for it to hint at.
 -- * __A lot is simply absent, on purpose.__ There is no
 --   @i32.clz@\/@i32.ctz@\/@i32.popcnt@, no @i32.rotl@\/@i32.rotr@, no
 --   @i32.div_u@\/@i32.rem_u@, no 16-bit loads or stores, no @br_table@, no
@@ -1520,11 +1530,20 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 --   instructions are left out precisely /because/ counting leading zeros,
 --   counting set bits, computing parity and rotating a word are exercises
 --   in this course -- an instruction that is the whole answer to an
---   assignment teaches nothing. The rest are out because no other ISA here
---   has them: a capability absent from risc-iv and m68k is one the course
---   has already decided its students don't need. Rotates are @i32.shl@,
---   @i32.shr_u@ and @i32.or@; a switch is a chain of @i32.eq@ and @br_if@;
---   a halfword is two byte accesses.
+--   assignment teaches nothing. @i32.div_u@, @i32.rem_u@, @br_table@, @nop@
+--   and the 16-bit accesses are out because no other ISA here has them: a
+--   capability absent from risc-iv and m68k is one the course has already
+--   decided its students don't need. Rotates are @i32.shl@, @i32.shr_u@
+--   and @i32.or@; a switch is a chain of @i32.eq@ and @br_if@; a halfword
+--   is two byte accesses.
+--
+--   @i32.eqz@ is the one real cost. It is the single most-used instruction
+--   in real WebAssembly, since every loop condition ends in one, and
+--   writing it as @i32.const 0@, @i32.eq@ spends two instructions at every
+--   one of them -- visible in all of the examples. It stays out anyway, so
+--   that there is exactly one way to ask \"is this zero\" and exactly one
+--   way to negate, and both are the same two instructions, rather than a
+--   dedicated opcode for one and the idiom for the other.
 -- * __Operand order and arithmetic follow the spec.__ Where this ISA does
 --   implement something WebAssembly has, it matches: @i32.store@ takes its
 --   value above its address, shift amounts mask to 5 bits, @i32.div_s@

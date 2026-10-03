@@ -17,6 +17,12 @@ made, its own fetch included. Useful for seeing what an instruction actually
 costs: @i32.const@ is two (fetch, push), @i32.add@ four (fetch, two pops,
 push), @block@ three (fetch, two record words).
 
+The fetch counts as one access whatever the instruction's encoded length, so
+a five-byte @i32.const@ is charged the same as a one-byte @i32.add@. Real
+hardware with a 32-bit bus would need two reads for the former. The number
+is comparable across instructions of the same length and across the other
+wrench ISAs' own instruction counts, but it is not a bus-cycle count.
+
 [@layout:dec@, @layout:hex@]: An annotated dump of both live stacks, broken
 into per-call frames, from the outermost active call down to the
 innermost\/live one. Add a frame limit (@layout:hex:2@) to show only the most
@@ -33,6 +39,7 @@ read one.
 -}
 module Wrench.Isa.Wasm32.Layout (
     StackView (..),
+    LayoutFormat (..),
     stackWords,
     localWords,
     renderLayout,
@@ -48,6 +55,21 @@ import Relude.Extra (toPairs)
 import Wrench.Isa.Wasm32.ControlRecord
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+
+-- | How a view renders what it prints, and how much of a deep call stack
+-- to print at all. One argument rather than three positional ones, two
+-- of which are functions of the same arity.
+data LayoutFormat w = LayoutFormat
+    { lfWord :: w -> Text
+    -- ^ A word value. Gets 'word32ToHex''s full eight digits under
+    -- @:hex@: a value is arbitrary 32-bit data however small the memory.
+    , lfAddr :: Int -> Text
+    -- ^ An address -- a @mem[a..b]@ bound, a frame's @pc=@, or one of a
+    -- control record's address fields. Under @:hex@ gets only as many
+    -- digits as this run's memory could need.
+    , lfFrameLimit :: Maybe Int
+    -- ^ Show only the most recent N frames, summarising the rest.
+    }
 
 -- | Everything the stack views need out of the machine: the memory, the
 -- pointers bounding the two live stacks, and where the open control
@@ -171,11 +193,9 @@ renderLayout ::
     (ByteSize isa, IsWord w) =>
     HashMap Text w
     -> StackView isa w
-    -> (w -> Text)
-    -> (Int -> Text)
-    -> Maybe Int
+    -> LayoutFormat w
     -> Text
-renderLayout labels view showWord showAddr frameLimit =
+renderLayout labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFrameLimit = frameLimit} =
     T.intercalate "\n" $ omittedNote <> concatMap renderFrame kept
     where
         step = byteSizeT @w
@@ -196,13 +216,14 @@ renderLayout labels view showWord showAddr frameLimit =
         -- a frame paused (or sitting) at @addr@ is in, assuming every
         -- function starts at its own label.
         funcNameAt addr =
-            fromMaybe "?"
-                $ viaNonEmpty last
-                $ map snd
-                $ sortOn fst
-                $ filter ((<= addr) . fst)
-                $ map (\(l, a) -> (fromEnum a, l))
-                $ toPairs labels
+            maybe "?" snd $ foldl' nearer Nothing $ toPairs labels
+            where
+                nearer best (label, labelAddr)
+                    | a <- fromEnum labelAddr
+                    , a <= addr
+                    , maybe True ((< a) . fst) best =
+                        Just (a, label)
+                    | otherwise = best
 
         -- \| A suspended frame gets a @#N funcName (pc=...)@ header: that
         -- @pc@ is the @csReturnPc@ in the 'CallScope' that suspended it,
@@ -249,21 +270,20 @@ renderDump ::
     (ByteSize isa, IsWord w, Show isa) =>
     HashMap Text w
     -> StackView isa w
-    -> (w -> Text)
-    -> (Int -> Text)
-    -> Maybe Int
+    -> LayoutFormat w
     -> Text
-renderDump labels view@StackView{svMem, svSp, svCtrlSp, svDataTop} showWord showAddr frameLimit =
+renderDump labels view@StackView{svMem, svSp, svCtrlSp, svDataTop} format =
     T.intercalate "\n" $
         filter
             (not . T.null)
             [ dumpRange 0 svDataTop
             , dumpRange svDataTop svSp
-            , renderLayout labels view showWord showAddr frameLimit
+            , renderLayout labels view format
             , dumpRange svCtrlSp (memCapacity svMem)
             ]
     where
-        dumpRange lo hi = prettyDump True showAddr labels (fromList (sliceMem [lo .. hi - 1] (dumpCells svMem)))
+        dumpRange lo hi =
+            prettyDump True (lfAddr format) labels (fromList (sliceMem [lo .. hi - 1] (dumpCells svMem)))
 
 -- $reading
 --

@@ -108,6 +108,7 @@ test-examples: build
 	stack exec wrench -- --isa wasm32     example/wasm32/sum.s              -c example/wasm32/sum.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/locals.s           -c example/wasm32/locals.yaml
 	stack exec wrench -- --isa wasm32     example/wasm32/stack_root.s       -c example/wasm32/stack_root.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/nested_scopes.s    -c example/wasm32/nested_scopes.yaml
 
 test-server: build generate-variants
 	stack exec wrench-serv &
