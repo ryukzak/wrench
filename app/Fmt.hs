@@ -144,13 +144,11 @@ data Statement
     deriving (Show)
 
 formatFile :: FmtConfig -> Text -> Text
-formatFile fmt content =
-    let statements = formatLines fmt $ map (tokenize fmt) $ lines content
-     in unlines statements
+formatFile fmt content = unlines $ formatLines fmt $ lines content
 
-formatLines :: FmtConfig -> [[Text]] -> [Text]
-formatLines fmt tokenss =
-    let (source, comments) = unzip $ map (splitComment fmt) tokenss
+formatLines :: FmtConfig -> [Text] -> [Text]
+formatLines fmt rawLines =
+    let (source, comments) = unzip $ map (splitComment fmt . tokenize fmt) rawLines
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
@@ -158,35 +156,34 @@ formatLines fmt tokenss =
             Wasm32Layout -> Wasm32Layout
             StandardLayout -> StandardLayout
         fmt' = fmt{lineLayout = lineLayout'}
-        source' = formatStatements fmt' statements
+        indents = lineIndents fmt' statements
+        source' = zipWith (\indent -> pprint fmt'{textCommandIndent = indent}) indents statements
         comments' =
-            zipWith
-                ( \s c ->
-                    if T.null c
-                        then c
-                        else case s of
-                            OutOfSection [] -> c
-                            DataLine [] -> T.replicate 4 " " <> c
-                            TextLine [] -> T.replicate 4 " " <> c
-                            _ -> c
-                )
-                statements
-                comments
+            [ alignComment statement raw indent comment
+            | ((statement, raw, indent), comment) <- zip (zip3 statements rawLines indents) comments
+            ]
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
 
-formatStatements :: FmtConfig -> [Statement] -> [Text]
-formatStatements fmt@FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
+lineIndents :: FmtConfig -> [Statement] -> [Int]
+lineIndents FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
     where
         go _ [] = []
         go depth (statement : rest) =
             let (lineDepth, nextDepth) = wasm32Depths depth statement
-                fmt' = fmt{textCommandIndent = textCommandIndent * (1 + lineDepth)}
-             in pprint fmt' statement : go nextDepth rest
-formatStatements fmt statements = map (pprint fmt) statements
+             in textCommandIndent * (1 + lineDepth) : go nextDepth rest
+lineIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
 
--- | How deep to indent one wasm32 line, and how deep the line after it
---   sits: @block@/@loop@/@if@ open a level, @end@ closes one, and @else@
---   steps out for its own line while leaving the level open.
+alignComment :: Statement -> Text -> Int -> Text -> Text
+alignComment statement raw indent comment
+    | T.null comment || not indented = comment
+    | otherwise = case statement of
+        DataLine [] -> aligned
+        TextLine [] -> aligned
+        _ -> comment
+    where
+        indented = raw /= T.stripStart raw
+        aligned = T.replicate indent " " <> comment
+
 wasm32Depths :: Int -> Statement -> (Int, Int)
 wasm32Depths depth (TextLine (token : _))
     | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
