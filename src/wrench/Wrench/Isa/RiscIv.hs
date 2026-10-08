@@ -11,13 +11,13 @@ module Wrench.Isa.RiscIv (
     MemRef (..),
 ) where
 
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (bit, shiftL, shiftR, (.&.), (.|.))
 import Data.Default
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice)
+import Text.Megaparsec (choice, getOffset, setOffset)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types (
@@ -234,14 +234,41 @@ register =
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
+-- | Width of the signed offset field shared by the I-type (@lw@, @lb@) and
+-- S-type (@sw@, @sb@) encodings.
+memRefOffsetBits :: Int
+memRefOffsetBits = 12
+
+requireSignedField :: (IsWord w) => Int -> Int -> w -> Parser w
+requireSignedField fieldBits operandPos value
+    | value == fitSigned fieldBits value = return value
+    | otherwise = do
+        setOffset operandPos
+        fail $
+            concat
+                [ "offset "
+                , show value
+                , " doesn't fit the "
+                , show fieldBits
+                , "-bit signed field of a 4 byte instruction, expected "
+                , show lo
+                , ".."
+                , show hi
+                ]
+    where
+        hi = bit (fieldBits - 1) - 1 :: Integer
+        lo = negate (bit (fieldBits - 1)) :: Integer
+
 memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
         regWithOffset = do
-            mrOffset <- Unsafe.read <$> choice [hexNum, num]
+            operandPos <- getOffset
+            offset <- Unsafe.read <$> choice [hexNum, num]
             void $ char '('
             mrReg <- register
             void $ char ')'
+            mrOffset <- requireSignedField memRefOffsetBits operandPos offset
             return MemRef{mrOffset, mrReg}
 
 instance CommentStart (RiscIvIsa _a _b) where

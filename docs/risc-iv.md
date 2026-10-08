@@ -65,6 +65,35 @@ addi a0, a0, %lo(address) ; Add lower 12 bits to a0
 
 Instruction size: 4 bytes.
 
+### Immediate and Offset Fields
+
+Every immediate and offset has to fit the 4-byte instruction that carries it, so none of them can
+hold a full 32-bit value:
+
+| Field                                            | Width           | Value that does not fit   |
+| ------------------------------------------------ | --------------- | ------------------------- |
+| `lw`, `lb`, `sw`, `sb` offset                    | 12-bit signed   | Rejected while assembling |
+| `addi`, `slti`, `andi`, `ori`, `xori` immediate  | 12-bit signed   | Silently truncated        |
+| `slli`, `srli`, `srai` shift amount              | 5-bit unsigned  | Silently truncated        |
+| `lui` immediate                                  | 20-bit unsigned | Silently truncated        |
+
+The displacements of `j`, `jal` and the branches come from labels, and are not checked against a
+field width either.
+
+A memory offset outside `-2048..2047` has no encoding at all, so it is a translation error that
+names the offset and the field, rather than an access to a different address than the one written:
+
+```text
+error (risc-iv-32): program.s:3:12:
+  |
+3 |     lw a0, 0x1FFF00(zero)
+  |            ^
+offset 2096896 doesn't fit the 12-bit signed field of a 4 byte instruction, expected -2048..2047
+```
+
+Use `lui`/`addi` with the `%hi`/`%lo` directives above to build a base address in a register, then
+load through that register with a small offset.
+
 ### Data Movement Instructions
 
 - **Load Upper Immediate**
@@ -79,22 +108,22 @@ Instruction size: 4 bytes.
 
 - **Store Word**
     - **Syntax:** `sw <rs2>, <offset>(<rs1>)`
-    - **Description:** Store the value from the source register into memory at the address computed by adding the offset to the base register.
+    - **Description:** Store the value from the source register into memory at the address computed by adding the offset to the base register. The offset is a 12-bit signed field (`-2048..2047`); a wider one is a translation error.
     - **Operation:** `M[offset + rs1] <- rs2`
 
 - **Store Byte**
     - **Syntax:** `sb <rs2>, <offset>(<rs1>)`
-    - **Description:** Store the lower 8 bits of the value from the source register into memory at the address computed by adding the offset to the base register.
+    - **Description:** Store the lower 8 bits of the value from the source register into memory at the address computed by adding the offset to the base register. The offset is a 12-bit signed field (`-2048..2047`); a wider one is a translation error.
     - **Operation:** `M[offset + rs1] <- rs2 & 0xFF`
 
 - **Load Word**
     - **Syntax:** `lw <rd>, <offset>(<rs1>)`
-    - **Description:** Load a word from memory at the address computed by adding the offset to the base register into the destination register.
+    - **Description:** Load a word from memory at the address computed by adding the offset to the base register into the destination register. The offset is a 12-bit signed field (`-2048..2047`); a wider one is a translation error.
     - **Operation:** `rd <- M[offset + rs1]`
 
 - **Load Byte**
     - **Syntax:** `lb <rd>, <offset>(<rs1>)`
-    - **Description:** Load a byte from memory at the address computed by adding the offset to the base register, sign-extend it to 32 bits, and store in the destination register.
+    - **Description:** Load a byte from memory at the address computed by adding the offset to the base register, sign-extend it to 32 bits, and store in the destination register. The offset is a 12-bit signed field (`-2048..2047`); a wider one is a translation error.
     - **Operation:** `rd <- signext(M[offset + rs1][7:0])`
 
 ### Arithmetic Instructions

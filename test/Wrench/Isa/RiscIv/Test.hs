@@ -2,11 +2,12 @@ module Wrench.Isa.RiscIv.Test (tests) where
 
 import Data.Bits (complement)
 import Data.Default
+import Data.List (isInfixOf)
 import Numeric (showHex)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertBool, testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Wrench.Isa.RiscIv
 import Wrench.Machine.Memory
@@ -115,6 +116,33 @@ tests =
                 reconstruct 0x12345FFF @?= Right 0x12345FFF
             , testCase "%hi/%lo pair reconstructs -1" $ do
                 reconstruct (-1) @?= Right (-1)
+            ]
+        , testGroup
+            "Memory offset field"
+            [ testCase "Offset without parentheses is still allowed" $ do
+                assertBool "lw a0, zero should parse" $ isRight (translate "lw a0, zero")
+            , testCase "Hex offset inside the field" $ do
+                assertBool "lw a0, 0x84(zero) should parse" $ isRight (translate "lw a0, 0x84(zero)")
+            , testCase "Highest offset that fits the field" $ do
+                assertBool "lw a0, 2047(zero) should parse" $ isRight (translate "lw a0, 2047(zero)")
+            , testCase "Lowest offset that fits the field" $ do
+                assertBool "lw a0, -2048(sp) should parse" $ isRight (translate "lw a0, -2048(sp)")
+            , testCase "Offset one above the field" $ do
+                assertBool "lw a0, 2048(zero) should be rejected" $ isLeft (translate "lw a0, 2048(zero)")
+            , testCase "Offset one below the field" $ do
+                assertBool "lw a0, -2049(sp) should be rejected" $ isLeft (translate "lw a0, -2049(sp)")
+            , testCase "Store offset is checked too" $ do
+                assertBool "sw a0, 4096(sp) should be rejected" $ isLeft (translate "sw a0, 4096(sp)")
+            , testCase "Byte access offset is checked too" $ do
+                assertBool "lb a0, 0x1FFF00(zero) should be rejected" $
+                    isLeft (translate "lb a0, 0x1FFF00(zero)")
+            , testCase "Rejection names the offset and the field" $ do
+                case translate "lw a0, 0x1FFF00(zero)" of
+                    Right m -> assertFailure $ "should not parse, got: " <> show m
+                    Left err -> do
+                        assertBool ("offset value in: " <> err) $ "2096896" `isInfixOf` err
+                        assertBool ("field width in: " <> err) $ "12-bit" `isInfixOf` err
+                        assertBool ("valid range in: " <> err) $ "-2048..2047" `isInfixOf` err
             ]
         ]
 
