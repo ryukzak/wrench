@@ -41,8 +41,8 @@ factorial_return_minus_one:
     nop                            / nop                            / nop          / jr ra
 
 factorial_overflow_case:
-    lui a0, 0xCCCCC                / nop                            / nop          / nop
-    addi a0, a0, 0xCCC             / nop                            / nop          / nop
+    lui a0, %hi(0xCCCCCCCC)        / nop                            / nop          / nop
+    addi a0, a0, %lo(0xCCCCCCCC)   / nop                            / nop          / nop
     addi a1, zero, 1               / nop                            / nop          / nop
     nop                            / nop                            / nop          / jr ra
 

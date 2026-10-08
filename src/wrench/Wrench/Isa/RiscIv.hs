@@ -30,7 +30,7 @@ import Wrench.Machine.Types (
     fromSign,
     halted,
  )
-import Wrench.Machine.Word (lShiftR, signBitAnd)
+import Wrench.Machine.Word (fitSigned, lShiftR)
 import Wrench.Report
 import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
 import Wrench.Translator.Parser.Types
@@ -472,11 +472,11 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' + (k `signBitAnd` 0x00000FFF))
+                setReg rd (rs1' + fitSigned 12 k)
                 nextPc
             Slti{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (if rs1' < k then 1 else 0)
+                setReg rd (if rs1' < fitSigned 12 k then 1 else 0)
                 nextPc
             Slli{rd, rs1, k} -> do
                 rs1' <- getReg rs1
@@ -492,15 +492,15 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 nextPc
             Andi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' .&. (k `signBitAnd` 0x00000FFF))
+                setReg rd (rs1' .&. fitSigned 12 k)
                 nextPc
             Ori{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' .|. (k `signBitAnd` 0x00000FFF))
+                setReg rd (rs1' .|. fitSigned 12 k)
                 nextPc
             Xori{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' `xor` (k `signBitAnd` 0x00000FFF))
+                setReg rd (rs1' `xor` fitSigned 12 k)
                 nextPc
             Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
             Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)

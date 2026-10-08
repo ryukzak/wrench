@@ -1,0 +1,11 @@
+0x000:	_start
+---
+mem[0x000..0x00d] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC} 	@_start
+mem[0x00e..0x01b] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T1, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x01c..0x029] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 74566}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x02a..0x037] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = T2, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x038..0x045] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T3, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x046..0x053] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T3, addiRs1 = T3, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x054..0x061] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
+mem[0x062..0x3e7] (902 B): 	( 00 )
+---

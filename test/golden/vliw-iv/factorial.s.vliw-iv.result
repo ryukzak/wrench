@@ -25,8 +25,8 @@ mem[0x12a..0x137] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA
 mem[0x138..0x145] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@check_overflow
 mem[0x146..0x153] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
 mem[0x154..0x161] (14 B): 	VliwIvIsa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-mem[0x162..0x16f] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T4, luiK = 838860}, alu2Op = NopA, ctrlOp = NopC}
-mem[0x170..0x17d] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T4, addiRs1 = T4, addiK = 3276}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x162..0x16f] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T4, luiK = 838861}, alu2Op = NopA, ctrlOp = NopC}
+mem[0x170..0x17d] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T4, addiRs1 = T4, addiK = -820}, alu2Op = NopA, ctrlOp = NopC}
 mem[0x17e..0x18b] (14 B): 	VliwIvIsa {memOp = Sw {swRs2 = T4, swOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
 mem[0x18c..0x199] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 154}}
 mem[0x19a..0x1a7] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T0, luiK = 0}, alu2Op = NopA, ctrlOp = NopC} 	@negative_case

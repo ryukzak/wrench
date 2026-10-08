@@ -45,16 +45,16 @@ Although most registers can technically be used for any purposes, the following 
 The RISC-IV assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats:
 
 - **%hi(symbol)**
-    - **Description:** Used to extract the upper 20 bits of a 32-bit address or immediate value
+    - **Description:** Extract the upper 20 bits of a 32-bit address or immediate value. The value is first rounded up by half a `%lo` field (`+0x800`) to compensate for the sign extension `%lo` is subject to.
     - **Usage:** `lui rd, %hi(symbol)`
-    - **Operation:** `rd <- (symbol & 0xFFFFF000)`
+    - **Operation:** `%hi(symbol) = ((symbol + 0x800) >> 12) & 0xFFFFF`
 
 - **%lo(symbol)**
-    - **Description:** Used to extract the lower 12 bits of a 32-bit address or immediate value
+    - **Description:** Extract the lower 12 bits of a 32-bit address or immediate value, **sign-extended from bit 11**, because every instruction that takes a 12-bit immediate sign-extends it. So `%lo(0xFFFFFFFF)` is `-1`, not `0xFFF`, and `addi rd, zero, -1` and `addi rd, zero, %lo(-1)` give the same result.
     - **Usage:** `addi rd, rs, %lo(symbol)`
-    - **Operation:** `rd <- rs + (symbol & 0x00000FFF)`
+    - **Operation:** `%lo(symbol) = signext(symbol[11:0])`
 
-These directives are typically used together to load a full 32-bit address into a register:
+These directives are typically used together to load a full 32-bit address into a register. The `+0x800` in `%hi` cancels the borrow caused by a negative `%lo`, so the pair reconstructs any 32-bit value exactly:
 
 ```assembly
 lui  a0, %hi(address)    ; Load upper 20 bits into a0
@@ -106,8 +106,8 @@ Instruction size: 4 bytes.
 
 - **Set Less Than Immediate**
     - **Syntax:** `slti <rd>, <rs1>, <k>`
-    - **Description:** Set the destination register to 1 if the source register is less than the immediate value (signed comparison), else set to 0.
-    - **Operation:** `rd <- (rs1 < k) ? 1 : 0`
+    - **Description:** Set the destination register to 1 if the source register is less than the immediate value (signed comparison), else set to 0. As for `addi`, the immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the comparison.
+    - **Operation:** `rd <- (rs1 < signext(k[11:0])) ? 1 : 0`
 
 - **Add**
     - **Syntax:** `add <rd>, <rs1>, <rs2>`

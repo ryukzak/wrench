@@ -1,6 +1,8 @@
 module Wrench.Isa.RiscIv.Test (tests) where
 
+import Data.Bits (complement)
 import Data.Default
+import Numeric (showHex)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
@@ -10,7 +12,7 @@ import Wrench.Isa.RiscIv
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
-import Wrench.Translator.Types (Ref)
+import Wrench.Translator.Types (Ref, deref')
 
 tests :: TestTree
 tests =
@@ -74,7 +76,67 @@ tests =
             runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= -1
         , testCase "Rem by zero: 42 % 0 = 42" $ do
             runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= 42
+        , testGroup
+            "12-bit immediate fields"
+            [ testCase "Addi: sign comes from bit 11, not from the full word" $ do
+                runInstruction Addi{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= -1
+            , testCase "Addi: 0x800 is the most negative field value" $ do
+                runInstruction Addi{rd = A1, rs1 = A0, k = 0x800} [(A0, 0)] A1 @?= -2048
+            , testCase "Addi: 0x7FF is the most positive field value" $ do
+                runInstruction Addi{rd = A1, rs1 = A0, k = 0x7FF} [(A0, 0)] A1 @?= 2047
+            , testCase "Addi: bits above bit 11 are discarded" $ do
+                runInstruction Addi{rd = A1, rs1 = A0, k = 0x12345678} [(A0, 0)] A1 @?= 0x678
+            , testCase "Addi: a negative immediate survives the field" $ do
+                runInstruction Addi{rd = A1, rs1 = A0, k = -1} [(A0, 0)] A1 @?= -1
+            , testCase "Andi: 0xFFF is -1, so the value is unchanged" $ do
+                runInstruction Andi{rd = A1, rs1 = A0, k = 0xFFF} [(A0, -1)] A1 @?= -1
+            , testCase "Ori: 0xFFF is -1, so every bit is set" $ do
+                runInstruction Ori{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= -1
+            , testCase "Xori: 0xFFF is -1, so the value is inverted" $ do
+                runInstruction Xori{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0x1234)] A1 @?= complement 0x1234
+            , testCase "Slti: 0xFFF is -1, so 0 is not less than it" $ do
+                runInstruction Slti{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= 0
+            ]
+        , testGroup
+            "%hi / %lo relocation directives"
+            [ testCase "%lo(-1) matches the literal -1" $ do
+                immediate "addi t0, zero, %lo(-1)" @?= Right (-1)
+            , testCase "%lo keeps the low 12 bits sign-extended" $ do
+                immediate "addi t0, zero, %lo(0x12345FFF)" @?= Right (-1)
+            , testCase "%lo of a positive low half stays positive" $ do
+                immediate "addi t0, zero, %lo(0x12345678)" @?= Right 0x678
+            , testCase "%hi rounds up when %lo borrows" $ do
+                immediate "lui t0, %hi(0x12345FFF)" @?= Right 0x12346
+            , testCase "%hi does not round up when %lo does not borrow" $ do
+                immediate "lui t0, %hi(0x12345678)" @?= Right 0x12345
+            , testCase "%hi(0xFFFFFFFF) is 0, because %lo alone covers -1" $ do
+                immediate "lui t0, %hi(0xFFFFFFFF)" @?= Right 0
+            , testCase "%hi/%lo pair reconstructs the whole word" $ do
+                reconstruct 0x12345FFF @?= Right 0x12345FFF
+            , testCase "%hi/%lo pair reconstructs -1" $ do
+                reconstruct (-1) @?= Right (-1)
+            ]
         ]
+
+-- | Parse a single instruction and resolve the immediate it carries. Only
+--   literal (label-free) immediates are supported.
+immediate :: String -> Either String Int32
+immediate code = do
+    instr <- translate code
+    let resolve = deref' (const Nothing)
+    case instr of
+        Addi{k} -> Right $ resolve k
+        Lui{k} -> Right $ resolve k
+        _ -> Left ("no immediate in: " <> code)
+
+-- | Run the canonical @lui@ + @addi@ pair for @x@ and return what lands in the
+--   register, to check that the two directives compensate for each other.
+reconstruct :: Int32 -> Either String Int32
+reconstruct x = do
+    let hex = "0x" <> showHex (fromIntegral x :: Word32) ""
+    hi <- immediate ("lui t0, %hi(" <> hex <> ")")
+    lo <- immediate ("addi t0, t0, %lo(" <> hex <> ")")
+    return $ runInstruction Addi{rd = A1, rs1 = A0, k = lo} [(A0, runInstruction Lui{rd = A0, k = hi} [(A0, 0)] A0)] A1
 
 initialState :: Int -> HashMap Register Int32 -> RiscIvIsa Int32 Int32 -> RiscIvSt Int32
 initialState pc regs instr =

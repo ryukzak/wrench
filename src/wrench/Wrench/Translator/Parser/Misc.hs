@@ -35,6 +35,8 @@ import Text.Megaparsec.Char (
     letterChar,
     string,
  )
+import Wrench.Machine.Types (IsWord)
+import Wrench.Machine.Word (fitSigned)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
@@ -120,17 +122,29 @@ referenceWithFn f =
     where
         quote = char '\''
 
-referenceWithDirective :: (Bits w, Num w, Read w) => Parser (Ref w)
+-- | A reference that may be wrapped in a @%hi@ \/ @%lo@ relocation directive.
+--
+-- The two directives are designed to be used as a pair:
+--
+-- > lui  rd, %hi(x)
+-- > addi rd, rd, %lo(x)
+--
+-- @%lo@ keeps the low 12 bits and sign-extends them from bit 11, because that is
+-- what the instructions consuming the field do with it (see 'fitSigned'):
+-- @%lo(0xFFFFFFFF)@ is @-1@, not @0xFFF@. To compensate for that borrow, @%hi@
+-- rounds the value up by half a field (@+0x800@) before taking its upper 20 bits,
+-- so the pair reconstructs @x@ exactly for every 32-bit @x@.
+referenceWithDirective :: (IsWord w) => Parser (Ref w)
 referenceWithDirective =
     choice
         [ do
             void $ string "%hi("
-            ref <- referenceWithFn (\w -> (w `shiftR` 12) .&. 0xFFFFF)
+            ref <- referenceWithFn (\w -> ((w + 0x800) `shiftR` 12) .&. 0xFFFFF)
             void $ string ")"
             return ref
         , do
             void $ string "%lo("
-            ref <- referenceWithFn (.&. 0xFFF)
+            ref <- referenceWithFn (fitSigned 12)
             void $ string ")"
             return ref
         , reference
