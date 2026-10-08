@@ -35,8 +35,8 @@ check_overflow:
     lui t0, %hi(output_addr)       / nop                            / nop          / nop                         ; Load upper immediate for output_addr
     addi t0, t0, %lo(output_addr)  / nop                            / nop          / nop                         ; t0 = output_addr
     nop                            / nop                            / lw t0, 0(t0) / nop
-    lui t4, 0xCCCCC                / nop                            / nop          / nop
-    addi t4, t4, 0xCCC             / nop                            / nop          / nop                         ; Load overflow indicator (0xCC)
+    lui t4, %hi(0xCCCCCCCC)        / nop                            / nop          / nop
+    addi t4, t4, %lo(0xCCCCCCCC)   / nop                            / nop          / nop                         ; Load overflow indicator (0xCC)
     nop                            / nop                            / sw t4, 0(t0) / nop
     nop                            / nop                            / nop          / j exit
 

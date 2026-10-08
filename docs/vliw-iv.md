@@ -26,16 +26,16 @@ Inspired by [RISC-V](https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.
 The VLIW assembly language provides special directives for handling larger immediate values that don't fit within the standard instruction formats similar to RISC-IV implementation:
 
 - **%hi(symbol)**
-    - **Description:** Used to extract the upper 20 bits of a 32-bit address or immediate value
+    - **Description:** Extract the upper 20 bits of a 32-bit address or immediate value, rounded up by half a `%lo` field (`+0x800`) to compensate for the sign extension of `%lo`
     - **Usage:** `lui rd, %hi(symbol) / nop / nop / nop`
-    - **Operation:** `rd <- (symbol & 0xFFFFF000)`
+    - **Operation:** `%hi(symbol) = ((symbol + 0x800) >> 12) & 0xFFFFF`
 
 - **%lo(symbol)**
-    - **Description:** Used to extract the lower 12 bits of a 32-bit address or immediate value
+    - **Description:** Extract the lower 12 bits of a 32-bit address or immediate value, sign-extended from bit 11, so `%lo(0xFFFFFFFF)` is `-1` rather than `0xFFF`
     - **Usage:** `addi rd, rs, %lo(symbol) / nop / nop / nop`
-    - **Operation:** `rd <- rs + (symbol & 0x00000FFF)`
+    - **Operation:** `%lo(symbol) = signext(symbol[11:0])`
 
-These directives are typically used together to load a full 32-bit address into a register:
+These directives are typically used together to load a full 32-bit address into a register. The `+0x800` in `%hi` cancels the borrow caused by a negative `%lo`, so the pair reconstructs any 32-bit value exactly:
 
 ```assembly
 lui  a0, %hi(address)     / nop / nop / nop ; Load upper 20 bits into a0
@@ -78,8 +78,8 @@ to the low bits of the field and sign-extended (`lui`'s `imm_unsign` is zero-ext
 error if it does not fit. So `addi`/`slti` see a 17-bit signed immediate, branches a 10-bit
 signed offset, `beqz`/`bnez`/`jal` a 15-bit one, `j` a 20-bit one, and memory ops an 11-bit
 one. `lui` keeps only the low 20 bits (after the `<< 12` shift the upper bits of the 22-bit
-field cannot be represented in a 32-bit word). The `%lo` (12-bit) and `%hi` (20-bit) relocation
-values fit within these fields unchanged.
+field cannot be represented in a 32-bit word). The `%lo` (12-bit, already sign-extended by the
+directive itself) and `%hi` (20-bit) relocation values fit within these fields unchanged.
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 

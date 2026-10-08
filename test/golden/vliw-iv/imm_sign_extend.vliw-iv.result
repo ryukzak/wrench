@@ -1,0 +1,10 @@
+---
+# Step-by-step
+0:	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	0x00000000 0x00000000 0x00000000 0x00000000
+14:	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T1, addiRs1 = Zero, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	0xffffffff 0x00000000 0x00000000 0x00000000
+28:	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK = 74566}, alu2Op = NopA, ctrlOp = NopC}	0xffffffff 0xffffffff 0x00000000 0x00000000
+42:	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = T2, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	0xffffffff 0xffffffff 0x12346000 0x00000000
+56:	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T3, luiK = 0}, alu2Op = NopA, ctrlOp = NopC}	0xffffffff 0xffffffff 0x12345fff 0x00000000
+70:	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T3, addiRs1 = T3, addiK = -1}, alu2Op = NopA, ctrlOp = NopC}	0xffffffff 0xffffffff 0x12345fff 0x00000000
+84:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	0xffffffff 0xffffffff 0x12345fff 0xffffffff
+84:	-	0xffffffff 0xffffffff 0x12345fff 0xffffffff

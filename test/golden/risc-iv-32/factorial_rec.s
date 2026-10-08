@@ -36,8 +36,8 @@ factorial_return_minus_one:
     jr       ra
 
 factorial_overflow_case:
-    lui      a0, 0xCCCCC
-    addi     a0, a0, 0xCCC                   ; Load overflow indicator (0xCC)
+    lui      a0, %hi(0xCCCCCCCC)
+    addi     a0, a0, %lo(0xCCCCCCCC)         ; Load overflow indicator (0xCC)
     addi     a1, zero, 1
     jr       ra
 

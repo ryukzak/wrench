@@ -19,9 +19,9 @@ import Wrench.Machine.Types (FromSign (..), IsWord)
 
 -- | Truncate @x@ to the low bits of @mask@ while preserving its original sign:
 -- a negative value keeps its high bits set, a non-negative one is masked. This
--- is /not/ a signed-field truncation (see 'fitSigned') — it is the semantics the
--- accumulator and RISC-V ISAs rely on for unsigned low-bit immediates such as
--- @%lo@.
+-- is /not/ a signed-field truncation (see 'fitSigned'): the sign comes from the
+-- full word rather than from the top bit of the field, so a value that only
+-- /looks/ positive once truncated stays positive. Used by the accumulator ISA.
 signBitAnd :: (IsWord w) => w -> w -> w
 signBitAnd x mask
     | x < 0 = x .|. complement mask
