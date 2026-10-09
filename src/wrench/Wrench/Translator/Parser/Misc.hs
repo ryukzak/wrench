@@ -24,7 +24,7 @@ import Data.Bits
 import Data.Text qualified as T
 import Relude
 import Relude.Unsafe as Unsafe
-import Text.Megaparsec (anySingle, anySingleBut, choice, manyTill, single, try)
+import Text.Megaparsec (anySingle, anySingleBut, choice, getSourcePos, manyTill, single, try)
 import Text.Megaparsec.Char (
     char,
     digitChar,
@@ -110,7 +110,10 @@ referenceWithFn f =
             c <- anySingleBut '\''
             void quote
             return $ ValueR f $ fromIntegral $ ord c
-        , labelRef <&> Ref f
+        , do
+            pos <- getSourcePos
+            l <- labelRef
+            return $ Ref f l pos
         , hexNum <&> ValueR f . read
         , num <&> ValueR f . read
         ]

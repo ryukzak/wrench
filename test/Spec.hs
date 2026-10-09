@@ -1,5 +1,6 @@
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
-import Data.Text (replace, toTitle)
+import Data.Text (isInfixOf, replace, toTitle)
 import Data.Text qualified as T
 import Relude
 import System.FilePath
@@ -49,6 +50,22 @@ tests =
             , goldenConfig "test/golden/config/bad_unknown_field.yaml"
             , goldenConfig "test/golden/config/only_strict.yaml"
             , goldenConfig "test/golden/config/smoke.yaml"
+            ]
+        , testGroup
+            "Translator diagnostics"
+            [ testCase "Unresolved label reports the line it is referenced on" $ do
+                let src = toString $ unlines ["    .text", "_start:", "    j        nowhere"]
+                outcome <-
+                    try @ErrorCall
+                        $ evaluate
+                        $ forceTranslation
+                        $ translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "typo.s" src
+                case outcome of
+                    Right _ -> assertFailure "translation unexpectedly succeeded on an unresolved label"
+                    Left (ErrorCallWithLocation msg _location) -> do
+                        let msg' = toText msg
+                        assertBool ("no source position in: " <> msg) ("typo.s:3:" `isInfixOf` msg')
+                        assertBool ("no label name in: " <> msg) ("nowhere" `isInfixOf` msg')
             ]
         , testGroup "Report" [Wrench.Report.Test.tests]
         , Wrench.Machine.Types.Test.tests
@@ -257,6 +274,11 @@ generatedTest' isa sname vname n = testGroup sname testCases
 
 generatedTest :: Isa -> String -> Int -> TestTree
 generatedTest isa name = generatedTest' isa name name
+
+forceTranslation :: (ByteSize isa, Show isa) => Either Text (TranslatorResult (Mem isa Int32) Int32) -> Int
+forceTranslation (Right (TranslatorResult dump labels _stats)) =
+    T.length $ prettyDump True show labels $ dumpCells dump
+forceTranslation (Left err) = T.length err
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =
