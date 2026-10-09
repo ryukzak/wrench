@@ -20,6 +20,7 @@ module Wrench.Translator.Types (
 
 import Prelude qualified
 import Relude
+import Text.Megaparsec.Pos (SourcePos, sourcePosPretty)
 import Wrench.Machine.Types
 
 class DerefMnemonic m w where
@@ -100,27 +101,31 @@ instance (ByteSize isa) => ByteSize (CodeToken isa l) where
     byteSize (Mnemonic m) = byteSize m
     byteSize _ = 0
 
+-- | An operand that still needs the label table to become a word. 'Ref' keeps
+--   the position of the reference so an unresolved label can name its line;
+--   'ValueR' is already a value and cannot fail, so it needs none.
 data Ref w
-    = Ref (w -> w) Text
+    = Ref (w -> w) Text SourcePos
     | ValueR (w -> w) w
 
 instance (Eq w) => Eq (Ref w) where
-    (Ref _ l) == (Ref _ l') = l == l'
+    (Ref _ l _) == (Ref _ l' _) = l == l'
     (ValueR _ x) == (ValueR _ x') = x == x'
     _ == _ = False
 
 instance (Show w) => Show (Ref w) where
-    show (Ref _ l) = toString l
+    show (Ref _ l _) = toString l
     show (ValueR f x) = show $ f x
 
 -- | Resolve a 'Ref' against a label table. Strict: forces the lookup and the
 --   resulting value to WHNF before returning. Call sites should use @$!@ so
 --   that an unresolved label aborts translation rather than producing a thunk
 --   that only blows up later if something happens to read it.
+--   instruction constructor of every ISA. 'wrenchIO' catches it.
 deref' :: (Text -> Maybe w) -> Ref w -> w
-deref' f (Ref prepare l) = case f l of
+deref' f (Ref prepare l pos) = case f l of
     Just w -> let !v = prepare w in v
-    Nothing -> error ("Can't resolve label: " <> show l)
+    Nothing -> error (toText (sourcePosPretty pos) <> ": can't resolve label: " <> show l)
 deref' _f (ValueR prepare x) = let !v = prepare x in v
 
 data DataToken w l = DataToken

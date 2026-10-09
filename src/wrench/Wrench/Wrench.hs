@@ -11,11 +11,13 @@ module Wrench.Wrench (
     DumpSize (..),
 ) where
 
+import Control.Exception (ErrorCall (..), try)
 import Data.Default (Default (..), def)
 import Data.Text qualified as T
 import Prelude (Read (..))
 import Relude
 import Relude.Extra
+import System.IO qualified as SIO
 import System.Random qualified as Random
 import Text.Pretty.Simple
 import Wrench.Config
@@ -154,8 +156,10 @@ wrenchIO ::
     -> Config
     -> [Char]
     -> IO ()
-wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src =
-    case wrench @st opts conf src of
+wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src = do
+    -- Translation raises 'error' from pure code (see 'deref''), so catch it here
+    -- and report it. 'ExitCode' is not an 'ErrorCall' and still propagates.
+    outcome <- try @ErrorCall $ case wrench @st opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
                 then translationResult rLabels rDump
@@ -163,6 +167,9 @@ wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Confi
                     putText rTrace
                     if rSuccess then exitSuccess else exitFailure
         Left e -> wrenchError e
+    case outcome of
+        Right () -> pass
+        Left (ErrorCallWithLocation msg _location) -> wrenchError $ toText msg
     where
         addrShow = case dumpAddrFormat of
             Hex -> hexAddr (hexAddrWidth cMemorySize)
@@ -175,7 +182,7 @@ wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Confi
             putStrLn "---"
             putText $ prettyDump showSize addrShow rLabels rDump
         wrenchError e = do
-            putStrLn $ "error (" <> isa <> "): " <> toString e
+            SIO.hPutStrLn SIO.stderr $ "error (" <> isa <> "): " <> toString e
             exitFailure
 
 wrench ::
