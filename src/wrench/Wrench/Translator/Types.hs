@@ -101,32 +101,36 @@ instance (ByteSize isa) => ByteSize (CodeToken isa l) where
     byteSize (Mnemonic m) = byteSize m
     byteSize _ = 0
 
--- | An operand that still needs the label table to become a word. 'Ref' keeps
---   the position of the reference so an unresolved label can name its line;
---   'ValueR' is already a value and cannot fail, so it needs none.
 data Ref w
-    = Ref (w -> w) Text SourcePos
-    | ValueR (w -> w) w
+    = Ref
+        { refPrepare :: w -> w
+        , refLabel :: Text
+        , refPos :: SourcePos
+        }
+    | ValueR
+        { refPrepare :: w -> w
+        , refValue :: w
+        }
 
 instance (Eq w) => Eq (Ref w) where
-    (Ref _ l _) == (Ref _ l' _) = l == l'
-    (ValueR _ x) == (ValueR _ x') = x == x'
+    Ref{refLabel = l} == Ref{refLabel = l'} = l == l'
+    ValueR{refValue = x} == ValueR{refValue = x'} = x == x'
     _ == _ = False
 
 instance (Show w) => Show (Ref w) where
-    show (Ref _ l _) = toString l
-    show (ValueR f x) = show $ f x
+    show Ref{refLabel} = toString refLabel
+    show ValueR{refPrepare, refValue} = show $ refPrepare refValue
 
 -- | Resolve a 'Ref' against a label table. Strict: forces the lookup and the
 --   resulting value to WHNF before returning. Call sites should use @$!@ so
 --   that an unresolved label aborts translation rather than producing a thunk
 --   that only blows up later if something happens to read it.
---   instruction constructor of every ISA. 'wrenchIO' catches it.
 deref' :: (Text -> Maybe w) -> Ref w -> w
-deref' f (Ref prepare l pos) = case f l of
-    Just w -> let !v = prepare w in v
-    Nothing -> error (toText (sourcePosPretty pos) <> ": can't resolve label: " <> show l)
-deref' _f (ValueR prepare x) = let !v = prepare x in v
+deref' f Ref{refPrepare, refLabel, refPos} = case f refLabel of
+    Just w -> let !v = refPrepare w in v
+    Nothing ->
+        error (toText (sourcePosPretty refPos) <> ": can't resolve label: " <> show refLabel)
+deref' _f ValueR{refPrepare, refValue} = let !v = refPrepare refValue in v
 
 data DataToken w l = DataToken
     { dtLabel :: !l
