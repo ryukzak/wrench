@@ -118,6 +118,26 @@ c_string:       .byte 'Hello, World!\0'  ; C-style string with null terminator
 pascal_string:  .byte 13, 'Hello, World!'  ; Pascal-style string with length prefix
 ```
 
+A numeric value, in data and in instructions alike, is decimal or hexadecimal with an `0x` prefix,
+and may carry a leading `-`. It has to start with a digit, which `_` separators may then be mixed
+into for legibility -- `1_000` and `0x8_4` are fine, `0x_84` is not.
+
+A value has to fit what holds it, and it is checked before it is stored, so a too-wide one is a
+translation error instead of its own low bits. A machine word takes anything its bits can spell --
+`-2147483648..4294967295` for a 32-bit word, which is why `0xFFFFFFFF` and `-1` are both fine and
+name the same word -- and `.byte` takes `-128..255`:
+
+```text
+error (risc-iv-32): program.s:2:14:
+  |
+2 | small: .byte 300
+  |              ^
+literal 300 doesn't fit a byte, expected -128..255
+```
+
+The same check covers every literal, not just data: an immediate or offset wider than the machine
+word is rejected where it is written, before the instruction's own field is considered.
+
 <!-- TODO: Add space directive support
 - `.space` - Reserve a block of memory with specified size
 buffer:         .space 64      ; Reserve 64 bytes of space

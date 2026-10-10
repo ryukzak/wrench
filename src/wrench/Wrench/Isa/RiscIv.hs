@@ -11,13 +11,12 @@ module Wrench.Isa.RiscIv (
     MemRef (..),
 ) where
 
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (bit, shiftL, shiftR, (.&.), (.|.))
 import Data.Default
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
-import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice)
+import Text.Megaparsec (choice, getOffset, setOffset)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types (
@@ -30,9 +29,9 @@ import Wrench.Machine.Types (
     fromSign,
     halted,
  )
-import Wrench.Machine.Word (fitSigned, lShiftR)
+import Wrench.Machine.Word (fitSigned, i12, i13, i21, lShiftR, u20, u5)
 import Wrench.Report
-import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
+import Wrench.Translator.Parser.Misc (eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
@@ -234,14 +233,41 @@ register =
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
+-- | Width of the signed offset field shared by the I-type (@lw@, @lb@) and
+-- S-type (@sw@, @sb@) encodings.
+memRefOffsetBits :: Int
+memRefOffsetBits = 12
+
+requireSignedField :: (IsWord w) => Int -> Int -> w -> Parser w
+requireSignedField fieldBits operandPos value
+    | value == fitSigned fieldBits value = return value
+    | otherwise = do
+        setOffset operandPos
+        fail $
+            concat
+                [ "offset "
+                , show value
+                , " doesn't fit the "
+                , show fieldBits
+                , "-bit signed field of a 4 byte instruction, expected "
+                , show lo
+                , ".."
+                , show hi
+                ]
+    where
+        hi = bit (fieldBits - 1) - 1 :: Integer
+        lo = negate (bit (fieldBits - 1)) :: Integer
+
 memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
         regWithOffset = do
-            mrOffset <- Unsafe.read <$> choice [hexNum, num]
+            operandPos <- getOffset
+            offset <- wordLiteral
             void $ char '('
             mrReg <- register
             void $ char ')'
+            mrOffset <- requireSignedField memRefOffsetBits operandPos offset
             return MemRef{mrOffset, mrReg}
 
 instance CommentStart (RiscIvIsa _a _b) where
@@ -296,18 +322,23 @@ instance (IsWord w) => MnemonicParser (RiscIvIsa w (Ref w)) where
 instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
+            iTypeErr m x = m <> ": I-type imm " <> x <> " is not in -2048..2047"
+            shamtErr m x = m <> ": shift amount " <> x <> " is not in 0..31"
+            uTypeErr m x = m <> ": U-type imm " <> x <> " is not in 0..1048575"
+            bTypeErr m x = m <> ": B-type disp " <> x <> " is not in -4096..4095"
+            jTypeErr m x = m <> ": J-type disp " <> x <> " is not in -1048576..1048575"
          in case i of
-                J{k} -> J $ deref' relF k
-                Jal{rd, k} -> Jal rd $ deref' relF k
+                J{k} -> J $ resolveRef (i21 (jTypeErr "j")) relF k
+                Jal{rd, k} -> Jal rd $ resolveRef (i21 (jTypeErr "jal")) relF k
                 Jr{rs} -> Jr{rs}
-                Addi{rd, rs1, k} -> Addi{rd, rs1, k = deref' f k}
-                Slti{rd, rs1, k} -> Slti{rd, rs1, k = deref' f k}
-                Slli{rd, rs1, k} -> Slli{rd, rs1, k = deref' f k}
-                Srli{rd, rs1, k} -> Srli{rd, rs1, k = deref' f k}
-                Srai{rd, rs1, k} -> Srai{rd, rs1, k = deref' f k}
-                Andi{rd, rs1, k} -> Andi{rd, rs1, k = deref' f k}
-                Ori{rd, rs1, k} -> Ori{rd, rs1, k = deref' f k}
-                Xori{rd, rs1, k} -> Xori{rd, rs1, k = deref' f k}
+                Addi{rd, rs1, k} -> Addi{rd, rs1, k = resolveRef (i12 (iTypeErr "addi")) f k}
+                Slti{rd, rs1, k} -> Slti{rd, rs1, k = resolveRef (i12 (iTypeErr "slti")) f k}
+                Slli{rd, rs1, k} -> Slli{rd, rs1, k = resolveRef (u5 (shamtErr "slli")) f k}
+                Srli{rd, rs1, k} -> Srli{rd, rs1, k = resolveRef (u5 (shamtErr "srli")) f k}
+                Srai{rd, rs1, k} -> Srai{rd, rs1, k = resolveRef (u5 (shamtErr "srai")) f k}
+                Andi{rd, rs1, k} -> Andi{rd, rs1, k = resolveRef (i12 (iTypeErr "andi")) f k}
+                Ori{rd, rs1, k} -> Ori{rd, rs1, k = resolveRef (i12 (iTypeErr "ori")) f k}
+                Xori{rd, rs1, k} -> Xori{rd, rs1, k = resolveRef (i12 (iTypeErr "xori")) f k}
                 Add{rd, rs1, rs2} -> Add{rd, rs1, rs2}
                 Sub{rd, rs1, rs2} -> Sub{rd, rs1, rs2}
                 Mul{rd, rs1, rs2} -> Mul{rd, rs1, rs2}
@@ -323,17 +354,17 @@ instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
                 Mv{rd, rs} -> Mv{rd, rs}
                 Sw{rs2, offsetRs1} -> Sw{rs2, offsetRs1}
                 Sb{rs2, offsetRs1} -> Sb{rs2, offsetRs1}
-                Lui{rd, k} -> Lui{rd, k = deref' f k}
+                Lui{rd, k} -> Lui{rd, k = resolveRef (u20 (uTypeErr "lui")) f k}
                 Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
                 Lb{rd, offsetRs1} -> Lb{rd, offsetRs1}
-                Beqz{rs1, k} -> Beqz rs1 $ deref' relF k
-                Bnez{rs1, k} -> Bnez rs1 $ deref' relF k
-                Bgt{rs1, rs2, k} -> Bgt rs1 rs2 $ deref' relF k
-                Ble{rs1, rs2, k} -> Ble rs1 rs2 $ deref' relF k
-                Bgtu{rs1, rs2, k} -> Bgtu rs1 rs2 $ deref' relF k
-                Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ deref' relF k
-                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ deref' relF k
-                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ deref' relF k
+                Beqz{rs1, k} -> Beqz rs1 $ resolveRef (i13 (bTypeErr "beqz")) relF k
+                Bnez{rs1, k} -> Bnez rs1 $ resolveRef (i13 (bTypeErr "bnez")) relF k
+                Bgt{rs1, rs2, k} -> Bgt rs1 rs2 $ resolveRef (i13 (bTypeErr "bgt")) relF k
+                Ble{rs1, rs2, k} -> Ble rs1 rs2 $ resolveRef (i13 (bTypeErr "ble")) relF k
+                Bgtu{rs1, rs2, k} -> Bgtu rs1 rs2 $ resolveRef (i13 (bTypeErr "bgtu")) relF k
+                Bleu{rs1, rs2, k} -> Bleu rs1 rs2 $ resolveRef (i13 (bTypeErr "bleu")) relF k
+                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ resolveRef (i13 (bTypeErr "beq")) relF k
+                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ resolveRef (i13 (bTypeErr "bne")) relF k
                 Halt -> Halt
 
 instance ByteSize (RiscIvIsa w l) where

@@ -1,10 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Wrench.Translator.Parser.DataSection (
     dataSection,
 ) where
 
 import Data.List (singleton)
 import Relude
-import Relude.Unsafe (read)
 import Text.Megaparsec (choice, manyTill, sepBy, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
 import Text.Megaparsec.Char.Lexer (charLiteral)
@@ -12,7 +13,7 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
-dataSection :: (Read w) => String -> Parser (Section isa w Text)
+dataSection :: (IsWord w) => String -> Parser (Section isa w Text)
 dataSection cstart = do
     string ".data" >> eol' cstart
     items <-
@@ -26,35 +27,29 @@ dataSection cstart = do
                 )
     return $ Data (sectionOrg items) $ sectionItems items
 
-dataSectionItemM :: (Read w) => String -> Parser (DataToken w Text)
+dataSectionItemM :: (IsWord w) => String -> Parser (DataToken w Text)
 dataSectionItemM cstart = do
     n <- label
     hspace1
     DataToken n <$> dataValue cstart
 
-dataValue :: (Read w) => String -> Parser (DataValue w)
-dataValue cstart = do
-    wrapper :: (Read w) => [String] -> DataValue w <-
-        choice
-            [ string ".byte" >> return (DByte . map read)
-            , string ".word" >> return (DWord . map read)
-            ]
-    hspace1
-    values <- sepBy value (try (hspace >> string "," >> hspace))
-    eol' cstart
-    return $ wrapper $ concat values
+dataValue :: forall w. (IsWord w) => String -> Parser (DataValue w)
+dataValue cstart = choice [directive ".byte" byteLiteral DByte, directive ".word" wordLiteral DWord]
     where
-        value =
-            choice
-                [ stringArray
-                , singleton <$> hexNum
-                , singleton <$> num
-                ]
+        directive :: (Num a) => String -> Parser a -> ([a] -> DataValue w) -> Parser (DataValue w)
+        directive keyword item wrap = do
+            void $ string keyword
+            hspace1
+            values <- items item
+            eol' cstart
+            return $ wrap values
+        items :: (Num a) => Parser a -> Parser [a]
+        items item = concat <$> sepBy (choice [stringArray, singleton <$> item]) (try (hspace >> string "," >> hspace))
 
-stringArray :: Parser [String]
+stringArray :: (Num a) => Parser [a]
 stringArray = do
     _ <- quote
     strings <- manyTill charLiteral quote
-    return $ map (show . ord) strings
+    return $ map (fromIntegral . ord) strings
     where
         quote = char '\''

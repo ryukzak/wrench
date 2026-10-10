@@ -7,6 +7,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 import Text.Megaparsec (parse)
 import Text.Megaparsec.Error (errorBundlePretty)
+import Text.Megaparsec.Pos (initialPos)
 import Wrench.Isa.M68k
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -101,7 +102,7 @@ tests =
                     cFlag @?= False
         , testCase "Translator" $ do
             translate "movea.l D0, A0" @?= Right (MoveA Long (DirectDataReg D0) (DirectAddrReg A0))
-            translate "move.l 12, D0" @?= Right (Move Long (Immediate $ ValueR id 12) (DirectDataReg D0))
+            translate "move.l 12, D0" @?= Right (Move Long (Immediate $ valueR 12) (DirectDataReg D0))
             translate "move.l 8(A2), D0" @?= Right (Move Long (IndirectAddrReg 8 A2 Nothing) (DirectDataReg D0))
             translate "move.l -8(A2), D0" @?= Right (Move Long (IndirectAddrReg (-8) A2 Nothing) (DirectDataReg D0))
             translate "move.l -8(A2,D1), D0"
@@ -109,11 +110,11 @@ tests =
             translate "move.l -8(A2,A1), D0"
                 @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ AddrIndex A1)) (DirectDataReg D0))
             translate "cmp.l D1, D0" @?= Right (Cmp Long (DirectDataReg D1) (DirectDataReg D0))
-            translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ ValueR id 10) (DirectDataReg D0))
+            translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ valueR 10) (DirectDataReg D0))
             translate "cmp.l (A1), D0" @?= Right (Cmp Long (IndirectAddrReg 0 A1 Nothing) (DirectDataReg D0))
             -- movea is the one instruction that legitimately accepts An as source.
             translate "movea.l A2, A0" @?= Right (MoveA Long (DirectAddrReg A2) (DirectAddrReg A0))
-            translate "jsr 0x20" @?= Right (Jsr (ValueR id 0x20))
+            translate "jsr 0x20" @?= Right (Jsr $ valueR 0x20)
             translate "rts" @?= Right Rts
         , testCase "An as source rejected outside movea (issue #143)" $ do
             -- Address Register Direct is not a valid source mode for these
@@ -405,6 +406,10 @@ tests =
 
 readMemBytes :: (Memory a isa w) => a -> [Int] -> [Word8]
 readMemBytes mem addrs = map snd $ rights $ map (readByte mem) addrs
+
+-- | 'Ref' equality ignores the source position, so any position does here.
+valueR :: Int32 -> Ref Int32
+valueR = ValueR id (initialPos "-")
 
 translate :: (MnemonicParser (isa' w (Ref w)), w ~ Int32) => String -> Either String (isa' w (Ref w))
 translate code =

@@ -1,18 +1,20 @@
 module Wrench.Isa.RiscIv.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Bits (complement)
 import Data.Default
+import Data.List (isInfixOf)
 import Numeric (showHex)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertBool, testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Wrench.Isa.RiscIv
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
-import Wrench.Translator.Types (Ref, deref')
+import Wrench.Translator.Types (DerefMnemonic (..), Ref, deref')
 
 tests :: TestTree
 tests =
@@ -116,7 +118,130 @@ tests =
             , testCase "%hi/%lo pair reconstructs -1" $ do
                 reconstruct (-1) @?= Right (-1)
             ]
+        , testGroup
+            "Memory offset field"
+            [ testCase "Offset without parentheses is still allowed" $ do
+                assertBool "lw a0, zero should parse" $ isRight (translate "lw a0, zero")
+            , testCase "Hex offset inside the field" $ do
+                assertBool "lw a0, 0x84(zero) should parse" $ isRight (translate "lw a0, 0x84(zero)")
+            , testCase "Highest offset that fits the field" $ do
+                assertBool "lw a0, 2047(zero) should parse" $ isRight (translate "lw a0, 2047(zero)")
+            , testCase "Lowest offset that fits the field" $ do
+                assertBool "lw a0, -2048(sp) should parse" $ isRight (translate "lw a0, -2048(sp)")
+            , testCase "Offset one above the field" $ do
+                assertBool "lw a0, 2048(zero) should be rejected" $ isLeft (translate "lw a0, 2048(zero)")
+            , testCase "Offset one below the field" $ do
+                assertBool "lw a0, -2049(sp) should be rejected" $ isLeft (translate "lw a0, -2049(sp)")
+            , testCase "Store offset is checked too" $ do
+                assertBool "sw a0, 4096(sp) should be rejected" $ isLeft (translate "sw a0, 4096(sp)")
+            , testCase "Byte access offset is checked too" $ do
+                assertBool "lb a0, 0x1FFF00(zero) should be rejected" $
+                    isLeft (translate "lb a0, 0x1FFF00(zero)")
+            , testCase "Rejection names the offset and the field" $ do
+                case translate "lw a0, 0x1FFF00(zero)" of
+                    Right m -> assertFailure $ "should not parse, got: " <> show m
+                    Left err -> do
+                        assertBool ("offset value in: " <> err) $ "2096896" `isInfixOf` err
+                        assertBool ("field width in: " <> err) $ "12-bit" `isInfixOf` err
+                        assertBool ("valid range in: " <> err) $ "-2048..2047" `isInfixOf` err
+            ]
+        , testGroup
+            "Immediate and displacement fields"
+            [ testCase "slti carries an I-type immediate, not a shift amount" $ do
+                accepted "slti t0, t1, 100"
+            , testCase "slti above the I-type field" $ do
+                rejected "slti t0, t1, 2048" "-2048..2047"
+            , testCase "addi below the I-type field" $ do
+                rejected "addi t0, t1, -2049" "-2048..2047"
+            , testCase "andi above the I-type field" $ do
+                rejected "andi t0, t1, 0xfff" "-2048..2047"
+            , testCase "ori above the I-type field" $ do
+                rejected "ori t0, t1, 5000" "-2048..2047"
+            , testCase "xori above the I-type field" $ do
+                rejected "xori t0, t1, 99999" "-2048..2047"
+            , testCase "highest shift amount that fits" $ do
+                accepted "slli t0, t1, 31"
+            , testCase "shift amount above the field" $ do
+                rejected "slli t0, t1, 32" "0..31"
+            , testCase "negative shift amount" $ do
+                rejected "srli t0, t1, -1" "0..31"
+            , testCase "highest lui immediate that fits" $ do
+                accepted "lui t0, 0xfffff"
+            , testCase "lui above the U-type field" $ do
+                rejected "lui t0, 0x100000" "0..1048575"
+            , testCase "lui is unsigned, so a negative immediate is rejected" $ do
+                rejected "lui t0, -1" "0..1048575"
+            , testCase "highest branch displacement that fits" $ do
+                accepted "beq t0, t1, 4095"
+            , testCase "branch displacement above the B-type field" $ do
+                rejected "beq t0, t1, 4096" "-4096..4095"
+            , testCase "branch displacement below the B-type field" $ do
+                rejected "bnez t0, -4097" "-4096..4095"
+            , testCase "highest jump displacement that fits" $ do
+                accepted "j 1048575"
+            , testCase "jump displacement above the J-type field" $ do
+                rejected "j 1048576" "-1048576..1048575"
+            , testCase "jal displacement below the J-type field" $ do
+                rejected "jal ra, -1048577" "-1048576..1048575"
+            , -- RISC-V keeps bit 0 of a displacement implicit; RISC-IV spends it.
+              testCase "an odd displacement is allowed (RISC-IV specific)" $ do
+                accepted "j 1048573"
+                accepted "beq t0, t1, 4093"
+            , testCase "a literal wider than the machine word" $ do
+                assertBool "addi t0, zero, 4294967296 should be rejected" $
+                    isLeft (translate "addi t0, zero, 4294967296")
+            , testCase "a memory offset wider than the machine word" $ do
+                assertBool "lw a0, 0x1_0000_0000(t1) should be rejected" $
+                    isLeft (translate "lw a0, 0x1_0000_0000(t1)")
+            , testCase "word rejection names the width and the range" $ do
+                case translate "addi t0, zero, 4294967296" of
+                    Right m -> assertFailure $ "should not parse, got: " <> show m
+                    Left err -> do
+                        assertBool ("word width in: " <> err) $ "32-bit machine word" `isInfixOf` err
+                        assertBool ("valid range in: " <> err) $
+                            "-2147483648..4294967295" `isInfixOf` err
+            , testCase "an unsigned 32-bit pattern is the word its bits spell" $ do
+                immediate "addi t0, zero, 0xFFFFFFFF" @?= Right (-1)
+            , testCase "rejection names the position, the mnemonic, the field and the range" $ do
+                derefField "beq t0, t1, 4096" >>= \case
+                    Right m -> assertFailure $ "should be rejected, got: " <> show m
+                    Left err -> do
+                        assertBool ("source position in: " <> err) $ "1:13:" `isInfixOf` err
+                        assertBool ("mnemonic in: " <> err) $ "beq" `isInfixOf` err
+                        assertBool ("field in: " <> err) $ "B-type" `isInfixOf` err
+                        assertBool ("displacement in: " <> err) $ "4096" `isInfixOf` err
+                        assertBool ("valid range in: " <> err) $ "-4096..4095" `isInfixOf` err
+            ]
         ]
+
+-- | Parse one instruction and resolve its references, which is where the field
+-- guards live. A guard that fires calls 'error', so it lands in 'Left' here.
+derefField :: String -> IO (Either String (RiscIvIsa Int32 Int32))
+derefField code =
+    case translate code of
+        Left err -> return $ Left err
+        Right m -> do
+            -- Walking @show@ forces every dereferenced field, the same way
+            -- 'Wrench.Translator.Types.derefSection' does.
+            let m' = derefMnemonic (const (Just 0)) 0 m
+            outcome <- try @ErrorCall $ evaluate $ length (show m' :: String)
+            return $ case outcome of
+                Left (ErrorCallWithLocation msg _location) -> Left msg
+                Right _ -> Right m'
+
+accepted :: String -> IO ()
+accepted code = do
+    outcome <- derefField code
+    case outcome of
+        Right _ -> return ()
+        Left err -> assertFailure $ code <> " should be accepted, got: " <> err
+
+rejected :: String -> String -> IO ()
+rejected code range = do
+    outcome <- derefField code
+    case outcome of
+        Right m -> assertFailure $ code <> " should be rejected, got: " <> show m
+        Left err -> assertBool ("expected range " <> range <> " in: " <> err) $ range `isInfixOf` err
 
 -- | Parse a single instruction and resolve the immediate it carries. Only
 --   literal (label-free) immediates are supported.

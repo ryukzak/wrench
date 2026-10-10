@@ -11,6 +11,11 @@ module Wrench.Machine.Word (
     addExt,
     subExt,
     mulExt,
+    u5,
+    u20,
+    i12,
+    i13,
+    i21,
 ) where
 
 import Data.Bits
@@ -66,3 +71,31 @@ mulExt x y =
         overflow = (x /= 0 && y /= 0 && result `div` x /= y)
         carry = (fromIntegral x * fromIntegral y) > (maxBound :: Word)
      in Ext{value = result, overflow, carry}
+
+-- Field guards: a value that does not fit the field it is encoded into stops
+-- translation with the message the caller builds, instead of reaching the
+-- simulator and being truncated there.
+u5 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+u5 errMsgF x
+    | 0 <= x && x <= 31 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+u20 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+u20 errMsgF x
+    | 0 <= x && x <= 1048575 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+i12 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i12 errMsgF x
+    | -2048 <= x && x <= 2047 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+i13 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i13 errMsgF x
+    | -4096 <= x && x <= 4095 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+i21 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i21 errMsgF x
+    | -1048576 <= x && x <= 1048575 = Right x
+    | otherwise = Left $ errMsgF $ show x

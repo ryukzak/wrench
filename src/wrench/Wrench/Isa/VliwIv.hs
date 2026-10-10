@@ -17,7 +17,6 @@ import Data.Default
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
-import Relude.Unsafe qualified as Unsafe
 import Text.Megaparsec (choice)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
@@ -33,7 +32,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, lShiftR)
 import Wrench.Report
-import Wrench.Translator.Parser.Misc (eol', hexNum, num, reference, referenceWithDirective)
+import Wrench.Translator.Parser.Misc (eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
@@ -285,7 +284,7 @@ memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
         regWithOffset = do
-            mrOffset <- Unsafe.read <$> choice [hexNum, num]
+            mrOffset <- wordLiteral
             void $ char '('
             mrReg <- register
             void $ char ')'

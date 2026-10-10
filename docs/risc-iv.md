@@ -65,11 +65,80 @@ addi a0, a0, %lo(address) ; Add lower 12 bits to a0
 
 Instruction size: 4 bytes.
 
+### Immediate and Offset Fields
+
+Every immediate, offset and displacement has to fit the 4-byte instruction that carries it, so none
+of them can hold a full 32-bit value:
+
+| Field                                                                   | Width           | Accepted values     |
+| ----------------------------------------------------------------------- | --------------- | ------------------- |
+| `lw`, `lb`, `sw`, `sb` offset                                           | 12-bit signed   | `-2048..2047`       |
+| `addi`, `slti`, `andi`, `ori`, `xori` immediate                         | 12-bit signed   | `-2048..2047`       |
+| `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`             |
+| `beqz`, `bnez`, `beq`, `bne`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 13-bit signed   | `-4096..4095`       |
+| `j`, `jal` displacement                                                 | 21-bit signed   | `-1048576..1048575` |
+| `lui` immediate                                                         | 20-bit unsigned | `0..1048575`        |
+
+A value outside its field has no encoding at all, so it is a translation error rather than a program
+that quietly does something else. A memory offset is checked while parsing, so it is reported with
+the position of the operand:
+
+```text
+error (risc-iv-32): program.s:3:12:
+  |
+3 |     lw a0, 0x1FFF00(zero)
+  |            ^
+offset 2096896 doesn't fit the 12-bit signed field of a 4 byte instruction, expected -2048..2047
+```
+
+A literal that does not fit the 32-bit machine word is rejected earlier still, before any field is
+considered, since it could not reach a register in the first place:
+
+```text
+error (risc-iv-32): program.s:3:20:
+  |
+3 |     addi t0, zero, 4294967296
+  |                    ^
+literal 4294967296 doesn't fit a 32-bit machine word, expected -2147483648..4294967295
+```
+
+Anything the word's bits can spell is allowed there, signed or unsigned, so `0xFFFFFFFF` and `-1`
+name the same word and both then face the 12-bit field as `-1`.
+
+Immediates and displacements may be written as labels, so they are checked once the labels are
+resolved. The message points at the operand and names the mnemonic and the field:
+
+```text
+error (risc-iv-32): program.s:3:17: beq: B-type disp 8192 is not in -4096..4095
+```
+
+Use `lui`/`addi` with the `%hi`/`%lo` directives above to build a wide constant or address in a
+register, then work through that register. `%lo` also keeps a bit pattern inside the field:
+`addi rd, rs, %lo(0x800)` is how the immediate `-2048` is written as the bits `0x800`, since the
+bare `0x800` is out of range.
+
+#### Branch and jump displacements are not scaled (RISC-IV specific)
+
+RISC-V encodes a branch or jump displacement in multiples of two: bit 0 is not stored and is assumed
+to be zero, which costs nothing there, because no instruction may start at an odd address. This is
+where RISC-IV deviates from it: the displacement is stored as a plain signed number, bit 0 included.
+So the intervals above are the full signed range of each field -- odd displacements included --
+where RISC-V would instead allow only the even values of a range twice as wide.
+
+Nothing requires a displacement to land on an instruction boundary either. Every RISC-IV instruction
+is 4 bytes, so a displacement that is not a multiple of 4 points into the middle of one, and the
+jump fails when that address is fetched:
+
+```text
+0: J {k = 6}
+ERROR: memory[0x06]: instruction in memory corrupted
+```
+
 ### Data Movement Instructions
 
 - **Load Upper Immediate**
     - **Syntax:** `lui <rd>, <k>`
-    - **Description:** Load an immediate value masked to 20 bits and shifted left by 12 bits into the destination register.
+    - **Description:** Load an immediate value shifted left by 12 bits into the destination register.
     - **Operation:** `rd <- (k & 0x000FFFFF) << 12`
 
 - **Move**
@@ -101,12 +170,12 @@ Instruction size: 4 bytes.
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add a 12-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the addition.
+    - **Description:** Add a 12-bit sign-extended immediate value to the source register and store the result in the destination register. The sign comes from bit 11 of the field, so `%lo(0x800)` is `-2048`.
     - **Operation:** `rd <- rs1 + signext(k[11:0])`
 
 - **Set Less Than Immediate**
     - **Syntax:** `slti <rd>, <rs1>, <k>`
-    - **Description:** Set the destination register to 1 if the source register is less than the immediate value (signed comparison), else set to 0. As for `addi`, the immediate `k` is truncated to 12 bits and sign-extended to 32 bits before the comparison.
+    - **Description:** Set the destination register to 1 if the source register is less than the immediate value (signed comparison), else set to 0. As for `addi`, the immediate is sign-extended from bit 11.
     - **Operation:** `rd <- (rs1 < signext(k[11:0])) ? 1 : 0`
 
 - **Add**
@@ -143,17 +212,17 @@ Instruction size: 4 bytes.
 
 - **Logical Shift Left Immediate**
     - **Syntax:** `slli <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register left by the immediate amount (lower 5 bits) and store the result in the destination register.
+    - **Description:** Shift the value of the source register left by the immediate amount and store the result in the destination register.
     - **Operation:** `rd <- rs1 << (k & 0x1F)`
 
 - **Logical Shift Right Immediate**
     - **Syntax:** `srli <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register right (zero-fill) by the immediate amount (lower 5 bits) and store the result in the destination register.
+    - **Description:** Shift the value of the source register right (zero-fill) by the immediate amount and store the result in the destination register.
     - **Operation:** `rd <- rs1 >>> (k & 0x1F)`
 
 - **Arithmetic Shift Right Immediate**
     - **Syntax:** `srai <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register right by the immediate amount (lower 5 bits), preserving the sign, and store the result in the destination register.
+    - **Description:** Shift the value of the source register right by the immediate amount, preserving the sign, and store the result in the destination register.
     - **Operation:** `rd <- rs1 >> (k & 0x1F)`
 
 - **Logical Shift Left**
@@ -178,7 +247,7 @@ Instruction size: 4 bytes.
 
 - **Bitwise AND Immediate**
     - **Syntax:** `andi <rd>, <rs1>, <k>`
-    - **Description:** Perform a bitwise AND of the source register with a 12-bit sign-extended immediate value.
+    - **Description:** Perform a bitwise AND of the source register with a 12-bit sign-extended immediate value. Because the field is sign-extended, the widest low-bit mask `andi` can express is the 11 bits of `0x7FF`. A negative immediate clears low bits instead: `-16` is `0xFFFFFFF0`. `%lo(0xFFF)` is `-1`, so it leaves the register unchanged.
     - **Operation:** `rd <- rs1 & signext(k[11:0])`
 
 - **Bitwise OR**
@@ -205,12 +274,12 @@ Instruction size: 4 bytes.
 
 - **Jump**
     - **Syntax:** `j <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter.
+    - **Description:** Jump to the address computed by adding the displacement to the current program counter.
     - **Operation:** `pc <- pc + k`
 
 - **Jump and Link**
     - **Syntax:** `jal <rd>, <k>`
-    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
+    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the displacement to the current program counter.
     - **Operation:** `rd <- pc + 4, pc <- pc + k`
 
 - **Jump Register**

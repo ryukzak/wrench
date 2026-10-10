@@ -3,12 +3,12 @@
 mem[0x000..0x003] (4 B): 	Addi {rd = T0, rs1 = Zero, k = -1} 	@_start
 mem[0x004..0x007] (4 B): 	Addi {rd = T1, rs1 = Zero, k = -1}
 mem[0x008..0x00b] (4 B): 	Addi {rd = T2, rs1 = Zero, k = 2047}
-mem[0x00c..0x00f] (4 B): 	Addi {rd = T3, rs1 = Zero, k = 2048}
+mem[0x00c..0x00f] (4 B): 	Addi {rd = T3, rs1 = Zero, k = -2048}
 mem[0x010..0x013] (4 B): 	Lui {rd = T4, k = 74566}
 mem[0x014..0x017] (4 B): 	Addi {rd = T4, rs1 = T4, k = -1}
 mem[0x018..0x01b] (4 B): 	Lui {rd = T5, k = 0}
 mem[0x01c..0x01f] (4 B): 	Addi {rd = T5, rs1 = T5, k = -1}
-mem[0x020..0x023] (4 B): 	Andi {rd = T6, rs1 = T0, k = 4095}
+mem[0x020..0x023] (4 B): 	Andi {rd = T6, rs1 = T0, k = -1}
 mem[0x024..0x027] (4 B): 	Halt
 mem[0x028..0x3e7] (960 B): 	( 00 )
 ---
