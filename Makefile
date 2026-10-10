@@ -7,10 +7,16 @@
         generate generate-variants generate-stack-deps \
         run-server \
         docs-haddock \
-        docker-build docker-push-builder docker-push-edge \
+        docker-build docker-push-builder docker-push-edge release-image \
         fix clean
 
 COMMIT = $(shell git rev-parse --short HEAD)
+
+# Version metadata, resolved on the host: a docker build context may carry no
+# usable .git (git worktree, tarball), and gitrev then stamps UNKNOWN silently.
+GIT_HASH = $(shell git rev-parse HEAD)
+GIT_DATE = $(shell git log HEAD -1 --format=%cd)
+VERSION_ARGS = --build-arg GIT_HASH="$(GIT_HASH)" --build-arg GIT_DATE="$(GIT_DATE)"
 
 BUILDER_IMAGE_NAME = ryukzak/wrench-builder
 
@@ -199,18 +205,30 @@ generate-stack-deps:
 # Docker
 
 docker-build:
-	docker build --build-arg VERSION_SUFFIX=DEV -t $(IMAGE_NAME) .
+	docker build --build-arg VERSION_SUFFIX=DEV $(VERSION_ARGS) -t $(IMAGE_NAME) .
 
 docker-push-builder: generate-stack-deps
 	docker buildx build --platform linux/amd64,linux/arm64 --push \
 		-t $(BUILDER_IMAGE_NAME) --target wrench-builder .
 
 docker-push-edge:
-	docker buildx build --build-arg VERSION_SUFFIX=EDGE --platform linux/amd64,linux/arm64 --push \
+	docker buildx build --build-arg VERSION_SUFFIX=EDGE $(VERSION_ARGS) \
+		--platform linux/amd64,linux/arm64 --push \
 		-t $(EDGE_IMAGE) -t $(COMMIT_IMAGE) .
 
 docker-run-server: docker-build
 	docker run -it --rm $(IMAGE_NAME) wrench-serv
+
+# Release
+
+# Bumps the version, tags and pushes; CI builds and publishes the images.
+release-image:
+	@if [ -z "$(NEW_VERSION)" ]; then \
+		echo "Error: NEW_VERSION is required. Usage: make release-image NEW_VERSION=X.Y.Z[.W]"; \
+		echo "Current version: $$(grep '^version:' package.yaml | sed -E 's/version: //')"; \
+		exit 1; \
+	fi
+	script/release.sh $(NEW_VERSION)
 
 # Meta
 

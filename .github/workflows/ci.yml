@@ -235,7 +235,17 @@ jobs:
           stack-no-global: true
           ghc-version: "9.10.3"
 
+      - name: Resolve version metadata
+        id: version
+        shell: bash
+        run: |
+          echo "git_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "git_date=$(git log HEAD -1 --format=%cd)" >> "$GITHUB_OUTPUT"
+
       - name: Build binary
+        env:
+          GIT_HASH: ${{ steps.version.outputs.git_hash }}
+          GIT_DATE: ${{ steps.version.outputs.git_date }}
         run: |
           stack build --copy-bins --local-bin-path ./dist
 
@@ -281,9 +291,118 @@ jobs:
             release/*
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
 
-  # use `make release-image` to trigger it
+  # Images for a tag: one native build per platform, joined into a manifest
+  # list by publish-release-image. Emulated cross-builds of GHC -O2 are far too
+  # slow to run here.
+  build-release-image:
+    needs:
+      - wrench
+      - haskell-lint
+    if: startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Resolve version metadata
+        id: version
+        run: |
+          echo "git_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "git_date=$(git log HEAD -1 --format=%cd)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=release-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.platform }}
+          build-args: |
+            GIT_HASH=${{ steps.version.outputs.git_hash }}
+            GIT_DATE=${{ steps.version.outputs.git_date }}
+          outputs: type=image,name=ryukzak/wrench,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-digest-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-release-image:
+    needs: build-release-image
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: release-digest-*
+          merge-multiple: true
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create and push manifest list
+        run: |
+          cd /tmp/digests
+          docker buildx imagetools create \
+            -t ryukzak/wrench:${{ github.ref_name }} \
+            -t ryukzak/wrench:latest \
+            $(printf 'ryukzak/wrench@sha256:%s ' *)
+
+      - name: Verify published image
+        run: |
+          script/check-image-version.sh ryukzak/wrench:${{ github.ref_name }} "" ${{ github.ref_name }}
+          script/check-image-version.sh ryukzak/wrench:latest "" ${{ github.ref_name }}
+
+  # use `make release-image NEW_VERSION=X.Y.Z` to trigger it
   deploy-release:
-    needs: publish-release
+    needs:
+      - publish-release
+      - publish-release-image
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -314,6 +433,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Resolve version metadata
+        id: version
+        run: |
+          echo "git_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "git_date=$(git log HEAD -1 --format=%cd)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
         with:
@@ -322,10 +447,15 @@ jobs:
           file: Dockerfile
           tags: ryukzak/wrench:edge
           platforms: linux/arm64
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-from: type=gha,scope=edge-linux-arm64
+          cache-to: type=gha,mode=max,scope=edge-linux-arm64
           build-args: |
             VERSION_SUFFIX=EDGE
+            GIT_HASH=${{ steps.version.outputs.git_hash }}
+            GIT_DATE=${{ steps.version.outputs.git_date }}
+
+      - name: Verify version metadata
+        run: script/check-image-version.sh ryukzak/wrench:edge EDGE
 
   deploy-edge:
     needs: build-edge-image

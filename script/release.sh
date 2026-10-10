@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Cut a release: bump the version, tag it and push.
+#
+# Publishing is CI's job -- pushing the tag triggers the build-release-image
+# and publish-release workflows, which build ryukzak/wrench:<version> and
+# :latest for all platforms with correct version metadata. Nothing is built or
+# pushed to a registry from here.
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
@@ -17,7 +23,6 @@ if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 IMAGE_NAME="ryukzak/wrench"
-RELEASE_IMAGE="${IMAGE_NAME}:${NEW_VERSION}"
 
 if [ "$(git symbolic-ref --short HEAD)" != "master" ]; then
     echo "Error: You must be on the master branch to release." >&2
@@ -46,23 +51,13 @@ if git rev-parse -q --verify "refs/tags/$NEW_VERSION" >/dev/null; then
     exit 1
 fi
 
-if docker pull "$RELEASE_IMAGE" >/dev/null 2>&1; then
-    echo "Error: Version already exists: $RELEASE_IMAGE" >&2
+if [ -n "$(git ls-remote --tags origin "refs/tags/$NEW_VERSION")" ]; then
+    echo "Error: Git tag already exists on origin: $NEW_VERSION" >&2
     exit 1
 fi
 
-if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64,linux/arm64 \
-        --output type=tar,dest=/dev/null - >/dev/null 2>&1; then
-    echo "Error: buildx is not configured for multi-platform build (linux/amd64,linux/arm64)." >&2
-    echo "Fix: docker buildx create --name multi --driver docker-container --use" >&2
-    exit 1
-fi
-
-PUSH_CHECK_TAG="${IMAGE_NAME}:push-check"
-if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64 \
-        -t "$PUSH_CHECK_TAG" --push - >/dev/null 2>&1; then
-    echo "Error: Unable to push to $IMAGE_NAME. Check your Docker registry login/permissions." >&2
-    echo "Fix: docker login" >&2
+if curl -sfL -o /dev/null "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/${NEW_VERSION}"; then
+    echo "Error: Image already published: ${IMAGE_NAME}:${NEW_VERSION}" >&2
     exit 1
 fi
 
@@ -71,10 +66,8 @@ echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml
 rm -f package.yaml.bak
 
+# Regenerates wrench.cabal from package.yaml and proves the bump compiles.
 make build
-
-docker buildx build --platform linux/amd64,linux/arm64 \
-    -t "$IMAGE_NAME" -t "$RELEASE_IMAGE" --push .
 
 git add package.yaml wrench.cabal
 git commit -m "chore: release $NEW_VERSION"
@@ -82,4 +75,7 @@ git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
 git push origin master
 git push origin "$NEW_VERSION"
 
-echo "Release $NEW_VERSION completed successfully."
+echo
+echo "Tag $NEW_VERSION pushed. CI now builds and publishes:"
+echo "  ${IMAGE_NAME}:${NEW_VERSION} and ${IMAGE_NAME}:latest (linux/amd64, linux/arm64)"
+echo "Watch it: https://github.com/ryukzak/wrench/actions"
