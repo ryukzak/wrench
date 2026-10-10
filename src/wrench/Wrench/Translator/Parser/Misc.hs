@@ -16,6 +16,7 @@ module Wrench.Translator.Parser.Misc (
     reference,
     referenceWithDirective,
     referenceWithFn,
+    constantRef,
     SectionItem (..),
     orgDirective,
     sectionItems,
@@ -26,7 +27,18 @@ import Data.Bits
 import Data.Text qualified as T
 import Relude
 import Relude.Unsafe as Unsafe
-import Text.Megaparsec (anySingle, anySingleBut, choice, getOffset, getSourcePos, manyTill, setOffset, single, try)
+import Text.Megaparsec (
+    SourcePos,
+    anySingle,
+    anySingleBut,
+    choice,
+    getOffset,
+    getSourcePos,
+    manyTill,
+    setOffset,
+    single,
+    try,
+ )
 import Text.Megaparsec.Char (
     char,
     digitChar,
@@ -152,12 +164,21 @@ referenceWithFn :: (IsWord w) => (w -> w) -> Parser (Ref w)
 referenceWithFn f = do
     pos <- getSourcePos
     choice
+        [ constantAt f pos
+        , Ref f pos <$> labelRef
+        ]
+
+constantRef :: (IsWord w) => Parser (Ref w)
+constantRef = getSourcePos >>= constantAt id
+
+constantAt :: (IsWord w) => (w -> w) -> SourcePos -> Parser (Ref w)
+constantAt f pos =
+    choice
         [ do
             void quote
             c <- anySingleBut '\''
             void quote
             return $ ValueR f pos $ fromIntegral $ ord c
-        , Ref f pos <$> labelRef
         , ValueR f pos <$> wordLiteral
         ]
     where

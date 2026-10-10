@@ -31,7 +31,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i12, i13, i21, lShiftR, u20, u5)
 import Wrench.Report
-import Wrench.Translator.Parser.Misc (eol', reference, referenceWithDirective, wordLiteral)
+import Wrench.Translator.Parser.Misc (constantRef, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
@@ -287,11 +287,11 @@ instance (IsWord w) => MnemonicParser (RiscIvIsa w (Ref w)) where
                     , cmd3args "mulh" Mulh register register register
                     , cmd3args "div" Div register register register
                     , cmd3args "rem" Rem register register register
-                    , cmd3args "slli" Slli register register referenceWithDirective
+                    , cmd3args "slli" Slli register register constantRef
                     , cmd3args "sll" Sll register register register
-                    , cmd3args "srli" Srli register register referenceWithDirective
+                    , cmd3args "srli" Srli register register constantRef
                     , cmd3args "srl" Srl register register register
-                    , cmd3args "srai" Srai register register referenceWithDirective
+                    , cmd3args "srai" Srai register register constantRef
                     , cmd3args "sra" Sra register register register
                     , cmd3args "andi" Andi register register referenceWithDirective
                     , cmd3args "and" And register register register
@@ -511,15 +511,15 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 nextPc
             Slli{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' `shiftL` (fromEnum k .&. 0x1F))
+                setReg rd (rs1' `shiftL` fromEnum k)
                 nextPc
             Srli{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (lShiftR rs1' (k .&. 0x1F))
+                setReg rd (lShiftR rs1' k)
                 nextPc
             Srai{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' `shiftR` (fromEnum k .&. 0x1F))
+                setReg rd (rs1' `shiftR` fromEnum k)
                 nextPc
             Andi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
