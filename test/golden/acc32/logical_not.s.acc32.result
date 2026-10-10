@@ -6,11 +6,11 @@
 mem[0x000..0x003] (4 B): 	80 00 00 00	@"input_addr"
 mem[0x004..0x007] (4 B): 	84 00 00 00	@"output_addr"
 mem[0x008..0x00b] (4 B): 	01 00 00 00	@"const_1"
-mem[0x00c..0x00e] (3 B): 	Load (-12) 	@_start
-mem[0x00f..0x00f] (1 B): 	LoadAcc
-mem[0x010..0x010] (1 B): 	Not
-mem[0x011..0x013] (3 B): 	And 8
-mem[0x014..0x018] (5 B): 	StoreInd 4
-mem[0x019..0x019] (1 B): 	Halt
-mem[0x01a..0x3e7] (974 B): 	( 00 )
+mem[0x00c..0x00d] (2 B): 	Load (-12) 	@_start
+mem[0x00e..0x00e] (1 B): 	LoadAcc
+mem[0x00f..0x00f] (1 B): 	Not
+mem[0x010..0x012] (3 B): 	And 8
+mem[0x013..0x017] (5 B): 	StoreInd 4
+mem[0x018..0x018] (1 B): 	Halt
+mem[0x019..0x3e7] (975 B): 	( 00 )
 ---
