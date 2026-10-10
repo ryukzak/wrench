@@ -1,2 +1,18 @@
+# Build outputs and caches – never needed inside the image, and huge.
 .stack-work
+dist-newstyle
 build
+node_modules
+__pycache__
+
+# Agent worktrees: hundreds of megabytes of checkouts living inside the repo.
+.claude
+
+# Runtime state of a deployed server, not part of a build.
+uploads
+
+# Regenerated inside the image by the wrench-variants stage.
+variants
+
+.DS_Store
+*.bak
