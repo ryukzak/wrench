@@ -93,22 +93,22 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
             [ LoadImm <$> cmdMnemonic1 "load_imm" reference
             , LoadAddr <$> cmdMnemonic1 "load_addr" reference
             , cmdMnemonic0 "load_acc" >> return LoadAcc
-            , Load <$> cmdMnemonic1 "load" reference16
+            , Load <$> cmdMnemonic1 "load" reference
             , StoreAddr <$> cmdMnemonic1 "store_addr" reference
             , StoreInd <$> cmdMnemonic1 "store_ind" reference
-            , Store <$> cmdMnemonic1 "store" reference16
-            , Add <$> cmdMnemonic1 "add" reference16
-            , Sub <$> cmdMnemonic1 "sub" reference16
-            , Mul <$> cmdMnemonic1 "mul" reference16
-            , Div <$> cmdMnemonic1 "div" reference16
-            , Rem <$> cmdMnemonic1 "rem" reference16
+            , Store <$> cmdMnemonic1 "store" reference
+            , Add <$> cmdMnemonic1 "add" reference
+            , Sub <$> cmdMnemonic1 "sub" reference
+            , Mul <$> cmdMnemonic1 "mul" reference
+            , Div <$> cmdMnemonic1 "div" reference
+            , Rem <$> cmdMnemonic1 "rem" reference
             , cmdMnemonic0 "clv" >> return Clv
             , cmdMnemonic0 "clc" >> return Clc
-            , ShiftL <$> cmdMnemonic1 "shiftl" reference16
-            , ShiftR <$> cmdMnemonic1 "shiftr" reference16
-            , And <$> cmdMnemonic1 "and" reference16
-            , Or <$> cmdMnemonic1 "or" reference16
-            , Xor <$> cmdMnemonic1 "xor" reference16
+            , ShiftL <$> cmdMnemonic1 "shiftl" reference
+            , ShiftR <$> cmdMnemonic1 "shiftr" reference
+            , And <$> cmdMnemonic1 "and" reference
+            , Or <$> cmdMnemonic1 "or" reference
+            , Xor <$> cmdMnemonic1 "xor" reference
             , cmdMnemonic0 "not" >> return Not
             , Jmp <$> cmdMnemonic1 "jmp" reference
             , Beqz <$> cmdMnemonic1 "beqz" reference
@@ -122,9 +122,6 @@ instance (IsWord w) => MnemonicParser (Acc32Isa w (Ref w)) where
             , Bcc <$> cmdMnemonic1 "bcc" reference
             , cmdMnemonic0 "halt" >> return Halt
             ]
-
-reference16 :: (IsWord w) => Parser (Ref w)
-reference16 = referenceWithFn (`signBitAnd` 0x0000FFFF)
 
 cmdMnemonic0 :: String -> Parser ()
 cmdMnemonic0 mnemonic = try $ do
@@ -144,37 +141,39 @@ cmdMnemonic1 mnemonic refParser = try $ do
 instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
+            offsetErr m x = m <> ": relative offset " <> x <> " is not in -32768..32767"
+            addrErr m x = m <> ": address " <> x <> " is not in 0..65535"
          in case i of
-                LoadImm l -> LoadImm (deref' f l)
-                LoadAddr l -> LoadAddr (deref' f l)
-                Load l -> Load (deref' relF l)
+                LoadImm l -> LoadImm (resolveRef Right f l)
+                LoadAddr l -> LoadAddr (resolveRef Right f l)
+                Load l -> Load (resolveRef (i16 (offsetErr "load")) relF l)
                 LoadAcc -> LoadAcc
-                StoreAddr l -> StoreAddr (deref' f l)
-                Store l -> Store (deref' relF l)
-                StoreInd l -> StoreInd (deref' f l)
-                Add l -> Add (deref' f l)
-                Sub l -> Sub (deref' f l)
-                Mul l -> Mul (deref' f l)
-                Div l -> Div (deref' f l)
-                Rem l -> Rem (deref' f l)
+                StoreAddr l -> StoreAddr (resolveRef Right f l)
+                Store l -> Store (resolveRef (i16 (offsetErr "store")) relF l)
+                StoreInd l -> StoreInd (resolveRef Right f l)
+                Add l -> Add (resolveRef (u16 (addrErr "add")) f l)
+                Sub l -> Sub (resolveRef (u16 (addrErr "sub")) f l)
+                Mul l -> Mul (resolveRef (u16 (addrErr "mul")) f l)
+                Div l -> Div (resolveRef (u16 (addrErr "div")) f l)
+                Rem l -> Rem (resolveRef (u16 (addrErr "rem")) f l)
                 Clv -> Clv
                 Clc -> Clc
-                ShiftL l -> ShiftL (deref' f l)
-                ShiftR l -> ShiftR (deref' f l)
-                And l -> And (deref' f l)
-                Or l -> Or (deref' f l)
-                Xor l -> Xor (deref' f l)
+                ShiftL l -> ShiftL (resolveRef (u16 (addrErr "shiftl")) f l)
+                ShiftR l -> ShiftR (resolveRef (u16 (addrErr "shiftr")) f l)
+                And l -> And (resolveRef (u16 (addrErr "and")) f l)
+                Or l -> Or (resolveRef (u16 (addrErr "or")) f l)
+                Xor l -> Xor (resolveRef (u16 (addrErr "xor")) f l)
                 Not -> Not
-                Beqz l -> Beqz (deref' f l)
-                Bnez l -> Bnez (deref' f l)
-                Bgz l -> Bgz (deref' f l)
-                Bgez l -> Bgez (deref' f l)
-                Blz l -> Blz (deref' f l)
-                Bvs l -> Bvs (deref' f l)
-                Bvc l -> Bvc (deref' f l)
-                Bcs l -> Bcs (deref' f l)
-                Bcc l -> Bcc (deref' f l)
-                Jmp l -> Jmp (deref' f l)
+                Beqz l -> Beqz (resolveRef Right f l)
+                Bnez l -> Bnez (resolveRef Right f l)
+                Bgz l -> Bgz (resolveRef Right f l)
+                Bgez l -> Bgez (resolveRef Right f l)
+                Blz l -> Blz (resolveRef Right f l)
+                Bvs l -> Bvs (resolveRef Right f l)
+                Bvc l -> Bvc (resolveRef Right f l)
+                Bcs l -> Bcs (resolveRef Right f l)
+                Bcc l -> Bcc (resolveRef Right f l)
+                Jmp l -> Jmp (resolveRef Right f l)
                 Halt -> Halt
 
 instance ByteSize (Acc32Isa w l) where
