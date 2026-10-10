@@ -56,7 +56,6 @@ library
       BangPatterns
       ConstraintKinds
       DataKinds
-      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -130,7 +129,6 @@ executable wrench
       BangPatterns
       ConstraintKinds
       DataKinds
-      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -181,7 +179,6 @@ executable wrench-fmt
       BangPatterns
       ConstraintKinds
       DataKinds
-      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -252,7 +249,6 @@ executable wrench-serv
       BangPatterns
       ConstraintKinds
       DataKinds
-      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
@@ -336,7 +332,6 @@ test-suite wrench-test
       BangPatterns
       ConstraintKinds
       DataKinds
-      DeriveAnyClass
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances

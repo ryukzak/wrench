@@ -79,7 +79,8 @@ error if it does not fit. So `addi`/`slti` see a 17-bit signed immediate, branch
 signed offset, `beqz`/`bnez`/`jal` a 15-bit one, `j` a 20-bit one, and memory ops an 11-bit
 one. `lui` keeps only the low 20 bits (after the `<< 12` shift the upper bits of the 22-bit
 field cannot be represented in a 32-bit word). The `%lo` (12-bit, already sign-extended by the
-directive itself) and `%hi` (20-bit) relocation values fit within these fields unchanged.
+directive itself) and `%hi` (20-bit) relocation values fit the `addi`/`slti` and `lui` fields
+unchanged; they are wider than the 11-bit memory offset, which takes a bare number only.
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 

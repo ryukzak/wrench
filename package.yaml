@@ -16,7 +16,6 @@ default-extensions:
   - BangPatterns
   - ConstraintKinds
   - DataKinds
-  - DeriveAnyClass
   - DeriveGeneric
   - FlexibleContexts
   - FlexibleInstances

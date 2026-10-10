@@ -66,6 +66,20 @@ tests =
                         let msg' = toText msg
                         assertBool ("no source position in: " <> msg) ("typo.s:3:" `isInfixOf` msg')
                         assertBool ("no label name in: " <> msg) ("nowhere" `isInfixOf` msg')
+            , testCase "A data value too wide for the word reports its position" $ do
+                let src = toString $ unlines ["    .data", "big: .word 0xFFFFFFFF, 4294967297"]
+                case translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "data.s" src of
+                    Right _ -> assertFailure "translation unexpectedly succeeded on a too-wide .word"
+                    Left err -> do
+                        assertBool ("no source position in: " <> toString err) $ "data.s:2:24" `isInfixOf` err
+                        assertBool ("no machine word in: " <> toString err) $ "machine word" `isInfixOf` err
+            , testCase "A data value too wide for a byte reports its position" $ do
+                let src = toString $ unlines ["    .data", "small: .byte 300"]
+                case translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "data.s" src of
+                    Right _ -> assertFailure "translation unexpectedly succeeded on a too-wide .byte"
+                    Left err -> do
+                        assertBool ("no source position in: " <> toString err) $ "data.s:2:14" `isInfixOf` err
+                        assertBool ("no byte range in: " <> toString err) $ "expected -128..255" `isInfixOf` err
             ]
         , testGroup "Report" [Wrench.Report.Test.tests]
         , Wrench.Machine.Types.Test.tests

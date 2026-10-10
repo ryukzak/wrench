@@ -14,6 +14,7 @@ module Wrench.Translator.Types (
     markupSectionOffsets,
     DerefMnemonic (..),
     deref',
+    resolveRef,
     Ref (..),
     derefSection,
 ) where
@@ -104,11 +105,12 @@ instance (ByteSize isa) => ByteSize (CodeToken isa l) where
 data Ref w
     = Ref
         { refPrepare :: w -> w
-        , refLabel :: Text
         , refPos :: SourcePos
+        , refLabel :: Text
         }
     | ValueR
         { refPrepare :: w -> w
+        , refPos :: SourcePos
         , refValue :: w
         }
 
@@ -121,16 +123,26 @@ instance (Show w) => Show (Ref w) where
     show Ref{refLabel} = toString refLabel
     show ValueR{refPrepare, refValue} = show $ refPrepare refValue
 
--- | Resolve a 'Ref' against a label table. Strict: forces the lookup and the
---   resulting value to WHNF before returning. Call sites should use @$!@ so
---   that an unresolved label aborts translation rather than producing a thunk
---   that only blows up later if something happens to read it.
+-- | Resolve a 'Ref' against a label table and check the result against the
+-- instruction field it is going to be encoded into. Strict, so that an
+-- unresolved label aborts translation here rather than becoming a thunk that
+-- only blows up later if something happens to read it. Either failure is
+-- reported with the position the reference was written at.
+resolveRef :: (w -> Either Text w) -> (Text -> Maybe w) -> Ref w -> w
+resolveRef valueGuard labelResolver ref =
+    let pos = toText $ sourcePosPretty $ refPos ref
+        !value = case ref of
+            Ref{refPrepare, refLabel}
+                | Just x <- labelResolver refLabel -> refPrepare x
+                | otherwise -> error (pos <> ": can't resolve label: " <> show refLabel)
+            ValueR{refPrepare, refValue} -> refPrepare refValue
+     in case valueGuard value of
+            Right x -> x
+            Left err -> error (pos <> ": " <> err)
+
+-- | 'resolveRef' for a field that has nothing to check.
 deref' :: (Text -> Maybe w) -> Ref w -> w
-deref' f Ref{refPrepare, refLabel, refPos} = case f refLabel of
-    Just w -> let !v = refPrepare w in v
-    Nothing ->
-        error (toText (sourcePosPretty refPos) <> ": can't resolve label: " <> show refLabel)
-deref' _f ValueR{refPrepare, refValue} = let !v = refPrepare refValue in v
+deref' = resolveRef Right
 
 data DataToken w l = DataToken
     { dtLabel :: !l

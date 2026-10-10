@@ -29,7 +29,9 @@ data SimulationRequest = SimulationRequest
     , variant :: Maybe Text
     , isa :: Text
     }
-    deriving (FromForm, Generic, Show)
+    deriving (Generic, Show)
+
+instance FromForm SimulationRequest
 
 nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn, dumpFn :: FilePath -> UUID -> FilePath
 nameFn path guid = path <> "/" <> show guid <> "/name.txt"
@@ -62,7 +64,9 @@ data SimulationTask = SimulationTask
     , stConfFn :: FilePath
     , stGuid :: UUID
     }
-    deriving (FromForm, Generic, Show)
+    deriving (Generic, Show)
+
+instance FromForm SimulationTask
 
 data SimulationResult = SimulationResult
     { srExitCode :: ExitCode
