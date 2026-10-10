@@ -18,8 +18,11 @@ RUN stack build --only-dependencies
 
 FROM ryukzak/wrench-builder AS wrench-build
 COPY . /app
+
 ARG VERSION_SUFFIX=""
-RUN echo "Building with VERSION_SUFFIX=${VERSION_SUFFIX}" && \
+ARG GIT_HASH=""
+ARG GIT_DATE=""
+RUN echo "Building with VERSION_SUFFIX=${VERSION_SUFFIX} GIT_HASH=${GIT_HASH} GIT_DATE=${GIT_DATE}" && \
     stack build --ghc-options -O2 --copy-bins --local-bin-path /app/.local/bin
 
 ###########################################################

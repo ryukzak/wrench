@@ -66,6 +66,8 @@ if ! echo 'FROM scratch' | docker buildx build --platform linux/amd64 \
     exit 1
 fi
 
+BASE_COMMIT=$(git rev-parse HEAD)
+
 CURRENT_VERSION=$(grep '^version:' package.yaml | sed -E 's/version: //')
 echo "Bumping version: $CURRENT_VERSION -> $NEW_VERSION"
 sed -i.bak -E "s/^version: .*/version: $NEW_VERSION/" package.yaml
@@ -73,12 +75,20 @@ rm -f package.yaml.bak
 
 make build
 
-docker buildx build --platform linux/amd64,linux/arm64 \
-    -t "$IMAGE_NAME" -t "$RELEASE_IMAGE" --push .
-
 git add package.yaml wrench.cabal
 git commit -m "chore: release $NEW_VERSION"
 git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+
+if ! docker buildx build --platform linux/amd64,linux/arm64 \
+        --build-arg GIT_HASH="$(git rev-parse HEAD)" \
+        --build-arg GIT_DATE="$(git log HEAD -1 --format=%cd)" \
+        -t "$IMAGE_NAME" -t "$RELEASE_IMAGE" --push .; then
+    git tag -d "$NEW_VERSION"
+    git reset --hard "$BASE_COMMIT"
+    echo "Error: Unable to build and push $RELEASE_IMAGE; nothing was pushed to origin." >&2
+    exit 1
+fi
+
 git push origin master
 git push origin "$NEW_VERSION"
 
