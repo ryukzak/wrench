@@ -3,8 +3,10 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Wrench.Translator.Parser.Misc (
-    num,
-    hexNum,
+    literal,
+    byteLiteral,
+    intLiteral,
+    wordLiteral,
     name,
     labelRef,
     comment,
@@ -24,7 +26,7 @@ import Data.Bits
 import Data.Text qualified as T
 import Relude
 import Relude.Unsafe as Unsafe
-import Text.Megaparsec (anySingle, anySingleBut, choice, getSourcePos, manyTill, single, try)
+import Text.Megaparsec (anySingle, anySingleBut, choice, getOffset, getSourcePos, manyTill, setOffset, single, try)
 import Text.Megaparsec.Char (
     char,
     digitChar,
@@ -35,7 +37,6 @@ import Text.Megaparsec.Char (
     letterChar,
     string,
  )
-import Wrench.Machine.Types (IsWord)
 import Wrench.Machine.Word (fitSigned)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -58,27 +59,70 @@ orgDirective :: String -> Parser Int
 orgDirective cstart = do
     void $ string ".org"
     hspace1
-    value <- Unsafe.read <$> choice [hexNum, num]
+    value <- intLiteral
     eol' cstart
     return value
 
 removeUnderscores :: String -> String
 removeUnderscores = toString . T.replace "_" "" . toText
 
+-- | A literal has to start with a digit, which the @_@ separators may then be
+-- mixed into. Without that requirement both parsers also match the empty string,
+-- and @read@ dies on it as a bare @Prelude.read: no parse@ with no position.
 num :: Parser String
 num = do
     s <-
         choice
-            [ char '-' >> many (digitChar <|> char '_') <&> (:) '-'
-            , many (digitChar <|> char '_')
+            [ try $ char '-' >> decDigits <&> (:) '-'
+            , decDigits
             ]
     return $ removeUnderscores s
+    where
+        decDigits = (:) <$> digitChar <*> many (digitChar <|> char '_')
 
 hexNum :: Parser String
-hexNum = do
+hexNum = try $ do
     void $ string "0x"
-    digits <- many (hexDigitChar <|> char '_')
-    return $ "0x" <> removeUnderscores digits
+    ds <- (:) <$> hexDigitChar <*> many (hexDigitChar <|> char '_')
+    return $ "0x" <> removeUnderscores ds
+
+literal :: Parser Integer
+literal = Unsafe.read <$> choice [hexNum, num]
+
+wordLiteral :: forall w. (IsWord w) => Parser w
+wordLiteral = anyPattern $ "a " <> show (finiteBitSize (zeroBits :: w)) <> "-bit machine word"
+
+byteLiteral :: Parser Word8
+byteLiteral = anyPattern "a byte"
+
+intLiteral :: Parser Int
+intLiteral = narrowed "an Int" (toInteger (minBound :: Int)) (toInteger (maxBound :: Int))
+
+-- | Any pattern the type's own bits can spell, read as signed or unsigned.
+anyPattern :: forall a. (FiniteBits a, Integral a) => Text -> Parser a
+anyPattern what = narrowed what (negate (bit (width - 1))) (bit width - 1)
+    where
+        width = finiteBitSize (zeroBits :: a)
+
+narrowed :: (Integral a) => Text -> Integer -> Integer -> Parser a
+narrowed what lo hi = do
+    literalPos <- getOffset
+    value <- literal
+    if lo <= value && value <= hi
+        then return $ fromInteger value
+        else do
+            setOffset literalPos
+            fail $
+                concat
+                    [ "literal "
+                    , show value
+                    , " doesn't fit "
+                    , toString what
+                    , ", expected "
+                    , show lo
+                    , ".."
+                    , show hi
+                    ]
 
 eol' cstart = hspace >> void (eol <|> comment cstart)
 
@@ -104,20 +148,17 @@ label = try $ do
 
 labelRef = name
 
-referenceWithFn :: (Num w, Read w) => (w -> w) -> Parser (Ref w)
-referenceWithFn f =
+referenceWithFn :: (IsWord w) => (w -> w) -> Parser (Ref w)
+referenceWithFn f = do
+    pos <- getSourcePos
     choice
         [ do
             void quote
             c <- anySingleBut '\''
             void quote
-            return $ ValueR f $ fromIntegral $ ord c
-        , do
-            pos <- getSourcePos
-            l <- labelRef
-            return $ Ref f l pos
-        , hexNum <&> ValueR f . read
-        , num <&> ValueR f . read
+            return $ ValueR f pos $ fromIntegral $ ord c
+        , Ref f pos <$> labelRef
+        , ValueR f pos <$> wordLiteral
         ]
     where
         quote = char '\''
@@ -150,5 +191,5 @@ referenceWithDirective =
         , reference
         ]
 
-reference :: (Num w, Read w) => Parser (Ref w)
+reference :: (IsWord w) => Parser (Ref w)
 reference = referenceWithFn id

@@ -159,7 +159,7 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
                 hspace1
                 addrReg <- addrRegister'
                 hspace >> comma >> hspace
-                offset <- readMaybe <$> choice [hexNum, num]
+                offset <- optional intLiteral
                 eol' ";"
                 return $ Link addrReg (fromMaybe 0 offset)
             , try $ do
@@ -249,7 +249,7 @@ addrRegister' = try $ do
 addrRegister = DirectAddrReg <$> addrRegister'
 
 indirectAddrRegister = try $ do
-    offset <- readMaybe <$> choice [hexNum, num]
+    offset <- optional intLiteral
     void (string "(")
     hspace
     void (string "A")
