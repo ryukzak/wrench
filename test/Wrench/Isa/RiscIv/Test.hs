@@ -165,6 +165,14 @@ tests =
                 rejected "slli t0, t1, 32" "0..31"
             , testCase "negative shift amount" $ do
                 rejected "srli t0, t1, -1" "0..31"
+            , testCase "a shift amount has to be a constant, not a label" $ do
+                assertBool "slli t0, t1, shamt should be rejected" $
+                    isLeft (translate "slli t0, t1, shamt")
+            , testCase "a relocation directive is not a shift amount either" $ do
+                assertBool "srai t0, t1, %lo(shamt) should be rejected" $
+                    isLeft (translate "srai t0, t1, %lo(shamt)")
+            , testCase "an I-type immediate may still be a label" $ do
+                accepted "addi t0, zero, shamt"
             , testCase "highest lui immediate that fits" $ do
                 accepted "lui t0, 0xfffff"
             , testCase "lui above the U-type field" $ do

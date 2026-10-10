@@ -74,7 +74,7 @@ of them can hold a full 32-bit value:
 | ----------------------------------------------------------------------- | --------------- | ------------------- |
 | `lw`, `lb`, `sw`, `sb` offset                                           | 12-bit signed   | `-2048..2047`       |
 | `addi`, `slti`, `andi`, `ori`, `xori` immediate                         | 12-bit signed   | `-2048..2047`       |
-| `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`             |
+| `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`, constant   |
 | `beqz`, `bnez`, `beq`, `bne`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 13-bit signed   | `-4096..4095`       |
 | `j`, `jal` displacement                                                 | 21-bit signed   | `-1048576..1048575` |
 | `lui` immediate                                                         | 20-bit unsigned | `0..1048575`        |
@@ -212,18 +212,18 @@ ERROR: memory[0x06]: instruction in memory corrupted
 
 - **Logical Shift Left Immediate**
     - **Syntax:** `slli <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register left by the immediate amount and store the result in the destination register.
-    - **Operation:** `rd <- rs1 << (k & 0x1F)`
+    - **Description:** Shift the value of the source register left by the immediate amount -- a constant in `0..31`, never a label -- and store the result in the destination register.
+    - **Operation:** `rd <- rs1 << k`
 
 - **Logical Shift Right Immediate**
     - **Syntax:** `srli <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register right (zero-fill) by the immediate amount and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >>> (k & 0x1F)`
+    - **Description:** Shift the value of the source register right (zero-fill) by the immediate amount -- a constant in `0..31`, never a label -- and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >>> k`
 
 - **Arithmetic Shift Right Immediate**
     - **Syntax:** `srai <rd>, <rs1>, <k>`
-    - **Description:** Shift the value of the source register right by the immediate amount, preserving the sign, and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> (k & 0x1F)`
+    - **Description:** Shift the value of the source register right by the immediate amount -- a constant in `0..31`, never a label -- preserving the sign, and store the result in the destination register.
+    - **Operation:** `rd <- rs1 >> k`
 
 - **Logical Shift Left**
     - **Syntax:** `sll <rd>, <rs1>, <rs2>`
