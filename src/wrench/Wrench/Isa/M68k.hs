@@ -41,7 +41,9 @@ longMode = void (string ".l") >> return Long
 byteMode = void (string ".b") >> return Byte
 
 data DataReg = D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
-    deriving (Eq, Generic, Hashable, Read, Show)
+    deriving (Eq, Generic, Read, Show)
+
+instance Hashable DataReg
 
 dataRegisters :: [DataReg]
 dataRegisters = [D0, D1, D2, D3, D4, D5, D6, D7]
@@ -50,7 +52,9 @@ instance (Default w) => Default (HashMap DataReg w) where
     def = fromList $ map (,def) dataRegisters
 
 data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
-    deriving (Eq, Generic, Hashable, Read, Show)
+    deriving (Eq, Generic, Read, Show)
+
+instance Hashable AddrReg
 
 instance (Default w) => Default (HashMap AddrReg w) where
     def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
