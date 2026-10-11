@@ -15,7 +15,7 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
+import Data.Bits (FiniteBits, bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
@@ -713,14 +713,14 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                         , cFlag = carry
                         }
                 nextPc
-            Asl{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftL d (fromEnum s)) (32 -)
-            Asl{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftL d (fromEnum s)) (8 -)
-            Asr{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftR d (fromEnum s)) (subtract 1)
-            Asr{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftR d (fromEnum s)) (subtract 1)
-            Lsl{mode = Long, src, dst} -> wordShift src dst lShiftL (32 -)
-            Lsl{mode = Byte, src, dst} -> byteShift src dst lShiftL (8 -)
-            Lsr{mode = Long, src, dst} -> wordShift src dst lShiftR (subtract 1)
-            Lsr{mode = Byte, src, dst} -> byteShift src dst lShiftR (subtract 1)
+            Asl{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftL d (fromEnum s)) lastBitOutLeft
+            Asl{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftL d (fromEnum s)) lastBitOutLeft
+            Asr{mode = Long, src, dst} -> wordShift src dst (\d s -> shiftR d (fromEnum s)) lastBitOutRight
+            Asr{mode = Byte, src, dst} -> byteShift src dst (\d s -> shiftR d (fromEnum s)) lastBitOutRight
+            Lsl{mode = Long, src, dst} -> wordShift src dst lShiftL lastBitOutLeft
+            Lsl{mode = Byte, src, dst} -> byteShift src dst lShiftL lastBitOutLeft
+            Lsr{mode = Long, src, dst} -> wordShift src dst lShiftR lastBitOutRight
+            Lsr{mode = Byte, src, dst} -> byteShift src dst lShiftR lastBitOutRight
             Jmp{ref} -> branch ref True
             Bcc{ref} -> get >>= branch ref . not . cFlag
             Bcs{ref} -> get >>= branch ref . cFlag
@@ -802,22 +802,22 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             wordShift src dst f carryBit = do
                 a <- fetchWord dst
                 b <- fetchWord src
-                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
-                    count = fromEnum shiftBy
+                let width = finiteBitSize a
+                    requested = fromEnum (b .&. 0x3F)
+                    shiftBy = min (fromIntegral width) (b .&. 0x3F)
                     result = f a shiftBy
-                    carry = count > 0 && testBit a (carryBit count)
                 storeWord dst result
-                modify $ \st -> st{vFlag = False, cFlag = carry}
+                modify $ \st -> st{vFlag = False, cFlag = shiftCarry carryBit a width requested}
                 nextPc
             byteShift src dst f carryBit = do
                 a <- fetchByte dst
                 b <- fetchByte src
-                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
-                    count = fromEnum shiftBy
+                let width = finiteBitSize a
+                    requested = fromEnum (b .&. 0x3F)
+                    shiftBy = min (fromIntegral width) (b .&. 0x3F)
                     result = f a shiftBy
-                    carry = count > 0 && testBit a (carryBit count)
                 storeByte dst result
-                modify $ \st -> st{vFlag = False, cFlag = carry}
+                modify $ \st -> st{vFlag = False, cFlag = shiftCarry carryBit a width requested}
                 nextPc
             byteCmd2Ext src dst f = do
                 a <- fetchByte dst
@@ -832,3 +832,9 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                         , cFlag = carry
                         }
                 nextPc
+            lastBitOutLeft width count = width - count
+            lastBitOutRight _width count = count - 1
+
+            shiftCarry lastBitOut a width count
+                | count <= 0 || count > width = False
+                | otherwise = testBit a (lastBitOut width count)

@@ -166,6 +166,10 @@ tests =
             , testCase "an immediate count of 8 or more clears a byte" $ do
                 let M68kSt{dataRegs} = simulate "asl.b 8, D0" st0{dataRegs = insert D0 0x10 dataRegs0}
                  in (dataRegs !? D0) @?= Just 0
+                let M68kSt{dataRegs, cFlag} = simulate "asl.b 9, D0" st0{dataRegs = insert D0 0x11 dataRegs0}
+                 in do
+                        (dataRegs !? D0) @?= Just 0
+                        cFlag @?= False
             , testCase "the register form is untouched" $ do
                 accepted "asl.l D1, D0"
             , testCase "count above the field" $ do
@@ -201,10 +205,23 @@ tests =
                 let M68kSt{dataRegs} =
                         simulate "asl.l D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 1 dataRegs0}
                  in (dataRegs !? D0) @?= Just 0
-            , testCase "the carry still reports the last bit shifted out" $ do
+            , testCase "at the width the carry is the last bit of the datum" $ do
                 let M68kSt{cFlag} =
                         simulate "asl.l D1, D0" st0{dataRegs = insert D1 32 $ insert D0 1 dataRegs0}
                  in cFlag @?= True
+            , testCase "past the width the datum is gone, so the carry is clear" $ do
+                let M68kSt{dataRegs, cFlag} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 40 $ insert D0 0x11 dataRegs0}
+                 in do
+                        (dataRegs !? D0) @?= Just 0
+                        cFlag @?= False
+            , testCase "the same holds in byte mode" $ do
+                let M68kSt{cFlag} =
+                        simulate "asl.b D1, D0" st0{dataRegs = insert D1 8 $ insert D0 0x11 dataRegs0}
+                 in cFlag @?= True
+                let M68kSt{cFlag} =
+                        simulate "asl.b D1, D0" st0{dataRegs = insert D1 9 $ insert D0 0x11 dataRegs0}
+                 in cFlag @?= False
             , testCase "byte mode is held at its own width" $ do
                 let M68kSt{dataRegs} =
                         simulate "asl.b D1, D0" st0{dataRegs = insert D1 8 $ insert D0 0x10 dataRegs0}
