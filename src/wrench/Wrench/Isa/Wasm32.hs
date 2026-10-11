@@ -65,7 +65,7 @@ import Data.IntSet qualified as IntSet
 import Data.Text qualified as T
 import Relude
 import Relude.Extra (insert, toPairs, (!?))
-import Text.Megaparsec (choice, lookAhead, try)
+import Text.Megaparsec (choice, getOffset, lookAhead, setOffset, try)
 import Text.Megaparsec.Char (char, digitChar, hspace, hspace1, string)
 import Wrench.Isa.Wasm32.ControlRecord
 import Wrench.Isa.Wasm32.Layout
@@ -393,15 +393,6 @@ memOp mnemonic constructor =
     where
         offset = try (hspace1 >> void (lookAhead digitChar)) >> narrowLit "load/store offset"
 
--- | An integer immediate in decimal or @0x@ hex. Fails as a parser
--- rather than handing an empty string to @read@: 'num' is built from
--- 'many', so it matches nothing happily, and an optional immediate (see
--- 'memOp') needs to find that out by backtracking.
-intLit :: Parser Int
-intLit = do
-    digits <- try hexNum <|> num
-    maybe (fail $ "expected an integer literal, got " <> show digits) return (readMaybe digits)
-
 -- | An immediate that has to fit the one-byte field its instruction
 -- encodes it in -- a branch depth, a local index, one of @call@'s
 -- counts, a load\/store offset.
@@ -411,12 +402,18 @@ intLit = do
 -- that only knows addresses. Masking a high bit off doesn't make a
 -- smaller number, it makes a different one: @call 0, 300@ assembling as
 -- @call 0, 44@ would pop the wrong number of results, silently.
+--
+-- 'intLiteral' does the reading, and fails as a parser on anything that
+-- isn't a literal -- which an optional immediate (see 'memOp') needs,
+-- since it finds out by backtracking.
 narrowLit :: String -> Parser Int
 narrowLit what = do
-    value <- intLit
+    operandPos <- getOffset
+    value <- intLiteral
     if value >= 0 && value < 1 `shiftL` immediateBitWidth
         then return value
-        else
+        else do
+            setOffset operandPos
             fail $
                 what <> " " <> show value <> " doesn't fit in " <> show immediateBitWidth <> " bits"
 
