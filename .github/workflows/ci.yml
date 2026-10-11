@@ -235,7 +235,17 @@ jobs:
           stack-no-global: true
           ghc-version: "9.10.3"
 
+      - name: Resolve version metadata
+        id: version
+        shell: bash
+        run: |
+          echo "git_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "git_date=$(git log HEAD -1 --format=%cd)" >> "$GITHUB_OUTPUT"
+
       - name: Build binary
+        env:
+          GIT_HASH: ${{ steps.version.outputs.git_hash }}
+          GIT_DATE: ${{ steps.version.outputs.git_date }}
         run: |
           stack build --copy-bins --local-bin-path ./dist
 
@@ -314,6 +324,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Resolve version metadata
+        id: version
+        run: |
+          echo "git_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "git_date=$(git log HEAD -1 --format=%cd)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
         with:
@@ -326,6 +342,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           build-args: |
             VERSION_SUFFIX=EDGE
+            GIT_HASH=${{ steps.version.outputs.git_hash }}
+            GIT_DATE=${{ steps.version.outputs.git_date }}
 
   deploy-edge:
     needs: build-edge-image

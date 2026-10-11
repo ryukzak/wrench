@@ -43,7 +43,6 @@ dependencies:
   - data-default
   - data-interval
   - filepath
-  - gitrev
   - megaparsec
   - mtl
   - optparse-applicative

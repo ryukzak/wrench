@@ -83,7 +83,6 @@ library
     , data-default
     , data-interval
     , filepath
-    , gitrev
     , megaparsec
     , mtl
     , optparse-applicative
@@ -156,7 +155,6 @@ executable wrench
     , data-default
     , data-interval
     , filepath
-    , gitrev
     , megaparsec
     , mtl
     , optparse-applicative
@@ -207,7 +205,6 @@ executable wrench-fmt
     , data-interval
     , directory
     , filepath
-    , gitrev
     , http-api-data
     , lucid
     , megaparsec
@@ -281,7 +278,6 @@ executable wrench-serv
     , data-interval
     , directory
     , filepath
-    , gitrev
     , http-api-data
     , http-conduit
     , lucid
@@ -359,7 +355,6 @@ test-suite wrench-test
     , data-default
     , data-interval
     , filepath
-    , gitrev
     , megaparsec
     , mtl
     , optparse-applicative
