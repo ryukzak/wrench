@@ -277,44 +277,44 @@ tests =
             [ Wrench.Isa.Wasm32.Test.tests
             , testGroup
                 "Translator"
-                [ goldenTranslate Wasm32 "example/wasm32/arithmetic.s"
-                , goldenTranslate Wasm32 "example/wasm32/bitwise.s"
-                , goldenTranslate Wasm32 "example/wasm32/signed_vs_unsigned.s"
-                , goldenTranslate Wasm32 "example/wasm32/loop.s"
-                , goldenTranslate Wasm32 "example/wasm32/break_continue.s"
-                , goldenTranslate Wasm32 "example/wasm32/if_else.s"
-                , goldenTranslate Wasm32 "example/wasm32/sum.s"
-                , goldenTranslate Wasm32 "example/wasm32/factorial.s"
-                , goldenTranslate Wasm32 "example/wasm32/divmod.s"
-                , goldenTranslate Wasm32 "example/wasm32/hello.s"
-                , goldenTranslate Wasm32 "example/wasm32/get-put-char.s"
-                , goldenTranslate Wasm32 "example/wasm32/nested_scopes.s"
-                , goldenTranslate Wasm32 "example/wasm32/locals.s"
-                , goldenTranslate Wasm32 "example/wasm32/stack_root.s"
+                [ goldenTranslate Wasm32 "test/golden/wasm32/arithmetic.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/bitwise.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/signed_vs_unsigned.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/loop.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/break_continue.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/if_else.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/sum.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/factorial.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/divmod.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/hello.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/get-put-char.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/nested_scopes.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/locals.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/stack_root.s"
                 ]
             , testGroup
                 "Simulator"
-                [ goldenSimulate Wasm32 "example/wasm32/arithmetic.s" "example/wasm32/arithmetic.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/bitwise.s" "example/wasm32/bitwise.yaml"
+                [ goldenSimulate Wasm32 "test/golden/wasm32/arithmetic.s" "test/golden/wasm32/arithmetic.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/bitwise.s" "test/golden/wasm32/bitwise.yaml"
                 , goldenSimulate
                     Wasm32
-                    "example/wasm32/signed_vs_unsigned.s"
-                    "example/wasm32/signed_vs_unsigned.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/loop.s" "example/wasm32/loop.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/break_continue.s" "example/wasm32/break_continue.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/if_else.s" "example/wasm32/if_else.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/sum.s" "example/wasm32/sum.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/factorial.s" "example/wasm32/factorial.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/divmod.s" "example/wasm32/divmod.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/hello.s" "example/wasm32/hello.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/get-put-char.s" "example/wasm32/get-put-char-65.yaml"
+                    "test/golden/wasm32/signed_vs_unsigned.s"
+                    "test/golden/wasm32/signed_vs_unsigned.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/loop.s" "test/golden/wasm32/loop.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/break_continue.s" "test/golden/wasm32/break_continue.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/if_else.s" "test/golden/wasm32/if_else.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/sum.s" "test/golden/wasm32/sum.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/factorial.s" "test/golden/wasm32/factorial.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/divmod.s" "test/golden/wasm32/divmod.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/hello.s" "test/golden/wasm32/hello.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/get-put-char.s" "test/golden/wasm32/get-put-char-65.yaml"
                 , goldenSimulate
                     Wasm32
-                    "example/wasm32/get-put-char.s"
-                    "example/wasm32/get-put-char-88.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/nested_scopes.s" "example/wasm32/nested_scopes.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/locals.s" "example/wasm32/locals.yaml"
-                , goldenSimulate Wasm32 "example/wasm32/stack_root.s" "example/wasm32/stack_root.yaml"
+                    "test/golden/wasm32/get-put-char.s"
+                    "test/golden/wasm32/get-put-char-88.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/nested_scopes.s" "test/golden/wasm32/nested_scopes.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/locals.s" "test/golden/wasm32/locals.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/stack_root.s" "test/golden/wasm32/stack_root.yaml"
                 ]
             ]
         ]
@@ -363,19 +363,6 @@ fn2name fn =
         $ dropExtension
         $ takeFileName fn
 
--- | Golden-result paths are normally derived straight from the source
--- file's own path (see 'goldenTranslate''\/'goldenSimulateInner'). An
--- @example\/@ source maps to @test\/golden\/@ instead, so a golden test
--- can read its @.s@\/@.yaml@ straight from @example\/@ (when that's a
--- pure duplicate not worth maintaining twice) without writing results
--- there too. A no-op for every path that isn't under @example\/@.
-goldenResultBase :: FilePath -> FilePath
-goldenResultBase fn
-    | examplePrefix `isPrefixOf` fn = "test/golden/" <> drop (length examplePrefix) fn
-    | otherwise = fn
-    where
-        examplePrefix = "example/" :: FilePath
-
 goldenTranslate :: Isa -> FilePath -> TestTree
 goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.RiscIvIsa RiscIv fn
 goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a fn
@@ -396,7 +383,7 @@ goldenTranslate' ::
     -> FilePath
     -> TestTree
 goldenTranslate' isa fn =
-    goldenVsString (fn2name fn) (goldenResultBase fn <> "." <> isaPath isa <> ".result") $ do
+    goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
         case translate @isa @Int32 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats) ->
@@ -427,7 +414,7 @@ goldenSimulate' shouldFail isa =
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn
-                goldenPath = dropExtension (goldenResultBase confFn) <> ext
+                goldenPath = dropExtension confFn <> ext
                 action = do
                     src <- decodeUtf8 <$> readFileBS fn
                     conf <- either (error . toText) id <$> readConfig confFn
