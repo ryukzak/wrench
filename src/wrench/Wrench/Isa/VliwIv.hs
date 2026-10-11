@@ -32,7 +32,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
-import Wrench.Translator.Parser.Misc (eol', reference, referenceWithDirective, wordLiteral)
+import Wrench.Translator.Parser.Misc (comma, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
@@ -450,8 +450,6 @@ instance (IsWord w) => DerefMnemonic (VliwIvIsa w) w where
 
 instance ByteSize (VliwIvIsa w l) where
     byteSize _ = 14
-
-comma = hspace >> string "," >> hspace
 
 cmdMnemonic mnemonic = string (mnemonic <> " ") <|> string (mnemonic <> "\t")
 

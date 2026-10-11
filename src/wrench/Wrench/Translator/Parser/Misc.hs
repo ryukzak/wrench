@@ -10,6 +10,7 @@ module Wrench.Translator.Parser.Misc (
     name,
     labelRef,
     comment,
+    comma,
     nothing,
     eol',
     label,
@@ -135,6 +136,11 @@ narrowed what lo hi = do
                     , ".."
                     , show hi
                     ]
+
+-- | Separates an instruction's operands, with any surrounding space absorbed:
+-- @add a0, a1@ and @add a0,a1@ parse the same.
+comma :: Parser ()
+comma = hspace >> void (char ',') >> hspace
 
 eol' cstart = hspace >> void (eol <|> comment cstart)
 
