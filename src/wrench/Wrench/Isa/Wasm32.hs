@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
@@ -1417,12 +1418,10 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
             signedDiv = do
                 y <- popValue
                 x <- popValue
-                if y == 0
-                    then raiseInternalError "integer divide by zero"
-                    else
-                        if x == minBound && y == -1
-                            then raiseInternalError "integer overflow"
-                            else pushValue (x `quot` y)
+                if
+                    | y == 0 -> raiseInternalError "integer divide by zero"
+                    | x == minBound && y == -1 -> raiseInternalError "integer overflow"
+                    | otherwise -> pushValue (x `quot` y)
             -- \| wasm's @irem_s@: traps only on a zero divisor. Unlike
             -- @idiv_s@, @minBound % -1@ is defined (as 0) and must not
             -- trap -- 'rem' already answers 0 there without dividing.
