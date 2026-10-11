@@ -1,0 +1,511 @@
+---
+# Check result
+stack: 4:5
+---
+# Stack layout
+pc: 4
+  (operands): empty, base=224
+pc: 9
+  mem[220..223]: (operands)
+    0: 0
+pc: 14
+  mem[216..223]: (operands)
+    0: 0
+    1: 5
+pc: 16
+  (operands): empty, base=224
+pc: 17
+  mem[224..231]: BlockScope { csEnd = 112 }
+  (operands): empty, base=224
+pc: 18
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  (operands): empty, base=224
+pc: 23
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 0
+pc: 25
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 30
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 2
+pc: 31
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 0
+pc: 33
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  (operands): empty, base=224
+pc: 38
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 0
+pc: 40
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 45
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 3
+pc: 46
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 0
+pc: 68
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  (operands): empty, base=224
+pc: 73
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 0
+pc: 75
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 80
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 85
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 0
+    2: 0
+pc: 87
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 0
+    2: 5
+pc: 92
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 0
+    2: 5
+    3: 1
+pc: 93
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 0
+    2: 4
+pc: 95
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 96
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 101
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 103
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 108
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 109
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 1
+pc: 18
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 23
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 25
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 30
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 2
+pc: 31
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 33
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 38
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 40
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 45
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+pc: 46
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 68
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[220..223]: (operands)
+    0: 5
+pc: 73
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 0
+pc: 75
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 80
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 85
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 0
+pc: 87
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 4
+pc: 92
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[204..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 4
+    4: 1
+pc: 93
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 3
+pc: 95
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 96
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 101
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 103
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+pc: 108
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+    3: 0
+pc: 109
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 1
+pc: 18
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 23
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 25
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+pc: 30
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+    3: 2
+pc: 31
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 33
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 38
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 40
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+pc: 45
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 3
+    3: 3
+pc: 46
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 1
+pc: 47
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 52
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 57
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 0
+pc: 59
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 3
+pc: 64
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[204..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 3
+    4: 1
+pc: 65
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+    3: 2
+pc: 67
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 96
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 101
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 103
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 2
+pc: 108
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 2
+    3: 0
+pc: 109
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 1
+pc: 18
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 23
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 0
+pc: 25
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 2
+pc: 30
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[208..223]: (operands)
+    0: 5
+    1: 4
+    2: 2
+    3: 2
+pc: 31
+  mem[224..231]: BlockScope { csEnd = 112 }
+  mem[232..239]: LoopScope { csStart = 18, csEnd = 111 }
+  mem[212..223]: (operands)
+    0: 5
+    1: 4
+    2: 1
+pc: 113
+  mem[216..223]: (operands)
+    0: 5
+    1: 4
+pc: 113
+  mem[216..223]: (operands)
+    0: 5
+    1: 4

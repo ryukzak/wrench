@@ -25,6 +25,9 @@ import Wrench.Isa.RiscIv.Test qualified
 import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
+import Wrench.Isa.Wasm32 (Wasm32St)
+import Wrench.Isa.Wasm32 qualified as Wasm32
+import Wrench.Isa.Wasm32.Test qualified
 import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
@@ -269,6 +272,51 @@ tests =
                     ]
                 ]
             ]
+        , testGroup
+            "Wasm32"
+            [ Wrench.Isa.Wasm32.Test.tests
+            , testGroup
+                "Translator"
+                [ goldenTranslate Wasm32 "test/golden/wasm32/arithmetic.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/bitwise.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/signed_vs_unsigned.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/loop.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/break_continue.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/if_else.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/sum.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/factorial.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/divmod.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/hello.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/get-put-char.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/nested_scopes.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/locals.s"
+                , goldenTranslate Wasm32 "test/golden/wasm32/stack_root.s"
+                ]
+            , testGroup
+                "Simulator"
+                [ goldenSimulate Wasm32 "test/golden/wasm32/arithmetic.s" "test/golden/wasm32/arithmetic.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/bitwise.s" "test/golden/wasm32/bitwise.yaml"
+                , goldenSimulate
+                    Wasm32
+                    "test/golden/wasm32/signed_vs_unsigned.s"
+                    "test/golden/wasm32/signed_vs_unsigned.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/loop.s" "test/golden/wasm32/loop.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/break_continue.s" "test/golden/wasm32/break_continue.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/if_else.s" "test/golden/wasm32/if_else.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/sum.s" "test/golden/wasm32/sum.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/factorial.s" "test/golden/wasm32/factorial.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/divmod.s" "test/golden/wasm32/divmod.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/hello.s" "test/golden/wasm32/hello.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/get-put-char.s" "test/golden/wasm32/get-put-char-65.yaml"
+                , goldenSimulate
+                    Wasm32
+                    "test/golden/wasm32/get-put-char.s"
+                    "test/golden/wasm32/get-put-char-88.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/nested_scopes.s" "test/golden/wasm32/nested_scopes.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/locals.s" "test/golden/wasm32/locals.yaml"
+                , goldenSimulate Wasm32 "test/golden/wasm32/stack_root.s" "test/golden/wasm32/stack_root.yaml"
+                ]
+            ]
         ]
 
 isaPath :: (IsString a) => Isa -> a
@@ -278,6 +326,7 @@ isaPath isa = case isa of
     Acc32 -> "acc32"
     M68k -> "m68k"
     VliwIv -> "vliw-iv"
+    Wasm32 -> "wasm32"
 
 generatedTest' :: Isa -> String -> String -> Int -> TestTree
 generatedTest' isa sname vname n = testGroup sname testCases
@@ -320,6 +369,7 @@ goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a fn
 goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Acc32Isa Acc32 fn
 goldenTranslate M68k fn = goldenTranslate' @M68k.M68kIsa M68k fn
 goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.VliwIvIsa VliwIv fn
+goldenTranslate Wasm32 fn = goldenTranslate' @Wasm32.Wasm32Isa Wasm32 fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -360,6 +410,7 @@ goldenSimulate' shouldFail isa =
         Acc32 -> goldenSimulateInner (wrench @(Acc32St Int32)) ".acc32.result" shouldFail
         M68k -> goldenSimulateInner (wrench @(M68kSt Int32)) ".m68k.result" shouldFail
         VliwIv -> goldenSimulateInner (wrench @(VliwIvSt Int32)) ".vliw-iv.result" shouldFail
+        Wasm32 -> goldenSimulateInner (wrench @(Wasm32St Int32)) ".wasm32.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn

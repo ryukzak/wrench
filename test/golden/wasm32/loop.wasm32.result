@@ -1,0 +1,375 @@
+---
+# Check result
+stack: 128
+---
+# Stack layout
+pc: 0
+  (operands): empty, base=224
+pc: 2
+  mem[220..223]: locals
+    0: 0
+  (operands): empty, base=220
+pc: 7
+  mem[220..223]: locals
+    0: 0
+  mem[216..219]: (operands)
+    0: 1
+pc: 9
+  mem[220..223]: locals
+    0: 1
+  (operands): empty, base=220
+pc: 10
+  mem[220..223]: locals
+    0: 1
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 1
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 17
+  mem[220..223]: locals
+    0: 1
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 1
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 1
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 2
+pc: 20
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 2
+pc: 27
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 2
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 2
+pc: 17
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 2
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 2
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 4
+pc: 20
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 4
+pc: 27
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 4
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 4
+pc: 17
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 4
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 4
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 8
+pc: 20
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 8
+pc: 27
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 8
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 8
+pc: 17
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 8
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 8
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 16
+pc: 20
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 16
+pc: 27
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 16
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 16
+pc: 17
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 16
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 16
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 32
+pc: 20
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 32
+pc: 27
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 32
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 32
+pc: 17
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 32
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 32
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 64
+pc: 20
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 64
+pc: 27
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 64
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 1
+pc: 10
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 12
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 64
+pc: 17
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 64
+    1: 2
+pc: 18
+  mem[220..223]: locals
+    0: 64
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 128
+pc: 20
+  mem[220..223]: locals
+    0: 128
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 22
+  mem[220..223]: locals
+    0: 128
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 128
+pc: 27
+  mem[220..223]: locals
+    0: 128
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[212..219]: (operands)
+    0: 128
+    1: 100
+pc: 28
+  mem[220..223]: locals
+    0: 128
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[216..219]: (operands)
+    0: 0
+pc: 30
+  mem[220..223]: locals
+    0: 128
+  mem[224..231]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=220
+pc: 31
+  mem[220..223]: locals
+    0: 128
+  (operands): empty, base=220
+pc: 33
+  mem[220..223]: locals
+    0: 128
+  mem[216..219]: (operands)
+    0: 128
+pc: 33
+  mem[220..223]: locals
+    0: 128
+  mem[216..219]: (operands)
+    0: 128
