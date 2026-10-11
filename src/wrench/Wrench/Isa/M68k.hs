@@ -15,13 +15,13 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (complement, shiftL, shiftR, testBit, (.&.), (.|.))
+import Data.Bits (bit, complement, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice, notFollowedBy, oneOf, try)
+import Text.Megaparsec (choice, getOffset, notFollowedBy, oneOf, setOffset, try)
 import Text.Megaparsec.Char (alphaNumChar, char, hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -154,14 +154,17 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             , branchCmd "bvs" Bvs reference
             , branchCmd "jsr" Jsr reference
             , cmd0args "rts" Rts
-            , try $ do
-                void $ string "link"
-                hspace1
-                addrReg <- addrRegister'
+            , do
+                addrReg <- try $ do
+                    void $ string "link"
+                    hspace1
+                    addrRegister'
                 hspace >> comma >> hspace
+                operandPos <- getOffset
                 offset <- optional intLiteral
+                displacement <- maybe (return 0) (requireDisplacement operandPos) offset
                 eol' ";"
-                return $ Link addrReg (fromMaybe 0 offset)
+                return $ Link addrReg displacement
             , try $ do
                 void $ string "unlk"
                 hspace1
@@ -248,19 +251,51 @@ addrRegister' = try $ do
 
 addrRegister = DirectAddrReg <$> addrRegister'
 
-indirectAddrRegister = try $ do
-    offset <- optional intLiteral
-    void (string "(")
-    hspace
-    void (string "A")
-    n <- oneOf ['0' .. '7']
-    hspace
-    index <- optional $ do
-        void (string ",")
+-- | Width of the displacement field in an indirect-address operand and in
+-- @link@: both carry it in one extension word.
+displacementBits :: Int
+displacementBits = 16
+
+-- | Check a displacement against the extension word it is encoded into, while
+-- parsing, so the caret lands under the operand. A displacement is always a
+-- bare number here, so there is no label to resolve first.
+requireDisplacement :: Int -> Int -> Parser Int
+requireDisplacement operandPos value
+    | lo <= toInteger value && toInteger value <= hi = return value
+    | otherwise = do
+        setOffset operandPos
+        fail $
+            concat
+                [ "displacement "
+                , show value
+                , " doesn't fit the "
+                , show displacementBits
+                , "-bit signed field of an extension word, expected "
+                , show lo
+                , ".."
+                , show hi
+                ]
+    where
+        hi = bit (displacementBits - 1) - 1 :: Integer
+        lo = negate (bit (displacementBits - 1)) :: Integer
+
+indirectAddrRegister = do
+    (operandPos, offset, n, index) <- try $ do
+        operandPos <- getOffset
+        offset <- optional intLiteral
+        void (string "(")
         hspace
-        choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
-    void (string ")")
-    return $ IndirectAddrReg (fromMaybe 0 offset) (Unsafe.read ['A', n]) index
+        void (string "A")
+        n <- oneOf ['0' .. '7']
+        hspace
+        index <- optional $ do
+            void (string ",")
+            hspace
+            choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
+        void (string ")")
+        return (operandPos, offset, n, index)
+    displacement <- maybe (return 0) (requireDisplacement operandPos) offset
+    return $ IndirectAddrReg displacement (Unsafe.read ['A', n]) index
 
 indirectAddrRegPreDecrement = try $ do
     void (string "-(")

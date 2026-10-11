@@ -1,10 +1,11 @@
 module Wrench.Isa.M68k.Test (tests) where
 
 import Data.Default
+import Data.List (isInfixOf)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Text.Megaparsec.Error (errorBundlePretty)
 import Text.Megaparsec.Pos (initialPos)
@@ -120,8 +121,6 @@ tests =
             -- Address Register Direct is not a valid source mode for these
             -- instructions; the parser must fail rather than silently
             -- consuming @A2@ as a label.
-            let parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
-                parsesM68k = translate
             isLeft (parsesM68k "move.l A2, D0") @?= True
             isLeft (parsesM68k "add.l A0, D1") @?= True
             isLeft (parsesM68k "sub.l A0, D1") @?= True
@@ -129,6 +128,30 @@ tests =
             isLeft (parsesM68k "and.l A0, D1") @?= True
             -- @movea@ still accepts An as source.
             isRight (parsesM68k "movea.l A2, A0") @?= True
+        , testGroup
+            "Displacement field"
+            [ testCase "displacements that fit are accepted" $ do
+                isRight (parsesM68k "move.l -4(A6), D0") @?= True
+                isRight (parsesM68k "move.l 32767(A0), D0") @?= True
+                isRight (parsesM68k "move.l -32768(A0), D0") @?= True
+                isRight (parsesM68k "link A6, -4") @?= True
+            , testCase "displacement above the field" $ do
+                rejected "move.l 32768(A0), D0" "-32768..32767"
+            , testCase "displacement below the field" $ do
+                rejected "move.l -32769(A0), D0" "-32768..32767"
+            , testCase "the indexed form carries the same field" $ do
+                rejected "move.l 100000(A0,D1), D0" "-32768..32767"
+            , testCase "link carries the same field" $ do
+                rejected "link A6, 100000" "-32768..32767"
+            , testCase "rejection names the operand, the field and the range" $ do
+                case parsesM68k "move.l 100000(A0), D0" of
+                    Right m -> assertFailure $ "should be rejected, got: " <> show m
+                    Left err -> do
+                        assertBool ("displacement in: " <> err) $ "100000" `isInfixOf` err
+                        assertBool ("field width in: " <> err) $ "16-bit" `isInfixOf` err
+                        assertBool ("carrier in: " <> err) $ "extension word" `isInfixOf` err
+                        assertBool ("range in: " <> err) $ "-32768..32767" `isInfixOf` err
+            ]
         , testCase "Read byte from memory by address register" $ do
             let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -403,6 +426,15 @@ tests =
             (initState 256 (mkIoMem (fromList []) memInit) [])
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
+
+parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
+parsesM68k = translate
+
+rejected :: String -> String -> IO ()
+rejected code range =
+    case parsesM68k code of
+        Right m -> assertFailure $ code <> " should be rejected, got: " <> show m
+        Left err -> assertBool ("expected range " <> range <> " in: " <> err) $ range `isInfixOf` err
 
 readMemBytes :: (Memory a isa w) => a -> [Int] -> [Word8]
 readMemBytes mem addrs = map snd $ rights $ map (readByte mem) addrs
