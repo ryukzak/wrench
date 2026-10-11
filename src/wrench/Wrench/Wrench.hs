@@ -21,6 +21,7 @@ import System.IO qualified as SIO
 import System.Random qualified as Random
 import Text.Pretty.Simple
 import Wrench.Config
+import Wrench.Isa (Isa (..), detectIsa, isaName)
 import Wrench.Isa.Acc32 (Acc32St)
 import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
@@ -36,7 +37,8 @@ import Wrench.Translator.Types
 
 data Options = Options
     { input :: FilePath
-    , isa :: String
+    , isa :: Maybe String
+    -- ^ 'Nothing' leaves it to 'detectIsa'.
     , configFile :: Maybe FilePath
     , onlyTranslation :: Bool
     , stats :: Bool
@@ -53,7 +55,7 @@ instance Default Options where
     def =
         Options
             { input = ""
-            , isa = "risc-iv-32"
+            , isa = Nothing
             , configFile = Nothing
             , onlyTranslation = False
             , stats = False
@@ -64,18 +66,6 @@ instance Default Options where
             , dumpAddrFormat = Hex
             , dumpSize = SizeShown
             }
-
-data Isa = VliwIv | RiscIv | F32a | Acc32 | M68k
-    deriving (Show)
-
-instance Read Isa where
-    readsPrec _ "vliw-iv" = [(VliwIv, "")]
-    readsPrec _ "risc-iv-32" = [(RiscIv, "")]
-    readsPrec _ "risc-iv" = [(RiscIv, "")]
-    readsPrec _ "f32a" = [(F32a, "")]
-    readsPrec _ "acc32" = [(Acc32, "")]
-    readsPrec _ "m68k" = [(M68k, "")]
-    readsPrec _ _ = []
 
 data AddrFormat = Hex | Dec
     deriving (Show)
@@ -126,13 +116,25 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
     when (cMemorySize > maxMemoryLimit) $ error "memory size too high"
 
     src <- (<> "\n") . decodeUtf8 <$> readFileBS input
-    case readMaybe isa of
-        Just RiscIv -> wrenchIO @(RiscIvSt Int32) opts conf src
-        Just VliwIv -> wrenchIO @(VliwIvSt Int32) opts conf src
-        Just F32a -> wrenchIO @(F32aSt Int32) opts conf src
-        Just Acc32 -> wrenchIO @(Acc32St Int32) opts conf src
-        Just M68k -> wrenchIO @(M68kSt Int32) opts conf src
-        Nothing -> error $ "unknown isa:" <> toText isa
+    resolved <- case isa of
+        Just name -> maybe (isaFailure $ "unknown isa: " <> toText name) return $ readMaybe name
+        Nothing -> case detectIsa (toText src) of
+            Right detected -> do
+                when verbose $ putTextLn $ "detected isa: " <> isaName detected
+                return detected
+            Left reason -> isaFailure $ "cannot detect isa (" <> reason <> "), pass --isa"
+    let opts' = opts{isa = Just $ toString $ isaName resolved}
+    case resolved of
+        RiscIv -> wrenchIO @(RiscIvSt Int32) opts' conf src
+        VliwIv -> wrenchIO @(VliwIvSt Int32) opts' conf src
+        F32a -> wrenchIO @(F32aSt Int32) opts' conf src
+        Acc32 -> wrenchIO @(Acc32St Int32) opts' conf src
+        M68k -> wrenchIO @(M68kSt Int32) opts' conf src
+    where
+        isaFailure :: Text -> IO a
+        isaFailure msg = do
+            SIO.hPutStrLn SIO.stderr $ "error: " <> toString msg
+            exitFailure
 
 wrenchIO ::
     forall st isa_ w isa1 isa2.
@@ -182,7 +184,7 @@ wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Confi
             putStrLn "---"
             putText $ prettyDump showSize addrShow rLabels rDump
         wrenchError e = do
-            SIO.hPutStrLn SIO.stderr $ "error (" <> isa <> "): " <> toString e
+            SIO.hPutStrLn SIO.stderr $ "error (" <> fromMaybe "?" isa <> "): " <> toString e
             exitFailure
 
 wrench ::

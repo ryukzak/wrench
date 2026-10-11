@@ -7,11 +7,11 @@ import Data.Text qualified as T
 import Options.Applicative
 import Relude
 import Relude.Unsafe qualified as Unsafe
-import Wrench.Wrench (Isa (..))
+import Wrench.Isa (Isa (..), detectIsa, isaName)
 
 data Options = Options
     { fileNames :: [String]
-    , isa :: String
+    , isa :: Maybe String
     , inplace :: Bool
     , verbose :: Bool
     , check :: Bool
@@ -26,10 +26,13 @@ options =
                     <> help "Assembly file name"
                 )
             )
-        <*> strOption
-            ( long "isa"
-                <> metavar "ISA"
-                <> help "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k)"
+        <*> optional
+            ( strOption
+                ( long "isa"
+                    <> metavar "ISA"
+                    <> help
+                        "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k); detected from the source if omitted"
+                )
             )
         <*> switch
             ( long "inplace"
@@ -109,31 +112,46 @@ vliwIvFmt =
         , lineLayout = VliwLayout [30, 30, 12, 12] -- ALU1 | ALU2 | Memory | Control
         }
 
+resolveIsa :: Maybe String -> Text -> Either Text Isa
+resolveIsa (Just name) _ = maybeToRight ("Invalid ISA: " <> show name) $ readMaybe name
+resolveIsa Nothing content =
+    first (\reason -> "cannot detect ISA (" <> reason <> "), pass --isa") $ detectIsa content
+
+fmtConfig :: Isa -> FmtConfig
+fmtConfig = \case
+    RiscIv -> def
+    F32a -> f32aFmt
+    Acc32 -> acc32Fmt
+    M68k -> def
+    VliwIv -> vliwIvFmt
+
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
     content <- decodeUtf8 <$> readFileBS fileName
-    let formattedContent = case readMaybe isa of
-            Just RiscIv -> formatFile def content
-            Just F32a -> formatFile f32aFmt content
-            Just Acc32 -> formatFile acc32Fmt content
-            Just M68k -> formatFile def content
-            Just VliwIv -> formatFile vliwIvFmt content
-            _ -> error $ "Invalid ISA: " <> show isa
-        msgFormatted = toText fileName <> " already formatted"
-        msgReformatted = toText fileName <> " reformatted"
-    case (check, inplace, content == formattedContent) of
-        (True, _, True) -> return $ Right msgFormatted
-        (True, _, False) -> return $ Left $ toText fileName <> " needs formatting"
-        (_, False, True) -> do
-            putTextLn formattedContent
-            return $ Right msgFormatted
-        (_, False, False) -> do
-            putTextLn formattedContent
-            return $ Right msgReformatted
-        (_, True, True) -> return $ Right msgFormatted
-        (_, True, False) -> do
-            writeFileText fileName formattedContent
-            return $ Right msgReformatted
+    case resolveIsa isa content of
+        Left err -> return $ Left $ toText fileName <> ": " <> err
+        Right isa' -> reformat content isa'
+    where
+        reformat content isa' =
+            let formattedContent = formatFile (fmtConfig isa') content
+                msgFormatted = toText fileName <> detectedNote isa' <> " already formatted"
+                msgReformatted = toText fileName <> detectedNote isa' <> " reformatted"
+             in case (check, inplace, content == formattedContent) of
+                    (True, _, True) -> return $ Right msgFormatted
+                    (True, _, False) -> return $ Left $ toText fileName <> " needs formatting"
+                    (_, False, True) -> do
+                        putTextLn formattedContent
+                        return $ Right msgFormatted
+                    (_, False, False) -> do
+                        putTextLn formattedContent
+                        return $ Right msgReformatted
+                    (_, True, True) -> return $ Right msgFormatted
+                    (_, True, False) -> do
+                        writeFileText fileName formattedContent
+                        return $ Right msgReformatted
+        detectedNote isa'
+            | isJust isa = ""
+            | otherwise = " (" <> isaName isa' <> ")"
 
 data Statement
     = OutOfSection [Text]

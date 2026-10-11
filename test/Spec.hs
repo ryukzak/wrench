@@ -22,6 +22,7 @@ import Wrench.Isa.M68k.Test qualified
 import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.RiscIv qualified as RiscIv
 import Wrench.Isa.RiscIv.Test qualified
+import Wrench.Isa.Test qualified
 import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
@@ -81,6 +82,7 @@ tests =
                         assertBool ("no source position in: " <> toString err) $ "data.s:2:14" `isInfixOf` err
                         assertBool ("no byte range in: " <> toString err) $ "expected -128..255" `isInfixOf` err
             ]
+        , Wrench.Isa.Test.tests
         , testGroup "Report" [Wrench.Report.Test.tests]
         , Wrench.Machine.Types.Test.tests
         , Wrench.Machine.Memory.Test.tests

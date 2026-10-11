@@ -26,6 +26,7 @@ library
   exposed-modules:
       Main
       Wrench.Config
+      Wrench.Isa
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
       Wrench.Isa.M68k
@@ -99,6 +100,7 @@ executable wrench
   main-is: Main.hs
   other-modules:
       Wrench.Config
+      Wrench.Isa
       Wrench.Isa.Acc32
       Wrench.Isa.F32a
       Wrench.Isa.M68k
@@ -314,6 +316,7 @@ test-suite wrench-test
       Wrench.Isa.F32a.Test
       Wrench.Isa.M68k.Test
       Wrench.Isa.RiscIv.Test
+      Wrench.Isa.Test
       Wrench.Isa.VliwIv.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test

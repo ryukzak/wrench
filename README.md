@@ -88,7 +88,7 @@ This service will be used to send laboratory works to check.
 
 ```shell
 $ wrench --help
-Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
+Usage: wrench INPUT [--isa ISA] [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
               [--instruction-limit LIMIT] [--memory-limit SIZE]
               [--state-log-limit LIMIT] [--dump-addr-format FORMAT]
               [--dump-size MODE]
@@ -97,7 +97,8 @@ Usage: wrench INPUT --isa ISA [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
 
 Available options:
   INPUT                    Input assembler file (.s)
-  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)
+  --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv);
+                           detected from the source if omitted
   -c,--conf CONF           Configuration file (.yaml)
   -S                       Only run preprocess and translation steps
   --stats                  Append a built-in `Overview` report
