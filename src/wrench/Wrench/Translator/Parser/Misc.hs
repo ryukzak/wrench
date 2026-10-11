@@ -10,6 +10,7 @@ module Wrench.Translator.Parser.Misc (
     name,
     labelRef,
     comment,
+    comma,
     nothing,
     eol',
     label,
@@ -135,6 +136,9 @@ narrowed what lo hi = do
                     , ".."
                     , show hi
                     ]
+
+comma :: Parser ()
+comma = hspace >> void (char ',') >> hspace
 
 eol' cstart = hspace >> void (eol <|> comment cstart)
 

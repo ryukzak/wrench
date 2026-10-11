@@ -235,9 +235,6 @@ branchCmd mnemonic constructor ref = do
     eol' ";"
     return $ constructor a
 
-comma :: Parser ()
-comma = hspace >> void (string ",") >> hspace
-
 dataRegister' = try $ do
     void (string "D")
     n <- oneOf ['0' .. '7']
