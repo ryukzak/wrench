@@ -180,6 +180,31 @@ tests =
                 isRight (parsesM68k "move.l array, D0") @?= True
                 isRight (parsesM68k "add.l array, D0") @?= True
             ]
+        , testGroup
+            "Byte-mode immediate"
+            [ testCase "a byte immediate that fits is accepted" $ do
+                accepted "move.b 255, D0"
+                accepted "move.b -128, D0"
+                accepted "add.b 0xFF, D0"
+            , testCase "above the byte" $ do
+                rejected "move.b 300, D0" "-128..255"
+            , testCase "below the byte" $ do
+                rejected "move.b -129, D0" "-128..255"
+            , testCase "every byte-mode immediate is checked" $ do
+                for_ ["move", "and", "or", "xor", "add", "sub", "mul", "div", "cmp"] $ \op -> do
+                    outcome <- fieldOutcome $ op <> ".b 300, D0"
+                    case outcome of
+                        Right m -> assertFailure $ op <> " should be rejected, got: " <> show m
+                        Left err -> do
+                            assertBool (op <> " in: " <> err) $ (op <> ".b: immediate") `isInfixOf` err
+                            assertBool ("range in: " <> err) $ "-128..255" `isInfixOf` err
+            , testCase "long mode still takes a whole word" $ do
+                accepted "move.l 100000, D0"
+                accepted "move.l 0xFFFFFFFF, D0"
+            , testCase "only the immediate is checked, not a register or memory source" $ do
+                accepted "move.b D1, D0"
+                accepted "move.b (A1), D0"
+            ]
         , testCase "Read byte from memory by address register" $ do
             let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
