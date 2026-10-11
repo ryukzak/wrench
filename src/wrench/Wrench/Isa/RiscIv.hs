@@ -503,11 +503,11 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
         case instruction of
             Addi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' + fitSigned 12 k)
+                setReg rd (rs1' + k)
                 nextPc
             Slti{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (if rs1' < fitSigned 12 k then 1 else 0)
+                setReg rd (if rs1' < k then 1 else 0)
                 nextPc
             Slli{rd, rs1, k} -> do
                 rs1' <- getReg rs1
@@ -523,15 +523,15 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 nextPc
             Andi{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' .&. fitSigned 12 k)
+                setReg rd (rs1' .&. k)
                 nextPc
             Ori{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' .|. fitSigned 12 k)
+                setReg rd (rs1' .|. k)
                 nextPc
             Xori{rd, rs1, k} -> do
                 rs1' <- getReg rs1
-                setReg rd (rs1' `xor` fitSigned 12 k)
+                setReg rd (rs1' `xor` k)
                 nextPc
             Add{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (+)
             Sub{rd, rs1, rs2} -> rOperation rs1 rs2 rd id id (-)
@@ -571,7 +571,7 @@ instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
                 setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
                 nextPc
             Lui{rd, k} -> do
-                setReg rd ((k .&. 0x000FFFFF) `shiftL` 12)
+                setReg rd (k `shiftL` 12)
                 nextPc
             Lw{rd, offsetRs1 = MemRef{mrOffset, mrReg}} -> do
                 rs1' <- getReg mrReg

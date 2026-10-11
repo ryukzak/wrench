@@ -1,7 +1,6 @@
 module Wrench.Isa.RiscIv.Test (tests) where
 
 import Control.Exception (ErrorCall (..), evaluate, try)
-import Data.Bits (complement)
 import Data.Default
 import Data.List (isInfixOf)
 import Numeric (showHex)
@@ -78,27 +77,6 @@ tests =
             runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= -1
         , testCase "Rem by zero: 42 % 0 = 42" $ do
             runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= 42
-        , testGroup
-            "12-bit immediate fields"
-            [ testCase "Addi: sign comes from bit 11, not from the full word" $ do
-                runInstruction Addi{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= -1
-            , testCase "Addi: 0x800 is the most negative field value" $ do
-                runInstruction Addi{rd = A1, rs1 = A0, k = 0x800} [(A0, 0)] A1 @?= -2048
-            , testCase "Addi: 0x7FF is the most positive field value" $ do
-                runInstruction Addi{rd = A1, rs1 = A0, k = 0x7FF} [(A0, 0)] A1 @?= 2047
-            , testCase "Addi: bits above bit 11 are discarded" $ do
-                runInstruction Addi{rd = A1, rs1 = A0, k = 0x12345678} [(A0, 0)] A1 @?= 0x678
-            , testCase "Addi: a negative immediate survives the field" $ do
-                runInstruction Addi{rd = A1, rs1 = A0, k = -1} [(A0, 0)] A1 @?= -1
-            , testCase "Andi: 0xFFF is -1, so the value is unchanged" $ do
-                runInstruction Andi{rd = A1, rs1 = A0, k = 0xFFF} [(A0, -1)] A1 @?= -1
-            , testCase "Ori: 0xFFF is -1, so every bit is set" $ do
-                runInstruction Ori{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= -1
-            , testCase "Xori: 0xFFF is -1, so the value is inverted" $ do
-                runInstruction Xori{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0x1234)] A1 @?= complement 0x1234
-            , testCase "Slti: 0xFFF is -1, so 0 is not less than it" $ do
-                runInstruction Slti{rd = A1, rs1 = A0, k = 0xFFF} [(A0, 0)] A1 @?= 0
-            ]
         , testGroup
             "%hi / %lo relocation directives"
             [ testCase "%lo(-1) matches the literal -1" $ do

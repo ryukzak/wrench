@@ -647,21 +647,21 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
             computeMem NopM = return Nothing
             computeMem (Lw lwRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
-                w <- getWord $ fromEnum (fitSigned 11 mrOffset + rs1')
+                w <- getWord $ fromEnum (mrOffset + rs1')
                 return $ Just (lwRd, w)
             computeMem (Lb lbRd (MemRef mrOffset mrReg)) = do
                 rs1' <- getReg mrReg
-                b <- getByte $ fromEnum (fitSigned 11 mrOffset + rs1')
+                b <- getByte $ fromEnum (mrOffset + rs1')
                 return $ Just (lbRd, fromIntegral (fromIntegral b :: Int8))
             computeMem (Sw swRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg swRs2
                 mrReg' <- getReg mrReg
-                setWord (fromEnum (mrReg' + fitSigned 11 mrOffset)) rs2'
+                setWord (fromEnum (mrReg' + mrOffset)) rs2'
                 return Nothing
             computeMem (Sb sbRs2 (MemRef mrOffset mrReg)) = do
                 rs2' <- getReg sbRs2
                 mrReg' <- getReg mrReg
-                setByte (fromEnum (mrReg' + fitSigned 11 mrOffset)) $ fromIntegral rs2'
+                setByte (fromEnum (mrReg' + mrOffset)) $ fromIntegral rs2'
                 return Nothing
 
             -- Apply memory operation result
@@ -674,7 +674,7 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
             computeAlu NopA = return Nothing
             computeAlu (Addi addiRd addiRs1 addiK) = do
                 rs1' <- getReg addiRs1
-                return $ Just (addiRd, rs1' + fitSigned 17 addiK)
+                return $ Just (addiRd, rs1' + addiK)
             computeAlu (Add addRd addRs1 addRs2) = aluOpCompute addRd addRs1 addRs2 id id (+)
             computeAlu (Sub subRd subRs1 subRs2) = aluOpCompute subRd subRs1 subRs2 id id (-)
             computeAlu (Mul mulRd mulRs1 mulRs2) = aluOpCompute mulRd mulRs1 mulRs2 id id (*)
@@ -700,8 +700,8 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
             computeAlu (Xor xorRd xorRs1 xorRs2) = aluOpCompute xorRd xorRs1 xorRs2 id id xor
             computeAlu (Slti sltiRd sltiRs1 sltiK) = do
                 rs1' <- getReg sltiRs1
-                return $ Just (sltiRd, if rs1' < fitSigned 17 sltiK then 1 else 0)
-            computeAlu (Lui luiRd luiK) = return $ Just (luiRd, (luiK .&. 0x000FFFFF) `shiftL` 12)
+                return $ Just (sltiRd, if rs1' < sltiK then 1 else 0)
+            computeAlu (Lui luiRd luiK) = return $ Just (luiRd, luiK `shiftL` 12)
             computeAlu (Mv mvRd mvRs) = do
                 val <- getReg mvRs
                 return $ Just (mvRd, val)
@@ -720,26 +720,26 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
             execCtrl NopC = return False
             execCtrl (J jK) = do
                 VliwIvSt{pc} <- get
-                setPc (pc + fromEnum (fitSigned 20 jK))
+                setPc (pc + fromEnum jK)
                 return True
             execCtrl (Jal jalRd jalK) = do
                 VliwIvSt{pc} <- get
                 setReg jalRd (toEnum pc + 14)
-                setPc (pc + fromEnum (fitSigned 15 jalK))
+                setPc (pc + fromEnum jalK)
                 return True
             execCtrl (Jr jrRs) = do
                 rs' <- getReg jrRs
                 setPc (fromEnum rs')
                 return True
-            execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 (fitSigned 15 beqzK) (== 0)
-            execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 (fitSigned 15 bnezK) (/= 0)
-            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 (fitSigned 10 bgtK) (>)
-            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 (fitSigned 10 bleK) (<=)
-            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 (fitSigned 10 bgtuK) (>)
-            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 (fitSigned 10 bleuK) (<=)
-            execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 (fitSigned 10 beqK) (==)
-            execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 (fitSigned 10 bneK) (/=)
-            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 (fitSigned 10 bltK) (<)
+            execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 beqzK (== 0)
+            execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 bnezK (/= 0)
+            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 bgtK (>)
+            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 bleK (<=)
+            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 bgtuK (>)
+            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 bleuK (<=)
+            execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 beqK (==)
+            execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 bneK (/=)
+            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 bltK (<)
             execCtrl Halt = do
                 modify $ \st -> st{stopped = True}
                 return True
