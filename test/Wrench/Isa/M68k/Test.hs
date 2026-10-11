@@ -1,5 +1,6 @@
 module Wrench.Isa.M68k.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
 import Data.List (isInfixOf)
 import Relude
@@ -144,13 +145,40 @@ tests =
             , testCase "link carries the same field" $ do
                 rejected "link A6, 100000" "-32768..32767"
             , testCase "rejection names the operand, the field and the range" $ do
-                case parsesM68k "move.l 100000(A0), D0" of
+                fieldOutcome "move.l 100000(A0), D0" >>= \case
                     Right m -> assertFailure $ "should be rejected, got: " <> show m
                     Left err -> do
                         assertBool ("displacement in: " <> err) $ "100000" `isInfixOf` err
                         assertBool ("field width in: " <> err) $ "16-bit" `isInfixOf` err
                         assertBool ("carrier in: " <> err) $ "extension word" `isInfixOf` err
                         assertBool ("range in: " <> err) $ "-32768..32767" `isInfixOf` err
+            ]
+        , testGroup
+            "Shift count"
+            [ testCase "counts that fit are accepted" $ do
+                accepted "asl.l 0, D0"
+                accepted "asl.l 31, D0"
+                accepted "lsr.b 7, D0"
+            , testCase "the register form is untouched" $ do
+                accepted "asl.l D1, D0"
+            , testCase "count above the field" $ do
+                rejected "asl.l 32, D0" "0..31"
+            , testCase "a negative count" $ do
+                rejected "asr.b -1, D0" "0..31"
+            , testCase "every shift carries the same field" $ do
+                for_ ["asl", "asr", "lsl", "lsr"] $ \op -> do
+                    outcome <- fieldOutcome $ op <> ".l 100, D0"
+                    case outcome of
+                        Right m -> assertFailure $ op <> " should be rejected, got: " <> show m
+                        Left err -> do
+                            assertBool (op <> " in: " <> err) $ (op <> ".l: shift count") `isInfixOf` err
+                            assertBool ("range in: " <> err) $ "0..31" `isInfixOf` err
+            , testCase "a label is not a shift count" $ do
+                isLeft (parsesM68k "asl.l shamt, D0") @?= True
+            , testCase "every other immediate still takes a label" $ do
+                isRight (parsesM68k "movea.l array, A0") @?= True
+                isRight (parsesM68k "move.l array, D0") @?= True
+                isRight (parsesM68k "add.l array, D0") @?= True
             ]
         , testCase "Read byte from memory by address register" $ do
             let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
@@ -430,9 +458,30 @@ tests =
 parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
 parsesM68k = translate
 
-rejected :: String -> String -> IO ()
-rejected code range =
+-- | A displacement is checked while parsing and a shift count at deref, so
+-- both land in 'Left' here.
+fieldOutcome :: String -> IO (Either String (M68kIsa Int32 Int32))
+fieldOutcome code =
     case parsesM68k code of
+        Left err -> return $ Left err
+        Right m -> do
+            let m' = derefMnemonic (const (Just 0)) 0 m
+            outcome <- try @ErrorCall $ evaluate $ length (show m' :: String)
+            return $ case outcome of
+                Left (ErrorCallWithLocation msg _location) -> Left msg
+                Right _ -> Right m'
+
+accepted :: String -> IO ()
+accepted code = do
+    outcome <- fieldOutcome code
+    case outcome of
+        Right _ -> return ()
+        Left err -> assertFailure $ code <> " should be accepted, got: " <> err
+
+rejected :: String -> String -> IO ()
+rejected code range = do
+    outcome <- fieldOutcome code
+    case outcome of
         Right m -> assertFailure $ code <> " should be rejected, got: " <> show m
         Left err -> assertBool ("expected range " <> range <> " in: " <> err) $ range `isInfixOf` err
 

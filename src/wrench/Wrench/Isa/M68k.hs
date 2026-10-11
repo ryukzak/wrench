@@ -135,10 +135,10 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             , cmd2args "mul" Mul (longMode <|> byteMode) src dst
             , cmd2args "div" Div (longMode <|> byteMode) src dst
             , cmd2args "cmp" Cmp (longMode <|> byteMode) src dst
-            , cmd2args "asl" Asl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "asr" Asr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "lsl" Lsl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "lsr" Lsr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
+            , cmd2args "asl" Asl (longMode <|> byteMode) shiftCount dst
+            , cmd2args "asr" Asr (longMode <|> byteMode) shiftCount dst
+            , cmd2args "lsl" Lsl (longMode <|> byteMode) shiftCount dst
+            , cmd2args "lsr" Lsr (longMode <|> byteMode) shiftCount dst
             , branchCmd "jmp" Jmp reference
             , branchCmd "bcc" Bcc reference
             , branchCmd "bcs" Bcs reference
@@ -184,6 +184,7 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             -- source (e.g. @movea.l A2, A0@), so it gets a wider source.
             srcMovea = dataRegister <|> addrRegister <|> allIndirectAddr <|> immidiate
             dst = dataRegister <|> allIndirectAddr
+            shiftCount = dataRegister <|> (Immediate <$> constantRef)
 
 cmd0args :: String -> M68kIsa w (Ref w) -> Parser (M68kIsa w (Ref w))
 cmd0args mnemonic constructor = try $ do
@@ -331,9 +332,15 @@ immidiate = do
     notFollowedBy registerLikeName
     Immediate <$> reference
 
-instance DerefMnemonic (M68kIsa w) w where
+instance (IsWord w) => DerefMnemonic (M68kIsa w) w where
     derefMnemonic f _offset i =
-        let derefArg (DirectDataReg r) = DirectDataReg r
+        let modeSuffix Long = ".l"
+            modeSuffix Byte = ".b"
+            shiftCountErr mnemonic x = mnemonic <> ": shift count " <> x <> " is not in 0..31"
+            derefShiftCount mnemonic mode (Immediate l) =
+                Immediate $ resolveRef (u5 (shiftCountErr (mnemonic <> modeSuffix mode))) f l
+            derefShiftCount _ _ arg = derefArg arg
+            derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
             derefArg (IndirectAddrReg offset r index) = IndirectAddrReg offset r index
             derefArg (IndirectAddrRegPreDecrement r) = IndirectAddrRegPreDecrement r
@@ -353,10 +360,10 @@ instance DerefMnemonic (M68kIsa w) w where
                 Mul{mode, src, dst} -> Mul mode (derefArg src) (derefArg dst)
                 Div{mode, src, dst} -> Div mode (derefArg src) (derefArg dst)
                 Cmp{mode, src, dst} -> Cmp mode (derefArg src) (derefArg dst)
-                Asl{mode, src, dst} -> Asl mode (derefArg src) (derefArg dst)
-                Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
-                Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
-                Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
+                Asl{mode, src, dst} -> Asl mode (derefShiftCount "asl" mode src) (derefArg dst)
+                Asr{mode, src, dst} -> Asr mode (derefShiftCount "asr" mode src) (derefArg dst)
+                Lsl{mode, src, dst} -> Lsl mode (derefShiftCount "lsl" mode src) (derefArg dst)
+                Lsr{mode, src, dst} -> Lsr mode (derefShiftCount "lsr" mode src) (derefArg dst)
                 Jmp{ref} -> Jmp (deref' f ref)
                 Bcc{ref} -> Bcc (deref' f ref)
                 Bcs{ref} -> Bcs (deref' f ref)
