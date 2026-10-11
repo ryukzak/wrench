@@ -1,10 +1,12 @@
 module Wrench.Isa.VliwIv.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
+import Data.List (isInfixOf)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (assertFailure, testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Text.Megaparsec.Error (errorBundlePretty)
 import Wrench.Isa.VliwIv
@@ -37,6 +39,33 @@ tests =
                         "sll a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 3), (A1, 2)])
              in (regs !? A2) @?= Just 12 -- 3 << 2 = 12
+        , -- The docs promise "the number of bits specified in the lower 5 bits of the
+          -- second source register", and without the mask a count outside 0..31 took
+          -- `shiftL` out of range and aborted the simulator with `arithmetic overflow`.
+          testCase "Sll masks the shift amount to 5 bits" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sll a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 1), (A1, 33)])
+             in (regs !? A2) @?= Just 2
+        , testCase "Sll with a negative shift amount masks to 31" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sll a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 1), (A1, -1)])
+             in (regs !? A2) @?= Just (-2147483648)
+        , testCase "Srl masks the shift amount too" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "srl a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 16), (A1, 33)])
+             in (regs !? A2) @?= Just 8
+        , testCase "Sra masks the shift amount too" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sra a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, -16), (A1, -1)])
+             in (regs !? A2) @?= Just (-1)
         , testCase "Srl: unsigned right shift" $ do
             let VliwIvSt{regs} =
                     simulate
@@ -227,32 +256,93 @@ tests =
                         (withRegs [(A0, 5)])
              in regsBlank @?= regsNop
         , testGroup
-            "Constant field truncation (silent)"
-            -- A constant that does not fit its documented slot field is reduced to
-            -- the low bits of that field and sign-extended; nothing errors.
-            [ testCase "addi: 17-bit signed immediate field" $ do
-                let VliwIvSt{regs} =
-                        simulate
-                            "addi a0, zero, 0x1FFFF / nop / nop / nop"
-                            st0
-                 in (regs !? A0) @?= Just (-1) -- all 17 bits set -> -1
-            , testCase "beq: 10-bit signed offset field" $ do
-                let VliwIvSt{pc} =
-                        simulate
-                            "nop / nop / nop / beq a0, a1, 0x401"
-                            (withRegs [(A0, 0), (A1, 0)])
-                 in pc @?= 1 -- 0x401 truncated to low 10 bits = 1
-            , testCase "lw: 11-bit signed offset field" $ do
-                let st1 = withRegs [(A0, 20)]
-                    mem1 = either error id $ do
-                        m1 <- writeByte (mem st1) 20 0x11
-                        m2 <- writeByte m1 21 0x22
-                        m3 <- writeByte m2 22 0x33
-                        writeByte m3 23 0x44
-                    VliwIvSt{regs} = simulate "nop / nop / lw a1, 0x800(a0) / nop" st1{mem = mem1}
-                 in (regs !? A1) @?= Just 0x44332211 -- offset 0x800 truncates to 0 -> reads [a0]
+            "Operand fields"
+            -- A slot is 24 or 32 bits with the opcode and registers already spent, so
+            -- every immediate and displacement is narrower than the machine word. One
+            -- that does not fit used to be reduced to the low bits of its field and
+            -- sign-extended, with nothing reported.
+            [ testCase "widest ALU immediate that fits" $ do
+                accepted "addi a0, zero, 65535 / nop / nop / nop"
+            , testCase "ALU immediate above the 17-bit field" $ do
+                rejected "addi a0, zero, 65536 / nop / nop / nop" "-65536..65535"
+            , testCase "ALU immediate that used to truncate to -1" $ do
+                rejected "addi a0, zero, 0x1FFFF / nop / nop / nop" "-65536..65535"
+            , testCase "slti carries the same field" $ do
+                rejected "slti a0, zero, -65537 / nop / nop / nop" "-65536..65535"
+            , testCase "widest lui immediate that fits" $ do
+                accepted "lui a0, 0xfffff / nop / nop / nop"
+            , testCase "lui immediate above the usable field" $ do
+                rejected "lui a0, 0x100000 / nop / nop / nop" "0..1048575"
+            , testCase "lui is unsigned, so a negative immediate is rejected" $ do
+                rejected "lui a0, -1 / nop / nop / nop" "0..1048575"
+            , testCase "widest memory offset that fits" $ do
+                accepted "nop / nop / lw a1, 1023(a0) / nop"
+            , testCase "memory offset that used to truncate to 0" $ do
+                rejected "nop / nop / lw a1, 0x800(a0) / nop" "-1024..1023"
+            , testCase "store offset below the field" $ do
+                rejected "nop / nop / sw a1, -1025(a0) / nop" "-1024..1023"
+            , testCase "widest branch displacement that fits" $ do
+                accepted "nop / nop / nop / beq a0, a1, 511"
+            , testCase "branch displacement that used to truncate to 1" $ do
+                rejected "nop / nop / nop / beq a0, a1, 0x401" "-512..511"
+            , testCase "beqz and jal share a wider displacement" $ do
+                accepted "nop / nop / nop / jal a0, 16383"
+            , testCase "beqz displacement above its field" $ do
+                rejected "nop / nop / nop / beqz a0, 16384" "-16384..16383"
+            , testCase "j has the widest displacement of the three" $ do
+                accepted "nop / nop / nop / j 524287"
+            , testCase "j displacement above its field" $ do
+                rejected "nop / nop / nop / j 524288" "-524288..524287"
+            , testCase "rejection names the position, the mnemonic, the field and the range" $ do
+                outcome <- fieldOutcome "nop / nop / nop / beq a0, a1, 1025"
+                case outcome of
+                    Right m -> assertFailure $ "should be rejected, got: " <> show m
+                    Left err -> do
+                        assertBool ("source position in: " <> err) $ "1:" `isInfixOf` err
+                        assertBool ("mnemonic in: " <> err) $ "beq" `isInfixOf` err
+                        assertBool ("field in: " <> err) $ "CTRL disp" `isInfixOf` err
+                        assertBool ("displacement in: " <> err) $ "1025" `isInfixOf` err
+                        assertBool ("range in: " <> err) $ "-512..511" `isInfixOf` err
+            , testCase "the memory offset is reported under the operand, while parsing" $ do
+                outcome <- fieldOutcome "nop / nop / lw a1, 0x800(a0) / nop"
+                case outcome of
+                    Right m -> assertFailure $ "should be rejected, got: " <> show m
+                    Left err -> do
+                        assertBool ("field width in: " <> err) $ "11-bit" `isInfixOf` err
+                        assertBool ("carrier in: " <> err) $ "14 byte bundle" `isInfixOf` err
+                        assertBool ("range in: " <> err) $ "-1024..1023" `isInfixOf` err
             ]
         ]
+
+-- | Parse one bundle and resolve its operands, which is where the field guards
+-- live. A guard that fires calls 'error', so it lands in 'Left' here; the
+-- memory offset is checked while parsing, so it lands in 'Left' too.
+fieldOutcome :: String -> IO (Either String (VliwIvIsa Int32 Int32))
+fieldOutcome code =
+    case parse mnemonic "-" (code <> "\n") of
+        Left err -> return $ Left (errorBundlePretty err)
+        Right (m :: VliwIvIsa Int32 (Ref Int32)) -> do
+            -- Walking @show@ forces every resolved operand, the same way
+            -- 'Wrench.Translator.Types.derefSection' does.
+            let m' = derefMnemonic (const (Just 0)) 0 m
+            outcome <- try @ErrorCall $ evaluate $ length (show m' :: String)
+            return $ case outcome of
+                Left (ErrorCallWithLocation msg _location) -> Left msg
+                Right _ -> Right m'
+
+accepted :: String -> IO ()
+accepted code = do
+    outcome <- fieldOutcome code
+    case outcome of
+        Right _ -> return ()
+        Left err -> assertFailure $ code <> " should be accepted, got: " <> err
+
+rejected :: String -> String -> IO ()
+rejected code range = do
+    outcome <- fieldOutcome code
+    case outcome of
+        Right m -> assertFailure $ code <> " should be rejected, got: " <> show m
+        Left err -> assertBool ("expected range " <> range <> " in: " <> err) $ range `isInfixOf` err
 
 -- Test helper: Initial state for most tests
 st0 :: VliwIvSt Int32

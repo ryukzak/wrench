@@ -73,14 +73,19 @@ bundle. The opcode occupies the high bits of its slot, sized to the number of op
 defines: 5 bits for ALU (17 ops), 4 for CTRL (14 ops), 3 for MEM (5 ops). Register fields
 follow the opcode; the remaining low bits hold the immediate/offset.
 
-Every immediate and offset is **silently truncated** to its field width: the value is reduced
-to the low bits of the field and sign-extended (`lui`'s `imm_unsign` is zero-extended), with no
-error if it does not fit. So `addi`/`slti` see a 17-bit signed immediate, branches a 10-bit
-signed offset, `beqz`/`bnez`/`jal` a 15-bit one, `j` a 20-bit one, and memory ops an 11-bit
-one. `lui` keeps only the low 20 bits (after the `<< 12` shift the upper bits of the 22-bit
-field cannot be represented in a 32-bit word). The `%lo` (12-bit, already sign-extended by the
-directive itself) and `%hi` (20-bit) relocation values fit the `addi`/`slti` and `lui` fields
-unchanged; they are wider than the 11-bit memory offset, which takes a bare number only.
+### Operand Fields
+
+Every immediate and offset is narrower than the machine word, because a slot is 24 or 32 bits with
+the opcode and register fields already spent:
+
+| Operand                                                        | Width           | Accepted values   |
+| -------------------------------------------------------------- | --------------- | ----------------- |
+| `lw`, `lb`, `sw`, `sb` offset                                  | 11-bit signed   | `-1024..1023`     |
+| `addi`, `slti` immediate                                       | 17-bit signed   | `-65536..65535`   |
+| `beq`, `bne`, `blt`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 10-bit signed   | `-512..511`       |
+| `beqz`, `bnez`, `jal` displacement                             | 15-bit signed   | `-16384..16383`   |
+| `j` displacement                                               | 20-bit signed   | `-524288..524287` |
+| `lui` immediate                                                | 20-bit unsigned | `0..1048575`      |
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 

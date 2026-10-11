@@ -13,9 +13,13 @@ module Wrench.Machine.Word (
     u5,
     u16,
     u20,
+    i10,
     i12,
     i13,
+    i15,
     i16,
+    i17,
+    i20,
     i21,
 ) where
 
@@ -65,7 +69,8 @@ mulExt x y =
 
 -- Field guards: a value that does not fit the field it is encoded into stops
 -- translation with the message the caller builds, instead of reaching the
--- simulator and being truncated there.
+-- simulator and being truncated there. One per field width the ISAs encode, so
+-- a call site names the field rather than computing it.
 u5 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
 u5 errMsgF x
     | 0 <= x && x <= 31 = Right x
@@ -81,6 +86,11 @@ u20 errMsgF x
     | 0 <= x && x <= 1048575 = Right x
     | otherwise = Left $ errMsgF $ show x
 
+i10 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i10 errMsgF x
+    | -512 <= x && x <= 511 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
 i12 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
 i12 errMsgF x
     | -2048 <= x && x <= 2047 = Right x
@@ -91,9 +101,24 @@ i13 errMsgF x
     | -4096 <= x && x <= 4095 = Right x
     | otherwise = Left $ errMsgF $ show x
 
+i15 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i15 errMsgF x
+    | -16384 <= x && x <= 16383 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
 i16 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
 i16 errMsgF x
     | -32768 <= x && x <= 32767 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+i17 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i17 errMsgF x
+    | -65536 <= x && x <= 65535 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
+i20 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+i20 errMsgF x
+    | -524288 <= x && x <= 524287 = Right x
     | otherwise = Left $ errMsgF $ show x
 
 i21 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
