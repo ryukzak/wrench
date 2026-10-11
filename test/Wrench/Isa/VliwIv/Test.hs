@@ -39,6 +39,33 @@ tests =
                         "sll a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 3), (A1, 2)])
              in (regs !? A2) @?= Just 12 -- 3 << 2 = 12
+        , -- The docs promise "the number of bits specified in the lower 5 bits of the
+          -- second source register", and without the mask a count outside 0..31 took
+          -- `shiftL` out of range and aborted the simulator with `arithmetic overflow`.
+          testCase "Sll masks the shift amount to 5 bits" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sll a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 1), (A1, 33)])
+             in (regs !? A2) @?= Just 2
+        , testCase "Sll with a negative shift amount masks to 31" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sll a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 1), (A1, -1)])
+             in (regs !? A2) @?= Just (-2147483648)
+        , testCase "Srl masks the shift amount too" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "srl a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 16), (A1, 33)])
+             in (regs !? A2) @?= Just 8
+        , testCase "Sra masks the shift amount too" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "sra a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, -16), (A1, -1)])
+             in (regs !? A2) @?= Just (-1)
         , testCase "Srl: unsigned right shift" $ do
             let VliwIvSt{regs} =
                     simulate

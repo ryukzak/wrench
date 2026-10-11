@@ -692,9 +692,9 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
                     )
             computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id div
             computeAlu (Rem remRd remRs1 remRs2) = aluOpCompute remRd remRs1 remRs2 id id rem
-            computeAlu (Sll sllRd sllRs1 sllRs2) = aluOpCompute sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` fromEnum r2)
-            computeAlu (Srl srlRd srlRs1 srlRs2) = aluOpCompute srlRd srlRs1 srlRs2 id id lShiftR
-            computeAlu (Sra sraRd sraRs1 sraRs2) = aluOpCompute sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` fromEnum r2)
+            computeAlu (Sll sllRd sllRs1 sllRs2) = aluOpCompute sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` (fromEnum r2 .&. 0x1F))
+            computeAlu (Srl srlRd srlRs1 srlRs2) = aluOpCompute srlRd srlRs1 srlRs2 id id (\r1 r2 -> lShiftR r1 (r2 .&. 0x1F))
+            computeAlu (Sra sraRd sraRs1 sraRs2) = aluOpCompute sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` (fromEnum r2 .&. 0x1F))
             computeAlu (And andRd andRs1 andRs2) = aluOpCompute andRd andRs1 andRs2 id id (.&.)
             computeAlu (Or orRd orRs1 orRs2) = aluOpCompute orRd orRs1 orRs2 id id (.|.)
             computeAlu (Xor xorRd xorRs1 xorRs2) = aluOpCompute xorRd xorRs1 xorRs2 id id xor
