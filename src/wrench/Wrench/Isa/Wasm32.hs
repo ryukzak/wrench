@@ -57,12 +57,13 @@ import Data.IntSet qualified as IntSet
 import Data.Text qualified as T
 import Relude
 import Relude.Extra (insert, toPairs, (!?))
-import Text.Megaparsec (choice, getOffset, lookAhead, setOffset, try)
+import Text.Megaparsec (choice, getSourcePos, lookAhead, try)
 import Text.Megaparsec.Char (char, digitChar, hspace, hspace1, string)
 import Wrench.Isa.Wasm32.ControlRecord
 import Wrench.Isa.Wasm32.Layout
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Machine.Word (u8)
 import Wrench.Report
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
@@ -191,7 +192,7 @@ data Wasm32Isa w l
       --
       -- > addr <- pop
       -- > push mem[addr + offset]
-      I32Load Int
+      I32Load l
     | -- | @i32.store [\<offset\>]@: pop a value, then an address, and write
       -- the value's 4 bytes at address plus offset. The value sits /above/
       -- the address, matching real WebAssembly, so the destination has to
@@ -200,15 +201,15 @@ data Wasm32Isa w l
       -- > value <- pop
       -- > addr <- pop
       -- > mem[addr + offset] <- value
-      I32Store Int
+      I32Store l
     | -- | @i32.load8_u [\<offset\>]@: like 'I32Load', but reads one byte
       -- and zero-extends it.
-      I32Load8U Int
+      I32Load8U l
     | -- | @i32.load8_s [\<offset\>]@: like 'I32Load8U', but sign-extends.
-      I32Load8S Int
+      I32Load8S l
     | -- | @i32.store8 [\<offset\>]@: like 'I32Store', but writes only the
       -- value's low byte.
-      I32Store8 Int
+      I32Store8 l
     | -- | @if@: pop a condition; fall into the body that follows if it is
       -- non-zero, otherwise skip to the matching @else@ (if there is one) or
       -- past the matching @end@.
@@ -246,11 +247,11 @@ data Wasm32Isa w l
       -- leads, and how many control records go with it, are worked out
       -- when the program loads ('resolveBranches'). A depth with no such
       -- scope around it is rejected then.
-      Br Int
+      Br l
     | -- | @br_if \<depth\>@: pop a condition and branch like 'Br' only
       -- if it is non-zero, otherwise fall through. Branching on /zero/ is
       -- @i32.const 0@, @i32.eq@, @br_if@.
-      BrIf Int
+      BrIf l
     | -- | @drop@: discard the top of the operand stack -- the only way to
       -- get rid of a value the program does not want, a callee result the
       -- caller ignores being the usual one. Nothing else can do it:
@@ -274,18 +275,18 @@ data Wasm32Isa w l
     | -- | @local.get \<i\>@: push local @i@\'s value.
       --
       -- > push locals[i]
-      LocalGet Int
+      LocalGet l
     | -- | @local.set \<i\>@: pop the top of the stack into local @i@.
       --
       -- > locals[i] <- pop
-      LocalSet Int
+      LocalSet l
     | -- | @local.tee \<i\>@: like @local.set@, but pushes the value back,
       -- leaving the stack depth unchanged.
       --
       -- > x <- pop
       -- > locals[i] <- x
       -- > push x
-      LocalTee Int
+      LocalTee l
     | -- | @locals.reserve \<n\>@: claim @n@ more locals, zeroed, at the
       -- indices directly after the ones the frame already has. Belongs at a
       -- function's entry, before anything is pushed and outside any loop --
@@ -297,14 +298,14 @@ data Wasm32Isa w l
       -- > sp <- sp - n*4
       -- > mem[sp .. sp + n*4 - 4] <- 0
       -- > localCount <- localCount + n
-      LocalsReserve Int
+      LocalsReserve l
     | -- | @call \<paramCount\>, \<resultCount\>@: pop a target address, an
       -- ordinary value, so a known target and one computed at run time are
       -- the same instruction. The @paramCount@ values pushed just before it
       -- become the callee's locals; @resultCount@ values are expected back.
       -- Neither count is checked against the callee. See the \"Functions\"
       -- section.
-      Call Int Int
+      Call l l
     | -- | @return@: return from the nearest enclosing call, closing any
       -- @block@ or @loop@ still open along the way and forwarding the
       -- declared results to the caller.
@@ -361,40 +362,30 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
                     , cmd0 "i32.le_u" I32LeU
                     , cmd0 "i32.gt_u" I32GtU
                     , cmd0 "i32.ge_u" I32GeU
-                    , -- Longer alternative first: a bare-word `choice`
-                      -- alternative doesn't backtrack once it has
-                      -- consumed input, so "i32.load" ahead of
-                      -- "i32.load8_u" would swallow the prefix and then
-                      -- fail on "8_u". Same for "i32.store"/"i32.store8".
-                      -- The `try`-wrapped alternatives below are immune.
-                      memOp "i32.load8_u" I32Load8U
+                    , memOp "i32.load8_u" I32Load8U
                     , memOp "i32.load8_s" I32Load8S
                     , memOp "i32.load" I32Load
                     , memOp "i32.store8" I32Store8
                     , memOp "i32.store" I32Store
-                    , -- A scope instruction is a bare opcode, as in real
-                      -- WebAssembly: where it jumps to is its own matching
-                      -- @end@, which 'resolveScopeTargets' works out when
-                      -- the machine loads the program.
-                      cmd0 "if" If
+                    , cmd0 "if" If
                     , cmd0 "else" Else
                     , cmd0 "end" End
                     , cmd0 "loop" Loop
                     , cmd0 "block" Block
-                    , Br <$> cmd1 "br" (narrowLit "br depth")
-                    , BrIf <$> cmd1 "br_if" (narrowLit "br_if depth")
+                    , Br <$> cmd1 "br" constantRef
+                    , BrIf <$> cmd1 "br_if" constantRef
                     , cmd0 "drop" Drop
                     , cmd0 "select" Select
                     , cmd0 "unreachable" Unreachable
-                    , LocalGet <$> cmd1 "local.get" (narrowLit "local.get index")
-                    , LocalSet <$> cmd1 "local.set" (narrowLit "local.set index")
-                    , LocalTee <$> cmd1 "local.tee" (narrowLit "local.tee index")
-                    , LocalsReserve <$> cmd1 "locals.reserve" (narrowLit "locals.reserve count")
+                    , LocalGet <$> cmd1 "local.get" constantRef
+                    , LocalSet <$> cmd1 "local.set" constantRef
+                    , LocalTee <$> cmd1 "local.tee" constantRef
+                    , LocalsReserve <$> cmd1 "locals.reserve" constantRef
                     , do
                         void $ cmd1 "call" (pure ())
-                        params <- narrowLit "call paramCount"
+                        params <- constantRef
                         comma
-                        Call params <$> narrowLit "call resultCount"
+                        Call params <$> constantRef
                     , cmd0 "return" Return
                     , cmd0 "sp.init" SpInit
                     , cmd0 "halt" Halt
@@ -408,9 +399,9 @@ cmd0 mnemonic constructor = string mnemonic >> return constructor
 -- The @try@ covers only the mnemonic and the space after it -- just
 -- enough to let @local.get@, @local.set@ and @local.tee@, which share a
 -- prefix, be told apart, and to let @br@ fall through to @br_if@. The
--- operand is parsed committed, so a complaint about it (see 'narrowLit')
--- is reported where it happened instead of being backtracked away and
--- resurfacing as \"no mnemonic matched here\".
+-- operand is parsed committed, so a complaint about it is reported where
+-- it happened instead of being backtracked away and resurfacing as
+-- \"no mnemonic matched here\".
 cmd1 :: String -> Parser a -> Parser a
 cmd1 mnemonic arg = try (string mnemonic >> hspace1) >> arg
 
@@ -419,50 +410,76 @@ cmd1 mnemonic arg = try (string mnemonic >> hspace1) >> arg
 --
 -- Deciding which it is needs one character of lookahead and nothing
 -- more: a digit starts an offset, anything else (another mnemonic on the
--- same line, a comment, the end of the line) means there isn't one. That
--- keeps 'narrowLit' outside the backtracking, where an offset of 256
--- would otherwise be silently rejected, replaced by @0@, and left to
--- fail later as a stray number.
-memOp :: String -> (Int -> a) -> Parser a
-memOp mnemonic constructor =
-    string mnemonic >> (constructor <$> (offset <|> pure 0))
+-- same line, a comment, the end of the line) means there isn't one.
+--
+-- An absent offset still becomes a 'Ref', carrying the mnemonic's own
+-- position: that is what a field guard reports against, and every other
+-- operand in this ISA reaches 'derefMnemonic' the same way.
+memOp :: (IsWord w) => String -> (Ref w -> a) -> Parser a
+memOp mnemonic constructor = do
+    pos <- getSourcePos
+    void $ string mnemonic
+    constructor <$> (offset <|> pure (zeroAt pos))
     where
-        offset = try (hspace1 >> void (lookAhead digitChar)) >> narrowLit "load/store offset"
-
--- | An immediate that has to fit the one-byte field its instruction
--- encodes it in -- a branch depth, a local index, one of @call@'s
--- counts, a load\/store offset.
---
--- Checked here, where the field's name and the operand's own line and
--- column are both to hand, rather than later over an instruction stream
--- that only knows addresses. Masking a high bit off doesn't make a
--- smaller number, it makes a different one: @call 0, 300@ assembling as
--- @call 0, 44@ would pop the wrong number of results, silently.
---
--- 'intLiteral' does the reading, and fails as a parser on anything that
--- isn't a literal -- which an optional immediate (see 'memOp') needs,
--- since it finds out by backtracking.
-narrowLit :: String -> Parser Int
-narrowLit what = do
-    operandPos <- getOffset
-    value <- intLiteral
-    if value >= 0 && value < 1 `shiftL` immediateBitWidth
-        then return value
-        else do
-            setOffset operandPos
-            fail $
-                what <> " " <> show value <> " doesn't fit in " <> show immediateBitWidth <> " bits"
+        offset = try (hspace1 >> void (lookAhead digitChar)) >> constantRef
+        zeroAt pos = ValueR{refPrepare = id, refPos = pos, refValue = 0}
 
 -- | Separates @call@'s two operands (paramCount, resultCount).
 comma :: Parser ()
 comma = hspace >> void (char ',') >> hspace
 
-instance DerefMnemonic (Wasm32Isa w) w where
-    -- Exactly one constructor carries a label, and @l@ is this type's
-    -- last parameter, so the derived 'Functor' already is this
-    -- traversal: the longhand version was 44 lines of @X -> X@ around
-    -- the one line that does anything.
-    derefMnemonic f _offset = fmap (deref' f)
+instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
+    derefMnemonic f _offset i =
+        let fieldErr what x = what <> " " <> x <> " is not in 0..255"
+            narrow what = resolveRef (u8 (fieldErr what)) f
+         in case i of
+                I32Const l -> I32Const (resolveRef Right f l)
+                I32Load k -> I32Load (narrow "i32.load offset" k)
+                I32Store k -> I32Store (narrow "i32.store offset" k)
+                I32Load8U k -> I32Load8U (narrow "i32.load8_u offset" k)
+                I32Load8S k -> I32Load8S (narrow "i32.load8_s offset" k)
+                I32Store8 k -> I32Store8 (narrow "i32.store8 offset" k)
+                Br k -> Br (narrow "br depth" k)
+                BrIf k -> BrIf (narrow "br_if depth" k)
+                LocalGet k -> LocalGet (narrow "local.get index" k)
+                LocalSet k -> LocalSet (narrow "local.set index" k)
+                LocalTee k -> LocalTee (narrow "local.tee index" k)
+                LocalsReserve k -> LocalsReserve (narrow "locals.reserve count" k)
+                Call params results ->
+                    Call
+                        (narrow "call paramCount" params)
+                        (narrow "call resultCount" results)
+                I32Add -> I32Add
+                I32Sub -> I32Sub
+                I32Mul -> I32Mul
+                I32DivS -> I32DivS
+                I32RemS -> I32RemS
+                I32And -> I32And
+                I32Or -> I32Or
+                I32Xor -> I32Xor
+                I32Shl -> I32Shl
+                I32ShrS -> I32ShrS
+                I32ShrU -> I32ShrU
+                I32Eq -> I32Eq
+                I32LtS -> I32LtS
+                I32LeS -> I32LeS
+                I32GtS -> I32GtS
+                I32GeS -> I32GeS
+                I32LtU -> I32LtU
+                I32LeU -> I32LeU
+                I32GtU -> I32GtU
+                I32GeU -> I32GeU
+                If -> If
+                Else -> Else
+                End -> End
+                Loop -> Loop
+                Block -> Block
+                Drop -> Drop
+                Select -> Select
+                Unreachable -> Unreachable
+                Return -> Return
+                SpInit -> SpInit
+                Halt -> Halt
 
 -- | Match every @block@\/@loop@\/@if@\/@else@ with its own @end@ and
 -- report where each one jumps to, keyed by its own address.
@@ -593,7 +610,7 @@ instance Monoid ScopePlan where
 -- At run time that was a branch stepping outward until it hit the
 -- enclosing call's record; written down, it is a branch naming a scope
 -- that is not there, and saying so needs no execution to discover.
-resolveBranches :: forall w. IntMap Int -> [(Int, Wasm32Isa w w)] -> Either Text ScopePlan
+resolveBranches :: forall w. (IsWord w) => IntMap Int -> [(Int, Wasm32Isa w w)] -> Either Text ScopePlan
 resolveBranches targets = go []
     where
         -- \| The scopes open at this point, innermost first, each as its
@@ -613,8 +630,8 @@ resolveBranches targets = go []
                         withEndPop addr <$> go outer rest
                 _ : outer -> go outer rest
                 [] -> Right mempty
-            Br depth -> plan addr depth rest
-            BrIf depth -> plan addr depth rest
+            Br depth -> plan addr (fromEnum depth) rest
+            BrIf depth -> plan addr (fromEnum depth) rest
             _ -> go open rest
             where
                 plan brAddr depth rest' = do
@@ -666,8 +683,8 @@ resolveProgram = fmap mconcat . traverse runPlan . codeRuns
 --
 -- Listed exhaustively, with no catch-all: an instruction added without a
 -- line here is a missing-pattern warning, where a catch-all would have
--- silently given it a bare opcode's size. Range-checking the values is
--- @narrowLit@'s job, at parse time.
+-- silently given it a bare opcode's size. Checking that a value fits the
+-- width named here is 'derefMnemonic''s job.
 operandWidths :: Wasm32Isa w l -> [Int]
 operandWidths instruction = case instruction of
     I32Const{} -> [8 * byteSizeT @Int32]
@@ -726,6 +743,12 @@ instance ByteSize (Wasm32Isa w l) where
 -- at this same width, so what the source can say and what a call record
 -- can hold agree. A 0-255 offset covers a struct field or a small array
 -- index; further is still reachable with @i32.add@.
+--
+-- 'derefMnemonic' enforces it, with @u8@ -- the same shared field guard
+-- the other ISAs check their immediates against. None of these operands
+-- can be a label, so each is parsed with 'constantRef': a depth, an index
+-- and a count are not addresses, and an @i32.add@ is the way to reach a
+-- computed one.
 immediateBitWidth :: Int
 immediateBitWidth = 8
 
@@ -1217,11 +1240,11 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
             I32LeU -> compareU (<=) >> nextPc instruction
             I32GtU -> compareU (>) >> nextPc instruction
             I32GeU -> compareU (>=) >> nextPc instruction
-            I32Load offset -> load offset getWord id
-            I32Load8U offset -> load offset getByte fromIntegral
-            I32Load8S offset -> load offset getByte (fromIntegral . (fromIntegral :: Word8 -> Int8))
-            I32Store offset -> store offset setWord id
-            I32Store8 offset -> store offset setByte fromIntegral
+            I32Load offset -> load (fromEnum offset) getWord id
+            I32Load8U offset -> load (fromEnum offset) getByte fromIntegral
+            I32Load8S offset -> load (fromEnum offset) getByte (fromIntegral . (fromIntegral :: Word8 -> Int8))
+            I32Store offset -> store (fromEnum offset) setWord id
+            I32Store8 offset -> store (fromEnum offset) setByte fromIntegral
             If -> do
                 condition <- popValue
                 if condition /= 0
@@ -1275,22 +1298,23 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 nextPc instruction
             Unreachable -> raiseInternalError "unreachable"
             LocalGet i -> do
-                addr <- localAddr i
+                addr <- localAddr (fromEnum i)
                 getWord addr >>= pushValue
                 nextPc instruction
             LocalSet i -> do
-                addr <- localAddr i
+                addr <- localAddr (fromEnum i)
                 popValue >>= setWord addr
                 nextPc instruction
             LocalTee i -> do
-                addr <- localAddr i
+                addr <- localAddr (fromEnum i)
                 value <- popValue
                 setWord addr value
                 pushValue value
                 nextPc instruction
-            LocalsReserve n -> do
+            LocalsReserve n' -> do
                 Wasm32St{sp} <- get
-                let step = byteSizeT @w
+                let n = fromEnum n'
+                    step = byteSizeT @w
                     sp' = sp - n * step
                 checkOperandRoom sp' $ do
                     -- Zeroed, like real WebAssembly's locals: memory
@@ -1299,16 +1323,17 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     forM_ [sp - step, sp - 2 * step .. sp'] $ \addr -> setWord addr 0
                     modify $ \st -> st{sp = sp', localCount = localCount st + n}
                 nextPc instruction
-            Call paramCount resultCount -> do
+            Call paramCount' resultCount -> do
                 target <- popValue
                 Wasm32St{sp, frameBase, localCount} <- get
-                let calleeFrameBase = sp + (paramCount - 1) * byteSizeT @w
+                let paramCount = fromEnum paramCount'
+                    calleeFrameBase = sp + (paramCount - 1) * byteSizeT @w
                 pushScope
                     CallScope
                         { csCallerFrameBase = frameBase
                         , csCallerLocalCount = localCount
                         , csReturnPc = pc + byteSize instruction
-                        , csResultCount = resultCount
+                        , csResultCount = fromEnum resultCount
                         }
                 modify $ \st -> st{frameBase = calleeFrameBase, localCount = paramCount}
                 setPc (fromEnum target)

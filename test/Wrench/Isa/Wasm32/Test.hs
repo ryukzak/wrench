@@ -1,5 +1,6 @@
 module Wrench.Isa.Wasm32.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.HashMap.Strict qualified as HashMap
 import Data.IntMap.Strict qualified as IntMap
 import Data.Text qualified as T
@@ -55,11 +56,13 @@ tests =
                         ]
             stack @?= "10:99:30"
         , testCase "An immediate too wide for its field is rejected where it is written" $ do
-            assertTranslationError "load/store offset 256" ["i32.const 0", "i32.load 256"]
-            assertTranslationError "local.get index 300" ["local.get 300"]
-            assertTranslationError "br depth -1" ["block", "br -1", "end"]
-            assertTranslationError "call resultCount 300" ["i32.const 0", "call 0, 300"]
-            assertTranslationError "locals.reserve count 300" ["locals.reserve 300"]
+            assertTranslationError "i32.load offset 256 is not in 0..255" ["i32.const 0", "i32.load 256"]
+            assertTranslationError "local.get index 300 is not in 0..255" ["local.get 300"]
+            assertTranslationError "br depth -1 is not in 0..255" ["block", "br -1", "end"]
+            assertTranslationError "call resultCount 300 is not in 0..255" ["i32.const 0", "call 0, 300"]
+            assertTranslationError "locals.reserve count 300 is not in 0..255" ["locals.reserve 300"]
+            assertTranslationError "4:14:" ["i32.const 0", "i32.load 256"]
+            assertTranslationError "expected" ["block", "br start", "end"]
         , testCase "Unbalanced scopes stop the program before its first step" $ do
             assertTrap "no matching block/loop/if" ["end"]
             assertTrap "no matching end" ["block"]
@@ -220,12 +223,22 @@ assertSourceTrapIo streams expected src =
         Left err -> assertFailure $ "expected " <> show expected <> ", got: " <> toString err
         Right _ -> assertFailure $ "expected a trap matching " <> show expected
 
+-- | A field guard fires from 'resolveRef' as an @error@ while the translated
+-- instructions are forced, so walking @show@ is what provokes it -- the same
+-- thing @derefSection@ does for real.
 assertTranslationError :: Text -> [String] -> Assertion
-assertTranslationError expected instrs =
-    case translate @Wasm32Isa @Int32 1000 (repeat 0) "-" (toSource instrs) of
-        Left err | expected `T.isInfixOf` err -> return ()
-        Left err -> assertFailure $ "expected " <> show expected <> ", got: " <> toString err
-        Right _ -> assertFailure $ "expected a translation error matching " <> show expected
+assertTranslationError expected instrs = do
+    let translated = translate @Wasm32Isa @Int32 1000 (repeat 0) "-" (toSource instrs)
+    outcome <- try @ErrorCall $ evaluate $ length (show translated :: String)
+    case outcome of
+        Left (ErrorCallWithLocation msg _location) -> expect (toText msg)
+        Right _ -> case translated of
+            Left err -> expect err
+            Right _ -> assertFailure $ "expected a translation error matching " <> show expected
+    where
+        expect err
+            | expected `T.isInfixOf` err = return ()
+            | otherwise = assertFailure $ "expected " <> show expected <> ", got: " <> toString err
 
 pushForever :: [String]
 pushForever = ["block", "loop", "i32.const -1", "br 0", "end", "end"]
