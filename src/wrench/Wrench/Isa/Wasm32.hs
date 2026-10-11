@@ -26,8 +26,11 @@ module Wrench.Isa.Wasm32 (
     -- $instructionIndex
     Wasm32Isa (..),
 
+    -- ** Instruction encoding
+    -- $encoding
+
     -- * Machine state
-    Wasm32St,
+    Wasm32St (ctrlBase),
 
     -- * Program structure
     -- $programStructure
@@ -184,7 +187,7 @@ data Wasm32Isa w l
       -- displacement into it is written into the instruction, which makes
       -- indexing a struct field or a small array one instruction rather
       -- than three. The offset is unsigned and one byte
-      -- ('immediateBitWidth'), so @0@-@255@; omit it when it is zero, and
+      -- ('immediateBytes'), so @0@-@255@; omit it when it is zero, and
       -- reach further by computing the address with @i32.add@.
       --
       -- > i32.const point       ; base address
@@ -305,7 +308,7 @@ data Wasm32Isa w l
       -- become the callee's locals; @resultCount@ values are expected back.
       -- Neither count is checked against the callee. See the \"Functions\"
       -- section.
-      Call l l
+      Call {callParamCount :: l, callResultCount :: l}
     | -- | @return@: return from the nearest enclosing call, closing any
       -- @block@ or @loop@ still open along the way and forwarding the
       -- declared results to the caller.
@@ -383,9 +386,10 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
                     , LocalsReserve <$> cmd1 "locals.reserve" constantRef
                     , do
                         void $ cmd1 "call" (pure ())
-                        params <- constantRef
+                        callParamCount <- constantRef
                         comma
-                        Call params <$> constantRef
+                        callResultCount <- constantRef
+                        return Call{callParamCount, callResultCount}
                     , cmd0 "return" Return
                     , cmd0 "sp.init" SpInit
                     , cmd0 "halt" Halt
@@ -424,31 +428,27 @@ memOp mnemonic constructor = do
         offset = try (hspace1 >> void (lookAhead digitChar)) >> constantRef
         zeroAt pos = ValueR{refPrepare = id, refPos = pos, refValue = 0}
 
--- | Separates @call@'s two operands (paramCount, resultCount).
-comma :: Parser ()
-comma = hspace >> void (char ',') >> hspace
-
 instance (IsWord w) => DerefMnemonic (Wasm32Isa w) w where
     derefMnemonic f _offset i =
         let fieldErr what x = what <> " " <> x <> " is not in 0..255"
-            narrow what = resolveRef (u8 (fieldErr what)) f
          in case i of
                 I32Const l -> I32Const (resolveRef Right f l)
-                I32Load k -> I32Load (narrow "i32.load offset" k)
-                I32Store k -> I32Store (narrow "i32.store offset" k)
-                I32Load8U k -> I32Load8U (narrow "i32.load8_u offset" k)
-                I32Load8S k -> I32Load8S (narrow "i32.load8_s offset" k)
-                I32Store8 k -> I32Store8 (narrow "i32.store8 offset" k)
-                Br k -> Br (narrow "br depth" k)
-                BrIf k -> BrIf (narrow "br_if depth" k)
-                LocalGet k -> LocalGet (narrow "local.get index" k)
-                LocalSet k -> LocalSet (narrow "local.set index" k)
-                LocalTee k -> LocalTee (narrow "local.tee index" k)
-                LocalsReserve k -> LocalsReserve (narrow "locals.reserve count" k)
-                Call params results ->
+                I32Load k -> I32Load (resolveRef (u8 (fieldErr "i32.load offset")) f k)
+                I32Store k -> I32Store (resolveRef (u8 (fieldErr "i32.store offset")) f k)
+                I32Load8U k -> I32Load8U (resolveRef (u8 (fieldErr "i32.load8_u offset")) f k)
+                I32Load8S k -> I32Load8S (resolveRef (u8 (fieldErr "i32.load8_s offset")) f k)
+                I32Store8 k -> I32Store8 (resolveRef (u8 (fieldErr "i32.store8 offset")) f k)
+                Br k -> Br (resolveRef (u8 (fieldErr "br depth")) f k)
+                BrIf k -> BrIf (resolveRef (u8 (fieldErr "br_if depth")) f k)
+                LocalGet k -> LocalGet (resolveRef (u8 (fieldErr "local.get index")) f k)
+                LocalSet k -> LocalSet (resolveRef (u8 (fieldErr "local.set index")) f k)
+                LocalTee k -> LocalTee (resolveRef (u8 (fieldErr "local.tee index")) f k)
+                LocalsReserve k -> LocalsReserve (resolveRef (u8 (fieldErr "locals.reserve count")) f k)
+                Call{callParamCount, callResultCount} ->
                     Call
-                        (narrow "call paramCount" params)
-                        (narrow "call resultCount" results)
+                        { callParamCount = resolveRef (u8 (fieldErr "call paramCount")) f callParamCount
+                        , callResultCount = resolveRef (u8 (fieldErr "call resultCount")) f callResultCount
+                        }
                 I32Add -> I32Add
                 I32Sub -> I32Sub
                 I32Mul -> I32Mul
@@ -678,16 +678,17 @@ resolveProgram = fmap mconcat . traverse runPlan . codeRuns
             plan <- resolveBranches targets run
             return plan{spTargets = targets}
 
--- | The widths in bits of the operands an instruction encodes after its
--- opcode byte, which is all 'byteSize' needs to know about any of them.
+-- | The size in bytes of each operand an instruction encodes after its
+-- opcode, which is all 'byteSize' needs to know about any of them. See the
+-- \"Instruction encoding\" section for the four shapes these make up.
 --
 -- Listed exhaustively, with no catch-all: an instruction added without a
 -- line here is a missing-pattern warning, where a catch-all would have
 -- silently given it a bare opcode's size. Checking that a value fits the
 -- width named here is 'derefMnemonic''s job.
-operandWidths :: Wasm32Isa w l -> [Int]
-operandWidths instruction = case instruction of
-    I32Const{} -> [8 * byteSizeT @Int32]
+operandBytes :: Wasm32Isa w l -> [Int]
+operandBytes instruction = case instruction of
+    I32Const{} -> [byteSizeT @Int32]
     I32Add -> []
     I32Sub -> []
     I32Mul -> []
@@ -708,49 +709,53 @@ operandWidths instruction = case instruction of
     I32LeU -> []
     I32GtU -> []
     I32GeU -> []
-    I32Load{} -> [immediateBitWidth]
-    I32Store{} -> [immediateBitWidth]
-    I32Load8U{} -> [immediateBitWidth]
-    I32Load8S{} -> [immediateBitWidth]
-    I32Store8{} -> [immediateBitWidth]
+    I32Load{} -> [immediateBytes]
+    I32Store{} -> [immediateBytes]
+    I32Load8U{} -> [immediateBytes]
+    I32Load8S{} -> [immediateBytes]
+    I32Store8{} -> [immediateBytes]
     If -> []
     Else -> []
     End -> []
     Loop -> []
     Block -> []
-    Br{} -> [immediateBitWidth]
-    BrIf{} -> [immediateBitWidth]
+    Br{} -> [immediateBytes]
+    BrIf{} -> [immediateBytes]
     Drop -> []
     Select -> []
     Unreachable -> []
-    LocalGet{} -> [immediateBitWidth]
-    LocalSet{} -> [immediateBitWidth]
-    LocalTee{} -> [immediateBitWidth]
-    LocalsReserve{} -> [immediateBitWidth]
-    Call{} -> [immediateBitWidth, immediateBitWidth]
+    LocalGet{} -> [immediateBytes]
+    LocalSet{} -> [immediateBytes]
+    LocalTee{} -> [immediateBytes]
+    LocalsReserve{} -> [immediateBytes]
+    Call{} -> [immediateBytes, immediateBytes]
     Return -> []
     SpInit -> []
     Halt -> []
 
 instance ByteSize (Wasm32Isa w l) where
-    -- One opcode byte, then each operand in whole bytes -- rounding a
-    -- width that is not a whole number of bits up, since it still has to
-    -- be stored in whole bytes.
-    byteSize instruction = 1 + sum [(width + 7) `div` 8 | width <- operandWidths instruction]
+    byteSize instruction = opcodeBytes + sum (operandBytes instruction)
 
--- | Every instruction immediate: a branch depth, a local index, one of
--- @call@'s counts, a load\/store offset. A 'CallScope' stores the counts
--- at this same width, so what the source can say and what a call record
--- can hold agree. A 0-255 offset covers a struct field or a small array
--- index; further is still reachable with @i32.add@.
+-- | One byte, which 44 instructions leave plenty of room in. Nothing here
+-- encodes an operand into spare opcode bits, so an instruction's size is
+-- its opcode plus its operands and nothing else.
+opcodeBytes :: Int
+opcodeBytes = 1
+
+-- | Every instruction immediate but @i32.const@'s: a branch depth, a local
+-- index, one of @call@'s counts, a load\/store offset. One byte, so
+-- @0@-@255@. A 'CallScope' stores the counts at this same width, so what
+-- the source can say and what a call record can hold agree. A 0-255 offset
+-- covers a struct field or a small array index; further is still reachable
+-- with @i32.add@.
 --
 -- 'derefMnemonic' enforces it, with @u8@ -- the same shared field guard
 -- the other ISAs check their immediates against. None of these operands
 -- can be a label, so each is parsed with 'constantRef': a depth, an index
 -- and a count are not addresses, and an @i32.add@ is the way to reach a
 -- computed one.
-immediateBitWidth :: Int
-immediateBitWidth = 8
+immediateBytes :: Int
+immediateBytes = 1
 
 -- | The machine: a program counter, the two stack pointers and the frame
 -- they describe, the loaded program's 'ScopePlan', and memory. Opaque on
@@ -777,11 +782,6 @@ data Wasm32St w = Wasm32St
     -- address): carved out of the caller's already-pushed arguments by
     -- @call@, saved in the callee's 'CallScope', restored by @return@.
     , localCount :: Int
-    -- ^ How many words at @frameBase@ are locals rather than operand
-    -- stack -- the active function's own paramCount, saved and restored
-    -- alongside @frameBase@ so the report views know where this frame's
-    -- stack really starts.
-    , memAccessCount :: Int
     -- ^ How many memory accesses the *last executed* instruction made,
     -- its own fetch included. Reset per step in 'instructionStep';
     -- exposed to reports as @memAccesses@.
@@ -793,6 +793,7 @@ data Wasm32St w = Wasm32St
     -- the same tables, for the same reason: the alternative is searching
     -- memory for an answer that was never going to change.
     , mem :: IoMem (Wasm32Isa w w) w
+    , memAccessCount :: Int
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -1323,17 +1324,17 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                     forM_ [sp - step, sp - 2 * step .. sp'] $ \addr -> setWord addr 0
                     modify $ \st -> st{sp = sp', localCount = localCount st + n}
                 nextPc instruction
-            Call paramCount' resultCount -> do
+            Call{callParamCount, callResultCount} -> do
                 target <- popValue
                 Wasm32St{sp, frameBase, localCount} <- get
-                let paramCount = fromEnum paramCount'
+                let paramCount = fromEnum callParamCount
                     calleeFrameBase = sp + (paramCount - 1) * byteSizeT @w
                 pushScope
                     CallScope
                         { csCallerFrameBase = frameBase
                         , csCallerLocalCount = localCount
                         , csReturnPc = pc + byteSize instruction
-                        , csResultCount = fromEnum resultCount
+                        , csResultCount = fromEnum callResultCount
                         }
                 modify $ \st -> st{frameBase = calleeFrameBase, localCount = paramCount}
                 setPc (fromEnum target)
@@ -1497,6 +1498,65 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- >     call 1, 1
 -- >     i32.mul
 -- >     return
+
+-- $encoding
+--
+-- Nothing here is encoded to real bytes: the simulator holds a decoded
+-- 'Wasm32Isa' per instruction, so the layout below is what an instruction
+-- /would/ occupy. That is not idle, though -- 'byteSize' hands out exactly
+-- these sizes, so every code address, every @pc@ a dump prints and every
+-- target a @call@ reaches depends on them.
+--
+-- In Erlang bit syntax -- illustrative notation only, the project is
+-- Haskell, but a precise and standard way to say which bits are which, and
+-- the same notation "Wrench.Isa.Wasm32.ControlRecord" uses for a control
+-- record. Four shapes, most-significant field first:
+--
+-- > %% 31 bare opcodes -- 1 byte
+-- > %% i32.add, i32.eq, if, else, end, block, loop, drop, select,
+-- > %% unreachable, return, sp.init, halt, ...
+-- > <<Opcode:8>>
+-- >
+-- > %% i32.const -- 5 bytes
+-- > <<Opcode:8, Value:32>>
+-- >
+-- > %% 11 with one one-byte immediate -- 2 bytes
+-- > %% i32.load, i32.store, i32.load8_u, i32.load8_s, i32.store8,
+-- > %% br, br_if, local.get, local.set, local.tee, locals.reserve
+-- > <<Opcode:8, Imm:8>>
+-- >
+-- > %% call -- 3 bytes
+-- > <<Opcode:8, ParamCount:8, ResultCount:8>>
+--
+-- The rules behind those four:
+--
+-- * __One opcode byte__ ('opcodeBytes'). 44 instructions fit in 256 with
+--   room left over, and no operand is squeezed into spare opcode bits --
+--   which is why an instruction's size is its opcode plus its operands and
+--   nothing more.
+-- * __Operands are whole bytes__ ('operandBytes'), never bitfields packed
+--   across a byte boundary. A control record earns its bit packing by being
+--   written and read at run time, thousands of times in a loop; an
+--   instruction is laid out once, when the program loads.
+-- * __@i32.const@ carries a full machine word__ (4 bytes), because what it
+--   pushes is any value at all -- a constant, a @.data@ address, a function
+--   address. There is no narrower form and no @%hi@\/@%lo@ pair to build
+--   one from, which is the single thing this ISA spends the most space on
+--   and the reason @i32.const@ is 5 bytes where every other instruction is
+--   1, 2 or 3.
+-- * __Every other immediate is one byte__ ('immediateBytes'), so @0@-@255@,
+--   and 'derefMnemonic' refuses anything else rather than truncating it.
+--   @call@'s two counts share the width with the 'CallScope' field that
+--   stores them, so what a call site can declare and what its record can
+--   hold agree exactly.
+--
+-- An instruction therefore occupies 1, 2, 3 or 5 bytes, and a dump shows
+-- the span each one covers:
+--
+-- > mem[0x004..0x008] (5 B): 	I32Const 2147483647 	@_start
+-- > mem[0x009..0x00a] (2 B): 	I32Load 255
+-- > mem[0x00b..0x00d] (3 B): 	Call {callParamCount = 1, callResultCount = 1}
+-- > mem[0x00e..0x00e] (1 B): 	Halt
 
 -- $stacks
 --

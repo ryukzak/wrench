@@ -21,11 +21,11 @@ mem[0x01d..0x01e] (2 B): 	I32Load 0
 mem[0x01f..0x023] (5 B): 	I32Const 132
 mem[0x024..0x025] (2 B): 	I32Load 0
 mem[0x026..0x02a] (5 B): 	I32Const 0
-mem[0x02b..0x02d] (3 B): 	Call 2 2
+mem[0x02b..0x02d] (3 B): 	Call {callParamCount = 2, callResultCount = 2}
 mem[0x02e..0x032] (5 B): 	I32Const 136
 mem[0x033..0x037] (5 B): 	I32Const 140
 mem[0x038..0x03c] (5 B): 	I32Const 11
-mem[0x03d..0x03f] (3 B): 	Call 4 0
+mem[0x03d..0x03f] (3 B): 	Call {callParamCount = 4, callResultCount = 0}
 mem[0x040..0x040] (1 B): 	Halt
 mem[0x041..0x3e7] (935 B): 	( 00 )
 ---

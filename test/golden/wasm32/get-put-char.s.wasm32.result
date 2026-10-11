@@ -5,7 +5,7 @@ mem[0x000..0x004] (5 B): 	I32Const 132 	@_start
 mem[0x005..0x009] (5 B): 	I32Const 128
 mem[0x00a..0x00b] (2 B): 	I32Load 0
 mem[0x00c..0x010] (5 B): 	I32Const 23
-mem[0x011..0x013] (3 B): 	Call 1 1
+mem[0x011..0x013] (3 B): 	Call {callParamCount = 1, callResultCount = 1}
 mem[0x014..0x015] (2 B): 	I32Store 0
 mem[0x016..0x016] (1 B): 	Halt
 mem[0x017..0x018] (2 B): 	LocalGet 0 	@normalize_char

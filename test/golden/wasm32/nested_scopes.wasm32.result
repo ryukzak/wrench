@@ -30,7 +30,7 @@ stack: 30:6:100
     2: 0x00000014
     3: 0x00000000
     4: 0x00000010
-:::: 0x00000010: Call 3 2 @outer // access: 4
+:::: 0x00000010: Call {callParamCount = 3, callResultCount = 2} @outer // access: 4
 #0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
@@ -95,7 +95,7 @@ stack: 30:6:100
   mem[0x1c0..0x1c7]: CallScope { csCallerFrameBase = 0x1bc, csCallerLocalCount = 0, csReturnPc = 0x03e, csResultCount = 2 }
   mem[0x1ac..0x1af]: (operands)
     0: 0x00000000
-:::: 0x00000000: Call 0 1 @inner // access: 4
+:::: 0x00000000: Call {callParamCount = 0, callResultCount = 1} @inner // access: 4
 #0 _start (pc=0x03e)
   mem[0x1bc..0x1bf]: (operands)
     0: 0x00000064
