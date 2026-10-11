@@ -354,7 +354,7 @@ instance (IsWord w) => DerefMnemonic (M68kIsa w) w where
             derefArg (IndirectAddrReg offset r index) = IndirectAddrReg offset r index
             derefArg (IndirectAddrRegPreDecrement r) = IndirectAddrRegPreDecrement r
             derefArg (IndirectAddrRegPostIncrement r) = IndirectAddrRegPostIncrement r
-            derefArg (Immediate l) = Immediate $ deref' f l
+            derefArg (Immediate l) = Immediate $ resolveRef Right f l
          in case i of
                 Move{mode, src, dst} -> Move mode (derefSrc "move" mode src) (derefArg dst)
                 MoveA{mode, src, dst} -> MoveA mode (derefArg src) (derefArg dst)
@@ -373,20 +373,20 @@ instance (IsWord w) => DerefMnemonic (M68kIsa w) w where
                 Asr{mode, src, dst} -> Asr mode (derefShiftCount "asr" mode src) (derefArg dst)
                 Lsl{mode, src, dst} -> Lsl mode (derefShiftCount "lsl" mode src) (derefArg dst)
                 Lsr{mode, src, dst} -> Lsr mode (derefShiftCount "lsr" mode src) (derefArg dst)
-                Jmp{ref} -> Jmp (deref' f ref)
-                Bcc{ref} -> Bcc (deref' f ref)
-                Bcs{ref} -> Bcs (deref' f ref)
-                Beq{ref} -> Beq (deref' f ref)
-                Bne{ref} -> Bne (deref' f ref)
-                Blt{ref} -> Blt (deref' f ref)
-                Bgt{ref} -> Bgt (deref' f ref)
-                Ble{ref} -> Ble (deref' f ref)
-                Bge{ref} -> Bge (deref' f ref)
-                Bmi{ref} -> Bmi (deref' f ref)
-                Bpl{ref} -> Bpl (deref' f ref)
-                Bvc{ref} -> Bvc (deref' f ref)
-                Bvs{ref} -> Bvs (deref' f ref)
-                Jsr{ref} -> Jsr (deref' f ref)
+                Jmp{ref} -> Jmp (resolveRef Right f ref)
+                Bcc{ref} -> Bcc (resolveRef Right f ref)
+                Bcs{ref} -> Bcs (resolveRef Right f ref)
+                Beq{ref} -> Beq (resolveRef Right f ref)
+                Bne{ref} -> Bne (resolveRef Right f ref)
+                Blt{ref} -> Blt (resolveRef Right f ref)
+                Bgt{ref} -> Bgt (resolveRef Right f ref)
+                Ble{ref} -> Ble (resolveRef Right f ref)
+                Bge{ref} -> Bge (resolveRef Right f ref)
+                Bmi{ref} -> Bmi (resolveRef Right f ref)
+                Bpl{ref} -> Bpl (resolveRef Right f ref)
+                Bvc{ref} -> Bvc (resolveRef Right f ref)
+                Bvs{ref} -> Bvs (resolveRef Right f ref)
+                Jsr{ref} -> Jsr (resolveRef Right f ref)
                 Rts -> Rts
                 Link{addrReg, offset} -> Link addrReg offset
                 Unlk{addrReg} -> Unlk addrReg

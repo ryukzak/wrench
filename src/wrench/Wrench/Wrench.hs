@@ -159,7 +159,7 @@ wrenchIO ::
     -> [Char]
     -> IO ()
 wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src = do
-    -- Translation raises 'error' from pure code (see 'deref''), so catch it here
+    -- Translation raises 'error' from pure code (see 'resolveRef'), so catch it here
     -- and report it. 'ExitCode' is not an 'ErrorCall' and still propagates.
     outcome <- try @ErrorCall $ case wrench @st opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do

@@ -13,7 +13,6 @@ module Wrench.Translator.Types (
     markupOffsets,
     markupSectionOffsets,
     DerefMnemonic (..),
-    deref',
     resolveRef,
     Ref (..),
     derefSection,
@@ -139,10 +138,6 @@ resolveRef valueGuard labelResolver ref =
      in case valueGuard value of
             Right x -> x
             Left err -> error (pos <> ": " <> err)
-
--- | 'resolveRef' for a field that has nothing to check.
-deref' :: (Text -> Maybe w) -> Ref w -> w
-deref' = resolveRef Right
 
 data DataToken w l = DataToken
     { dtLabel :: !l

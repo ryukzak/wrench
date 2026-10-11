@@ -174,21 +174,21 @@ cmdMnemonic1 mnemonic = try $ do
 instance DerefMnemonic (F32aIsa w) w where
     derefMnemonic f _offset i =
         case i of
-            Lit l -> Lit (deref' f l)
-            Call l -> Call (deref' f l)
+            Lit l -> Lit (resolveRef Right f l)
+            Call l -> Call (resolveRef Right f l)
             Return -> Return
-            Jump l -> Jump (deref' f l)
-            Next l -> Next (deref' f l)
-            If l -> If (deref' f l)
-            MinusIf l -> MinusIf (deref' f l)
+            Jump l -> Jump (resolveRef Right f l)
+            Next l -> Next (resolveRef Right f l)
+            If l -> If (resolveRef Right f l)
+            MinusIf l -> MinusIf (resolveRef Right f l)
             AStore -> AStore
             BStore -> BStore
             AFetch -> AFetch
-            FetchP l -> FetchP (deref' f l)
+            FetchP l -> FetchP (resolveRef Right f l)
             Fetch -> Fetch
             FetchPlus -> FetchPlus
             FetchB -> FetchB
-            StoreP l -> StoreP (deref' f l)
+            StoreP l -> StoreP (resolveRef Right f l)
             StoreB -> StoreB
             StorePlus -> StorePlus
             Store -> Store

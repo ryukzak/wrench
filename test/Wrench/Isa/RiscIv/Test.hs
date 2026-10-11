@@ -13,7 +13,7 @@ import Wrench.Isa.RiscIv
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Translator.Parser.Types (MnemonicParser (..))
-import Wrench.Translator.Types (DerefMnemonic (..), Ref, deref')
+import Wrench.Translator.Types (DerefMnemonic (..), Ref, resolveRef)
 
 tests :: TestTree
 tests =
@@ -234,7 +234,7 @@ rejected code range = do
 immediate :: String -> Either String Int32
 immediate code = do
     instr <- translate code
-    let resolve = deref' (const Nothing)
+    let resolve = resolveRef Right (const Nothing)
     case instr of
         Addi{k} -> Right $ resolve k
         Lui{k} -> Right $ resolve k
