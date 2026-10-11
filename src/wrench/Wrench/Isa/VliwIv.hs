@@ -12,12 +12,12 @@ module Wrench.Isa.VliwIv (
     emptyVliwLoad,
 ) where
 
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
+import Data.Bits (bit, shiftL, shiftR, (.&.), (.|.))
 import Data.Default
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
-import Text.Megaparsec (choice)
+import Text.Megaparsec (choice, getOffset, setOffset)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types (
@@ -30,7 +30,7 @@ import Wrench.Machine.Types (
     fromSign,
     halted,
  )
-import Wrench.Machine.Word (fitSigned, lShiftR)
+import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
 import Wrench.Translator.Parser.Misc (eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
@@ -280,14 +280,40 @@ register =
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
+-- | Check the offset against the field it is encoded into while parsing, so the
+-- caret lands under the operand. The memory slot takes a bare number rather
+-- than a label, so there is nothing to resolve first.
+requireSignedField :: (IsWord w) => Int -> Int -> w -> Parser w
+requireSignedField fieldBits operandPos value
+    | value == fitSigned fieldBits value = return value
+    | otherwise = do
+        setOffset operandPos
+        fail $
+            concat
+                [ "offset "
+                , show value
+                , " doesn't fit the "
+                , show fieldBits
+                , "-bit signed field of a 14 byte bundle, expected "
+                , show lo
+                , ".."
+                , show hi
+                ]
+    where
+        hi = bit (fieldBits - 1) - 1 :: Integer
+        lo = negate (bit (fieldBits - 1)) :: Integer
+
 memRef :: (IsWord w) => Parser (MemRef w)
 memRef = choice [regWithOffset, register <&> MemRef 0]
     where
+        memRefOffsetBits = 11
         regWithOffset = do
-            mrOffset <- wordLiteral
+            operandPos <- getOffset
+            offset <- wordLiteral
             void $ char '('
             mrReg <- register
             void $ char ')'
+            mrOffset <- requireSignedField memRefOffsetBits operandPos offset
             return MemRef{mrOffset, mrReg}
 
 instance CommentStart (VliwIvIsa _a _b) where
@@ -360,6 +386,9 @@ instance (IsWord w) => MnemonicParser (VliwIvIsa w (Ref w)) where
         eol' (commentStart @(VliwIvIsa _ _))
         return VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp}
 
+aluImmErr :: Text -> Text -> Text
+aluImmErr m x = m <> ": ALU imm " <> x <> " is not in -65536..65535"
+
 instance DerefMnemonic (MemoryOp w) w where
     derefMnemonic _ _ NopM = NopM
     derefMnemonic _ _ (Lw lwRd lwOffsetRs1) = Lw lwRd lwOffsetRs1
@@ -367,10 +396,13 @@ instance DerefMnemonic (MemoryOp w) w where
     derefMnemonic _ _ (Sw swRs2 swOffsetRs1) = Sw swRs2 swOffsetRs1
     derefMnemonic _ _ (Sb sbRs2 sbOffsetRs1) = Sb sbRs2 sbOffsetRs1
 
-instance DerefMnemonic (AluOp w) w where
-    derefMnemonic f _ (Addi addiRd addiRs1 addiK) = Addi addiRd addiRs1 $ deref' f addiK
-    derefMnemonic f _ (Slti sltiRd sltiRs1 sltiK) = Slti sltiRd sltiRs1 $ deref' f sltiK
-    derefMnemonic f _ (Lui luiRd luiK) = Lui luiRd $ deref' f luiK
+luiImmErr :: Text -> Text -> Text
+luiImmErr m x = m <> ": U-type imm " <> x <> " is not in 0..1048575"
+
+instance (IsWord w) => DerefMnemonic (AluOp w) w where
+    derefMnemonic f _ (Addi addiRd addiRs1 addiK) = Addi addiRd addiRs1 $ resolveRef (i17 (aluImmErr "addi")) f addiK
+    derefMnemonic f _ (Slti sltiRd sltiRs1 sltiK) = Slti sltiRd sltiRs1 $ resolveRef (i17 (aluImmErr "slti")) f sltiK
+    derefMnemonic f _ (Lui luiRd luiK) = Lui luiRd $ resolveRef (u20 (luiImmErr "lui")) f luiK
     derefMnemonic _ _ (Add addRd addRs1 addRs2) = Add addRd addRs1 addRs2
     derefMnemonic _ _ (Sub subRd subRs1 subRs2) = Sub subRd subRs1 subRs2
     derefMnemonic _ _ (Mul mulRd mulRs1 mulRs2) = Mul mulRd mulRs1 mulRs2
@@ -386,19 +418,24 @@ instance DerefMnemonic (AluOp w) w where
     derefMnemonic _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
     derefMnemonic _ _ NopA = NopA
 
+branchDispErr, linkDispErr, jumpDispErr :: Text -> Text -> Text
+branchDispErr m x = m <> ": CTRL disp " <> x <> " is not in -512..511"
+linkDispErr m x = m <> ": CTRL disp " <> x <> " is not in -16384..16383"
+jumpDispErr m x = m <> ": CTRL disp " <> x <> " is not in -524288..524287"
+
 instance (IsWord w) => DerefMnemonic (ControlOp w) w where
-    derefMnemonic f offset (J jK) = J $ deref' (fmap (\x -> x - offset) . f) jK
-    derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ deref' (fmap (\x -> x - offset) . f) jalK
+    derefMnemonic f offset (J jK) = J $ resolveRef (i20 (jumpDispErr "j")) (fmap (\x -> x - offset) . f) jK
+    derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ resolveRef (i15 (linkDispErr "jal")) (fmap (\x -> x - offset) . f) jalK
     derefMnemonic _ _ (Jr jrRs) = Jr jrRs
-    derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ deref' (fmap (\x -> x - offset) . f) beqzK
-    derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ deref' (fmap (\x -> x - offset) . f) bnezK
-    derefMnemonic f offset (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ deref' (fmap (\x -> x - offset) . f) bgtK
-    derefMnemonic f offset (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ deref' (fmap (\x -> x - offset) . f) bleK
-    derefMnemonic f offset (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ deref' (fmap (\x -> x - offset) . f) bgtuK
-    derefMnemonic f offset (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ deref' (fmap (\x -> x - offset) . f) bleuK
-    derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ deref' (fmap (\x -> x - offset) . f) beqK
-    derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ deref' (fmap (\x -> x - offset) . f) bneK
-    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ deref' (fmap (\x -> x - offset) . f) bltK
+    derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ resolveRef (i15 (linkDispErr "beqz")) (fmap (\x -> x - offset) . f) beqzK
+    derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ resolveRef (i15 (linkDispErr "bnez")) (fmap (\x -> x - offset) . f) bnezK
+    derefMnemonic f offset (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ resolveRef (i10 (branchDispErr "bgt")) (fmap (\x -> x - offset) . f) bgtK
+    derefMnemonic f offset (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ resolveRef (i10 (branchDispErr "ble")) (fmap (\x -> x - offset) . f) bleK
+    derefMnemonic f offset (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ resolveRef (i10 (branchDispErr "bgtu")) (fmap (\x -> x - offset) . f) bgtuK
+    derefMnemonic f offset (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ resolveRef (i10 (branchDispErr "bleu")) (fmap (\x -> x - offset) . f) bleuK
+    derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ resolveRef (i10 (branchDispErr "beq")) (fmap (\x -> x - offset) . f) beqK
+    derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ resolveRef (i10 (branchDispErr "bne")) (fmap (\x -> x - offset) . f) bneK
+    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ resolveRef (i10 (branchDispErr "blt")) (fmap (\x -> x - offset) . f) bltK
     derefMnemonic _ _ Halt = Halt
     derefMnemonic _ _ NopC = NopC
 
