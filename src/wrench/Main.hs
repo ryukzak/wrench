@@ -32,12 +32,12 @@ options =
             ( metavar "INPUT"
                 <> help "Input assembler file (.s)"
             )
-        <*> strOption
-            ( long "isa"
-                <> help "ISA"
-                <> showDefault
-                <> metavar "ISA"
-                <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv)"
+        <*> optional
+            ( strOption
+                ( long "isa"
+                    <> metavar "ISA"
+                    <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv); detected from the source if omitted"
+                )
             )
         <*> optional
             ( strOption
