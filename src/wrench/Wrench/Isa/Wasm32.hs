@@ -220,15 +220,11 @@ data Wasm32Isa w l
       -- if it is non-zero, otherwise fall through. Branching on /zero/ is
       -- @i32.const 0@, @i32.eq@, @br_if@.
       BrIf Int
-    | -- | @dup@ -- duplicate the top of the operand stack.
-      --
-      -- > x <- pop; push x; push x
-      Dup
-    | -- | @drop@ -- discard the top of the operand stack. 'Dup' the
-      -- other way round, and the only way to get rid of a value the program
-      -- does not want -- a callee result the caller ignores, say. Nothing
-      -- else can do it: @local.set@ needs a spare local to land in, and
-      -- @i32.store@ needs its destination pushed /under/ the value.
+    | -- | @drop@ -- discard the top of the operand stack. The only way to
+      -- get rid of a value the program does not want -- a callee result the
+      -- caller ignores, say. Nothing else can do it: @local.set@ needs a
+      -- spare local to land in, and @i32.store@ needs its destination
+      -- pushed /under/ the value.
       --
       -- > pop
       Drop
@@ -346,7 +342,6 @@ instance (IsWord w) => MnemonicParser (Wasm32Isa w (Ref w)) where
                     , cmd0 "block" Block
                     , Br <$> cmd1 "br" (narrowLit "br depth")
                     , BrIf <$> cmd1 "br_if" (narrowLit "br_if depth")
-                    , cmd0 "dup" Dup
                     , cmd0 "drop" Drop
                     , cmd0 "select" Select
                     , cmd0 "unreachable" Unreachable
@@ -667,7 +662,6 @@ operandWidths instruction = case instruction of
     Block -> []
     Br{} -> [immediateBitWidth]
     BrIf{} -> [immediateBitWidth]
-    Dup -> []
     Drop -> []
     Select -> []
     Unreachable -> []
@@ -1225,11 +1219,6 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 if condition == 0
                     then nextPc instruction
                     else branchTo pc
-            Dup -> do
-                top <- popValue
-                pushValue top
-                pushValue top
-                nextPc instruction
             Drop -> popValue @w >> nextPc instruction
             Select -> do
                 condition <- popValue
@@ -1547,8 +1536,8 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- from the top of the operand stack and pushes its result back; see the
 -- instruction index above for the operand order that implies.
 --
--- 'Dup' duplicates whatever is on top and 'Drop' discards it, neither
--- needing a local. A value pushed before a @block@ or @loop@ is opened
+-- 'Drop' discards whatever is on top, without needing a local to put it
+-- in. A value pushed before a @block@ or @loop@ is opened
 -- stays reachable inside it, because scope records are on their own stack
 -- and so nothing gets in the way of reaching down the operand stack. A
 -- counter can live on the operand stack across loop iterations the same way
