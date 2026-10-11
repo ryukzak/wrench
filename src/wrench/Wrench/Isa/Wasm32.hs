@@ -6,25 +6,20 @@
 A 32-bit stack-based instruction set for teaching, inspired by
 <https://webassembly.github.io/spec/core/ WebAssembly>. It features:
 
-* Two stacks, both in ordinary memory: an /operand stack/ holding locals
-  and values, and a /control stack/ holding the bookkeeping for open
-  @block@\/@loop@\/call scopes -- no general-purpose registers.
 * Structured control flow (@block@, @loop@, @if@\/@else@) instead of
   arbitrary jumps, with every scope's target worked out once when the
   program loads -- never by scanning for a matching @end@ as it runs.
+* Two stacks, both in ordinary memory: an /operand stack/ holding locals
+  and values, and a /control stack/ holding the bookkeeping for open
+  @block@\/@loop@\/call scopes -- no general-purpose registers.
 * Function calls where a function address is just an ordinary value, so a
   direct call and a call through a value computed at run time are the same
   instruction.
-* Memory-mapped I\/O.
 
 Which makes it useful for studying function calls, local variables, loops
 and low-level memory access in a model that fits in one sitting.
 
 Comments in Wasm32 assembly are introduced by @;@.
-
-The per-instruction reference is on 'Wasm32Isa's own constructors. The
-sections below describe how the machine works underneath: start with
-\"The two stacks\", since everything else refers to it.
 -}
 module Wrench.Isa.Wasm32 (
     -- * Instructions
@@ -32,10 +27,7 @@ module Wrench.Isa.Wasm32 (
     Wasm32Isa (..),
 
     -- * Machine state
-    Wasm32St (..),
-
-    -- * Program loading
-    resolveScopeTargets,
+    Wasm32St,
 
     -- * Program structure
     -- $programStructure
@@ -76,78 +68,114 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
+-- | One instruction. @w@ is the machine word, @l@ the immediate a label
+-- resolves to -- a 'Ref' before the translator fills it in, a word after.
 data Wasm32Isa w l
-    = -- | @i32.const \<value\>@ -- push an immediate onto the operand stack.
+    = -- | @i32.const \<value\>@: push an immediate onto the operand stack.
       -- A label reference is an ordinary immediate, which is how a function
       -- address is produced (see the \"Functions\" section).
       --
       -- > stack.push(value)
       I32Const l
-    | -- | @i32.add@ -- > y <- pop; x <- pop; push (x + y)
-      I32Add
-    | -- | @i32.sub@ -- subtract the second-pushed from the first-pushed.
+    | -- | @i32.add@: add.
       --
-      -- > y <- pop; x <- pop; push (x - y)
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x + y)
+      I32Add
+    | -- | @i32.sub@: subtract the second-pushed from the first-pushed.
+      --
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x - y)
       I32Sub
-    | -- | @i32.mul@ -- > y <- pop; x <- pop; push (x * y)
+    | -- | @i32.mul@: multiply, keeping the low 32 bits of the product.
+      --
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x * y)
       I32Mul
-    | -- | @i32.div_s@ -- signed division, truncating toward zero, so
+    | -- | @i32.div_s@: signed division, truncating toward zero, so
       -- @-7 \/ 2@ is @-3@ and not @-4@. Traps on a zero divisor and on the
       -- one unrepresentable quotient, @minBound \/ -1@.
       --
-      -- > y <- pop; x <- pop; push (trunc (x / y))
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (trunc (x / y))
       I32DivS
-    | -- | @i32.rem_s@ -- signed remainder, whose sign follows the dividend,
+    | -- | @i32.rem_s@: signed remainder, whose sign follows the dividend,
       -- so @-7 % 2@ is @-1@. Only a zero divisor traps: unlike 'I32DivS',
       -- @minBound % -1@ is defined, and is @0@.
       --
-      -- > y <- pop; x <- pop; push (x - y * trunc (x / y))
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x - y * trunc (x / y))
       I32RemS
-    | -- | @i32.and@ -- > y <- pop; x <- pop; push (x .&. y)
+    | -- | @i32.and@: bitwise and.
+      --
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x .&. y)
       I32And
-    | -- | @i32.or@ -- > y <- pop; x <- pop; push (x .|. y)
+    | -- | @i32.or@: bitwise or.
+      --
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x .|. y)
       I32Or
-    | -- | @i32.xor@ -- > y <- pop; x <- pop; push (xor x y)
+    | -- | @i32.xor@: bitwise exclusive or.
+      --
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (xor x y)
       I32Xor
-    | -- | @i32.shl@ -- shift left, masking the shift amount to its low 5
+    | -- | @i32.shl@: shift left, masking the shift amount to its low 5
       -- bits, so a shift of 33 is a shift of 1.
       --
-      -- > y <- pop; x <- pop; push (x << (y .&. 0x1F))
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x << (y .&. 0x1F))
       I32Shl
-    | -- | @i32.shr_s@ -- arithmetic (sign-extending) shift right, same
+    | -- | @i32.shr_s@: arithmetic (sign-extending) shift right, same
       -- 5-bit masking.
       --
-      -- > y <- pop; x <- pop; push (x >>arithmetic (y .&. 0x1F))
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (x >> (y .&. 0x1F))
       I32ShrS
-    | -- | @i32.shr_u@ -- logical (zero-filling) shift right, same 5-bit
+    | -- | @i32.shr_u@: logical (zero-filling) shift right, same 5-bit
       -- masking.
       --
-      -- > y <- pop; x <- pop; push (unsigned x >>logical (y .&. 0x1F))
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (unsigned x >> (y .&. 0x1F))
       I32ShrU
-    | -- | @i32.eq@ -- push @1@ if the two values are equal, else @0@. With
+    | -- | @i32.eq@: push @1@ if the two values are equal, else @0@. With
       -- @i32.const 0@ in front of it this is also the ISA's zero test and
       -- its only negation (see the instruction index above).
       --
-      -- > y <- pop; x <- pop; push (if x == y then 1 else 0)
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (if x == y then 1 else 0)
       I32Eq
-    | -- | @i32.lt_s@ -- signed @\<@. > y <- pop; x <- pop; push (x < y)
+    | -- | @i32.lt_s@: signed @\<@.
       I32LtS
-    | -- | @i32.le_s@ -- signed @\<=@.
+    | -- | @i32.le_s@: signed @\<=@.
       I32LeS
-    | -- | @i32.gt_s@ -- signed @\>@.
+    | -- | @i32.gt_s@: signed @\>@.
       I32GtS
-    | -- | @i32.ge_s@ -- signed @\>=@.
+    | -- | @i32.ge_s@: signed @\>=@.
       I32GeS
-    | -- | @i32.lt_u@ -- unsigned @\<@, reading both operands as unsigned,
+    | -- | @i32.lt_u@: unsigned @\<@, reading both operands as unsigned,
       -- so @-1@ compares /greater/ than @1@.
       I32LtU
-    | -- | @i32.le_u@ -- unsigned @\<=@.
+    | -- | @i32.le_u@: unsigned @\<=@.
       I32LeU
-    | -- | @i32.gt_u@ -- unsigned @\>@.
+    | -- | @i32.gt_u@: unsigned @\>@.
       I32GtU
-    | -- | @i32.ge_u@ -- unsigned @\>=@.
+    | -- | @i32.ge_u@: unsigned @\>=@.
       I32GeU
-    | -- | @i32.load [\<offset\>]@ -- pop an address, push the 4-byte word at
+    | -- | @i32.load [\<offset\>]@: pop an address, push the 4-byte word at
       -- address plus offset.
       --
       -- Every memory instruction carries a static offset, added to the
@@ -161,24 +189,27 @@ data Wasm32Isa w l
       -- > i32.const point       ; base address
       -- > i32.load 4            ; point.y, no i32.add needed
       --
-      -- > addr <- pop; push mem[addr + offset]
+      -- > addr <- pop
+      -- > push mem[addr + offset]
       I32Load Int
-    | -- | @i32.store [\<offset\>]@ -- pop a value, then an address, and write
+    | -- | @i32.store [\<offset\>]@: pop a value, then an address, and write
       -- the value's 4 bytes at address plus offset. The value sits /above/
       -- the address, matching real WebAssembly, so the destination has to
       -- be pushed before the value is computed.
       --
-      -- > value <- pop; addr <- pop; mem[addr + offset] <- value
+      -- > value <- pop
+      -- > addr <- pop
+      -- > mem[addr + offset] <- value
       I32Store Int
-    | -- | @i32.load8_u [\<offset\>]@ -- like 'I32Load', but reads one byte
+    | -- | @i32.load8_u [\<offset\>]@: like 'I32Load', but reads one byte
       -- and zero-extends it.
       I32Load8U Int
-    | -- | @i32.load8_s [\<offset\>]@ -- like 'I32Load8U', but sign-extends.
+    | -- | @i32.load8_s [\<offset\>]@: like 'I32Load8U', but sign-extends.
       I32Load8S Int
-    | -- | @i32.store8 [\<offset\>]@ -- like 'I32Store', but writes only the
+    | -- | @i32.store8 [\<offset\>]@: like 'I32Store', but writes only the
       -- value's low byte.
       I32Store8 Int
-    | -- | @if@ -- pop a condition; fall into the body that follows if it is
+    | -- | @if@: pop a condition; fall into the body that follows if it is
       -- non-zero, otherwise skip to the matching @else@ (if there is one) or
       -- past the matching @end@.
       --
@@ -188,26 +219,26 @@ data Wasm32Isa w l
       -- pushes no control record: nothing branches out of a taken branch
       -- early, so there is nothing to remember.
       If
-    | -- | @else@ -- marks the alternative body, reached only by a taken
+    | -- | @else@: marks the alternative body, reached only by a taken
       -- @if@-body falling through to it, at which point it skips
       -- unconditionally past the matching @end@. So the @else@-body never
       -- runs after the @if@-body already did.
       Else
-    | -- | @end@ -- closes the innermost open @block@ or @loop@. An @if@\'s
+    | -- | @end@: closes the innermost open @block@ or @loop@. An @if@\'s
       -- @end@ closes nothing, since @if@ opened nothing -- which of the two
       -- a given @end@ is follows from the nesting, so loading the program
       -- settles it ('spEndPops') rather than a record being read at run
       -- time to find out.
       End
-    | -- | @loop@ -- open a scope a branch can jump /backward/ into, landing
+    | -- | @loop@: open a scope a branch can jump /backward/ into, landing
       -- just after this instruction. On its own it runs its body once, like
       -- @block@.
       Loop
-    | -- | @block@ -- open a scope a branch can jump /forward/ past, landing
+    | -- | @block@: open a scope a branch can jump /forward/ past, landing
       -- just after its matching @end@. This is what makes a \"break\"
       -- possible, which @loop@ alone does not.
       Block
-    | -- | @br \<depth\>@ -- branch unconditionally to the enclosing scope
+    | -- | @br \<depth\>@: branch unconditionally to the enclosing scope
       -- @depth@ levels out, @0@ being the innermost. See the \"Control
       -- flow\" section for what reaching a @loop@ versus a @block@ does.
       --
@@ -216,41 +247,46 @@ data Wasm32Isa w l
       -- when the program loads ('resolveBranches'). A depth with no such
       -- scope around it is rejected then.
       Br Int
-    | -- | @br_if \<depth\>@ -- pop a condition and branch like 'Br' only
+    | -- | @br_if \<depth\>@: pop a condition and branch like 'Br' only
       -- if it is non-zero, otherwise fall through. Branching on /zero/ is
       -- @i32.const 0@, @i32.eq@, @br_if@.
       BrIf Int
-    | -- | @drop@ -- discard the top of the operand stack. The only way to
-      -- get rid of a value the program does not want -- a callee result the
-      -- caller ignores, say. Nothing else can do it: @local.set@ needs a
-      -- spare local to land in, and @i32.store@ needs its destination
-      -- pushed /under/ the value.
+    | -- | @drop@: discard the top of the operand stack -- the only way to
+      -- get rid of a value the program does not want, a callee result the
+      -- caller ignores being the usual one. Nothing else can do it:
+      -- @local.set@ needs a spare local to land in, and @i32.store@ needs
+      -- its destination pushed /under/ the value.
       --
       -- > pop
       Drop
-    | -- | @select@ -- pop a condition, then two values; push the
+    | -- | @select@: pop a condition, then two values; push the
       -- first-pushed of the two if the condition is non-zero, the second
       -- otherwise. A branchless two-way choice.
       --
-      -- > c <- pop; y <- pop; x <- pop; push (if c /= 0 then x else y)
+      -- > c <- pop
+      -- > y <- pop
+      -- > x <- pop
+      -- > push (if c /= 0 then x else y)
       Select
-    | -- | @unreachable@ -- trap. Marks a point the program believes it can
+    | -- | @unreachable@: trap. Marks a point the program believes it can
       -- never reach, and says so if it does.
       Unreachable
-    | -- | @local.get \<i\>@ -- push local @i@\'s value.
+    | -- | @local.get \<i\>@: push local @i@\'s value.
       --
       -- > push locals[i]
       LocalGet Int
-    | -- | @local.set \<i\>@ -- pop the top of the stack into local @i@.
+    | -- | @local.set \<i\>@: pop the top of the stack into local @i@.
       --
       -- > locals[i] <- pop
       LocalSet Int
-    | -- | @local.tee \<i\>@ -- like @local.set@, but pushes the value back,
+    | -- | @local.tee \<i\>@: like @local.set@, but pushes the value back,
       -- leaving the stack depth unchanged.
       --
-      -- > x <- pop; locals[i] <- x; push x
+      -- > x <- pop
+      -- > locals[i] <- x
+      -- > push x
       LocalTee Int
-    | -- | @locals.reserve \<n\>@ -- claim @n@ more locals, zeroed, at the
+    | -- | @locals.reserve \<n\>@: claim @n@ more locals, zeroed, at the
       -- indices directly after the ones the frame already has. Belongs at a
       -- function's entry, before anything is pushed and outside any loop --
       -- see the \"Locals\" section for what happens otherwise. @n@ is one
@@ -258,20 +294,22 @@ data Wasm32Isa w l
       -- an @operand stack overflow@. @return@ reclaims them along with the
       -- parameters.
       --
-      -- > sp <- sp - n*4; mem[sp .. sp + n*4 - 4] <- 0; localCount <- localCount + n
+      -- > sp <- sp - n*4
+      -- > mem[sp .. sp + n*4 - 4] <- 0
+      -- > localCount <- localCount + n
       LocalsReserve Int
-    | -- | @call \<paramCount\>, \<resultCount\>@ -- pop a target address, an
+    | -- | @call \<paramCount\>, \<resultCount\>@: pop a target address, an
       -- ordinary value, so a known target and one computed at run time are
       -- the same instruction. The @paramCount@ values pushed just before it
       -- become the callee's locals; @resultCount@ values are expected back.
       -- Neither count is checked against the callee. See the \"Functions\"
       -- section.
       Call Int Int
-    | -- | @return@ -- return from the nearest enclosing call, closing any
+    | -- | @return@: return from the nearest enclosing call, closing any
       -- @block@ or @loop@ still open along the way and forwarding the
       -- declared results to the caller.
       Return
-    | -- | @sp.init@ -- pop an address and make it the root both stacks grow
+    | -- | @sp.init@: pop an address and make it the root both stacks grow
       -- from: operands descend below it, control records ascend above it.
       -- This is how a program trades operand space against scope and call
       -- depth; 'stackRoot' is the default split. Only meaningful before
@@ -284,9 +322,12 @@ data Wasm32Isa w l
       -- Within the region nothing checks the split leaves either stack
       -- enough room; that is the trade the instruction exists to make.
       --
-      -- > addr <- pop; sp <- addr; ctrlSp <- addr; frameBase <- addr - 4
+      -- > addr <- pop
+      -- > sp <- addr
+      -- > ctrlSp <- addr
+      -- > frameBase <- addr - 4
       SpInit
-    | -- | @halt@ -- stop execution.
+    | -- | @halt@: stop execution.
       Halt
     deriving (Eq, Functor, Show)
 
@@ -688,6 +729,12 @@ instance ByteSize (Wasm32Isa w l) where
 immediateBitWidth :: Int
 immediateBitWidth = 8
 
+-- | The machine: a program counter, the two stack pointers and the frame
+-- they describe, the loaded program's 'ScopePlan', and memory. Opaque on
+-- purpose -- reports reach it through 'reprState' and the @stack@,
+-- @locals@, @layout@ and @dump@ views, which is everything outside this
+-- module ever needs from it. The \"The two stacks\" section below explains
+-- what the pointers mean.
 data Wasm32St w = Wasm32St
     { pc :: Int
     , sp :: Int
@@ -1432,10 +1479,31 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
 -- half is where the two stacks live. Both grow from a single __root__, in
 -- opposite directions.
 --
--- > 0                     memTop                  root            memorySize
--- > |-- .text, .data ------ | -------------------- R ----------------- |
--- >                         |    <- operand stack  |  control stack -> |
--- >                         ^ wall          sp <-- R --> ctrlSp        ^ wall
+-- With @memory_size: 0x100@ the halves meet at @0x80@ and the root lands
+-- three quarters up the stack region, at @0xe0@:
+--
+-- > 0x000                0x080                 0x0e0             0x100
+-- >   |--- .text, .data ---|--- operand stack ---|- control stack -|
+-- >                                        sp <--+--> ctrlSp
+-- >                        ^ operandFloor        ^ root            ^ memCapacity
+--
+-- Those are the names the @layout@ report view prints. Here is what it shows
+-- once @_start@ has called @f(5)@ and @f@ has reserved itself one local:
+--
+-- > #0 _start (pc=0x1c)
+-- >   (operands): empty, base=0xe0
+-- >   mem[0xd8..0xdf]: locals
+-- >     0: 0x00000005
+-- >     1: 0x00000007
+-- >   mem[0xe0..0xe7]: CallScope { csCallerFrameBase = 0xdc, csCallerLocalCount = 0, csReturnPc = 0x1c, csResultCount = 1 }
+-- >   mem[0xd4..0xd7]: (operands)
+-- >     0: 0x0000000c
+--
+-- Every span below @0xe0@ is operand stack -- @f@'s two locals, then the one
+-- value it has computed -- and the single record at @0xe0@ and up is the
+-- control stack: the call that suspended @_start@. The two meet at the root
+-- and grow away from it, so the picture above /is/ the view, read sideways.
+-- See "Wrench.Isa.Wasm32.Layout" for the full reading guide.
 --
 -- [operand stack]: Holds a function's locals and its values. It descends
 -- from the root, the classic hardware convention: @sp@ is the address of
