@@ -15,13 +15,13 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (complement, shiftL, shiftR, testBit, (.&.), (.|.))
+import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
-import Text.Megaparsec (choice, notFollowedBy, oneOf, try)
+import Text.Megaparsec (choice, getOffset, notFollowedBy, oneOf, setOffset, try)
 import Text.Megaparsec.Char (alphaNumChar, char, hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -135,10 +135,10 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             , cmd2args "mul" Mul (longMode <|> byteMode) src dst
             , cmd2args "div" Div (longMode <|> byteMode) src dst
             , cmd2args "cmp" Cmp (longMode <|> byteMode) src dst
-            , cmd2args "asl" Asl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "asr" Asr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "lsl" Lsl (longMode <|> byteMode) (dataRegister <|> immidiate) dst
-            , cmd2args "lsr" Lsr (longMode <|> byteMode) (dataRegister <|> immidiate) dst
+            , cmd2args "asl" Asl (longMode <|> byteMode) shiftCount dst
+            , cmd2args "asr" Asr (longMode <|> byteMode) shiftCount dst
+            , cmd2args "lsl" Lsl (longMode <|> byteMode) shiftCount dst
+            , cmd2args "lsr" Lsr (longMode <|> byteMode) shiftCount dst
             , branchCmd "jmp" Jmp reference
             , branchCmd "bcc" Bcc reference
             , branchCmd "bcs" Bcs reference
@@ -154,14 +154,17 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             , branchCmd "bvs" Bvs reference
             , branchCmd "jsr" Jsr reference
             , cmd0args "rts" Rts
-            , try $ do
-                void $ string "link"
-                hspace1
-                addrReg <- addrRegister'
+            , do
+                addrReg <- try $ do
+                    void $ string "link"
+                    hspace1
+                    addrRegister'
                 hspace >> comma >> hspace
+                operandPos <- getOffset
                 offset <- optional intLiteral
+                displacement <- maybe (return 0) (requireDisplacement displacementBits operandPos) offset
                 eol' ";"
-                return $ Link addrReg (fromMaybe 0 offset)
+                return $ Link addrReg displacement
             , try $ do
                 void $ string "unlk"
                 hspace1
@@ -181,6 +184,7 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
             -- source (e.g. @movea.l A2, A0@), so it gets a wider source.
             srcMovea = dataRegister <|> addrRegister <|> allIndirectAddr <|> immidiate
             dst = dataRegister <|> allIndirectAddr
+            shiftCount = dataRegister <|> (Immediate <$> constantRef)
 
 cmd0args :: String -> M68kIsa w (Ref w) -> Parser (M68kIsa w (Ref w))
 cmd0args mnemonic constructor = try $ do
@@ -248,19 +252,55 @@ addrRegister' = try $ do
 
 addrRegister = DirectAddrReg <$> addrRegister'
 
-indirectAddrRegister = try $ do
-    offset <- optional intLiteral
-    void (string "(")
-    hspace
-    void (string "A")
-    n <- oneOf ['0' .. '7']
-    hspace
-    index <- optional $ do
-        void (string ",")
+-- | @d(An)@ and @link@ have a whole extension word for the displacement.
+displacementBits :: Int
+displacementBits = 16
+
+-- | @d(An, Xn)@ shares a brief extension word with its index register, which
+-- leaves the displacement a byte -- see the note on 'Argument'.
+indexedDisplacementBits :: Int
+indexedDisplacementBits = 8
+
+requireDisplacement :: Int -> Int -> Int -> Parser Int
+requireDisplacement fieldBits operandPos value
+    | lo <= toInteger value && toInteger value <= hi = return value
+    | otherwise = do
+        setOffset operandPos
+        fail $
+            concat
+                [ "displacement "
+                , show value
+                , " doesn't fit the "
+                , show fieldBits
+                , "-bit signed field of an extension word, expected "
+                , show lo
+                , ".."
+                , show hi
+                ]
+    where
+        hi = bit (fieldBits - 1) - 1 :: Integer
+        lo = negate (bit (fieldBits - 1)) :: Integer
+
+indirectAddrRegister = do
+    (operandPos, offset, n, index) <- try $ do
+        operandPos <- getOffset
+        offset <- optional intLiteral
+        void (string "(")
         hspace
-        choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
-    void (string ")")
-    return $ IndirectAddrReg (fromMaybe 0 offset) (Unsafe.read ['A', n]) index
+        void (string "A")
+        n <- oneOf ['0' .. '7']
+        hspace
+        index <- optional $ do
+            void (string ",")
+            hspace
+            choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
+        void (string ")")
+        return (operandPos, offset, n, index)
+    displacement <- case (offset, index) of
+        (Nothing, _) -> return 0
+        (Just value, Nothing) -> requireDisplacement displacementBits operandPos value
+        (Just value, Just _) -> requireDisplacement indexedDisplacementBits operandPos value
+    return $ IndirectAddrReg displacement (Unsafe.read ['A', n]) index
 
 indirectAddrRegPreDecrement = try $ do
     void (string "-(")
@@ -296,32 +336,43 @@ immidiate = do
     notFollowedBy registerLikeName
     Immediate <$> reference
 
-instance DerefMnemonic (M68kIsa w) w where
+instance (IsWord w) => DerefMnemonic (M68kIsa w) w where
     derefMnemonic f _offset i =
-        let derefArg (DirectDataReg r) = DirectDataReg r
+        let modeSuffix Long = ".l"
+            modeSuffix Byte = ".b"
+            shiftCountErr mnemonic x = mnemonic <> ": shift count " <> x <> " is not in 0..31"
+            byteImmErr mnemonic x = mnemonic <> ".b: immediate " <> x <> " is not in -128..255"
+            -- A byte-mode operation reads one byte of its immediate, so a wider
+            -- value has nowhere to go.
+            derefSrc mnemonic Byte (Immediate l) = Immediate $ resolveRef (b8 (byteImmErr mnemonic)) f l
+            derefSrc _ _ arg = derefArg arg
+            derefShiftCount mnemonic mode (Immediate l) =
+                Immediate $ resolveRef (u5 (shiftCountErr (mnemonic <> modeSuffix mode))) f l
+            derefShiftCount _ _ arg = derefArg arg
+            derefArg (DirectDataReg r) = DirectDataReg r
             derefArg (DirectAddrReg r) = DirectAddrReg r
             derefArg (IndirectAddrReg offset r index) = IndirectAddrReg offset r index
             derefArg (IndirectAddrRegPreDecrement r) = IndirectAddrRegPreDecrement r
             derefArg (IndirectAddrRegPostIncrement r) = IndirectAddrRegPostIncrement r
             derefArg (Immediate l) = Immediate $ deref' f l
          in case i of
-                Move{mode, src, dst} -> Move mode (derefArg src) (derefArg dst)
+                Move{mode, src, dst} -> Move mode (derefSrc "move" mode src) (derefArg dst)
                 MoveA{mode, src, dst} -> MoveA mode (derefArg src) (derefArg dst)
                 Not{mode, dst} -> Not mode (derefArg dst)
                 Neg{mode, dst} -> Neg mode (derefArg dst)
                 Clr{mode, dst} -> Clr mode (derefArg dst)
-                And{mode, src, dst} -> And mode (derefArg src) (derefArg dst)
-                Or{mode, src, dst} -> Or mode (derefArg src) (derefArg dst)
-                Xor{mode, src, dst} -> Xor mode (derefArg src) (derefArg dst)
-                Add{mode, src, dst} -> Add mode (derefArg src) (derefArg dst)
-                Sub{mode, src, dst} -> Sub mode (derefArg src) (derefArg dst)
-                Mul{mode, src, dst} -> Mul mode (derefArg src) (derefArg dst)
-                Div{mode, src, dst} -> Div mode (derefArg src) (derefArg dst)
-                Cmp{mode, src, dst} -> Cmp mode (derefArg src) (derefArg dst)
-                Asl{mode, src, dst} -> Asl mode (derefArg src) (derefArg dst)
-                Asr{mode, src, dst} -> Asr mode (derefArg src) (derefArg dst)
-                Lsl{mode, src, dst} -> Lsl mode (derefArg src) (derefArg dst)
-                Lsr{mode, src, dst} -> Lsr mode (derefArg src) (derefArg dst)
+                And{mode, src, dst} -> And mode (derefSrc "and" mode src) (derefArg dst)
+                Or{mode, src, dst} -> Or mode (derefSrc "or" mode src) (derefArg dst)
+                Xor{mode, src, dst} -> Xor mode (derefSrc "xor" mode src) (derefArg dst)
+                Add{mode, src, dst} -> Add mode (derefSrc "add" mode src) (derefArg dst)
+                Sub{mode, src, dst} -> Sub mode (derefSrc "sub" mode src) (derefArg dst)
+                Mul{mode, src, dst} -> Mul mode (derefSrc "mul" mode src) (derefArg dst)
+                Div{mode, src, dst} -> Div mode (derefSrc "div" mode src) (derefArg dst)
+                Cmp{mode, src, dst} -> Cmp mode (derefSrc "cmp" mode src) (derefArg dst)
+                Asl{mode, src, dst} -> Asl mode (derefShiftCount "asl" mode src) (derefArg dst)
+                Asr{mode, src, dst} -> Asr mode (derefShiftCount "asr" mode src) (derefArg dst)
+                Lsl{mode, src, dst} -> Lsl mode (derefShiftCount "lsl" mode src) (derefArg dst)
+                Lsr{mode, src, dst} -> Lsr mode (derefShiftCount "lsr" mode src) (derefArg dst)
                 Jmp{ref} -> Jmp (deref' f ref)
                 Bcc{ref} -> Bcc (deref' f ref)
                 Bcs{ref} -> Bcs (deref' f ref)
@@ -751,8 +802,9 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             wordShift src dst f carryBit = do
                 a <- fetchWord dst
                 b <- fetchWord src
-                let count = fromEnum b
-                    result = f a b
+                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
+                    count = fromEnum shiftBy
+                    result = f a shiftBy
                     carry = count > 0 && testBit a (carryBit count)
                 storeWord dst result
                 modify $ \st -> st{vFlag = False, cFlag = carry}
@@ -760,8 +812,9 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             byteShift src dst f carryBit = do
                 a <- fetchByte dst
                 b <- fetchByte src
-                let count = fromEnum b
-                    result = f a b
+                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
+                    count = fromEnum shiftBy
+                    result = f a shiftBy
                     carry = count > 0 && testBit a (carryBit count)
                 storeByte dst result
                 modify $ \st -> st{vFlag = False, cFlag = carry}

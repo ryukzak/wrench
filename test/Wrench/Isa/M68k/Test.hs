@@ -1,10 +1,12 @@
 module Wrench.Isa.M68k.Test (tests) where
 
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
+import Data.List (isInfixOf)
 import Relude
 import Relude.Extra
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
 import Text.Megaparsec.Error (errorBundlePretty)
 import Text.Megaparsec.Pos (initialPos)
@@ -120,8 +122,6 @@ tests =
             -- Address Register Direct is not a valid source mode for these
             -- instructions; the parser must fail rather than silently
             -- consuming @A2@ as a label.
-            let parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
-                parsesM68k = translate
             isLeft (parsesM68k "move.l A2, D0") @?= True
             isLeft (parsesM68k "add.l A0, D1") @?= True
             isLeft (parsesM68k "sub.l A0, D1") @?= True
@@ -129,6 +129,120 @@ tests =
             isLeft (parsesM68k "and.l A0, D1") @?= True
             -- @movea@ still accepts An as source.
             isRight (parsesM68k "movea.l A2, A0") @?= True
+        , testGroup
+            "Displacement field"
+            [ testCase "displacements that fit are accepted" $ do
+                isRight (parsesM68k "move.l -4(A6), D0") @?= True
+                isRight (parsesM68k "move.l 32767(A0), D0") @?= True
+                isRight (parsesM68k "move.l -32768(A0), D0") @?= True
+                isRight (parsesM68k "link A6, -4") @?= True
+            , testCase "displacement above the field" $ do
+                rejected "move.l 32768(A0), D0" "-32768..32767"
+            , testCase "displacement below the field" $ do
+                rejected "move.l -32769(A0), D0" "-32768..32767"
+            , -- Shares a brief extension word with the index register.
+              testCase "the indexed form carries a byte" $ do
+                accepted "move.l 127(A0,D1), D0"
+                rejected "move.l 128(A0,D1), D0" "-128..127"
+                rejected "move.l -129(A0,D1), D0" "-128..127"
+            , testCase "link carries the same field" $ do
+                rejected "link A6, 100000" "-32768..32767"
+            , testCase "rejection names the operand, the field and the range" $ do
+                fieldOutcome "move.l 100000(A0), D0" >>= \case
+                    Right m -> assertFailure $ "should be rejected, got: " <> show m
+                    Left err -> do
+                        assertBool ("displacement in: " <> err) $ "100000" `isInfixOf` err
+                        assertBool ("field width in: " <> err) $ "16-bit" `isInfixOf` err
+                        assertBool ("carrier in: " <> err) $ "extension word" `isInfixOf` err
+                        assertBool ("range in: " <> err) $ "-32768..32767" `isInfixOf` err
+            ]
+        , testGroup
+            "Shift count"
+            [ testCase "counts that fit are accepted" $ do
+                accepted "asl.l 0, D0"
+                accepted "asl.l 31, D0"
+                accepted "lsr.b 7, D0"
+                accepted "asl.b 8, D0"
+            , testCase "an immediate count of 8 or more clears a byte" $ do
+                let M68kSt{dataRegs} = simulate "asl.b 8, D0" st0{dataRegs = insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "the register form is untouched" $ do
+                accepted "asl.l D1, D0"
+            , testCase "count above the field" $ do
+                rejected "asl.l 32, D0" "0..31"
+            , testCase "a negative count" $ do
+                rejected "asr.b -1, D0" "0..31"
+            , testCase "every shift carries the same field" $ do
+                for_ ["asl", "asr", "lsl", "lsr"] $ \op -> do
+                    outcome <- fieldOutcome $ op <> ".l 100, D0"
+                    case outcome of
+                        Right m -> assertFailure $ op <> " should be rejected, got: " <> show m
+                        Left err -> do
+                            assertBool (op <> " in: " <> err) $ (op <> ".l: shift count") `isInfixOf` err
+                            assertBool ("range in: " <> err) $ "0..31" `isInfixOf` err
+            , testCase "a label is not a shift count" $ do
+                isLeft (parsesM68k "asl.l shamt, D0") @?= True
+            , testCase "every other immediate still takes a label" $ do
+                isRight (parsesM68k "movea.l array, A0") @?= True
+                isRight (parsesM68k "move.l array, D0") @?= True
+                isRight (parsesM68k "add.l array, D0") @?= True
+            ]
+        , testGroup
+            "Register shift count"
+            [ testCase "a count at the width shifts the datum out" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 32 $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a count above the width shifts the datum out too" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 33 $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a negative count is modulo 64, so it shifts it out too" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "the carry still reports the last bit shifted out" $ do
+                let M68kSt{cFlag} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 32 $ insert D0 1 dataRegs0}
+                 in cFlag @?= True
+            , testCase "byte mode is held at its own width" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.b D1, D0" st0{dataRegs = insert D1 8 $ insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a negative count in byte mode shifts the byte out" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asr.b D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a count that fits is unaffected" $ do
+                let M68kSt{dataRegs} =
+                        simulate "lsl.l D1, D0" st0{dataRegs = insert D1 2 $ insert D0 3 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 12
+            ]
+        , testGroup
+            "Byte-mode immediate"
+            [ testCase "a byte immediate that fits is accepted" $ do
+                accepted "move.b 255, D0"
+                accepted "move.b -128, D0"
+                accepted "add.b 0xFF, D0"
+            , testCase "above the byte" $ do
+                rejected "move.b 300, D0" "-128..255"
+            , testCase "below the byte" $ do
+                rejected "move.b -129, D0" "-128..255"
+            , testCase "every byte-mode immediate is checked" $ do
+                for_ ["move", "and", "or", "xor", "add", "sub", "mul", "div", "cmp"] $ \op -> do
+                    outcome <- fieldOutcome $ op <> ".b 300, D0"
+                    case outcome of
+                        Right m -> assertFailure $ op <> " should be rejected, got: " <> show m
+                        Left err -> do
+                            assertBool (op <> " in: " <> err) $ (op <> ".b: immediate") `isInfixOf` err
+                            assertBool ("range in: " <> err) $ "-128..255" `isInfixOf` err
+            , testCase "long mode still takes a whole word" $ do
+                accepted "move.l 100000, D0"
+                accepted "move.l 0xFFFFFFFF, D0"
+            , testCase "only the immediate is checked, not a register or memory source" $ do
+                accepted "move.b D1, D0"
+                accepted "move.b (A1), D0"
+            ]
         , testCase "Read byte from memory by address register" $ do
             let M68kSt{dataRegs, addrRegs} = simulate "move.b (A2), D0" st0{addrRegs = insert A2 6 addrRegs0}
              in do
@@ -403,6 +517,36 @@ tests =
             (initState 256 (mkIoMem (fromList []) memInit) [])
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
+
+parsesM68k :: String -> Either String (M68kIsa Int32 (Ref Int32))
+parsesM68k = translate
+
+-- | A displacement is checked while parsing and a shift count at deref, so
+-- both land in 'Left' here.
+fieldOutcome :: String -> IO (Either String (M68kIsa Int32 Int32))
+fieldOutcome code =
+    case parsesM68k code of
+        Left err -> return $ Left err
+        Right m -> do
+            let m' = derefMnemonic (const (Just 0)) 0 m
+            outcome <- try @ErrorCall $ evaluate $ length (show m' :: String)
+            return $ case outcome of
+                Left (ErrorCallWithLocation msg _location) -> Left msg
+                Right _ -> Right m'
+
+accepted :: String -> IO ()
+accepted code = do
+    outcome <- fieldOutcome code
+    case outcome of
+        Right _ -> return ()
+        Left err -> assertFailure $ code <> " should be accepted, got: " <> err
+
+rejected :: String -> String -> IO ()
+rejected code range = do
+    outcome <- fieldOutcome code
+    case outcome of
+        Right m -> assertFailure $ code <> " should be rejected, got: " <> show m
+        Left err -> assertBool ("expected range " <> range <> " in: " <> err) $ range `isInfixOf` err
 
 readMemBytes :: (Memory a isa w) => a -> [Int] -> [Word8]
 readMemBytes mem addrs = map snd $ rights $ map (readByte mem) addrs

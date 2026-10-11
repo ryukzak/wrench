@@ -10,6 +10,7 @@ module Wrench.Machine.Word (
     addExt,
     subExt,
     mulExt,
+    b8,
     u5,
     u16,
     u20,
@@ -71,6 +72,15 @@ mulExt x y =
 -- translation with the message the caller builds, instead of reaching the
 -- simulator and being truncated there. One per field width the ISAs encode, so
 -- a call site names the field rather than computing it.
+
+-- | Any pattern a byte can spell, read as signed or unsigned -- the range the
+-- @.byte@ directive accepts, so a byte-wide immediate and a byte of data agree
+-- on what fits.
+b8 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
+b8 errMsgF x
+    | -128 <= x && x <= 255 = Right x
+    | otherwise = Left $ errMsgF $ show x
+
 u5 :: (IsWord w) => (Text -> Text) -> w -> Either Text w
 u5 errMsgF x
     | 0 <= x && x <= 31 = Right x
