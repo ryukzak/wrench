@@ -15,7 +15,7 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (bit, complement, shiftL, shiftR, testBit, (.&.), (.|.))
+import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
@@ -162,7 +162,7 @@ instance (IsWord w) => MnemonicParser (M68kIsa w (Ref w)) where
                 hspace >> comma >> hspace
                 operandPos <- getOffset
                 offset <- optional intLiteral
-                displacement <- maybe (return 0) (requireDisplacement operandPos) offset
+                displacement <- maybe (return 0) (requireDisplacement displacementBits operandPos) offset
                 eol' ";"
                 return $ Link addrReg displacement
             , try $ do
@@ -252,16 +252,17 @@ addrRegister' = try $ do
 
 addrRegister = DirectAddrReg <$> addrRegister'
 
--- | Width of the displacement field in an indirect-address operand and in
--- @link@: both carry it in one extension word.
+-- | @d(An)@ and @link@ have a whole extension word for the displacement.
 displacementBits :: Int
 displacementBits = 16
 
--- | Check a displacement against the extension word it is encoded into, while
--- parsing, so the caret lands under the operand. A displacement is always a
--- bare number here, so there is no label to resolve first.
-requireDisplacement :: Int -> Int -> Parser Int
-requireDisplacement operandPos value
+-- | @d(An, Xn)@ shares a brief extension word with its index register, which
+-- leaves the displacement a byte -- see the note on 'Argument'.
+indexedDisplacementBits :: Int
+indexedDisplacementBits = 8
+
+requireDisplacement :: Int -> Int -> Int -> Parser Int
+requireDisplacement fieldBits operandPos value
     | lo <= toInteger value && toInteger value <= hi = return value
     | otherwise = do
         setOffset operandPos
@@ -270,15 +271,15 @@ requireDisplacement operandPos value
                 [ "displacement "
                 , show value
                 , " doesn't fit the "
-                , show displacementBits
+                , show fieldBits
                 , "-bit signed field of an extension word, expected "
                 , show lo
                 , ".."
                 , show hi
                 ]
     where
-        hi = bit (displacementBits - 1) - 1 :: Integer
-        lo = negate (bit (displacementBits - 1)) :: Integer
+        hi = bit (fieldBits - 1) - 1 :: Integer
+        lo = negate (bit (fieldBits - 1)) :: Integer
 
 indirectAddrRegister = do
     (operandPos, offset, n, index) <- try $ do
@@ -295,7 +296,10 @@ indirectAddrRegister = do
             choice [DataIndex <$> dataRegister', AddrIndex <$> addrRegister']
         void (string ")")
         return (operandPos, offset, n, index)
-    displacement <- maybe (return 0) (requireDisplacement operandPos) offset
+    displacement <- case (offset, index) of
+        (Nothing, _) -> return 0
+        (Just value, Nothing) -> requireDisplacement displacementBits operandPos value
+        (Just value, Just _) -> requireDisplacement indexedDisplacementBits operandPos value
     return $ IndirectAddrReg displacement (Unsafe.read ['A', n]) index
 
 indirectAddrRegPreDecrement = try $ do
@@ -798,8 +802,9 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             wordShift src dst f carryBit = do
                 a <- fetchWord dst
                 b <- fetchWord src
-                let count = fromEnum b
-                    result = f a b
+                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
+                    count = fromEnum shiftBy
+                    result = f a shiftBy
                     carry = count > 0 && testBit a (carryBit count)
                 storeWord dst result
                 modify $ \st -> st{vFlag = False, cFlag = carry}
@@ -807,8 +812,9 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             byteShift src dst f carryBit = do
                 a <- fetchByte dst
                 b <- fetchByte src
-                let count = fromEnum b
-                    result = f a b
+                let shiftBy = min (fromIntegral (finiteBitSize a)) (b .&. 0x3F)
+                    count = fromEnum shiftBy
+                    result = f a shiftBy
                     carry = count > 0 && testBit a (carryBit count)
                 storeByte dst result
                 modify $ \st -> st{vFlag = False, cFlag = carry}

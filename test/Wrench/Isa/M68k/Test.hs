@@ -140,8 +140,11 @@ tests =
                 rejected "move.l 32768(A0), D0" "-32768..32767"
             , testCase "displacement below the field" $ do
                 rejected "move.l -32769(A0), D0" "-32768..32767"
-            , testCase "the indexed form carries the same field" $ do
-                rejected "move.l 100000(A0,D1), D0" "-32768..32767"
+            , -- Shares a brief extension word with the index register.
+              testCase "the indexed form carries a byte" $ do
+                accepted "move.l 127(A0,D1), D0"
+                rejected "move.l 128(A0,D1), D0" "-128..127"
+                rejected "move.l -129(A0,D1), D0" "-128..127"
             , testCase "link carries the same field" $ do
                 rejected "link A6, 100000" "-32768..32767"
             , testCase "rejection names the operand, the field and the range" $ do
@@ -159,6 +162,10 @@ tests =
                 accepted "asl.l 0, D0"
                 accepted "asl.l 31, D0"
                 accepted "lsr.b 7, D0"
+                accepted "asl.b 8, D0"
+            , testCase "an immediate count of 8 or more clears a byte" $ do
+                let M68kSt{dataRegs} = simulate "asl.b 8, D0" st0{dataRegs = insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
             , testCase "the register form is untouched" $ do
                 accepted "asl.l D1, D0"
             , testCase "count above the field" $ do
@@ -179,6 +186,37 @@ tests =
                 isRight (parsesM68k "movea.l array, A0") @?= True
                 isRight (parsesM68k "move.l array, D0") @?= True
                 isRight (parsesM68k "add.l array, D0") @?= True
+            ]
+        , testGroup
+            "Register shift count"
+            [ testCase "a count at the width shifts the datum out" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 32 $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a count above the width shifts the datum out too" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 33 $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a negative count is modulo 64, so it shifts it out too" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 1 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "the carry still reports the last bit shifted out" $ do
+                let M68kSt{cFlag} =
+                        simulate "asl.l D1, D0" st0{dataRegs = insert D1 32 $ insert D0 1 dataRegs0}
+                 in cFlag @?= True
+            , testCase "byte mode is held at its own width" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asl.b D1, D0" st0{dataRegs = insert D1 8 $ insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a negative count in byte mode shifts the byte out" $ do
+                let M68kSt{dataRegs} =
+                        simulate "asr.b D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 0x10 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 0
+            , testCase "a count that fits is unaffected" $ do
+                let M68kSt{dataRegs} =
+                        simulate "lsl.l D1, D0" st0{dataRegs = insert D1 2 $ insert D0 3 dataRegs0}
+                 in (dataRegs !? D0) @?= Just 12
             ]
         , testGroup
             "Byte-mode immediate"
