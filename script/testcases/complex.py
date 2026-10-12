@@ -701,7 +701,7 @@ def rle_decompress(input: str) -> tuple[str | list[int], str]:
         input (str): The input string containing compressed data to decompress.
 
     Returns:
-        tuple: A tuple containing the decompressed string and the remaining input.
+        tuple: A tuple containing the decompressed C string and the remaining input.
     """
     line, rest = read_line(input, 0x80)
     if line is None:
@@ -744,18 +744,15 @@ TEST_CASES["rle_decompress"] = TestCase(
     cases=[
         String2String(
             "3A4B4C\n",
-            "AAABBBBCCCC",
-            "",
+            "AAABBBBCCCC"
         ),
         String2String(
             "9a1a\n",
-            "aaaaaaaaaa",
-            "",
+            "aaaaaaaaaa"
         ),
         String2String(
             "1A1B1C\n",
-            "ABC",
-            "",
+            "ABC"
         ),
     ],
     reference=rle_decompress,
@@ -763,59 +760,49 @@ TEST_CASES["rle_decompress"] = TestCase(
         String2String(
             "3A4B4C\nNext line",
             "AAABBBBCCCC",
-            "Next line",
+            "Next line"
         ),
         String2String(
             "\n",
-            "",
-            "",
+            ""
         ),
         String2String(
             "1A\n",
-            "A",
-            "",
+            "A"
         ),
         String2String(
             "9A6A\n",
-            "AAAAAAAAAAAAAAA",
-            "",
+            "AAAAAAAAAAAAAAA"
         ),
         String2String(
             "9A9A\n",
-            "AAAAAAAAAAAAAAAAAA",
-            "",
+            "AAAAAAAAAAAAAAAAAA"
         ),
         String2String(
             "A\n",
-            [-1],
-            "",
+            [-1]
         ),
         String2String(
             "0A\n",
-            [-1],
-            "",
+            [-1]
         ),
         String2String(
             "1\n",
-            [-1],
-            "",
+            [-1]
         ),
         String2String(
             "9Z9Z9Z9Z9Z9Z9Z9Z\n",
-            [overflow_error_value],
-            "",
+            [overflow_error_value]
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 15 + "\n",
             "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddd",
-            "",
-            limit=4000,
+            limit=4000
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 16 + "\n",
             [overflow_error_value],
-            "\n",
-            limit=4000,
+            limit=4000
         ),
     ],
     is_variant=True,

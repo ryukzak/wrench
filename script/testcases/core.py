@@ -216,7 +216,7 @@ class String2String:
         self,
         input: str,
         output: str | list[int | str],
-        rest: str = "",
+        rest: str = None,   # do not pass an argument to ignore the remaining input
         mem_view: list[tuple[int, int, str]] | None = None,
         limit: int = 2000,
     ) -> None:
@@ -246,10 +246,14 @@ class String2String:
         return res
 
     def check_assert(self, f: Callable[..., Any]) -> None:
-        assert f(self.input) == (
-            self.output,
-            self.rest,
-        ), f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
+        if self.rest is None:
+            assert f(self.input)[0] == self.output, \
+                f"actual: {f(self.input)[0]}, expect: {self.output}"
+        else:
+            assert f(self.input) == (
+                self.output,
+                self.rest,
+            ), f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
 
     def yaml_memory_mapped_io(self) -> str:
         return "\n".join(
@@ -260,22 +264,41 @@ class String2String:
         )
 
     def yaml_view(self) -> str:
+        if self.rest is not None:
+            return "\n".join(
+                [
+                    "      numio[0x80]: {io:0x80:dec}",
+                    "      numio[0x84]: {io:0x84:dec}",
+                    "      symio[0x80]: {io:0x80:sym}",
+                    "      symio[0x84]: {io:0x84:sym}",
+                ]
+                + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
+            )
         return "\n".join(
             [
-                "      numio[0x80]: {io:0x80:dec}",
                 "      numio[0x84]: {io:0x84:dec}",
-                "      symio[0x80]: {io:0x80:sym}",
                 "      symio[0x84]: {io:0x84:sym}",
             ]
             + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
         )
 
     def yaml_assert(self) -> str:
-        return "\n".join(
+        if self.rest is not None:
+            return "\n".join(
             [
                 f"      numio[0x80]: {yaml_symbol_nums(self.rest)} >>> []",
                 f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
                 f'      symio[0x80]: {yaml_symbols(self.rest)} >>> ""',
+                f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
+            ]
+            + [
+                f"      mem[{hex_addr(a)}..{hex_addr(b)}] ({b - a + 1} B): \t{dump_symbols(dump)}"
+                for a, b, dump in self.mem_view
+            ]
+        )
+        return "\n".join(
+            [
+                f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
                 f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
             ]
             + [
