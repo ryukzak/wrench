@@ -32,8 +32,10 @@ library
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
       Wrench.Isa.Wasm32
-      Wrench.Isa.Wasm32.ControlRecord
-      Wrench.Isa.Wasm32.Layout
+      Wrench.Isa.Wasm32.Execute
+      Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.Report
+      Wrench.Isa.Wasm32.State
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types
@@ -108,8 +110,10 @@ executable wrench
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
       Wrench.Isa.Wasm32
-      Wrench.Isa.Wasm32.ControlRecord
-      Wrench.Isa.Wasm32.Layout
+      Wrench.Isa.Wasm32.Execute
+      Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.Report
+      Wrench.Isa.Wasm32.State
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types

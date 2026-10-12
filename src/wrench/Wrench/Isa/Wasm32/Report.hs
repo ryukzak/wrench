@@ -1,3 +1,10 @@
+-- The instances below are orphans: their classes live in "Wrench.Machine.Types"
+-- and "Wrench.Report", their type in "Wrench.Isa.Wasm32.State", and their
+-- bodies need this module's own helpers -- so there is no module that holds
+-- all three. "Wrench.Isa.Wasm32" imports every one of these modules, so no
+-- user of 'Wasm32St' can reach it without the instances coming too.
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {- |
 The @stack@, @locals@, @layout@ and @dump@ report views: everything that
 turns the live stacks back into something readable. Pure throughout -- a
@@ -37,13 +44,14 @@ stack. Also takes a frame limit. See 'renderDump'.
 See the @Reading a layout@ section at the foot of this module for how to
 read one.
 -}
-module Wrench.Isa.Wasm32.Layout (
+module Wrench.Isa.Wasm32.Report (
     StackView (..),
     LayoutFormat (..),
     stackWords,
     localWords,
     renderLayout,
     renderDump,
+    stackView,
 
     -- * Reading a layout
     -- $reading
@@ -52,9 +60,80 @@ module Wrench.Isa.Wasm32.Layout (
 import Data.Text qualified as T
 import Relude
 import Relude.Extra (toPairs)
-import Wrench.Isa.Wasm32.ControlRecord
+import Wrench.Isa.Wasm32.Instruction
+import Wrench.Isa.Wasm32.State
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Report
+
+instance (IsWord w) => Inspectable (Wasm32St w) where
+    type WordOf (Wasm32St w) = w
+    type IsaOf (Wasm32St w) = Wasm32Isa w w
+
+    programCounter Wasm32St{pc} = pc
+    memoryDump Wasm32St{mem} = mem
+    ioStreams Wasm32St{mem = IoMem{mIoStreams}} = mIoStreams
+    isHalted Wasm32St{stopped} = stopped
+    reprState labels st v
+        | Just v' <- defaultView labels st v = v'
+    reprState labels st@Wasm32St{mem, memAccessCount} v =
+        case T.splitOn ":" v of
+            ["stack", f] -> formatValues f (stackWords view)
+            ["locals", f] -> formatValues f (localWords view)
+            ["layout", f] -> withFormat f (renderLayout labels view) Nothing
+            ["layout", f, n] -> withFrameLimit n (withFormat f (renderLayout labels view))
+            ["dump", f] -> withFormat f (renderDump labels view) Nothing
+            ["dump", f, n] -> withFrameLimit n (withFormat f (renderDump labels view))
+            ["memAccesses", "dec"] -> show memAccessCount
+            ["memAccesses", f] -> unknownFormat f
+            [r] -> reprState labels st (r <> ":dec")
+            [r, _] -> unknownView r
+            _ -> errorView v
+        where
+            view = stackView st
+
+            formatValues "dec" vs = toText $ intercalate ":" $ map show vs
+            formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
+            formatValues f _ = unknownFormat f
+
+            -- Both formats already exist for the word *values* a span
+            -- shows; extend the same choice to every address it mentions
+            -- rather than leaving addresses permanently decimal. See
+            -- 'LayoutFormat' for what each half gets.
+            withFormat :: Text -> (LayoutFormat w -> Text) -> Maybe Int -> Text
+            withFormat "dec" render limit =
+                render LayoutFormat{lfWord = show, lfAddr = show, lfFrameLimit = limit}
+            withFormat "hex" render limit =
+                render
+                    LayoutFormat
+                        { lfWord = toText . word32ToHex
+                        , lfAddr = hexAddr (hexAddrWidth (memCapacity mem))
+                        , lfFrameLimit = limit
+                        }
+            withFormat f _ _ = unknownFormat f
+
+            -- \| Parse @layout:hex:N@\/@dump:hex:N@'s trailing @N@ -- how
+            -- many of the most recent frames (the live one, then its
+            -- nearest callers) to show in full; @N = 1@ means the live
+            -- frame only.
+            withFrameLimit :: Text -> (Maybe Int -> Text) -> Text
+            withFrameLimit n k = maybe (unknownFormat n) (k . Just) (readMaybe (toString n))
+
+-- | Hand the report views what they need: the memory, the pointers
+-- bounding the live stacks, and where the open control records are.
+stackView :: forall w. (IsWord w) => Wasm32St w -> StackView (Wasm32Isa w w) w
+stackView st@Wasm32St{mem, pc, sp, ctrlSp, ctrlBase, frameBase, localCount} =
+    StackView
+        { svMem = mem
+        , svPc = pc
+        , svSp = sp
+        , svFrameBase = frameBase
+        , svLocalCount = localCount
+        , svCtrlSp = ctrlSp
+        , svCtrlBase = ctrlBase
+        , svDataTop = operandFloor mem
+        , svScopeAddrs = scopeAddrs st
+        }
 
 -- | How a view renders what it prints, and how much of a deep call stack
 -- to print at all. One argument rather than three positional ones, two
@@ -312,7 +391,7 @@ renderDump labels view@StackView{svMem, svSp, svCtrlSp, svDataTop} format =
 --
 --     The decoded fields are shown rather than the raw words, which aren't
 --     independently readable once packed -- see
---     "Wrench.Isa.Wasm32.ControlRecord".
+--     "Wrench.Isa.Wasm32.State".
 --
 -- @:hex@ formats every /address/ the view mentions -- @mem[a..b]@ ranges, a
 -- frame's @pc=@, and a record's @csStart@\/@csEnd@\/@csReturnPc@\/
