@@ -1277,7 +1277,7 @@ def rle_decompress(input: str) -> tuple[str | list[int], str]:
         input (str): The input string containing compressed data to decompress.
 
     Returns:
-        tuple: A tuple containing the decompressed string and the remaining input.
+        tuple: A tuple containing the decompressed C string and the remaining input.
     """
     line, rest = read_line(input, 0x80)
     if line is None:

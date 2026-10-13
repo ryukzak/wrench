@@ -745,14 +745,17 @@ TEST_CASES["rle_decompress"] = TestCase(
         String2String(
             "3A4B4C\n",
             "AAABBBBCCCC",
+            "",
         ),
         String2String(
             "9a1a\n",
-            "aaaaaaaaaa"
+            "aaaaaaaaaa",
+            "",
         ),
         String2String(
             "1A1B1C\n",
-            "ABC"
+            "ABC",
+            "",
         ),
     ],
     reference=rle_decompress,
@@ -760,52 +763,62 @@ TEST_CASES["rle_decompress"] = TestCase(
         String2String(
             "3A4B4C\nNext line",
             "AAABBBBCCCC",
-            "Next line"
+            "Next line",
         ),
         String2String(
             "\n",
-            ""
+            "",
+            "",
         ),
         String2String(
             "1A\n",
-            "A"
+            "A",
+            "",
         ),
         String2String(
             "9A6A\n",
-            "AAAAAAAAAAAAAAA"
+            "AAAAAAAAAAAAAAA",
+            "",
         ),
         String2String(
             "9A9A\n",
-            "AAAAAAAAAAAAAAAAAA"
+            "AAAAAAAAAAAAAAAAAA",
+            "",
         ),
         String2String(
             "A\n",
             [-1],
+            "",
             ignore_remaining_input=True,
         ),
         String2String(
             "0A\n",
             [-1],
+            "",
             ignore_remaining_input=True,
         ),
         String2String(
             "1\n",
             [-1],
+            "",
             ignore_remaining_input=True,
         ),
         String2String(
             "9Z9Z9Z9Z9Z9Z9Z9Z\n",
             [overflow_error_value],
+            "",
             ignore_remaining_input=True,
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 15 + "\n",
             "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddd",
+            "",
             limit=4000
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 16 + "\n",
             [overflow_error_value],
+            "",
             ignore_remaining_input=True,
             limit=4000
         ),
