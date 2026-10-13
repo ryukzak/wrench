@@ -81,6 +81,10 @@ tests =
             runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, -7), (A2, 2)] A1 @?= -3
         , testCase "Rem keeps the sign of the dividend: -7 % 2 = -1" $ do
             runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, -7), (A2, 2)] A1 @?= -1
+        , testCase "Div overflow: minBound / -1 = minBound" $ do
+            runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, minBound), (A2, -1)] A1 @?= minBound
+        , testCase "Rem overflow: minBound % -1 = 0" $ do
+            runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, minBound), (A2, -1)] A1 @?= 0
         , testGroup
             "%hi / %lo relocation directives"
             [ testCase "%lo(-1) matches the literal -1" $ do
