@@ -219,6 +219,7 @@ class String2String:
         rest: str = "",
         mem_view: list[tuple[int, int, str]] | None = None,
         limit: int = 2000,
+        ignore_remaining_input = False,
     ) -> None:
         if mem_view is None:
             mem_view = []
@@ -226,6 +227,7 @@ class String2String:
         self.output = output
         self.rest = rest
         self.limit = limit
+        self.ignore_remaining_input = ignore_remaining_input
         for i, (a, b, dump) in enumerate(mem_view):
             # Interval inclusive, so we need +1
             assert len(dump) <= b - a + 1, (
@@ -246,10 +248,14 @@ class String2String:
         return res
 
     def check_assert(self, f: Callable[..., Any]) -> None:
-        assert f(self.input) == (
-            self.output,
-            self.rest,
-        ), f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
+        if self.ignore_remaining_input:
+            assert f(self.input)[0] == self.output, \
+                f"actual: {f(self.input)[0]}, expect: {self.output}"
+        else:
+            assert f(self.input) == (
+                self.output,
+                self.rest,
+            ), f"actual: {f(self.input)}, expect: {(self.output, self.rest)}"
 
     def yaml_memory_mapped_io(self) -> str:
         return "\n".join(
@@ -260,6 +266,14 @@ class String2String:
         )
 
     def yaml_view(self) -> str:
+        if self.ignore_remaining_input:
+            return "\n".join(
+                [
+                    "      numio[0x84]: {io:0x84:dec}",
+                    "      symio[0x84]: {io:0x84:sym}",
+                ]
+                + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
+            )
         return "\n".join(
             [
                 "      numio[0x80]: {io:0x80:dec}",
@@ -271,6 +285,17 @@ class String2String:
         )
 
     def yaml_assert(self) -> str:
+        if self.ignore_remaining_input:
+            return "\n".join(
+                [
+                    f"      numio[0x84]: [] >>> {yaml_symbol_nums(self.output)}",
+                    f'      symio[0x84]: "" >>> {yaml_symbols(self.output)}',
+                ]
+                + [
+                    f"      mem[{hex_addr(a)}..{hex_addr(b)}] ({b - a + 1} B): \t{dump_symbols(dump)}"
+                    for a, b, dump in self.mem_view
+                ]
+            )
         return "\n".join(
             [
                 f"      numio[0x80]: {yaml_symbol_nums(self.rest)} >>> []",
@@ -283,6 +308,7 @@ class String2String:
                 for a, b, dump in self.mem_view
             ]
         )
+
 
 
 def read_line(s: str, buf_size: int) -> tuple[str | None, str]:

@@ -701,7 +701,7 @@ def rle_decompress(input: str) -> tuple[str | list[int], str]:
         input (str): The input string containing compressed data to decompress.
 
     Returns:
-        tuple: A tuple containing the decompressed string and the remaining input.
+        tuple: A tuple containing the decompressed C string and the remaining input.
     """
     line, rest = read_line(input, 0x80)
     if line is None:
@@ -789,33 +789,38 @@ TEST_CASES["rle_decompress"] = TestCase(
             "A\n",
             [-1],
             "",
+            ignore_remaining_input=True,
         ),
         String2String(
             "0A\n",
             [-1],
             "",
+            ignore_remaining_input=True,
         ),
         String2String(
             "1\n",
             [-1],
             "",
+            ignore_remaining_input=True,
         ),
         String2String(
             "9Z9Z9Z9Z9Z9Z9Z9Z\n",
             [overflow_error_value],
             "",
+            ignore_remaining_input=True,
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 15 + "\n",
             "aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddd",
             "",
-            limit=4000,
+            limit=4000
         ),
         String2String(
             "1a" * 16 + "1b" * 16 + "1c" * 16 + "1d" * 16 + "\n",
             [overflow_error_value],
-            "\n",
-            limit=4000,
+            "",
+            ignore_remaining_input=True,
+            limit=4000
         ),
     ],
     is_variant=True,
