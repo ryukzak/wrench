@@ -77,6 +77,10 @@ tests =
             runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= -1
         , testCase "Rem by zero: 42 % 0 = 42" $ do
             runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, 42), (A2, 0)] A1 @?= 42
+        , testCase "Div rounds toward zero: -7 / 2 = -3" $ do
+            runInstruction Div{rd = A1, rs1 = A0, rs2 = A2} [(A0, -7), (A2, 2)] A1 @?= -3
+        , testCase "Rem keeps the sign of the dividend: -7 % 2 = -1" $ do
+            runInstruction Rem{rd = A1, rs1 = A0, rs2 = A2} [(A0, -7), (A2, 2)] A1 @?= -1
         , testGroup
             "%hi / %lo relocation directives"
             [ testCase "%lo(-1) matches the literal -1" $ do

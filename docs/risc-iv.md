@@ -200,12 +200,12 @@ ERROR: memory[0x06]: instruction in memory corrupted
 
 - **Divide**
     - **Syntax:** `div <rd>, <rs1>, <rs2>`
-    - **Description:** Divide the value of the first source register by the value of the second source register and store the result in the destination register.
+    - **Description:** Divide the value of the first source register by the value of the second source register and store the result in the destination register. The quotient is rounded toward zero, as in RISC-V: `-7 / 2 = -3`.
     - **Operation:** `rd <- rs1 / rs2`
 
 - **Remainder**
     - **Syntax:** `rem <rd>, <rs1>, <rs2>`
-    - **Description:** Compute the remainder of the division of the first source register by the second source register and store the result in the destination register.
+    - **Description:** Compute the remainder of the division of the first source register by the second source register and store the result in the destination register. The remainder has the sign of the dividend: `-7 % 2 = -1`.
     - **Operation:** `rd <- rs1 % rs2`
 
 ### Bitwise Instructions
