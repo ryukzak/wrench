@@ -15,7 +15,7 @@ module Wrench.Isa.M68k (
     AddrReg (..),
 ) where
 
-import Data.Bits (FiniteBits, bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
+import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
 import Data.Text qualified as T
 import Relude
