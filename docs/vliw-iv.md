@@ -140,12 +140,12 @@ addi rd, rs1, k / / /
 
 - **Divide**
     - **Syntax:** `div <rd>, <rs1>, <rs2>`
-    - **Description:** Divide the value of the first source register by the value of the second source register and store the result in the destination register.
+    - **Description:** Divide the value of the first source register by the value of the second source register and store the result in the destination register. The quotient is rounded toward zero, as in RISC-V: `-7 / 2 = -3`. Division by zero gives `-1`, `-2^31 / -1` gives `-2^31`.
     - **Operation:** `rd <- rs1 / rs2`
 
 - **Remainder**
     - **Syntax:** `rem <rd>, <rs1>, <rs2>`
-    - **Description:** Compute the remainder of the division of the first source register by the second source register and store the result in the destination register.
+    - **Description:** Compute the remainder of the division of the first source register by the second source register and store the result in the destination register. The remainder has the sign of the dividend: `-7 % 2 = -1`. Remainder by zero gives `rs1`, `-2^31 % -1` gives `0`.
     - **Operation:** `rd <- rs1 % rs2`
 
 - **Logical Shift Left**

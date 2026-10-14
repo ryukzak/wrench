@@ -211,6 +211,36 @@ tests =
                         "rem a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 17), (A1, 5)])
              in (regs !? A2) @?= Just 2
+        , testCase "Div rounds toward zero, rem keeps the sign of the dividend: -7 / 2" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "div a2, a0, a1 / rem a3, a0, a1 / nop / nop"
+                        (withRegs [(A0, -7), (A1, 2)])
+             in do
+                    (regs !? A2) @?= Just (-3)
+                    (regs !? A3) @?= Just (-1)
+        , testCase "Div and rem by zero: 42 / 0 = -1, 42 % 0 = 42" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "div a2, a0, a1 / rem a3, a0, a1 / nop / nop"
+                        (withRegs [(A0, 42), (A1, 0)])
+             in do
+                    (regs !? A2) @?= Just (-1)
+                    (regs !? A3) @?= Just 42
+        , testCase "Div and rem overflow: minBound / -1 = minBound, minBound % -1 = 0" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "div a2, a0, a1 / rem a3, a0, a1 / nop / nop"
+                        (withRegs [(A0, minBound), (A1, -1)])
+             in do
+                    (regs !? A2) @?= Just minBound
+                    (regs !? A3) @?= Just 0
+        , testCase "Div by -1: 6 / -1 = -6" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "div a2, a0, a1 / nop / nop / nop"
+                        (withRegs [(A0, 6), (A1, -1)])
+             in (regs !? A2) @?= Just (-6)
         , testCase "Mulh: high-order multiplication result" $ do
             let VliwIvSt{regs} =
                     simulate

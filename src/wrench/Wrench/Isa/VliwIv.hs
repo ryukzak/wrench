@@ -688,8 +688,14 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
                             shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
-            computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id div
-            computeAlu (Rem remRd remRs1 remRs2) = aluOpCompute remRd remRs1 remRs2 id id rem
+            computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id $ \r1 r2 -> case r2 of
+                0 -> -1
+                -1 | r1 == minBound -> r1
+                _ -> quot r1 r2
+            computeAlu (Rem remRd remRs1 remRs2) = aluOpCompute remRd remRs1 remRs2 id id $ \r1 r2 -> case r2 of
+                0 -> r1
+                -1 | r1 == minBound -> 0
+                _ -> rem r1 r2
             computeAlu (Sll sllRd sllRs1 sllRs2) = aluOpCompute sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` (fromEnum r2 .&. 0x1F))
             computeAlu (Srl srlRd srlRs1 srlRs2) = aluOpCompute srlRd srlRs1 srlRs2 id id (\r1 r2 -> lShiftR r1 (r2 .&. 0x1F))
             computeAlu (Sra sraRd sraRs1 sraRs2) = aluOpCompute sraRd sraRs1 sraRs2 id id (\r1 r2 -> r1 `shiftR` (fromEnum r2 .&. 0x1F))
