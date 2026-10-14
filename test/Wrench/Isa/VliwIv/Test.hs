@@ -211,6 +211,14 @@ tests =
                         "rem a2, a0, a1 / nop / nop / nop"
                         (withRegs [(A0, 17), (A1, 5)])
              in (regs !? A2) @?= Just 2
+        , testCase "Div rounds toward zero, rem keeps the sign of the dividend: -7 / 2" $ do
+            let VliwIvSt{regs} =
+                    simulate
+                        "div a2, a0, a1 / rem a3, a0, a1 / nop / nop"
+                        (withRegs [(A0, -7), (A1, 2)])
+             in do
+                    (regs !? A2) @?= Just (-3)
+                    (regs !? A3) @?= Just (-1)
         , testCase "Mulh: high-order multiplication result" $ do
             let VliwIvSt{regs} =
                     simulate

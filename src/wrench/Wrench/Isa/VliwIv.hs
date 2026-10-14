@@ -688,7 +688,7 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
                             shift = 8 * byteSizeT @w
                          in fromIntegral (x `shiftR` shift)
                     )
-            computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id div
+            computeAlu (Div divRd divRs1 divRs2) = aluOpCompute divRd divRs1 divRs2 id id quot
             computeAlu (Rem remRd remRs1 remRs2) = aluOpCompute remRd remRs1 remRs2 id id rem
             computeAlu (Sll sllRd sllRs1 sllRs2) = aluOpCompute sllRd sllRs1 sllRs2 id id (\r1 r2 -> r1 `shiftL` (fromEnum r2 .&. 0x1F))
             computeAlu (Srl srlRd srlRs1 srlRs2) = aluOpCompute srlRd srlRs1 srlRs2 id id (\r1 r2 -> lShiftR r1 (r2 .&. 0x1F))
