@@ -18,7 +18,7 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra
-import Text.Regex.TDFA
+import Text.Regex.TDFA (getAllTextMatches, (=~))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..))
