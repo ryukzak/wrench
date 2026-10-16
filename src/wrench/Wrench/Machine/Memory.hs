@@ -159,7 +159,11 @@ walkSectionRanges offset (s : rest) =
      in (s, start) : walkSectionRanges (start + byteSize s) rest
 
 sliceMem :: [Int] -> IntMap (Cell isa w) -> [(Int, Cell isa w)]
-sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) addrs
+sliceMem addrs memoryData = map cellAt addrs
+    where
+        cellAt a = case memoryData !? a of
+            Just cell -> (a, cell)
+            Nothing -> error $ "memory[" <> show a <> "]: outside the configured memory"
 
 prettyDump ::
     forall w isa.
