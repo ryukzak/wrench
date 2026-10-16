@@ -9,7 +9,7 @@
 128 0 0 0
 186:	VliwIvIsa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}	
 128 7 0 0
-200:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = Zero, bgtRs2 = T1, bgtK = 210}}	
+200:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Blt {bltRs1 = T1, bltRs2 = Zero, bltK = 210}}	
 128 7 0 0
 214:	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC}	@factorial_begin
 128 7 1 0

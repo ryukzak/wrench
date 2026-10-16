@@ -135,12 +135,14 @@ tests =
              in do
                     pc @?= 150
                     (regs !? Ra) @?= Just 64 -- 50 + 14 (bundle size)
-        , testCase "Control flow: Jr (jump register)" $ do
-            let VliwIvSt{pc} =
+        , testCase "Control flow: Jalr (jump and link register)" $ do
+            let VliwIvSt{pc, regs} =
                     simulate
-                        "nop / nop / nop / jr a0"
-                        (withRegs [(A0, 200)])
-             in pc @?= 200
+                        "nop / nop / nop / jalr ra, a0, 4"
+                        (withRegs [(A0, 200)]){pc = 50}
+             in do
+                    pc @?= 204
+                    (regs !? Ra) @?= Just 64 -- 50 + 14 (bundle size)
         , testCase "Control flow: Beqz (branch if equal to zero) - taken" $ do
             let VliwIvSt{pc} =
                     simulate
@@ -159,23 +161,35 @@ tests =
                         "nop / nop / nop / bnez a0, 50"
                         (withRegs [(A0, 5)])
              in pc @?= 50
-        , testCase "Control flow: Bgt (branch if greater than) - taken" $ do
+        , testCase "Control flow: Blt (branch if less than) - taken" $ do
             let VliwIvSt{pc} =
                     simulate
-                        "nop / nop / nop / bgt a0, a1, 50"
-                        (withRegs [(A0, 10), (A1, 5)])
+                        "nop / nop / nop / blt a0, a1, 50"
+                        (withRegs [(A0, 5), (A1, 10)])
              in pc @?= 50
-        , testCase "Control flow: Bgt - not taken" $ do
+        , testCase "Control flow: Blt - not taken" $ do
             let VliwIvSt{pc} =
                     simulate
-                        "nop / nop / nop / bgt a0, a1, 50"
-                        (withRegs [(A0, 5), (A1, 10)])
+                        "nop / nop / nop / blt a0, a1, 50"
+                        (withRegs [(A0, 10), (A1, 5)])
              in pc @?= 14
-        , testCase "Control flow: Ble (branch if less than or equal) - taken" $ do
+        , testCase "Control flow: Bge (branch if greater than or equal) - taken" $ do
             let VliwIvSt{pc} =
                     simulate
-                        "nop / nop / nop / ble a0, a1, 50"
-                        (withRegs [(A0, 5), (A1, 10)])
+                        "nop / nop / nop / bge a0, a1, 50"
+                        (withRegs [(A0, 10), (A1, 10)])
+             in pc @?= 50
+        , testCase "Control flow: Bltu (branch if less than, unsigned) - taken" $ do
+            let VliwIvSt{pc} =
+                    simulate
+                        "nop / nop / nop / bltu a0, a1, 50"
+                        (withRegs [(A0, 5), (A1, -1)])
+             in pc @?= 50
+        , testCase "Control flow: Bgeu (branch if greater than or equal, unsigned) - taken" $ do
+            let VliwIvSt{pc} =
+                    simulate
+                        "nop / nop / nop / bgeu a0, a1, 50"
+                        (withRegs [(A0, -1), (A1, 5)])
              in pc @?= 50
         , testCase "Control flow: Halt" $ do
             let VliwIvSt{stopped} =
@@ -315,6 +329,10 @@ tests =
                 accepted "nop / nop / nop / beq a0, a1, 511"
             , testCase "branch displacement that used to truncate to 1" $ do
                 rejected "nop / nop / nop / beq a0, a1, 0x401" "-512..511"
+            , testCase "jalr shares the narrow branch field" $ do
+                accepted "nop / nop / nop / jalr zero, a0, 511"
+            , testCase "jalr immediate above its field" $ do
+                rejected "nop / nop / nop / jalr zero, a0, 512" "-512..511"
             , testCase "beqz and jal share a wider displacement" $ do
                 accepted "nop / nop / nop / jal a0, 16383"
             , testCase "beqz displacement above its field" $ do

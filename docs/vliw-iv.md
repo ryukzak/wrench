@@ -60,17 +60,17 @@ Bundle: [ALU1:32] [ALU2:32] [MEM:24] [CTRL:24]
   [opcode:3] [rs2:5] [base:5] [offset_sign:11]      ; sw sb        (reg = rs2)
   [opcode:3] [reserved:21]                          ; nop
 [CTRL] (24 bits):
-  [opcode:4] [rs1:5] [rs2:5] [offset_sign:10]       ; beq bne blt bgt ble bgtu bleu
+  [opcode:4] [rs1:5] [rs2:5] [offset_sign:10]       ; beq bne blt bge bltu bgeu
   [opcode:4] [rs1:5] [offset_sign:15]               ; beqz bnez
   [opcode:4] [rd:5]  [offset_sign:15]               ; jal
-  [opcode:4] [rs:5]  [reserved:15]                  ; jr
+  [opcode:4] [rd:5]  [rs1:5] [imm_sign:10]          ; jalr
   [opcode:4] [offset_sign:20]                       ; j
   [opcode:4] [reserved:20]                          ; nop halt
 ```
 
 The two ALU slots are 32 bits each; MEM and CTRL are 24 bits each, for a 112-bit (14-byte)
 bundle. The opcode occupies the high bits of its slot, sized to the number of operations the slot
-defines: 5 bits for ALU (17 ops), 4 for CTRL (14 ops), 3 for MEM (5 ops). Register fields
+defines: 5 bits for ALU (17 ops), 4 for CTRL (13 ops), 3 for MEM (5 ops). Register fields
 follow the opcode; the remaining low bits hold the immediate/offset.
 
 ### Operand Fields
@@ -78,14 +78,15 @@ follow the opcode; the remaining low bits hold the immediate/offset.
 Every immediate and offset is narrower than the machine word, because a slot is 24 or 32 bits with
 the opcode and register fields already spent:
 
-| Operand                                                        | Width           | Accepted values   |
-| -------------------------------------------------------------- | --------------- | ----------------- |
-| `lw`, `lb`, `sw`, `sb` offset                                  | 11-bit signed   | `-1024..1023`     |
-| `addi`, `slti` immediate                                       | 17-bit signed   | `-65536..65535`   |
-| `beq`, `bne`, `blt`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 10-bit signed   | `-512..511`       |
-| `beqz`, `bnez`, `jal` displacement                             | 15-bit signed   | `-16384..16383`   |
-| `j` displacement                                               | 20-bit signed   | `-524288..524287` |
-| `lui` immediate                                                | 20-bit unsigned | `0..1048575`      |
+| Operand                                                   | Width           | Accepted values   |
+| --------------------------------------------------------- | --------------- | ----------------- |
+| `lw`, `lb`, `sw`, `sb` offset                             | 11-bit signed   | `-1024..1023`     |
+| `addi`, `slti` immediate                                  | 17-bit signed   | `-65536..65535`   |
+| `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` displacement   | 10-bit signed   | `-512..511`       |
+| `jalr` immediate                                          | 10-bit signed   | `-512..511`       |
+| `beqz`, `bnez`, `jal` displacement                        | 15-bit signed   | `-16384..16383`   |
+| `j` displacement                                          | 20-bit signed   | `-524288..524287` |
+| `lui` immediate                                           | 20-bit unsigned | `0..1048575`      |
 
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 
@@ -225,10 +226,10 @@ addi rd, rs1, k / / /
     - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the current program counter.
     - **Operation:** `rd <- pc + 14, pc <- pc + k`  // Adjusted for bundle size
 
-- **Jump Register**
-    - **Syntax:** `jr <rs>`
-    - **Description:** Jump to the address stored in the source register.
-    - **Operation:** `pc <- rs`
+- **Jump and Link Register**
+    - **Syntax:** `jalr <rd>, <rs1>, <k>`
+    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the immediate value to the value in the source register.
+    - **Operation:** `rd <- pc + 14, pc <- rs1 + k`  // Adjusted for bundle size
 
 - **Branch if Equal to Zero**
     - **Syntax:** `beqz <rs1>, <k>`
@@ -240,25 +241,25 @@ addi rd, rs1, k / / /
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the source register is not zero.
     - **Operation:** `if rs1 != 0 then pc <- pc + k`
 
-- **Branch if Greater Than**
-    - **Syntax:** `bgt <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is greater than the value in the second source register.
-    - **Operation:** `if rs1 > rs2 then pc <- pc + k`
+- **Branch if Less Than**
+    - **Syntax:** `blt <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than the value in the second source register.
+    - **Operation:** `if rs1 < rs2 then pc <- pc + k`
 
-- **Branch if Less Than or Equal**
-    - **Syntax:** `ble <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than or equal to the value in the second source register.
-    - **Operation:** `if rs1 <= rs2 then pc <- pc + k`
+- **Branch if Greater Than or Equal**
+    - **Syntax:** `bge <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is greater than or equal to the value in the second source register.
+    - **Operation:** `if rs1 >= rs2 then pc <- pc + k`
 
-- **Branch if Greater Than (Unsigned)**
-    - **Syntax:** `bgtu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than the unsigned interpretation of the second source register.
-    - **Operation:** `if unsigned(rs1) > unsigned(rs2) then pc <- pc + k`
+- **Branch if Less Than (Unsigned)**
+    - **Syntax:** `bltu <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) < unsigned(rs2) then pc <- pc + k`
 
-- **Branch if Less Than or Equal (Unsigned)**
-    - **Syntax:** `bleu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than or equal to the unsigned interpretation of the second source register.
-    - **Operation:** `if unsigned(rs1) <= unsigned(rs2) then pc <- pc + k`
+- **Branch if Greater Than or Equal (Unsigned)**
+    - **Syntax:** `bgeu <rs1>, <rs2>, <k>`
+    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than or equal to the unsigned interpretation of the second source register.
+    - **Operation:** `if unsigned(rs1) >= unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Equal**
     - **Syntax:** `beq <rs1>, <rs2>, <k>`
@@ -269,11 +270,6 @@ addi rd, rs1, k / / /
     - **Syntax:** `bne <rs1>, <rs2>, <k>`
     - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is not equal to the value in the second source register.
     - **Operation:** `if rs1 != rs2 then pc <- pc + k`
-
-- **Branch if Less Than**
-    - **Syntax:** `blt <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than the value in the second source register (signed).
-    - **Operation:** `if rs1 < rs2 then pc <- pc + k`
 
 - **NOP**
     - **Syntax:** `nop`, or leave the slot blank (just whitespace)

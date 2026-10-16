@@ -7,15 +7,15 @@ A0 -1 A1 0
 A0 -1 A1 -1
 28:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 70}}	
 A0 -1 A1 -1
-98:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = Zero, bleK = -56}}	@continue
+98:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bge {bgeRs1 = Zero, bgeRs2 = A0, bgeK = -56}}	@continue
 A0 -1 A1 -1
 42:	VliwIvIsa {memOp = NopM, alu1Op = Sub {subRd = A0, subRs1 = Zero, subRs2 = A0}, alu2Op = NopA, ctrlOp = NopC}	@make_pos_a0
 A0 1 A1 -1
 56:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 42}}	
 A0 1 A1 -1
-98:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Ble {bleRs1 = A0, bleRs2 = Zero, bleK = -56}}	@continue
+98:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bge {bgeRs1 = Zero, bgeRs2 = A0, bgeK = -56}}	@continue
 A0 1 A1 -1
-112:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bleu {bleuRs1 = A1, bleuRs2 = Zero, bleuK = -42}}	
+112:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgeu {bgeuRs1 = Zero, bgeuRs2 = A1, bgeuK = -42}}	
 A0 1 A1 -1
 126:	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}	
 A0 1 A1 -1
