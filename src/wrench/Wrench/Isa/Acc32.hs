@@ -141,15 +141,15 @@ cmdMnemonic1 mnemonic refParser = try $ do
 instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
     derefMnemonic f offset i =
         let relF = fmap (\x -> x - offset) . f
-            offsetErr m x = m <> ": relative offset " <> x <> " is not in -32768..32767"
+            offsetErr m x = m <> ": relative offset " <> x <> " is not in -128..127"
             addrErr m x = m <> ": address " <> x <> " is not in 0..65535"
          in case i of
                 LoadImm l -> LoadImm (resolveRef Right f l)
                 LoadAddr l -> LoadAddr (resolveRef Right f l)
-                Load l -> Load (resolveRef (i16 (offsetErr "load")) relF l)
+                Load l -> Load (resolveRef (i8 (offsetErr "load")) relF l)
                 LoadAcc -> LoadAcc
                 StoreAddr l -> StoreAddr (resolveRef Right f l)
-                Store l -> Store (resolveRef (i16 (offsetErr "store")) relF l)
+                Store l -> Store (resolveRef (i8 (offsetErr "store")) relF l)
                 StoreInd l -> StoreInd (resolveRef Right f l)
                 Add l -> Add (resolveRef (u16 (addrErr "add")) f l)
                 Sub l -> Sub (resolveRef (u16 (addrErr "sub")) f l)
@@ -180,6 +180,8 @@ instance ByteSize (Acc32Isa w l) where
     byteSize LoadImm{} = 5
     byteSize LoadAddr{} = 5
     byteSize LoadAcc{} = 1
+    byteSize Load{} = 2
+    byteSize Store{} = 2
     byteSize StoreAddr{} = 5
     byteSize StoreInd{} = 5
     byteSize Beqz{} = 5

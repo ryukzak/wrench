@@ -62,23 +62,18 @@ tests =
                 accepted ".text\n_start:\n    load cell\n    halt\n\n    .data\ncell:    .word 7\n"
             , testCase "offset above the field" $ do
                 rejected
-                    ".text\n_start:\n    load 0x8000\n    halt\n"
-                    "test.s:3:10: load: relative offset 32768 is not in -32768..32767"
+                    ".text\n_start:\n    load 200\n    halt\n"
+                    "test.s:3:10: load: relative offset 200 is not in -128..127"
             , testCase "offset below the field" $ do
                 rejected
-                    ".text\n_start:\n    store -32769\n    halt\n"
-                    "test.s:3:11: store: relative offset -32769 is not in -32768..32767"
+                    ".text\n_start:\n    store -129\n    halt\n"
+                    "test.s:3:11: store: relative offset -129 is not in -128..127"
             , -- The offset is counted from the instruction, so what fails is the
-              -- distance. It takes a memory the CLI would refuse (8 KiB cap) to
-              -- push a label that far, hence the wider memory here.
+              -- distance, not the address written in the source.
               testCase "a label out of reach is rejected by its distance" $ do
-                outcome <-
-                    translateProgramWith
-                        100000
-                        ".text\n_start:\n    load far\n    halt\n\n    .data\n    .org 0x9000\nfar:    .word 7\n"
-                case outcome of
-                    Right n -> assertFailure $ "should be rejected, got " <> show n <> " characters"
-                    Left err -> err @?= "test.s:3:10: load: relative offset 36864 is not in -32768..32767"
+                rejected
+                    ".text\n_start:\n    store far\n    halt\n\n    .data\n    .org 0x200\nfar:    .word 0\n"
+                    "test.s:3:11: store: relative offset 512 is not in -128..127"
             ]
         , testCase "the absolute operands still take a full machine word" $ do
             accepted ".text\n_start:\n    load_addr 0x12345678\n    halt\n"
@@ -87,14 +82,11 @@ tests =
 -- | Translate a whole program the way the CLI does, forcing the result so that
 -- a field guard firing in 'derefMnemonic' lands here instead of staying a thunk.
 translateProgram :: String -> IO (Either String Int)
-translateProgram = translateProgramWith 1000
-
-translateProgramWith :: Int -> String -> IO (Either String Int)
-translateProgramWith memorySize src = do
+translateProgram src = do
     outcome <-
         try @ErrorCall
             $ evaluate
-            $ length (show (translate @Acc32Isa @Int32 memorySize (repeat 0) "test.s" src) :: String)
+            $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
     return $ case outcome of
         Left (ErrorCall msg) -> Left msg
         Right n -> Right n
