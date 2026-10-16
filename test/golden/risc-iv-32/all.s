@@ -30,6 +30,18 @@ _start:
     lui      t2, 0x1234                      ; Load upper immediate
 
     lw       t2, 0(t0)                       ; Load word
+    lb       t2, 0(t0)                       ; Load byte
+
+    ; I-type immediates
+    slti     t2, t1, 1                       ; Set if less than immediate
+    andi     t2, t1, 0xf                     ; Bitwise AND immediate
+    ori      t2, t1, 0xf                     ; Bitwise OR immediate
+    xori     t2, t1, 0xf                     ; Bitwise XOR immediate
+
+    ; Shifts by a constant amount
+    slli     t2, t1, 1                       ; Shift left logical immediate
+    srli     t2, t1, 1                       ; Shift right logical immediate
+    srai     t2, t1, 1                       ; Shift right arithmetic immediate
 
     j        jump_label                      ; Jump
 
@@ -69,4 +81,9 @@ beq_label:
 bne_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
+    jal      ra, subroutine                  ; Jump and link; ra <- next address
+
     halt                                     ; Halt the machine
+
+subroutine:
+    jalr     zero, ra, 0                     ; Jump and link register: return to halt

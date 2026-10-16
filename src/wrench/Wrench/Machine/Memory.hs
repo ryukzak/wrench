@@ -159,7 +159,11 @@ walkSectionRanges offset (s : rest) =
      in (s, start) : walkSectionRanges (start + byteSize s) rest
 
 sliceMem :: [Int] -> IntMap (Cell isa w) -> [(Int, Cell isa w)]
-sliceMem addrs memoryData = map (\a -> (a, Unsafe.fromJust (memoryData !? a))) addrs
+sliceMem addrs memoryData = map cellAt addrs
+    where
+        cellAt a = case memoryData !? a of
+            Just cell -> (a, cell)
+            Nothing -> error $ "memory[" <> show a <> "]: outside the configured memory"
 
 prettyDump ::
     forall w isa.
@@ -258,6 +262,9 @@ class Memory m isa w | m -> isa w where
     accessLog :: m -> AccessLog
     accessLog _ = emptyAccessLog
 
+    -- | How many read/write we perform.
+    memAccessCount :: m -> AccessCount
+
 instance
     (ByteSize isa, IsWord w) =>
     Memory (Mem isa w) isa w
@@ -307,6 +314,8 @@ instance
 
     memCapacity Mem{memorySize} = memorySize
 
+    memAccessCount _ = emptyAccessCount
+
 ioPortInstructionCollision ::
     forall w isa. (ByteSize isa, Default w, FiniteBits w) => IoMem isa w -> Int -> isa -> Bool
 ioPortInstructionCollision IoMem{mIoKeys} addr instr =
@@ -327,13 +336,28 @@ ioPortByteCollision IoMem{mIoKeys} addr =
         parts = concatMap mkParts mIoKeys
      in (addr `elem` parts)
 
-noteInstrAccess, noteDataAccess, noteIoAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
-noteInstrAccess addr len io =
-    io{mAccessLog = (mAccessLog io){alInstr = recordRange addr len (alInstr (mAccessLog io))}}
-noteDataAccess addr len io =
-    io{mAccessLog = (mAccessLog io){alData = recordRange addr len (alData (mAccessLog io))}}
-noteIoAccess addr len io =
-    io{mAccessLog = (mAccessLog io){alIo = recordRange addr len (alIo (mAccessLog io))}}
+-- | Record one access. Every successful read and write goes through exactly
+-- one of these, so a word access counts once rather than per byte.
+recordInstrAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
+recordInstrAccess addr len io@IoMem{mAccessLog, mAccessCount} =
+    io
+        { mAccessLog = mAccessLog{alInstr = recordRange addr len (alInstr mAccessLog)}
+        , mAccessCount = bump R mAccessCount
+        }
+
+recordDataAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
+recordDataAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
+    io
+        { mAccessLog = mAccessLog{alData = recordRange addr len (alData mAccessLog)}
+        , mAccessCount = bump rw mAccessCount
+        }
+
+recordIoAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
+recordIoAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
+    io
+        { mAccessLog = mAccessLog{alIo = recordRange addr len (alIo mAccessLog)}
+        , mAccessCount = bump rw mAccessCount
+        }
 
 instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
     readInstruction io@IoMem{mIoStreams, mIoCells} idx =
@@ -344,7 +368,7 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
                 Right (_mIoCells', instr)
                     | ioPortInstructionCollision io idx instr ->
                         Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
-                    | otherwise -> Right (noteInstrAccess idx (byteSize instr) io, instr)
+                    | otherwise -> Right (recordInstrAccess idx (byteSize instr) io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
         | Just wordIdx <- mIoByteToWord !? idx = do
@@ -352,7 +376,7 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
             return (io', wordSplit word Unsafe.!! (idx - wordIdx))
     readByte io@IoMem{mIoCells} idx = do
         (mIoCells', v) <- readByte mIoCells idx
-        return (noteDataAccess idx 1 io{mIoCells = mIoCells'}, v)
+        return (recordDataAccess R idx 1 io{mIoCells = mIoCells'}, v)
 
     readWord io idx
         | ioPortWordCollision io idx =
@@ -362,32 +386,33 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
             Just ([], _) -> Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: input is depleted"
             Just (i : is, os) -> do
                 let io' = io{mIoStreams = insert idx (is, os) mIoStreams}
-                Right (noteIoAccess idx (byteSizeT @w) io', i)
+                Right (recordIoAccess R idx (byteSizeT @w) io', i)
             Nothing -> do
                 (mIoCells', w) <- readWord mIoCells idx
-                return (noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}, w)
+                return (recordDataAccess R idx (byteSizeT @w) io{mIoCells = mIoCells'}, w)
 
     writeWord io idx _word
         | ioPortWordCollision io idx = Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: can't write word to input port"
     writeWord io idx word =
         case mIoStreams io !? idx of
-            Just (is, os) -> Right $ noteIoAccess idx (byteSizeT @w) io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
+            Just (is, os) -> Right $ recordIoAccess W idx (byteSizeT @w) io{mIoStreams = insert idx (is, word : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeWord (mIoCells io) idx word
-                return $ noteDataAccess idx (byteSizeT @w) io{mIoCells = mIoCells'}
+                return $ recordDataAccess W idx (byteSizeT @w) io{mIoCells = mIoCells'}
 
     writeByte io idx _byte
         | ioPortByteCollision io idx =
             Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: can't write byte to input port"
     writeByte io idx byte =
         case mIoStreams io !? idx of
-            Just (is, os) -> Right $ noteIoAccess idx 1 io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
+            Just (is, os) -> Right $ recordIoAccess W idx 1 io{mIoStreams = insert idx (is, byteToWord byte : os) (mIoStreams io)}
             Nothing -> do
                 mIoCells' <- writeByte (mIoCells io) idx byte
-                return $ noteDataAccess idx 1 io{mIoCells = mIoCells'}
+                return $ recordDataAccess W idx 1 io{mIoCells = mIoCells'}
 
     dumpCells = memoryData . mIoCells
 
     memCapacity = memCapacity . mIoCells
     ioPorts = mIoKeys
     accessLog = mAccessLog
+    memAccessCount = mAccessCount

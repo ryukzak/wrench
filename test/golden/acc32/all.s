@@ -1,6 +1,6 @@
     .data
 
-input_addr:      .word  0x80               ; Input address where the number 'n' is stored
+data_ptr:        .word  0x24               ; Address of `temp`, for the indirect forms
 output_addr:     .word  0x84               ; Output address where the result should be stored
 n:               .word  0x00               ; Variable to store the number 'n'
 result:          .word  0x01               ; Variable to store the result of the factorial, initialized to 1
@@ -9,7 +9,7 @@ const_2:         .word  0x02               ; Constant 2
 const_3:         .word  0x03               ; Constant 3
 const_4:         .word  0x04               ; Constant 4
 const_5:         .word  0x05               ; Constant 5
-temp:            .word  0x00               ; Temporary storage
+temp:            .word  0x00               ; Temporary storage -- must stay at 0x24, see data_ptr
 
     .text
 
@@ -22,26 +22,26 @@ _start:
     load_addr    const_1                     ; acc <- mem[const_1]
     store_addr   temp                        ; mem[temp] <- acc
 
-    ; Load relative
-    load         2                           ; acc <- mem[pc + 2]
+    ; Load relative -- the displacement is to a .data cell, never to code
+    load         const_2                     ; acc <- mem[const_2]
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Load indirect
-    load         input_addr
-    load_acc
+    load         data_ptr                    ; acc <- mem[data_ptr]
+    load_acc                                 ; acc <- mem[acc]
     store_addr   temp                        ; mem[temp] <- acc
 
     ; Store to address
     load_imm     0x20                        ; acc <- 0x20
     store_addr   temp                        ; mem[temp] <- acc
 
-    ; Store relative
-    load         0x30                        ; acc <- 0x30
-    store        2                           ; mem[pc + 2] <- acc
+    ; Store relative -- again into .data, not into the instruction stream
+    load_imm     0x30                        ; acc <- 0x30
+    store        temp                        ; mem[temp] <- acc
 
     ; Store indirect
     load_imm     0x40                        ; acc <- 0x40
-    store_ind    input_addr                  ; mem[mem[input_addr]] <- acc
+    store_ind    data_ptr                    ; mem[mem[data_ptr]] <- acc
 
     ; Arithmetic operations
     load_addr    const_2                     ; acc <- mem[const_2]
@@ -89,18 +89,34 @@ _start:
     not                                      ; acc = ~acc
     store_addr   temp                        ; mem[temp] <- acc
 
-    ; Jump instructions
-    load_imm     0x00                        ; acc <- 0x00
-    beqz         jump_target                 ; if acc == 0, jump to jump_target
+    ; Flag clears
+    clv                                      ; clear overflow
+    clc                                      ; clear carry
 
-    load_imm     0x01                        ; acc <- 0x01
-    bnez         jump_target                 ; if acc != 0, jump to jump_target
-
-    load_imm     0x02                        ; acc <- 0x02
-    bgtz         jump_target                 ; if acc > 0, jump to jump_target
-
-    load_imm     0xFF                        ; acc <- 0xFF
-    bltz         jump_target                 ; if acc < 0, jump to jump_target
+    ; Branches. Each targets the instruction right after it, so every one
+    ; executes and control continues in order whether it is taken or not.
+    load_imm     0x00                        ; acc <- 0
+    beqz         at_bnez                     ; taken
+at_bnez:
+    load_imm     0x01                        ; acc <- 1
+    bnez         at_bgtz                     ; taken
+at_bgtz:
+    bgtz         at_bgez                     ; taken
+at_bgez:
+    bgez         at_bltz                     ; taken
+at_bltz:
+    load_imm     -1                          ; acc <- -1
+    bltz         at_bvs                      ; taken
+at_bvs:
+    bvs          at_bvc                      ; not taken -- clv cleared it
+at_bvc:
+    bvc          at_bcs                      ; taken
+at_bcs:
+    bcs          at_bcc                      ; not taken -- clc cleared it
+at_bcc:
+    bcc          at_jmp                      ; taken
+at_jmp:
+    jmp          jump_target
 
 jump_target:
     ; Halt the machine

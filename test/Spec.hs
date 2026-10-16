@@ -100,7 +100,8 @@ tests =
             , Wrench.Isa.RiscIv.Test.tests
             , testGroup
                 "Simulator"
-                [ goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/count.yaml"
+                [ goldenSimulate RiscIv "test/golden/risc-iv-32/all.s" "test/golden/risc-iv-32/all.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/count.s" "test/golden/risc-iv-32/count.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_87.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_abcd.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/get_put_char.s" "test/golden/risc-iv-32/get_put_char_null.yaml"
@@ -143,7 +144,8 @@ tests =
             [ Wrench.Isa.F32a.Test.tests
             , testGroup
                 "Translator"
-                [ goldenTranslate F32a "test/golden/f32a/logical_not.s"
+                [ goldenTranslate F32a "test/golden/f32a/all.s"
+                , goldenTranslate F32a "test/golden/f32a/logical_not.s"
                 , goldenTranslate F32a "test/golden/f32a/hello.s"
                 , goldenTranslate F32a "test/golden/f32a/div.s"
                 , goldenTranslate F32a "test/golden/f32a/factorial.s"
@@ -151,7 +153,8 @@ tests =
                 ]
             , testGroup
                 "Simulator"
-                [ goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_27_4.yaml"
+                [ goldenSimulate F32a "test/golden/f32a/all.s" "test/golden/f32a/all.yaml"
+                , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_27_4.yaml"
                 , goldenSimulate F32a "test/golden/f32a/div.s" "test/golden/f32a/div_3_2.yaml"
                 , goldenSimulateFail F32a "test/golden/f32a/div.s" "test/golden/f32a/div_2_3.yaml"
                 , goldenSimulate F32a "test/golden/f32a/carry.s" "test/golden/f32a/carry.yaml"
@@ -182,7 +185,8 @@ tests =
                 ]
             , testGroup
                 "Acc32"
-                [ goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
+                [ goldenSimulate Acc32 "test/golden/acc32/all.s" "test/golden/acc32/all.yaml"
+                , goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/overflow.s" "test/golden/acc32/overflow.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/get_put_char.s" "test/golden/acc32/get_put_char_nothing.yaml"
                 ]
@@ -199,7 +203,8 @@ tests =
             "M68k"
             [ testGroup
                 "Translator"
-                [ goldenTranslate M68k "test/golden/m68k/factorial.s"
+                [ goldenTranslate M68k "test/golden/m68k/all.s"
+                , goldenTranslate M68k "test/golden/m68k/factorial.s"
                 , goldenTranslate M68k "test/golden/m68k/get_put_char.s"
                 , goldenTranslate M68k "test/golden/m68k/hello.s"
                 , goldenTranslate M68k "test/golden/m68k/logical_not.s"
@@ -208,7 +213,8 @@ tests =
             , Wrench.Isa.M68k.Test.tests
             , testGroup
                 "Simulator"
-                [ goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"
+                [ goldenSimulate M68k "test/golden/m68k/all.s" "test/golden/m68k/all.yaml"
+                , goldenSimulate M68k "test/golden/m68k/shift_commands.s" "test/golden/m68k/shift_commands.yaml"
                 , goldenSimulate M68k "test/golden/m68k/hello-byte.s" "test/golden/m68k/hello.yaml"
                 , goldenSimulate M68k "test/golden/m68k/factorial_recursive.s" "test/golden/m68k/factorial_recursive.yaml"
                 ]
@@ -234,7 +240,8 @@ tests =
             , Wrench.Isa.VliwIv.Test.tests
             , testGroup
                 "Simulator"
-                [ goldenSimulate VliwIv "test/golden/vliw-iv/count.s" "test/golden/vliw-iv/count.yaml"
+                [ goldenSimulate VliwIv "test/golden/vliw-iv/all.s" "test/golden/vliw-iv/all.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/count.s" "test/golden/vliw-iv/count.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_87.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_abcd.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_null.yaml"

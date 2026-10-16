@@ -344,6 +344,9 @@ Execution and memory statistics. These are typically used with `slice: last` to 
 - `mem:data-ranges` -- Address ranges of data reads and writes (merged into one set). Same `:dec`/`:hex` suffix.
 - `mem:io-ranges` -- Address ranges of memory-mapped IO accesses. Same `:dec`/`:hex` suffix.
 - `memory:table` -- Multi-line address-space table that puts the above together: one row per declared `text`/`data` section, one per IO cluster, and `x` rows for free regions (split at access boundaries, so the stack gets its own row). Columns: `Kind`, `Range`, `Bytes`, `Accessed`, `Coverage`. The `Bytes` column sums to `memory_size` as a built-in sanity check.
+- `memAccesses` -- Memory accesses made by the instruction that produced this state, its own fetch included. One access per operation, so a word read counts once whatever its width. With `slice: all` it shows what each instruction cost; the initial state reports `0`. Needs a `:dec` or `:hex` suffix.
+- `memReads`, `memWrites` -- The same, split by direction. An instruction fetch counts as a read.
+- `memAccessesTotal`, `memReadsTotal`, `memWritesTotal` -- The same three for the whole run so far.
 - `isa-specific` -- ISA-specific summary block. Each architecture fills it with its own stat lines (e.g. `vliw:load-percent` + `vliw:avg-load` + `vliw:bundles-by-load` on vliw-iv; `f32a:data-stack-max` + `f32a:return-stack-max` on f32a); architectures without any render an empty block. Lets one report template stay uniform across ISAs without emitting `[unknown-view]` for the variables that don't apply.
 
 Example -- print a stats summary after the simulation finishes:
@@ -360,6 +363,7 @@ reports:
         mem:instr-ranges:          {mem:instr-ranges}
         mem:data-ranges:           {mem:data-ranges}
         mem:io-ranges:             {mem:io-ranges}
+        memAccessesTotal:          {memAccessesTotal:dec}
 ```
 
 Comparing `layout:*-size` with `mem:*-ranges` reveals which declared bytes the program actually touched and which addresses it accessed outside any declared section -- the stack region is a typical example.

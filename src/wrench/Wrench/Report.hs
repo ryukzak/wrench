@@ -69,16 +69,16 @@ prepareReport
     rc@ReportConf{rcName, rcSlice, rcAssert, rcView} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            sliced = selectSlice rcSlice records
+            sliced = selectSlice rcSlice (withAccessDeltas records)
             stateViews = case rcView of
                 Nothing -> ""
                 Just rvView' ->
                     T.concat
                         $ filter (not . T.null)
                         $ map
-                            ( \case
+                            ( \(accesses, record) -> case record of
                                 TState{tInstructionCount, tPrevInstruction, tState} ->
-                                    prepareStateView rvView' trResult finalState tInstructionCount tPrevInstruction tState
+                                    prepareStateView rvView' trResult finalState tInstructionCount tPrevInstruction accesses tState
                                 (TError err) -> "ERROR: " <> err <> "\n"
                                 (TWarn warn) -> "WARN: " <> warn <> "\n"
                             )
@@ -119,6 +119,23 @@ instance FromJSON ReportSlice where
     parseJSON (String "last") = return LastSlice
     parseJSON _ = fail "Invalid slice format, expect: [\"head\", n], \"all\", [\"tail\", n], \"last\""
 
+-- | Pair each state record with the accesses the instruction that produced
+-- it made. One record per step, so consecutive totals differ by one
+-- instruction's worth. Before slicing, so a slice still gets real deltas.
+withAccessDeltas ::
+    forall st.
+    (Inspectable st, Memory (MemOf st) (IsaOf st) (WordOf st)) =>
+    [Trace st (IsaOf st)]
+    -> [(AccessCount, Trace st (IsaOf st))]
+withAccessDeltas = go emptyAccessCount
+    where
+        go _ [] = []
+        go before (record : rest) = case record of
+            TState{tState} ->
+                let after = memAccessCount (memoryDump tState)
+                 in (acSince before after, record) : go after rest
+            _ -> (emptyAccessCount, record) : go before rest
+
 selectSlice (HeadSlice n) = take n
 selectSlice AllSlice = id
 selectSlice (TailSlice n) = reverse . take n . reverse
@@ -126,7 +143,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount prevInstr st =
+prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount prevInstr accesses st =
     let DumpStats
             { dsSectionsTotalBytes
             , dsTextSectionsBytes
@@ -135,6 +152,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             , dsDataIntervals
             } = dumpStats
         AccessLog{alInstr, alData, alIo} = accessLog (memoryDump finalState)
+        runTotal = memAccessCount (memoryDump st)
         showNextInstruction =
             if isHalted st
                 then "-"
@@ -143,6 +161,12 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             ["instruction", "prev"] -> maybe "-" show prevInstr
             ["instruction", "next"] -> showNextInstruction
             ["sim", "instruction-count"] -> show instrCount
+            ["memAccesses", f] -> viewRegister f (acTotal accesses)
+            ["memReads", f] -> viewRegister f (acReads accesses)
+            ["memWrites", f] -> viewRegister f (acWrites accesses)
+            ["memAccessesTotal", f] -> viewRegister f (acTotal runTotal)
+            ["memReadsTotal", f] -> viewRegister f (acReads runTotal)
+            ["memWritesTotal", f] -> viewRegister f (acWrites runTotal)
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes
             ["layout", "data-sections-size"] -> show dsDataSectionsBytes
