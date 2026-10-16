@@ -23,71 +23,145 @@ import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
 data F32aIsa w l
-    = -- | __;__ return
+    = -- | > ; ( -- )
+      --
+      -- Return: pops the return stack into P.
       Return
-    | -- | __call__ to name
+    | -- | > <address: i32> ( -- )
+      --
+      -- Call, written as a bare label: pushes P onto the return stack and
+      -- jumps.
       Call l
-    | -- | __lit REF__
+    | -- | > lit <value: i32> ( -- value: i32 )
+      --
+      -- Push a literal. A bare number is the same instruction.
       Lit l
-    | -- | __next REF__ loop to address (decrement R)
+    | -- | > next <address: i32> ( -- )
+      --
+      -- Loop: pops R; falls through when it was @0@, otherwise pushes
+      -- @R-1@ back and jumps.
       Next l
-    | -- | __REF ;__
+    | -- | > <address: i32> ; ( -- )
+      --
+      -- Jump, written as a label followed by @;@.
       Jump l
-    | -- | __if__   If T is nonzero, continues with the next instruction word addressed by P. If T is zero, jumps
+    | -- | > if <address: i32> ( flag: i32 -- )
+      --
+      -- Pops T: continues with the next instruction word if it was
+      -- non-zero, jumps if it was zero.
       If l
-    | -- | __-if__  Minus-if. If T is negative (T[31] set), continues with the next instruction word addressed by P. If T is nonnegative, jumps
+    | -- | > -if <address: i32> ( value: i32 -- )
+      --
+      -- Minus-if. Pops T: continues with the next instruction word if it
+      -- was negative (T[31] set), jumps if it was non-negative.
       MinusIf l
-    | -- | __a!__   A-Store. Stores T into register A, popping the data stack
+    | -- | > a! ( value: i32 -- )
+      --
+      -- A-Store. Stores T into register A, popping the data stack.
       AStore
-    | -- | __b!__   B-Store. Stores T into register B, popping the data stack.
+    | -- | > b! ( value: i32 -- )
+      --
+      -- B-Store. Stores T into register B, popping the data stack.
       BStore
-    | -- | __@p__   Pushes data stack, reads [P] into T, and increments P
+    | -- | > @p <address: i32> ( -- value: i32 )
+      --
+      -- Pushes the data stack, reads [P] into T, and increments P.
       FetchP l
-    | -- | __@+__   Fetch-plus. Pushes data stack, reads [A] into T, and increments A
+    | -- | > @+ ( -- value: i32 )
+      --
+      -- Fetch-plus. Pushes the data stack, reads [A] into T, and
+      -- increments A.
       FetchPlus
-    | -- | __@b__   Fetch-B. Pushes data stack and reads [B] into T
+    | -- | > @b ( -- value: i32 )
+      --
+      -- Fetch-B. Pushes the data stack and reads [B] into T.
       FetchB
-    | -- | __@__    Fetch. Pushes data stack and reads [A] into T.
+    | -- | > @ ( -- value: i32 )
+      --
+      -- Fetch. Pushes the data stack and reads [A] into T.
       Fetch
-    | -- | __!p__   Store-P. Writes T into [P], pops the data stack, and increments P
+    | -- | > !p <address: i32> ( value: i32 -- )
+      --
+      -- Store-P. Writes T into [P], pops the data stack, and increments P.
       StoreP l
-    | -- | __!b__   Store-B. Writes T into [B] and pops the data stack
+    | -- | > !b ( value: i32 -- )
+      --
+      -- Store-B. Writes T into [B] and pops the data stack.
       StoreB
-    | -- | __!+__   Store-plus. Writes T into [A], pops the data stack, and increments A
+    | -- | > !+ ( value: i32 -- )
+      --
+      -- Store-plus. Writes T into [A], pops the data stack, and increments
+      -- A.
       StorePlus
-    | -- | __!__    Writes T into [A] and pops the data stack
+    | -- | > ! ( value: i32 -- )
+      --
+      -- Writes T into [A] and pops the data stack.
       Store
-    | -- | __+*__   multiply step
+    | -- | > +* ( s: i32, t: i32 -- s: i32, t: i32 )
+      --
+      -- Multiply step. Leaves S alone, replaces T, and shifts A: one
+      -- iteration of a shift-and-add multiply.
       MulStep
-    | -- | __+/__   divide step (details: example/step-by-step-div.py)
+    | -- | > +/ ( remainder: i32, quotient: i32 -- remainder: i32, quotient: i32 )
+      --
+      -- Divide step: A holds the dividend, [B] the divisor, T the quotient
+      -- so far and S the remainder (details:
+      -- example\/step-by-step-div.py).
       DivStep
-    | -- | __2*__   11 left shift
+    | -- | > 2* ( value: i32 -- shifted: i32 )
+      --
+      -- Left shift.
       LShift
-    | -- | __2/__   right shift (signed)
+    | -- | > 2/ ( value: i32 -- shifted: i32 )
+      --
+      -- Right shift (signed).
       RShift
-    | -- | __inv__  invert all bits (was ~)
+    | -- | > inv ( value: i32 -- inverted: i32 )
+      --
+      -- Invert all bits (was @~@).
       Inv
-    | -- | __+__    add (or add with carry)
+    | -- | > + ( s: i32, t: i32 -- sum: i32 )
+      --
+      -- Add, or add with carry in extended arithmetic mode.
       Add
-    | -- | __eam__  set arithmetic mode, pop T, if T == 0 then 0 else 1
+    | -- | > eam ( flag: i32 -- )
+      --
+      -- Set arithmetic mode: pops T, extended iff it was non-zero.
       Eam
-    | -- | __and__
+    | -- | > and ( s: i32, t: i32 -- bits: i32 )
       And
-    | -- | __xor__  Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops data stack
+    | -- | > xor ( s: i32, t: i32 -- bits: i32 )
+      --
+      -- Exclusive Or. Replaces T with the Boolean XOR of S and T. Pops the
+      -- data stack.
       Xor
-    | -- | __drop__ Drop. Pops the data stack
+    | -- | > drop ( value: i32 -- )
+      --
+      -- Drop. Pops the data stack.
       Drop
-    | -- | __dup__  Dup. Duplicates T on the data stack
+    | -- | > dup ( value: i32 -- value: i32, value: i32 )
+      --
+      -- Dup. Duplicates T on the data stack.
       Dup
-    | -- | __r>__   Moves R into T, popping the return stack and pushing the data stack
+    | -- | > r> ( -- value: i32 )
+      --
+      -- Moves R into T, popping the return stack and pushing the data
+      -- stack.
       RIntoT
-    | -- | __>r__   Moves T into R, pushing the return stack and popping the data stack
+    | -- | > >r ( value: i32 -- )
+      --
+      -- Moves T into R, pushing the return stack and popping the data
+      -- stack.
       TIntoR
-    | -- | __over__
+    | -- | > over ( s: i32, t: i32 -- s: i32, t: i32, s: i32 )
+      --
+      -- Copies S over the top of the data stack.
       Over
-    | -- | __a__    Fetches the contents of register A into T, pushing the data stack
+    | -- | > a ( -- value: i32 )
+      --
+      -- Fetches the contents of register A into T, pushing the data stack.
       AFetch
-    | -- | __halt__
+    | -- | > halt ( -- )
       Halt
     deriving (Show)
 
