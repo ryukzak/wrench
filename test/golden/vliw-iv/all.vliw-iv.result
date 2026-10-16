@@ -21,8 +21,7 @@ reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T2, luiK =
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Slti {sltiRd = T2, sltiRs1 = T1, sltiK = 1}, alu2Op = NopA, ctrlOp = NopC}
 reads: 2, writes: 0 -- VliwIvIsa {memOp = Lw {lwRd = T2, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
 reads: 2, writes: 0 -- VliwIvIsa {memOp = Lb {lbRd = T2, lbOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 140}}
-reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
+reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = J {jK = 126}}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
@@ -33,9 +32,9 @@ reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addi
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 4}, alu2Op = NopA, ctrlOp = NopC}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jal {jalRd = Ra, jalK = 28}}
-reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jr {jrRs = Ra}}
+reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Jalr {jalrRd = Zero, jalrRs1 = Ra, jalrK = 0}}
 reads: 1, writes: 0 -- VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Halt}
 ---
 # Totals
-instructions: 34
-reads: 36 writes: 2 accesses: 38
+instructions: 33
+reads: 35 writes: 2 accesses: 37

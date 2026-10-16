@@ -45,7 +45,6 @@ _start:
     nop                            / nop                            / nop          / bgeu t1, t0, bgeu_label
     nop                            / nop                            / nop          / beq t1, t0, beq_label
     nop                            / nop                            / nop          / bne t1, t0, bne_label
-    nop                            / nop                            / nop          / blt t1, t0, blt_label
 
 jump_label:
     addi t0, t0, 4                 / nop                            / nop          / nop
@@ -74,12 +73,9 @@ beq_label:
 bne_label:
     addi t0, t0, 4                 / nop                            / nop          / nop
 
-blt_label:
-    addi t0, t0, 4                 / nop                            / nop          / nop
-
     nop                            / nop                            / nop          / jal ra, subroutine
 
     nop                            / nop                            / nop          / halt
 
 subroutine:
-    nop                            / nop                            / nop          / jr ra
+    nop                            / nop                            / nop          / jalr zero, ra, 0
