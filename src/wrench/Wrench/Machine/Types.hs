@@ -22,12 +22,18 @@ module Wrench.Machine.Types (
     intervalsDifference,
     AccessLog (..),
     emptyAccessLog,
+    AccessCount (..),
+    emptyAccessCount,
+    acTotal,
+    acSince,
     IsWord,
     FromSign (..),
     RegisterId,
     ByteSize (..),
     ByteSizeT (..),
     WordParts (..),
+    RW (..),
+    bump,
     halted,
 ) where
 
@@ -191,6 +197,8 @@ data IoMem isa w = IoMem
     , mIoByteToWord :: IntMap Int
     , mAccessLog :: !AccessLog
     -- ^ Tracks the address ranges touched at runtime, surfaced via @mem:*@.
+    , mAccessCount :: !AccessCount
+    -- ^ Accesses served, one per operation, never reset.
     }
     deriving (Eq, Show)
 
@@ -201,6 +209,7 @@ mkIoMem streams cells =
         , mIoCells = cells
         , mIoKeys = keys streams
         , mAccessLog = emptyAccessLog
+        , mAccessCount = emptyAccessCount
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }
@@ -307,3 +316,32 @@ data AccessLog = AccessLog
 
 emptyAccessLog :: AccessLog
 emptyAccessLog = AccessLog{alInstr = emptyIntervals, alData = emptyIntervals, alIo = emptyIntervals}
+
+-- | Reads and writes served, counted once per operation.
+data AccessCount = AccessCount
+    { acReads :: !Int
+    , acWrites :: !Int
+    }
+    deriving (Eq, Show)
+
+-- | Which way an access went.
+data RW = R | W
+
+bump :: RW -> AccessCount -> AccessCount
+bump R c = c{acReads = acReads c + 1}
+bump W c = c{acWrites = acWrites c + 1}
+
+emptyAccessCount :: AccessCount
+emptyAccessCount = AccessCount{acReads = 0, acWrites = 0}
+
+-- | Reads plus writes.
+acTotal :: AccessCount -> Int
+acTotal AccessCount{acReads, acWrites} = acReads + acWrites
+
+-- | What happened between two counts.
+acSince :: AccessCount -> AccessCount -> AccessCount
+acSince before after =
+    AccessCount
+        { acReads = acReads after - acReads before
+        , acWrites = acWrites after - acWrites before
+        }
