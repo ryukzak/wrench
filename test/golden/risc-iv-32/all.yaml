@@ -1,0 +1,13 @@
+name: "what each instruction costs in memory accesses"
+limit: 200
+memory_size: 0x400
+reports:
+  - name: Access cost per instruction
+    slice: all
+    view: |
+      reads: {memReads:dec}, writes: {memWrites:dec} -- {instruction:prev}
+  - name: Totals
+    slice: last
+    view: |
+      instructions: {sim:instruction-count}
+      reads: {memReadsTotal:dec} writes: {memWritesTotal:dec} accesses: {memAccessesTotal:dec}

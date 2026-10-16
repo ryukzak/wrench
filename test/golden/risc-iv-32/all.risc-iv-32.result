@@ -1,0 +1,46 @@
+---
+# Access cost per instruction
+reads: 0, writes: 0 -- -
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 0}
+reads: 1, writes: 0 -- Add {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Sub {rd = T3, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Mul {rd = T4, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Mulh {rd = T5, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Div {rd = T6, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Rem {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Sll {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Srl {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Sra {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- And {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Or {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Xor {rd = T2, rs1 = T1, rs2 = T0}
+reads: 1, writes: 0 -- Mv {rd = T2, rs = T1}
+reads: 1, writes: 1 -- Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+reads: 1, writes: 1 -- Sb {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+reads: 1, writes: 0 -- Lui {rd = T2, k = 4660}
+reads: 2, writes: 0 -- Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+reads: 2, writes: 0 -- Lb {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+reads: 1, writes: 0 -- Slti {rd = T2, rs1 = T1, k = 1}
+reads: 1, writes: 0 -- Andi {rd = T2, rs1 = T1, k = 15}
+reads: 1, writes: 0 -- Ori {rd = T2, rs1 = T1, k = 15}
+reads: 1, writes: 0 -- Xori {rd = T2, rs1 = T1, k = 15}
+reads: 1, writes: 0 -- Slli {rd = T2, rs1 = T1, k = 1}
+reads: 1, writes: 0 -- Srli {rd = T2, rs1 = T1, k = 1}
+reads: 1, writes: 0 -- Srai {rd = T2, rs1 = T1, k = 1}
+reads: 1, writes: 0 -- J {k = 36}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Addi {rd = T0, rs1 = T0, k = 4}
+reads: 1, writes: 0 -- Jal {rd = Ra, k = 8}
+reads: 1, writes: 0 -- Jalr {rd = Zero, rs1 = Ra, k = 0}
+reads: 1, writes: 0 -- Halt
+---
+# Totals
+instructions: 39
+reads: 41 writes: 2 accesses: 43

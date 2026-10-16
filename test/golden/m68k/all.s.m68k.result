@@ -1,0 +1,72 @@
+0x000:	buf
+0x010:	val
+0x014:	stack_top
+0x018:	_start
+0x08e:	at_bne
+0x094:	at_bgt
+0x09a:	at_bge
+0x0a0:	at_blt
+0x0a6:	at_ble
+0x0ac:	at_bmi
+0x0b2:	at_bpl
+0x0b8:	at_bcc
+0x0be:	at_bcs
+0x0c4:	at_bvc
+0x0ca:	at_bvs
+0x0d0:	at_call
+0x0dc:	subr
+0x0de:	done
+---
+mem[0x000..0x00f] (16 B): 	( 00 )	@"buf"
+mem[0x010..0x013] (4 B): 	07 00 00 00	@"val"
+mem[0x014..0x017] (4 B): 	00 02 00 00	@"stack_top"
+mem[0x018..0x01d] (6 B): 	MoveA {mode = Long, src = Immediate 20, dst = DirectAddrReg A7} 	@_start
+mem[0x01e..0x021] (4 B): 	MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
+mem[0x022..0x027] (6 B): 	MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0}
+mem[0x028..0x029] (2 B): 	MoveA {mode = Long, src = DirectAddrReg A0, dst = DirectAddrReg A1}
+mem[0x02a..0x02f] (6 B): 	Move {mode = Long, src = Immediate 7, dst = DirectDataReg D0}
+mem[0x030..0x033] (4 B): 	Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A0 Nothing}
+mem[0x034..0x037] (4 B): 	Move {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = IndirectAddrRegPostIncrement A1}
+mem[0x038..0x039] (2 B): 	Move {mode = Long, src = IndirectAddrRegPostIncrement A0, dst = IndirectAddrRegPreDecrement A1}
+mem[0x03a..0x03b] (2 B): 	Move {mode = Long, src = IndirectAddrRegPreDecrement A0, dst = DirectDataReg D1}
+mem[0x03c..0x043] (8 B): 	Move {mode = Byte, src = Immediate 1, dst = IndirectAddrReg 0 A0 Nothing}
+mem[0x044..0x045] (2 B): 	Move {mode = Long, src = IndirectAddrRegPostIncrement A0, dst = IndirectAddrRegPostIncrement A0}
+mem[0x046..0x047] (2 B): 	Move {mode = Long, src = IndirectAddrRegPreDecrement A0, dst = IndirectAddrRegPreDecrement A0}
+mem[0x048..0x04d] (6 B): 	Move {mode = Long, src = Immediate 5, dst = DirectDataReg D0}
+mem[0x04e..0x053] (6 B): 	Move {mode = Long, src = Immediate 3, dst = DirectDataReg D1}
+mem[0x054..0x055] (2 B): 	Add {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x056..0x057] (2 B): 	Sub {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x058..0x059] (2 B): 	And {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x05a..0x05b] (2 B): 	Or {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x05c..0x05d] (2 B): 	Xor {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x05e..0x05f] (2 B): 	Cmp {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x060..0x061] (2 B): 	Mul {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x062..0x067] (6 B): 	Move {mode = Long, src = Immediate 4, dst = DirectDataReg D2}
+mem[0x068..0x069] (2 B): 	Div {mode = Long, src = DirectDataReg D2, dst = DirectDataReg D1}
+mem[0x06a..0x06b] (2 B): 	Not {mode = Long, dst = DirectDataReg D1}
+mem[0x06c..0x06d] (2 B): 	Neg {mode = Long, dst = DirectDataReg D1}
+mem[0x06e..0x06f] (2 B): 	Clr {mode = Long, dst = DirectDataReg D1}
+mem[0x070..0x075] (6 B): 	Asl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+mem[0x076..0x077] (2 B): 	Asr {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
+mem[0x078..0x07d] (6 B): 	Lsl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+mem[0x07e..0x083] (6 B): 	Lsr {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+mem[0x084..0x085] (2 B): 	Not {mode = Byte, dst = DirectDataReg D1}
+mem[0x086..0x087] (2 B): 	Clr {mode = Long, dst = DirectDataReg D1}
+mem[0x088..0x08d] (6 B): 	Beq {ref = 142}
+mem[0x08e..0x093] (6 B): 	Bne {ref = 148} 	@at_bne
+mem[0x094..0x099] (6 B): 	Bgt {ref = 154} 	@at_bgt
+mem[0x09a..0x09f] (6 B): 	Bge {ref = 160} 	@at_bge
+mem[0x0a0..0x0a5] (6 B): 	Blt {ref = 166} 	@at_blt
+mem[0x0a6..0x0ab] (6 B): 	Ble {ref = 172} 	@at_ble
+mem[0x0ac..0x0b1] (6 B): 	Bmi {ref = 178} 	@at_bmi
+mem[0x0b2..0x0b7] (6 B): 	Bpl {ref = 184} 	@at_bpl
+mem[0x0b8..0x0bd] (6 B): 	Bcc {ref = 190} 	@at_bcc
+mem[0x0be..0x0c3] (6 B): 	Bcs {ref = 196} 	@at_bcs
+mem[0x0c4..0x0c9] (6 B): 	Bvc {ref = 202} 	@at_bvc
+mem[0x0ca..0x0cf] (6 B): 	Bvs {ref = 208} 	@at_bvs
+mem[0x0d0..0x0d5] (6 B): 	Jsr {ref = 220} 	@at_call
+mem[0x0d6..0x0db] (6 B): 	Jmp {ref = 222}
+mem[0x0dc..0x0dd] (2 B): 	Rts 	@subr
+mem[0x0de..0x0df] (2 B): 	Halt 	@done
+mem[0x0e0..0x3e7] (776 B): 	( 00 )
+---

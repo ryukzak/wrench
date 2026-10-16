@@ -30,7 +30,10 @@ _start:
 
     lui t2, 0x1234                 / nop                            / nop          / nop
 
+    slti t2, t1, 1                 / nop                            / nop          / nop
+
     nop                            / nop                            / lw t2, 0(t0) / nop
+    nop                            / nop                            / lb t2, 0(t0) / nop
 
     nop                            / nop                            / nop          / j jump_label
 
@@ -42,6 +45,7 @@ _start:
     nop                            / nop                            / nop          / bgeu t1, t0, bgeu_label
     nop                            / nop                            / nop          / beq t1, t0, beq_label
     nop                            / nop                            / nop          / bne t1, t0, bne_label
+    nop                            / nop                            / nop          / blt t1, t0, blt_label
 
 jump_label:
     addi t0, t0, 4                 / nop                            / nop          / nop
@@ -70,4 +74,12 @@ beq_label:
 bne_label:
     addi t0, t0, 4                 / nop                            / nop          / nop
 
+blt_label:
+    addi t0, t0, 4                 / nop                            / nop          / nop
+
+    nop                            / nop                            / nop          / jal ra, subroutine
+
     nop                            / nop                            / nop          / halt
+
+subroutine:
+    nop                            / nop                            / nop          / jr ra
