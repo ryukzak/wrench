@@ -35,10 +35,10 @@ _start:
 
     beqz     t1, beqz_label                  ; Branch if equal to zero
     bnez     t1, bnez_label                  ; Branch if not equal to zero
-    bgt      t1, t0, bgt_label               ; Branch if greater than
-    ble      t1, t0, ble_label               ; Branch if less than or equal
-    bgtu     t1, t0, bgtu_label              ; Branch if greater than (unsigned)
-    bleu     t1, t0, bleu_label              ; Branch if less than or equal (unsigned)
+    blt      t1, t0, blt_label               ; Branch if less than
+    bge      t1, t0, bge_label               ; Branch if greater than or equal
+    bltu     t1, t0, bltu_label              ; Branch if less than (unsigned)
+    bgeu     t1, t0, bgeu_label              ; Branch if greater than or equal (unsigned)
     beq      t1, t0, beq_label               ; Branch if equal
     bne      t1, t0, bne_label               ; Branch if not equal
 
@@ -51,16 +51,16 @@ beqz_label:
 bnez_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
-bgt_label:
+blt_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
-ble_label:
+bge_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
-bgtu_label:
+bltu_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
-bleu_label:
+bgeu_label:
     addi     t0, t0, 4                       ; Add immediate to simulate branch
 
 beq_label:

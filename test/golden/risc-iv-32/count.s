@@ -38,7 +38,7 @@ count:
     sw       t2, 0(t4)                       ; Write the updated counter to the output port
 
     ; Check if the counter has reached the limit
-    bgt      t2, t5, end                     ; If t2 (acc) >= t5 (limit), branch to halt
+    blt      t5, t2, end                     ; If t2 (acc) > t5 (limit), branch to halt
 
     ; Loop again
     j        count                           ; Jump back to the start of count loop

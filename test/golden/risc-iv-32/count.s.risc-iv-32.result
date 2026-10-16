@@ -25,7 +25,7 @@ mem[0x03c..0x03f] (4 B): 	Lw {rd = T5, offsetRs1 = MemRef {mrOffset = 0, mrReg =
 mem[0x040..0x043] (4 B): 	Add {rd = T2, rs1 = T2, rs2 = T1} 	@count
 mem[0x044..0x047] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
 mem[0x048..0x04b] (4 B): 	Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T4}}
-mem[0x04c..0x04f] (4 B): 	Bgt {rs1 = T2, rs2 = T5, k = 8}
+mem[0x04c..0x04f] (4 B): 	Blt {rs1 = T5, rs2 = T2, k = 8}
 mem[0x050..0x053] (4 B): 	J {k = -16}
 mem[0x054..0x057] (4 B): 	Halt 	@end
 mem[0x058..0x3e7] (912 B): 	( 00 )

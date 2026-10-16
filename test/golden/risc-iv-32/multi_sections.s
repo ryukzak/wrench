@@ -54,7 +54,7 @@ read_c:
     addi     t1, t1, %lo(output_ptr)
     lw       t1, 0(t1)
     sw       a0, 0(t1)
-    jr       ra
+    jalr     zero, ra, 0
 
     .data
 output_ptr:      .word  0x84
