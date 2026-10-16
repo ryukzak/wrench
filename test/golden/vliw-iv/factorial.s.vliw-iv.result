@@ -14,7 +14,7 @@ mem[0x090..0x09d] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Lui {luiRd = T0, lu
 mem[0x09e..0x0ab] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T0, addiRs1 = T0, addiK = 0}, alu2Op = NopA, ctrlOp = NopC}
 mem[0x0ac..0x0b9] (14 B): 	VliwIvIsa {memOp = Lw {lwRd = T0, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
 mem[0x0ba..0x0c7] (14 B): 	VliwIvIsa {memOp = Lw {lwRd = T1, lwOffsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}, alu1Op = NopA, alu2Op = NopA, ctrlOp = NopC}
-mem[0x0c8..0x0d5] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Bgt {bgtRs1 = Zero, bgtRs2 = T1, bgtK = 210}}
+mem[0x0c8..0x0d5] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Blt {bltRs1 = T1, bltRs2 = Zero, bltK = 210}}
 mem[0x0d6..0x0e3] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Addi {addiRd = T2, addiRs1 = Zero, addiK = 1}, alu2Op = NopA, ctrlOp = NopC} 	@factorial_begin
 mem[0x0e4..0x0f1] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = NopA, alu2Op = NopA, ctrlOp = Beqz {beqzRs1 = T1, beqzK = 266}} 	@factorial_while
 mem[0x0f2..0x0ff] (14 B): 	VliwIvIsa {memOp = NopM, alu1Op = Mulh {mulhRd = T3, mulhRs1 = T2, mulhRs2 = T1}, alu2Op = NopA, ctrlOp = NopC}

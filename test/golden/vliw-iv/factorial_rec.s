@@ -7,9 +7,9 @@ output_addr:     .word  0x84               ; Output address where the result sho
     .org 0x100
 factorial:
     addi t0, zero, -1              / nop                            / nop          / nop
-    nop                            / nop                            / nop          / ble a0, t0, factorial_return_minus_one
+    nop                            / nop                            / nop          / bge t0, a0, factorial_return_minus_one
     addi t0, zero, 1               / nop                            / nop          / nop
-    nop                            / nop                            / nop          / ble a0, t0, factorial_return_one
+    nop                            / nop                            / nop          / bge t0, a0, factorial_return_one
 
     addi sp, sp, -8                / nop                            / nop          / nop
     nop                            / nop                            / sw ra, 4(sp) / nop
@@ -23,28 +23,28 @@ factorial:
     nop                            / nop                            / lw ra, 4(sp) / nop
     addi sp, sp, 8                 / nop                            / nop          / nop
 
-    nop                            / nop                            / nop          / bgt a1, zero, factorial_overflow_case
+    nop                            / nop                            / nop          / blt zero, a1, factorial_overflow_case
 
     mulh t3, a0, t1                / nop                            / nop          / nop
     nop                            / nop                            / nop          / bnez t3, factorial_overflow_case
 
     ; Compute n * factorial(n-1)
     mul a0, a0, t1                 / nop                            / nop          / nop
-    nop                            / nop                            / nop          / jr ra
+    nop                            / nop                            / nop          / jalr zero, ra, 0
 
 factorial_return_one:
     addi a0, zero, 1               / nop                            / nop          / nop
-    nop                            / nop                            / nop          / jr ra
+    nop                            / nop                            / nop          / jalr zero, ra, 0
 
 factorial_return_minus_one:
     addi a0, zero, -1              / nop                            / nop          / nop
-    nop                            / nop                            / nop          / jr ra
+    nop                            / nop                            / nop          / jalr zero, ra, 0
 
 factorial_overflow_case:
     lui a0, %hi(0xCCCCCCCC)        / nop                            / nop          / nop
     addi a0, a0, %lo(0xCCCCCCCC)   / nop                            / nop          / nop
     addi a1, zero, 1               / nop                            / nop          / nop
-    nop                            / nop                            / nop          / jr ra
+    nop                            / nop                            / nop          / jalr zero, ra, 0
 
 _start:
     lui t0, %hi(input_addr)        / nop                            / nop          / nop

@@ -239,7 +239,7 @@ tests =
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_abcd.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_null.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/get_put_char.s" "test/golden/vliw-iv/get_put_char_nothing.yaml"
-                , goldenSimulate VliwIv "test/golden/vliw-iv/ble_bleu.s" "test/golden/vliw-iv/ble_bleu.yaml"
+                , goldenSimulate VliwIv "test/golden/vliw-iv/bge_bgeu.s" "test/golden/vliw-iv/bge_bgeu.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/lui_addi.s" "test/golden/vliw-iv/lui_addi.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/imm_sign_extend.s" "test/golden/vliw-iv/imm_sign_extend.yaml"
                 , goldenSimulate VliwIv "test/golden/vliw-iv/sb.s" "test/golden/vliw-iv/sb.yaml"

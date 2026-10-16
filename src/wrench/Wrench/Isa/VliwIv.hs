@@ -146,16 +146,15 @@ data AluOp w l
 data ControlOp w l
     = J {jK :: l}
     | Jal {jalRd :: Register, jalK :: l}
-    | Jr {jrRs :: Register}
+    | Jalr {jalrRd, jalrRs1 :: Register, jalrK :: l}
     | Beqz {beqzRs1 :: Register, beqzK :: l}
     | Bnez {bnezRs1 :: Register, bnezK :: l}
-    | Bgt {bgtRs1, bgtRs2 :: Register, bgtK :: l}
-    | Ble {bleRs1, bleRs2 :: Register, bleK :: l}
-    | Bgtu {bgtuRs1, bgtuRs2 :: Register, bgtuK :: l}
-    | Bleu {bleuRs1, bleuRs2 :: Register, bleuK :: l}
+    | Blt {bltRs1, bltRs2 :: Register, bltK :: l}
+    | Bge {bgeRs1, bgeRs2 :: Register, bgeK :: l}
+    | Bltu {bltuRs1, bltuRs2 :: Register, bltuK :: l}
+    | Bgeu {bgeuRs1, bgeuRs2 :: Register, bgeuK :: l}
     | Beq {beqRs1, beqRs2 :: Register, beqK :: l}
     | Bne {bneRs1, bneRs2 :: Register, bneK :: l}
-    | Blt {bltRs1, bltRs2 :: Register, bltK :: l}
     | Halt
     | NopC
     deriving (Show)
@@ -358,16 +357,15 @@ parseCtrlOp =
     choice
         [ cmd1args "j" J reference
         , cmd2args "jal" Jal register reference
-        , cmd1args "jr" Jr register
+        , cmd3args "jalr" Jalr register register referenceWithDirective
         , cmd2args "beqz" Beqz register reference
         , cmd2args "bnez" Bnez register reference
-        , cmd3args "bgt" Bgt register register reference
-        , cmd3args "ble" Ble register register reference
-        , cmd3args "bgtu" Bgtu register register reference
-        , cmd3args "bleu" Bleu register register reference
+        , cmd3args "blt" Blt register register reference
+        , cmd3args "bge" Bge register register reference
+        , cmd3args "bltu" Bltu register register reference
+        , cmd3args "bgeu" Bgeu register register reference
         , cmd3args "beq" Beq register register reference
         , cmd3args "bne" Bne register register reference
-        , cmd3args "blt" Blt register register reference
         , string "halt" >> return Halt
         , string "nop" >> return NopC
         , pure NopC
@@ -418,24 +416,24 @@ instance (IsWord w) => DerefMnemonic (AluOp w) w where
     derefMnemonic _ _ (Mv mvRd mvRs) = Mv mvRd mvRs
     derefMnemonic _ _ NopA = NopA
 
-branchDispErr, linkDispErr, jumpDispErr :: Text -> Text -> Text
+branchDispErr, linkDispErr, jumpDispErr, ctrlImmErr :: Text -> Text -> Text
 branchDispErr m x = m <> ": CTRL disp " <> x <> " is not in -512..511"
+ctrlImmErr m x = m <> ": CTRL imm " <> x <> " is not in -512..511"
 linkDispErr m x = m <> ": CTRL disp " <> x <> " is not in -16384..16383"
 jumpDispErr m x = m <> ": CTRL disp " <> x <> " is not in -524288..524287"
 
 instance (IsWord w) => DerefMnemonic (ControlOp w) w where
     derefMnemonic f offset (J jK) = J $ resolveRef (i20 (jumpDispErr "j")) (fmap (\x -> x - offset) . f) jK
     derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ resolveRef (i15 (linkDispErr "jal")) (fmap (\x -> x - offset) . f) jalK
-    derefMnemonic _ _ (Jr jrRs) = Jr jrRs
+    derefMnemonic f _ (Jalr jalrRd jalrRs1 jalrK) = Jalr jalrRd jalrRs1 $ resolveRef (i10 (ctrlImmErr "jalr")) f jalrK
     derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ resolveRef (i15 (linkDispErr "beqz")) (fmap (\x -> x - offset) . f) beqzK
     derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ resolveRef (i15 (linkDispErr "bnez")) (fmap (\x -> x - offset) . f) bnezK
-    derefMnemonic f offset (Bgt bgtRs1 bgtRs2 bgtK) = Bgt bgtRs1 bgtRs2 $ resolveRef (i10 (branchDispErr "bgt")) (fmap (\x -> x - offset) . f) bgtK
-    derefMnemonic f offset (Ble bleRs1 bleRs2 bleK) = Ble bleRs1 bleRs2 $ resolveRef (i10 (branchDispErr "ble")) (fmap (\x -> x - offset) . f) bleK
-    derefMnemonic f offset (Bgtu bgtuRs1 bgtuRs2 bgtuK) = Bgtu bgtuRs1 bgtuRs2 $ resolveRef (i10 (branchDispErr "bgtu")) (fmap (\x -> x - offset) . f) bgtuK
-    derefMnemonic f offset (Bleu bleuRs1 bleuRs2 bleuK) = Bleu bleuRs1 bleuRs2 $ resolveRef (i10 (branchDispErr "bleu")) (fmap (\x -> x - offset) . f) bleuK
+    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ resolveRef (i10 (branchDispErr "blt")) (fmap (\x -> x - offset) . f) bltK
+    derefMnemonic f offset (Bge bgeRs1 bgeRs2 bgeK) = Bge bgeRs1 bgeRs2 $ resolveRef (i10 (branchDispErr "bge")) (fmap (\x -> x - offset) . f) bgeK
+    derefMnemonic f offset (Bltu bltuRs1 bltuRs2 bltuK) = Bltu bltuRs1 bltuRs2 $ resolveRef (i10 (branchDispErr "bltu")) (fmap (\x -> x - offset) . f) bltuK
+    derefMnemonic f offset (Bgeu bgeuRs1 bgeuRs2 bgeuK) = Bgeu bgeuRs1 bgeuRs2 $ resolveRef (i10 (branchDispErr "bgeu")) (fmap (\x -> x - offset) . f) bgeuK
     derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ resolveRef (i10 (branchDispErr "beq")) (fmap (\x -> x - offset) . f) beqK
     derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ resolveRef (i10 (branchDispErr "bne")) (fmap (\x -> x - offset) . f) bneK
-    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ resolveRef (i10 (branchDispErr "blt")) (fmap (\x -> x - offset) . f) bltK
     derefMnemonic _ _ Halt = Halt
     derefMnemonic _ _ NopC = NopC
 
@@ -731,19 +729,20 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
                 setReg jalRd (toEnum pc + 14)
                 setPc (pc + fromEnum jalK)
                 return True
-            execCtrl (Jr jrRs) = do
-                rs' <- getReg jrRs
-                setPc (fromEnum rs')
+            execCtrl (Jalr jalrRd jalrRs1 jalrK) = do
+                VliwIvSt{pc} <- get
+                rs1' <- getReg jalrRs1
+                setReg jalrRd (toEnum pc + 14)
+                setPc (fromEnum (rs1' + jalrK))
                 return True
             execCtrl (Beqz beqzRs1 beqzK) = branchIf beqzRs1 beqzK (== 0)
             execCtrl (Bnez bnezRs1 bnezK) = branchIf bnezRs1 bnezK (/= 0)
-            execCtrl (Bgt bgtRs1 bgtRs2 bgtK) = branchIf2 bgtRs1 bgtRs2 bgtK (>)
-            execCtrl (Ble bleRs1 bleRs2 bleK) = branchIf2 bleRs1 bleRs2 bleK (<=)
-            execCtrl (Bgtu bgtuRs1 bgtuRs2 bgtuK) = branchIf2u bgtuRs1 bgtuRs2 bgtuK (>)
-            execCtrl (Bleu bleuRs1 bleuRs2 bleuK) = branchIf2u bleuRs1 bleuRs2 bleuK (<=)
+            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 bltK (<)
+            execCtrl (Bge bgeRs1 bgeRs2 bgeK) = branchIf2 bgeRs1 bgeRs2 bgeK (>=)
+            execCtrl (Bltu bltuRs1 bltuRs2 bltuK) = branchIf2u bltuRs1 bltuRs2 bltuK (<)
+            execCtrl (Bgeu bgeuRs1 bgeuRs2 bgeuK) = branchIf2u bgeuRs1 bgeuRs2 bgeuK (>=)
             execCtrl (Beq beqRs1 beqRs2 beqK) = branchIf2 beqRs1 beqRs2 beqK (==)
             execCtrl (Bne bneRs1 bneRs2 bneK) = branchIf2 bneRs1 bneRs2 bneK (/=)
-            execCtrl (Blt bltRs1 bltRs2 bltK) = branchIf2 bltRs1 bltRs2 bltK (<)
             execCtrl Halt = do
                 modify $ \st -> st{stopped = True}
                 return True

@@ -35,7 +35,7 @@ count:
     add t2, t2, t1                 / nop                            / sw t2, 0(t0) / nop
 
     ; Output the updated counter value
-    nop                            / nop                            / sw t2, 0(t4) / bgt t2, t5, end
+    nop                            / nop                            / sw t2, 0(t4) / blt t5, t2, end
 
     ; Loop again
     nop                            / nop                            / nop          / j count

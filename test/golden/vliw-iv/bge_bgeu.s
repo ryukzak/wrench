@@ -16,6 +16,6 @@ make_pos_a1:
     nop                            / nop                            / nop / j continue
 
 continue:
-    nop                            / nop                            / nop / ble a0, zero, make_pos_a0
-    nop                            / nop                            / nop / bleu a1, zero, make_pos_a1
+    nop                            / nop                            / nop / bge zero, a0, make_pos_a0
+    nop                            / nop                            / nop / bgeu zero, a1, make_pos_a1
     nop                            / nop                            / nop / halt
