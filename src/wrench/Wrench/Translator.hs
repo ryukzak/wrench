@@ -2,7 +2,6 @@
 
 module Wrench.Translator (
     translate,
-    evaluateLabels,
     TranslatorResult (..),
 ) where
 
