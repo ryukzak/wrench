@@ -13,3 +13,7 @@ reports:
     view: |
       pc: {pc}
       {layout:dec}
+  - name: Scan and branch caches
+    slice: all
+    view: |
+      {pc:hex}: {instruction:prev} // access: {memAccesses:dec}, scans: {scanCache:hex}, branches: {branchCache:hex}

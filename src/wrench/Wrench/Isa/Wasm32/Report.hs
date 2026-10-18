@@ -23,10 +23,12 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
     isHalted Wasm32St{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@Wasm32St{mem, sp, stackRoot, ctrlSp, frameBase} v =
+    reprState labels st@Wasm32St{mem, sp, stackRoot, ctrlSp, frameBase, scanCache, branchCache} v =
         case T.splitOn ":" v of
             ["stack", f] -> formatValues f (stackWords view)
             ["locals", f] -> formatValues f (localWords view)
+            ["scanCache", f] -> formatScans f
+            ["branchCache", f] -> formatBranches f
             ["layout", f] -> withFormat f (renderLayout labels view) Nothing
             ["layout", f, n] -> withFrameLimit n (withFormat f (renderLayout labels view))
             ["dump", f] -> withFormat f (renderDump labels view) Nothing
@@ -44,6 +46,14 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
             formatValues "dec" vs = toText $ intercalate ":" $ map show vs
             formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
             formatValues f _ = unknownFormat f
+
+            formatScans "dec" = T.intercalate ", " [[i|#{start}->#{end}|] | (start, end) <- scanCache]
+            formatScans "hex" = T.intercalate ", " [[i|#{hexAddr' start}->#{hexAddr' end}|] | (start, end) <- scanCache]
+            formatScans f = unknownFormat f
+            formatBranches "dec" = T.intercalate ", " [[i|#{beFrom}->#{beTo}|] | BranchEntry{beFrom, beTo} <- branchCache]
+            formatBranches "hex" = T.intercalate ", " [[i|#{hexAddr' beFrom}->#{hexAddr' beTo}|] | BranchEntry{beFrom, beTo} <- branchCache]
+            formatBranches f = unknownFormat f
+            hexAddr' = hexAddr (hexAddrWidth (memCapacity mem))
 
             withFormat "dec" render limit =
                 render LayoutFormat{lfWord = show, lfAddr = show, lfFrameLimit = limit}
