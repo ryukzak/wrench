@@ -1,14 +1,18 @@
-name: "assert logical_not(True) == False"
-limit: 2000
+# 0 - Истина, 1 - Ложь
+name: not true
+limit: 1000
 memory_size: 0x1000
 memory_mapped_io:
   0x80: [1]
   0x84: []
 reports:
+  - name: Step-by-step log
+    slice: all
+    view: |
+      {stack:dec}
+      {pc}:	{instruction:next}	{pc:label}
   - name: Check results
     slice: last
-    filter:
-      - state
     view: |
       numio[0x80]: {io:0x80:dec}
       numio[0x84]: {io:0x84:dec}

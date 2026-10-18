@@ -1,0 +1,1779 @@
+---
+# Check results
+numio[0x80]: [] >>> []
+numio[0x84]: [] >>> [120]
+---
+# Stack layout
+pc: 36
+#0 _start (pc=36, live)
+  (operands): empty, base=384
+pc: 41
+#0 _start (pc=41, live)
+  mem[380..383]: (operands)
+    380..383: 132 (0) [sp]
+pc: 46
+#0 _start (pc=46, live)
+  mem[376..383]: (operands)
+    380..383: 132 (0)
+    376..379: 128 (1) [sp]
+pc: 48
+#0 _start (pc=48, live)
+  mem[376..383]: (operands)
+    380..383: 132 (0)
+    376..379: 5 (1) [sp]
+pc: 53
+#0 _start (pc=53, live)
+  mem[372..383]: (operands)
+    380..383: 132 (0)
+    376..379: 5 (1)
+    372..375: 0 (2) [sp]
+pc: 0
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=0, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [sp] [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  (operands): empty, base=376
+pc: 2
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=2, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0) [sp]
+pc: 7
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=7, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[368..375]: (operands)
+    372..375: 5 (0)
+    368..371: 1 (1) [sp]
+pc: 8
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=8, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 0 (0) [sp]
+pc: 16
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=16, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [sp] [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  (operands): empty, base=376
+pc: 18
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=18, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0) [sp]
+pc: 20
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=20, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[368..375]: (operands)
+    372..375: 5 (0)
+    368..371: 5 (1) [sp]
+pc: 25
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=25, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[364..375]: (operands)
+    372..375: 5 (0)
+    368..371: 5 (1)
+    364..367: 1 (2) [sp]
+pc: 26
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=26, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[368..375]: (operands)
+    372..375: 5 (0)
+    368..371: 4 (1) [sp]
+pc: 31
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=31, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[364..375]: (operands)
+    372..375: 5 (0)
+    368..371: 4 (1)
+    364..367: 0 (2) [sp]
+pc: 0
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=0, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [sp] [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=368
+pc: 2
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=2, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0) [sp]
+pc: 7
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=7, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[360..367]: (operands)
+    364..367: 4 (0)
+    360..363: 1 (1) [sp]
+pc: 8
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=8, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 0 (0) [sp]
+pc: 16
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=16, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [sp] [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=368
+pc: 18
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=18, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0) [sp]
+pc: 20
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=20, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[360..367]: (operands)
+    364..367: 4 (0)
+    360..363: 4 (1) [sp]
+pc: 25
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=25, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..367]: (operands)
+    364..367: 4 (0)
+    360..363: 4 (1)
+    356..359: 1 (2) [sp]
+pc: 26
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=26, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[360..367]: (operands)
+    364..367: 4 (0)
+    360..363: 3 (1) [sp]
+pc: 31
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=31, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..367]: (operands)
+    364..367: 4 (0)
+    360..363: 3 (1)
+    356..359: 0 (2) [sp]
+pc: 0
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=0, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [sp] [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=360
+pc: 2
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=2, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0) [sp]
+pc: 7
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=7, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[352..359]: (operands)
+    356..359: 3 (0)
+    352..355: 1 (1) [sp]
+pc: 8
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=8, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 0 (0) [sp]
+pc: 16
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=16, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [sp] [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=360
+pc: 18
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=18, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0) [sp]
+pc: 20
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=20, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[352..359]: (operands)
+    356..359: 3 (0)
+    352..355: 3 (1) [sp]
+pc: 25
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=25, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..359]: (operands)
+    356..359: 3 (0)
+    352..355: 3 (1)
+    348..351: 1 (2) [sp]
+pc: 26
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=26, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[352..359]: (operands)
+    356..359: 3 (0)
+    352..355: 2 (1) [sp]
+pc: 31
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=31, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..359]: (operands)
+    356..359: 3 (0)
+    352..355: 2 (1)
+    348..351: 0 (2) [sp]
+pc: 0
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=0, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [sp] [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=352
+pc: 2
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=2, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0) [sp]
+pc: 7
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=7, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[344..351]: (operands)
+    348..351: 2 (0)
+    344..347: 1 (1) [sp]
+pc: 8
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=8, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 0 (0) [sp]
+pc: 16
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=16, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [sp] [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=352
+pc: 18
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=18, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0) [sp]
+pc: 20
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=20, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[344..351]: (operands)
+    348..351: 2 (0)
+    344..347: 2 (1) [sp]
+pc: 25
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=25, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[340..351]: (operands)
+    348..351: 2 (0)
+    344..347: 2 (1)
+    340..343: 1 (2) [sp]
+pc: 26
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=26, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[344..351]: (operands)
+    348..351: 2 (0)
+    344..347: 1 (1) [sp]
+pc: 31
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=31, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[340..351]: (operands)
+    348..351: 2 (0)
+    344..347: 1 (1)
+    340..343: 0 (2) [sp]
+pc: 0
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=0, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [sp] [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=344
+pc: 2
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=2, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[340..343]: (operands)
+    340..343: 1 (0) [sp]
+pc: 7
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=7, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[336..343]: (operands)
+    340..343: 1 (0)
+    336..339: 1 (1) [sp]
+pc: 8
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=8, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[340..343]: (operands)
+    340..343: 1 (0) [sp]
+pc: 9
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=9, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [sp] [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  (operands): empty, base=344
+pc: 14
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34)
+  mem[352..355]: locals
+    352..355: 2 (0)
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0)
+#5 factorial (pc=14, live)
+  mem[344..347]: locals
+    344..347: 1 (0) [frameBase]
+  mem[416..423]: CallScope
+    { csCallerFrameBase = 352
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[340..343]: (operands)
+    340..343: 1 (0) [sp]
+pc: 34
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=34, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[344..351]: (operands)
+    348..351: 2 (0)
+    344..347: 1 (1) [sp]
+pc: 35
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34)
+  mem[360..363]: locals
+    360..363: 3 (0)
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 3 (0)
+#4 factorial (pc=35, live)
+  mem[352..355]: locals
+    352..355: 2 (0) [frameBase]
+  mem[408..415]: CallScope
+    { csCallerFrameBase = 360
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[348..351]: (operands)
+    348..351: 2 (0) [sp]
+pc: 34
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=34, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[352..359]: (operands)
+    356..359: 3 (0)
+    352..355: 2 (1) [sp]
+pc: 35
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34)
+  mem[368..371]: locals
+    368..371: 4 (0)
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 4 (0)
+#3 factorial (pc=35, live)
+  mem[360..363]: locals
+    360..363: 3 (0) [frameBase]
+  mem[400..407]: CallScope
+    { csCallerFrameBase = 368
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[356..359]: (operands)
+    356..359: 6 (0) [sp]
+pc: 34
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=34, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[360..367]: (operands)
+    364..367: 4 (0)
+    360..363: 6 (1) [sp]
+pc: 35
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34)
+  mem[376..379]: locals
+    376..379: 5 (0)
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 5 (0)
+#2 factorial (pc=35, live)
+  mem[368..371]: locals
+    368..371: 4 (0) [frameBase]
+  mem[392..399]: CallScope
+    { csCallerFrameBase = 376
+    , csCallerLocalCount = 1
+    , csReturnPc = 34
+    , csResultCount = 1 }
+  mem[364..367]: (operands)
+    364..367: 24 (0) [sp]
+pc: 34
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=34, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[368..375]: (operands)
+    372..375: 5 (0)
+    368..371: 24 (1) [sp]
+pc: 35
+#0 _start (pc=56)
+  mem[380..383]: (operands)
+    380..383: 132 (0)
+#1 factorial (pc=35, live)
+  mem[376..379]: locals
+    376..379: 5 (0) [frameBase]
+  mem[384..391]: CallScope
+    { csCallerFrameBase = 380
+    , csCallerLocalCount = 0
+    , csReturnPc = 56
+    , csResultCount = 1 }
+  mem[372..375]: (operands)
+    372..375: 120 (0) [sp]
+pc: 56
+#0 _start (pc=56, live)
+  mem[376..383]: (operands)
+    380..383: 132 (0)
+    376..379: 120 (1) [sp]
+pc: 58
+#0 _start (pc=58, live)
+  (operands): empty, base=384
+pc: 58
+#0 _start (pc=58, live)
+  (operands): empty, base=384

@@ -1,17 +1,10 @@
     .text
 
 _start:
-    .func
-        i32.const 0x84
-        i32.const 0x80
-        i32.load
-        call     logical_not
-        i32.store
-        halt
-    .endfunc
-
-logical_not:
-    .func    params $value result i32
-        local.get $value
-        i32.eqz
-    .endfunc
+    i32.const 0x84                           ; output address, under the value
+    i32.const 0x80
+    i32.load                                 ; int n = *input_addr;
+    i32.const 1
+    i32.xor                                  ; n ^= 1;
+    i32.store                                ; *output_addr = n;
+    halt

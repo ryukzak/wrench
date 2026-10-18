@@ -1,241 +1,230 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Wrench.Isa.Wasm32.Test (tests) where
 
-import Data.Default
+import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.HashMap.Strict qualified as HashMap
 import Data.IntMap.Strict qualified as IntMap
+import Data.String.Interpolate (i)
 import Data.Text qualified as T
 import Prelude qualified
 import Relude
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, assertBool, assertFailure, testCase, (@?=))
-import Text.Megaparsec (parse)
+import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Wrench.Isa.Wasm32
-import Wrench.Machine.Memory
+import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Machine.Types
-import Wrench.Translator (TranslatorResult (..))
-import Wrench.Translator.Parser.Types (MnemonicParser (..))
-import Wrench.Translator.Types (Ref)
+import Wrench.Translator (TranslatorResult (..), translate)
 
+-- | What the golden corpus in @test\/golden\/wasm32@ cannot check: the
+-- arithmetic and memory edge cases no program there reaches, and every way
+-- the machine is meant to refuse a program.
 tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "Parse keyword function metadata" $ do
-            assertBool "keyword .func should parse" $
-                isRight (parseSource ".func params $n result i32 locals $acc")
-        , testCase "Parse numeric function metadata" $ do
-            assertBool "numeric func should parse" $
-                isRight (parseSource "func 2, 3, 1")
-        , testCase "Source metadata lowers away from executable memory" $ do
-            let src = Prelude.unlines [".text", "_start:", "    .func", "    halt", "    .endfunc"]
-            case translateWasm32 @Int32 64 (repeat 0) "-" src of
-                Left err -> assertFailureText err
-                Right (TranslatorResult dump labels _stats, functions) -> do
-                    HashMap.lookup "_start" labels @?= Just 0
-                    IntMap.member 0 functions @?= True
-                    prettyDump labels (dumpCells dump) @?= "mem[0..0]: \tHalt \t@_start\nmem[1..1]: \tReturn\nmem[2..63]: \t( 00 )"
-        , testCase "Translation rejects unknown locals" $ do
-            assertTranslateError
-                "unknown local"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    local.get $missing"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects duplicate locals" $ do
-            assertTranslateError
-                "duplicate local name"
-                [ ".text"
-                , "_start:"
-                , "    .func params $n locals $n"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects unknown control labels" $ do
-            assertTranslateError
-                "unknown control label"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    br missing"
-                , "    .endfunc"
-                ]
-        , testCase "Translation rejects calls to non-functions" $ do
-            assertTranslateError
-                "call target does not point to .func"
-                [ ".text"
-                , "_start:"
-                , "    .func"
-                , "    call target"
-                , "    .endfunc"
-                , "target:"
-                , "    i32.const 0"
-                ]
-        , testCase "Binary operations pop right operand first" $ do
-            operandStack (execute I32Sub [3, 10]) @?= [7]
-        , testCase "Logical right shift treats negative value as unsigned" $ do
-            operandStack (execute I32ShrU [4, -16]) @?= [0x0FFFFFFF]
-        , testCase "Shift amount is masked to 5 bits" $ do
-            operandStack (execute I32Shl [33, 1]) @?= [2]
-        , testCase "Signed and unsigned comparisons differ" $ do
-            operandStack (execute I32LtS [1, -1]) @?= [1]
-            operandStack (execute I32LtU [1, -1]) @?= [0]
-        , testCase "Select uses non-zero condition" $ do
-            operandStack (execute Select [9, 10, 20]) @?= [20]
-            operandStack (execute Select [0, 10, 20]) @?= [10]
-        , testCase "Signed division by zero traps" $ do
-            internalError (execute I32DivS [0, 42]) @?= Just "integer divide by zero"
-        , testCase "Signed division overflow traps" $ do
-            internalError (execute I32DivS [-1, minBound]) @?= Just "integer overflow"
-        , testCase "Byte loads support signed and unsigned extension" $ do
-            operandStack (executeWithBytes I32Load8S [(10, 0x80)] [10]) @?= [-128]
-            operandStack (executeWithBytes I32Load8U [(10, 0x80)] [10]) @?= [128]
-        , testCase "Byte store writes the low byte" $ do
-            let Wasm32St{mem} = executeWithBytes I32Store8 [] [0x12345641, 10]
-            fmap snd (readByte mem 10) @?= Right 0x41
-        , testCase "Function calls bind params and return results" $ do
-            let Wasm32St{operandStack, stopped, internalError} = runProgram functionTable functionProgram
-            operandStack @?= [42]
-            stopped @?= True
-            internalError @?= Nothing
-        , testCase "If/else executes the selected structured branch" $ do
-            operandStack (runProgram ifElseTable ifElseProgram) @?= [2]
-        , testCase "Loop branch keeps the loop frame and exits through block branch" $ do
-            operandStack (runProgram loopTable loopProgram) @?= [0]
+        [ testCase "i32.div_s truncates toward zero and i32.rem_s follows the dividend" $ do
+            runToStack ["i32.const -7", "i32.const 2", "i32.div_s"] >>= (@?= "-3")
+            runToStack ["i32.const 7", "i32.const -2", "i32.div_s"] >>= (@?= "-3")
+            runToStack ["i32.const -7", "i32.const 2", "i32.rem_s"] >>= (@?= "-1")
+            runToStack ["i32.const 7", "i32.const -2", "i32.rem_s"] >>= (@?= "1")
+        , testCase "A zero divisor traps, and so does the one unrepresentable quotient" $ do
+            assertTrap "integer divide by zero" ["i32.const 1", "i32.const 0", "i32.div_s"]
+            assertTrap "integer divide by zero" ["i32.const 1", "i32.const 0", "i32.rem_s"]
+            assertTrap "integer overflow" ["i32.const -2147483648", "i32.const -1", "i32.div_s"]
+            runToStack ["i32.const -2147483648", "i32.const -1", "i32.rem_s"] >>= (@?= "0")
+        , testCase "Byte loads sign- or zero-extend a high-bit byte" $ do
+            let store b = ["i32.const scratch", [i|i32.const #{b :: String}|], "i32.store8", "i32.const scratch"]
+            runSourceToStack (withScratch $ store "0x80" <> ["i32.load8_u"]) >>= (@?= "128")
+            runSourceToStack (withScratch $ store "0x80" <> ["i32.load8_s"]) >>= (@?= "-128")
+        , testCase "A load/store offset indexes without an i32.add" $ do
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".data"
+                        , "a0: .word 10"
+                        , "a1: .word 20"
+                        , "a2: .word 30"
+                        , ".text"
+                        , "_start:"
+                        , "    i32.const a0"
+                        , "    i32.const 99"
+                        , "    i32.store 0x4"
+                        , "    i32.const a0"
+                        , "    i32.load  8"
+                        , "    i32.const a0"
+                        , "    i32.load  4"
+                        , "    i32.const a0"
+                        , "    i32.load"
+                        , "    halt"
+                        ]
+            stack @?= "10:99:30"
+        , testCase "An immediate too wide for its field is rejected where it is written" $ do
+            assertTranslationError "i32.load offset 256 is not in 0..255" ["i32.const 0", "i32.load 256"]
+            assertTranslationError "local.get index 300 is not in 0..255" ["local.get 300"]
+            assertTranslationError "br depth -1 is not in 0..255" ["block", "br -1", "end"]
+            assertTranslationError "call resultCount 300 is not in 0..255" ["i32.const 0", "call 0, 300"]
+            assertTranslationError "locals.reserve count 300 is not in 0..255" ["locals.reserve 300"]
+            assertTranslationError "4:14:" ["i32.const 0", "i32.load 256"]
+            assertTranslationError "expected" ["block", "br start", "end"]
+        , testCase "A scope with no matching end fails at the scope" $ do
+            assertTrap "scope at 0x00 has no matching end" ["block"]
+            assertTrap "has no matching end" ["loop", "block", "end"]
+        , testCase "A br cannot reach past the enclosing function" $ do
+            assertSourceTrap "depth reaches past the enclosing function" $
+                Prelude.unlines
+                    [ ".text"
+                    , "_start:"
+                    , "    block"
+                    , "        i32.const f"
+                    , "        call 0, 0"
+                    , "f:"
+                    , "        br 0"
+                    , "    end"
+                    , "    halt"
+                    ]
+        , testCase "A scope cannot span the gap between two code sections" $ do
+            assertSourceTrap "has no matching end" $
+                Prelude.unlines
+                    [ ".text"
+                    , "_start:"
+                    , "    block"
+                    , ".data"
+                    , "pad: .word 0"
+                    , ".text"
+                    , "    end"
+                    , "    halt"
+                    ]
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".text"
+                        , "helper:"
+                        , "    block"
+                        , "        i32.const 1"
+                        , "        br 0"
+                        , "    end"
+                        , "    return"
+                        , ".data"
+                        , "pad: .word 0"
+                        , ".text"
+                        , "_start:"
+                        , "    block"
+                        , "        i32.const 7"
+                        , "        br 0"
+                        , "    end"
+                        , "    halt"
+                        ]
+            stack @?= "7"
+        , testCase "sp.init resets the frame to having no locals" $ do
+            locals <-
+                runSourceToView "locals:dec" $
+                    toSource ["locals.reserve 2", "i32.const 0x300", "sp.init"]
+            locals @?= ""
+        , testCase "Recursive call/return computes factorial(5)" $ do
+            src <- readExample "factorial.s"
+            out <- runSourceIoToView (IntMap.fromList [(0x80, ([5], [])), (0x84, ([], []))]) "io:0x84:dec" src
+            out @?= "[] >>> [120]"
+        , testCase "Indirect call through a parameter dispatches to the right target" $ do
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".text"
+                        , "apply_twice:"
+                        , "    local.get 1"
+                        , "    local.get 0"
+                        , "    call 1, 1"
+                        , "    local.get 0"
+                        , "    call 1, 1"
+                        , "    return"
+                        , "double:"
+                        , "    local.get 0"
+                        , "    i32.const 2"
+                        , "    i32.mul"
+                        , "    return"
+                        , "_start:"
+                        , "    i32.const double"
+                        , "    i32.const 3"
+                        , "    i32.const apply_twice"
+                        , "    call 2, 1"
+                        , "    halt"
+                        ]
+            stack @?= "12"
         ]
 
-parseSource :: String -> Either String (Source Int32 (Ref Int32))
-parseSource code =
-    case parse mnemonic "-" (code <> "\n") of
-        Left err -> Left $ show err
-        Right m -> Right m
+-- | Read one program out of the golden corpus, so a test that wants a real
+-- program does not carry a second copy of it.
+readExample :: FilePath -> IO String
+readExample name = decodeUtf8 @String <$> readFileBS [i|test/golden/wasm32/#{name}|]
 
-assertFailureText :: Text -> Assertion
-assertFailureText = assertFailure . toString
+runToStack :: [String] -> IO Text
+runToStack instrs = runSourceToStack $ toSource instrs
 
-assertTranslateError :: Text -> [String] -> Assertion
-assertTranslateError needle lines' =
-    case translateWasm32 @Int32 64 (repeat 0) "-" (Prelude.unlines lines') of
-        Right _ -> assertFailure $ "translation unexpectedly succeeded; expected " <> toString needle
-        Left err -> assertBool ("expected " <> toString needle <> " in " <> toString err) $ needle `T.isInfixOf` err
+runSourceToStack :: String -> IO Text
+runSourceToStack = runSourceToView "stack:dec"
 
-execute :: Wasm32Isa Int32 Int32 -> [Int32] -> Wasm32St Int32
-execute instr = executeWithBytes instr []
+runSourceToView :: Text -> String -> IO Text
+runSourceToView = runSourceIoToView mempty
 
-executeWithBytes :: Wasm32Isa Int32 Int32 -> [(Int, Word8)] -> [Int32] -> Wasm32St Int32
-executeWithBytes instr bytes stack =
-    execState (instructionExecute 0 instr) (writeBytes bytes emptyState{operandStack = stack})
+runSourceIoToView :: IntMap ([Int32], [Int32]) -> Text -> String -> IO Text
+runSourceIoToView streams view src =
+    case runSourceIo streams src of
+        Left err -> assertFailure (toString err) >> error "unreachable"
+        Right st -> return $ reprState HashMap.empty st view
 
-writeBytes :: [(Int, Word8)] -> Wasm32St Int32 -> Wasm32St Int32
-writeBytes bytes st@Wasm32St{mem} =
-    st{mem = either error id $ foldlM (\m (addr, value) -> writeByte m addr value) mem bytes}
+assertTrap :: Text -> [String] -> Assertion
+assertTrap expected = assertSourceTrap expected . toSource
 
-emptyState :: Wasm32St Int32
-emptyState = rawState []
+assertSourceTrap :: Text -> String -> Assertion
+assertSourceTrap = assertSourceTrapIo mempty
 
-rawState :: [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-rawState instrs =
-    Wasm32St
-        { pc = 0
-        , mem =
-            programMemory instrs
-        , operandStack = []
-        , operandStackMax = 0
-        , frames = []
-        , framesMax = 0
-        , controlStack = []
-        , controlStackMax = 0
-        , functions = IntMap.empty
-        , stopped = False
-        , internalError = Nothing
-        }
+assertSourceTrapIo :: IntMap ([Int32], [Int32]) -> Text -> String -> Assertion
+assertSourceTrapIo streams expected src =
+    case runSourceIo streams src of
+        Left err | expected `T.isInfixOf` err -> return ()
+        Left err -> assertFailure [i|expected #{show expected :: Text}, got: #{err}|]
+        Right _ -> assertFailure [i|expected a trap matching #{show expected :: Text}|]
 
-runProgram :: FunctionTable -> [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-runProgram functionTable' instrs = go (200 :: Int) (programState functionTable' instrs)
+-- | A field guard fires from 'resolveRef' as an @error@ while the translated
+-- instructions are forced, so walking @show@ is what provokes it -- the same
+-- thing @derefSection@ does for real.
+assertTranslationError :: Text -> [String] -> Assertion
+assertTranslationError expected instrs = do
+    let translated = translate @Wasm32Isa @Int32 1000 (repeat 0) "-" (toSource instrs)
+    outcome <- try @ErrorCall $ evaluate $ length (show translated :: String)
+    case outcome of
+        Left (ErrorCallWithLocation msg _location) -> expect (toText msg)
+        Right _ -> case translated of
+            Left err -> expect err
+            Right _ -> assertFailure [i|expected a translation error matching #{show expected :: Text}|]
     where
-        go 0 _ = error "test program did not halt"
-        go limit st =
+        expect err
+            | expected `T.isInfixOf` err = return ()
+            | otherwise = assertFailure [i|expected #{show expected :: Text}, got: #{err}|]
+
+toSource :: [String] -> String
+toSource instrs = Prelude.unlines $ [".text", "_start:"] <> map ("    " <>) instrs <> ["    halt"]
+
+withScratch :: [String] -> String
+withScratch instrs =
+    Prelude.unlines $
+        [".data", "scratch: .word 0", ".text", "_start:"]
+            <> map ("    " <>) instrs
+            <> ["    halt"]
+
+runSourceIo :: IntMap ([Int32], [Int32]) -> String -> Either Text (Wasm32St Int32)
+runSourceIo streams src = do
+    TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 1000 (repeat 0) "-" src
+    pc <- maybeToRight "_start label should be defined." (HashMap.lookup "_start" labels)
+    let ioDump = mkIoMem streams dump
+        st0 = initState (fromEnum pc) ioDump (repeat 0)
+    runToHalt (2000 :: Int) st0
+    where
+        runToHalt :: Int -> Wasm32St Int32 -> Either Text (Wasm32St Int32)
+        runToHalt 0 _ = Left "test program did not halt"
+        runToHalt limit st =
             case evalState instructionFetch st of
-                Right _ -> go (limit - 1) (execState instructionStep st)
-                Left err | err == halted -> st
-                Left _ -> st
-
-programState :: FunctionTable -> [(Int, Wasm32Isa Int32 Int32)] -> Wasm32St Int32
-programState functionTable' instrs =
-    either error id $ initWasm32State 0 (programMemory instrs) functionTable'
-
-programMemory :: [(Int, Wasm32Isa Int32 Int32)] -> IoMem (Wasm32Isa Int32 Int32) Int32
-programMemory instrs =
-    mkIoMem
-        def
-        Mem
-            { memorySize = 512
-            , memoryData =
-                fromList $
-                    [(addr, Value 0) | addr <- [0 .. 511]]
-                        <> concatMap instructionCells instrs
-            }
-
-instructionCells :: (Int, Wasm32Isa Int32 Int32) -> [(Int, Cell (Wasm32Isa Int32 Int32) Int32)]
-instructionCells (addr, instr) =
-    (addr, Instruction instr)
-        : [(addr + offset, InstructionPart) | offset <- [1 .. byteSize instr - 1]]
-
-functionTable :: FunctionTable
-functionTable =
-    IntMap.fromList
-        [ (0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})
-        , (11, FunctionMeta{fmParamCount = 1, fmLocalNames = ["$x"], fmResultCount = 1})
-        ]
-
-functionProgram :: [(Int, Wasm32Isa Int32 Int32)]
-functionProgram =
-    [ (0, I32Const 41)
-    , (5, Call 11)
-    , (10, Halt)
-    , (11, LocalGet 0)
-    , (13, I32Const 1)
-    , (18, I32Add)
-    , (19, Return)
-    ]
-
-ifElseTable :: FunctionTable
-ifElseTable =
-    IntMap.fromList
-        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = [], fmResultCount = 0})]
-
-ifElseProgram :: [(Int, Wasm32Isa Int32 Int32)]
-ifElseProgram =
-    [ (0, I32Const 0)
-    , (5, If 0)
-    , (7, I32Const 1)
-    , (12, Else)
-    , (13, I32Const 2)
-    , (18, End)
-    , (19, Halt)
-    ]
-
-loopTable :: FunctionTable
-loopTable =
-    IntMap.fromList
-        [(0, FunctionMeta{fmParamCount = 0, fmLocalNames = ["$n"], fmResultCount = 0})]
-
-loopProgram :: [(Int, Wasm32Isa Int32 Int32)]
-loopProgram =
-    [ (0, I32Const 3)
-    , (5, LocalSet 0)
-    , (7, Block 0)
-    , (9, Loop 1)
-    , (11, LocalGet 0)
-    , (13, I32Eqz)
-    , (14, BrIf 0)
-    , (16, LocalGet 0)
-    , (18, I32Const 1)
-    , (23, I32Sub)
-    , (24, LocalSet 0)
-    , (26, Br 1)
-    , (28, End)
-    , (29, End)
-    , (30, LocalGet 0)
-    , (32, Halt)
-    ]
+                Right _ -> runToHalt (limit - 1) (execState instructionStep st)
+                Left err
+                    | err == halted -> Right st
+                    | otherwise -> Left err

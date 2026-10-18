@@ -91,6 +91,14 @@ test-examples: build
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/factorial.s       -c example/vliw-iv/factorial-5.yaml
 	stack exec wrench -- --isa vliw-iv    example/vliw-iv/test-parallel.s   -c example/vliw-iv/test-parallel.yaml
 
+	stack exec wrench -- --isa wasm32     example/wasm32/hello.s            -c example/wasm32/hello.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/factorial.s        -c example/wasm32/factorial-5.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/factorial-recursive.s -c example/wasm32/factorial-recursive-5.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/get-put-char.s     -c example/wasm32/get-put-char-87.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/get-put-char.s     -c example/wasm32/get-put-char-ABCD.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/not.s              -c example/wasm32/not-true.yaml
+	stack exec wrench -- --isa wasm32     example/wasm32/frames.s           -c example/wasm32/frames.yaml
+
 test-server: build generate-variants
 	stack exec wrench-serv &
 	hurl --retry 3 --no-output test/wrench-serv.hurl
