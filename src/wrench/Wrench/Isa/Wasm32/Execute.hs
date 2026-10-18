@@ -23,6 +23,7 @@ instance (IsWord w) => InitState (Wasm32St w) where
             , stackRoot = defaultStackRoot dump
             , scanCache = []
             , branchCache = []
+            , tosRegs = []
             , ctrlSp = defaultStackRoot dump
             , frameBase = defaultStackRoot dump - byteSizeT @w
             , localCount = 0

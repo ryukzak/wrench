@@ -27,6 +27,7 @@ module Wrench.Isa.Wasm32.State (
     -- * Operand stack
     pushValue,
     popValue,
+    tosRegCount,
 
     -- * Locals
     localAddr,
@@ -88,6 +89,10 @@ data Wasm32St w = Wasm32St
     -- recently used first: where each scan started and where it ended.
     , branchCache :: [BranchEntry w]
     -- ^ The last 'branchCacheSize' branches taken, most recently used first.
+    , tosRegs :: [(Int, w)]
+    -- ^ The top-of-stack registers: copies of the last 'tosRegCount'
+    -- values pushed and not yet popped, the last pushed first, each with
+    -- the address of its slot.
     , mem :: IoMem (Wasm32Isa w w) w
     -- ^ Memory, including the memory-mapped I\/O ports.
     , stopped :: Bool
@@ -135,7 +140,7 @@ setWord :: forall w. (IsWord w) => Int -> w -> State (Wasm32St w) ()
 setWord addr w = do
     st@Wasm32St{mem} <- get
     case writeWord mem addr w of
-        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr (byteSizeT @w) (Just w)
+        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr (byteSizeT @w) (Just w) >> forgetTos addr (byteSizeT @w)
         Left err -> raiseInternalError [i|memory access error: #{err}|]
 
 getByte :: (IsWord w) => Int -> State (Wasm32St w) Word8
@@ -151,10 +156,13 @@ setByte :: (IsWord w) => Int -> Word8 -> State (Wasm32St w) ()
 setByte addr b = do
     st@Wasm32St{mem} <- get
     case writeByte mem addr b of
-        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr 1 Nothing
+        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr 1 Nothing >> forgetTos addr 1
         Left err -> raiseInternalError [i|memory access error: #{err}|]
 
 -- * Data stack
+
+tosRegCount :: Int
+tosRegCount = 2
 
 pushValue :: forall w. (IsWord w) => w -> State (Wasm32St w) ()
 pushValue value = do
@@ -162,13 +170,24 @@ pushValue value = do
     let sp' = sp - byteSizeT @w
     modify $ \st -> st{sp = sp'}
     setWord sp' value
+    Wasm32St{mem} <- get
+    unless (sp' `elem` ioPorts mem) $
+        modify $
+            \st -> st{tosRegs = take tosRegCount ((sp', value) : tosRegs st)}
 
 popValue :: forall w. (IsWord w) => State (Wasm32St w) w
 popValue = do
-    Wasm32St{sp} <- get
-    value <- getWord sp
+    Wasm32St{sp, tosRegs} <- get
+    value <- case listToMaybe [v | (addr, v) <- tosRegs, addr == sp] of
+        Just v -> forgetTos sp (byteSizeT @w) >> return v
+        Nothing -> getWord sp
     modify $ \st -> st{sp = sp + byteSizeT @w}
     return value
+
+forgetTos :: forall w. (IsWord w) => Int -> Int -> State (Wasm32St w) ()
+forgetTos addr size = modify $ \st -> st{tosRegs = filter (not . overlaps . fst) (tosRegs st)}
+    where
+        overlaps slot = slot < addr + size && addr < slot + byteSizeT @w
 
 reserveLocals :: forall w. (IsWord w) => Int -> State (Wasm32St w) ()
 reserveLocals n = do

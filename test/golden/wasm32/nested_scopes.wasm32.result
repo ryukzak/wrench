@@ -36,7 +36,7 @@ stack: 30:6:100
     0x174..0x177: 0x00000014 (2)
     0x170..0x173: 0x00000000 (3)
     0x16c..0x16f: 0x00000010 (4) [sp]
-:::: 0x00000010: Call {callParamCount = 3, callResultCount = 2} @outer // access: 4
+:::: 0x00000010: Call {callParamCount = 3, callResultCount = 2} @outer // access: 3
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -84,7 +84,7 @@ stack: 30:6:100
   mem[0x168..0x16f]: (operands)
     0x16c..0x16f: 0x0000000a (0)
     0x168..0x16b: 0x00000014 (1) [sp]
-:::: 0x00000015: I32Add  // access: 4
+:::: 0x00000015: I32Add  // access: 2
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -100,7 +100,7 @@ stack: 30:6:100
     , csResultCount = 2 }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x0000001e (0) [sp]
-:::: 0x00000017: LocalSet 2  // access: 3
+:::: 0x00000017: LocalSet 2  // access: 2
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -131,7 +131,7 @@ stack: 30:6:100
     , csResultCount = 2 }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x00000000 (0) [sp]
-:::: 0x00000000: Call {callParamCount = 0, callResultCount = 1} @inner // access: 4
+:::: 0x00000000: Call {callParamCount = 0, callResultCount = 1} @inner // access: 3
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -251,7 +251,7 @@ stack: 30:6:100
   mem[0x168..0x16f]: (operands)
     0x16c..0x16f: 0x00000003 (0)
     0x168..0x16b: 0x00000003 (1) [sp]
-:::: 0x0000000d: I32Add  // access: 4
+:::: 0x0000000d: I32Add  // access: 2
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -323,7 +323,7 @@ stack: 30:6:100
     , csResultCount = 1 }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x00000006 (0) [sp]
-:::: 0x0000001f: Return  // access: 5
+:::: 0x0000001f: Return  // access: 4
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -356,7 +356,7 @@ stack: 30:6:100
   mem[0x168..0x16f]: (operands)
     0x16c..0x16f: 0x00000006 (0)
     0x168..0x16b: 0x0000001e (1) [sp]
-:::: 0x0000003e: Return  // access: 7
+:::: 0x0000003e: Return  // access: 5
 #0 _start (pc=0x03e, live)
   mem[0x174..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)

@@ -1,3 +1,14 @@
 ---
 # Check result
 stack: 19
+---
+# Top-of-stack registers
+0x00000000: - // access: 0, tos: 
+0x00000005: I32Const 2 // access: 2, tos: 0xbc=0x00000002
+0x0000000a: I32Const 3 // access: 2, tos: 0xb8=0x00000003, 0xbc=0x00000002
+0x0000000b: I32Add // access: 2, tos: 0xbc=0x00000005
+0x00000010: I32Const 4 // access: 2, tos: 0xb8=0x00000004, 0xbc=0x00000005
+0x00000011: I32Mul // access: 2, tos: 0xbc=0x00000014
+0x00000016: I32Const 1 // access: 2, tos: 0xb8=0x00000001, 0xbc=0x00000014
+0x00000017: I32Sub // access: 2, tos: 0xbc=0x00000013
+0x00000017: Halt // access: 1, tos: 0xbc=0x00000013
