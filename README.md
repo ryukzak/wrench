@@ -107,7 +107,7 @@ Available options:
   --instruction-limit LIMIT
                            Maximum number of instructions to execute
                            (default: 8000000)
-  --memory-limit SIZE      Maximum memory size in bytes (default: 8192)
+  --memory-limit SIZE      Maximum memory size in bytes (default: 65535)
   --state-log-limit LIMIT  Maximum number of state records to log
                            (default: 10000)
   --dump-addr-format FORMAT
