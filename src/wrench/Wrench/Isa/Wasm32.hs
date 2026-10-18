@@ -184,6 +184,17 @@ import Wrench.Isa.Wasm32.Report ()
 -- (fetch, pop, @i32.const -1@ and @else@). The @memAccesses@ view shows
 -- these numbers. Reaching an @if@'s @end@ does nothing, and a missing
 -- @end@ is noticed only when a skip looks for it.
+--
+-- The machine remembers its last four scans in the /scan cache/: where
+-- each scan started and where it ended. When the same @if@ or @else@ skips
+-- again while its entry is still there, it continues at the remembered
+-- address and the skip costs no reads: in the example, a second negative
+-- @x@ costs 1 access for the @else@, and a second positive one 2 for the
+-- @if@. A hit moves its entry to the front, and a new scan pushes out the
+-- entry used longest ago, so a loop whose body skips at more than four
+-- places can lose an entry before it comes round again. The cache is part
+-- of the machine, not of memory, starts empty, and is shown by the
+-- @scanCache@ view.
 
 -- $control
 -- An @if@ can only skip forward, and a branch cannot name a label. To
@@ -197,7 +208,10 @@ import Wrench.Isa.Wasm32.Report ()
 --
 -- The open scopes are kept on the /control stack/. Running @block@ or
 -- @loop@ pushes an eight-byte record with the addresses a branch needs, and
--- its @end@ pops it. @ctrlSp@ is the address just past the top record.
+-- its @end@ pops it. @ctrlSp@ is the address just past the top record. To
+-- learn where its @end@ is, @block@ or @loop@ scans for it like a skip
+-- does, through the same scan cache, so entering a scope again soon costs
+-- only the fetch and the record.
 --
 -- @br n@ branches to the scope @n@ records down the control stack, @0@
 -- being the innermost, and pops the records of the scopes it leaves;
@@ -318,6 +332,8 @@ import Wrench.Isa.Wasm32.Report ()
 -- [@stack@] The current frame's operands, top first, e.g. @14:14@.
 -- [@locals@] The current frame's locals, local 0 first.
 -- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers of the same name.
+-- [@scanCache@] The scan cache, most recently used first, each entry as
+--   @start->end@, e.g. @0x02e->0x044, 0x011->0x070@.
 -- [@layout@] Every frame, oldest first: its locals, control records and
 --   operands. @layout:hex:2@ shows the last two frames only.
 -- [@dump@] @layout@ plus the raw memory from @ctrlSp@ to the end.
