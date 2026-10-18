@@ -13,6 +13,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Wrench.Isa.Wasm32
 import Wrench.Isa.Wasm32.State (Wasm32St)
+import Wrench.Machine.Memory (memAccessCount)
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..), translate)
 
@@ -121,6 +122,50 @@ tests =
                 runSourceToView "locals:dec" $
                     toSource ["locals.reserve 2", "i32.const 0x300", "sp.init"]
             locals @?= ""
+        , testCase "A branch taken again reads nothing from the control stack" $ do
+            let countdown n =
+                    Prelude.unlines
+                        [ ".data"
+                        , [i|n: .word #{n :: Int}|]
+                        , ".text"
+                        , "_start:"
+                        , "    loop"
+                        , "        i32.const n"
+                        , "        i32.const n i32.load i32.const 1 i32.sub"
+                        , "        i32.store"
+                        , "        i32.const n i32.load"
+                        , "        br_if 0"
+                        , "    end"
+                        , "    halt"
+                        ]
+            three <- sourceReads (countdown 3)
+            four <- sourceReads (countdown 4)
+            four - three @?= 9 + 7 + 2
+        , testCase "A write that changes a remembered record is what the next branch reads" $ do
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".data"
+                        , "again: .word 0"
+                        , ".text"
+                        , "_start:"
+                        , "    i32.const 0x300 sp.init"
+                        , "    loop"
+                        , "        i32.const again i32.load"
+                        , "        if"
+                        , "            i32.const 0x300 i32.const out i32.store"
+                        , "        end"
+                        , "        i32.const again i32.const 1 i32.store"
+                        , "        br 0"
+                        , "    end"
+                        , "out:"
+                        , "    i32.const 42"
+                        , "    halt"
+                        ]
+            stack @?= "42"
+        , testCase "A record at an I/O port is never remembered, so a branch reads the port"
+            $ assertSourceTrapIo (IntMap.fromList [(0x80, ([7], []))]) "input is depleted"
+            $ toSource ["i32.const 0x80 sp.init", "loop", "br 0", "end"]
         , testCase "Recursive call/return computes factorial(5)" $ do
             src <- readExample "factorial.s"
             out <- runSourceIoToView (IntMap.fromList [(0x80, ([5], [])), (0x84, ([], []))]) "io:0x84:dec" src
@@ -171,6 +216,13 @@ runSourceIoToView streams view src =
     case runSourceIo streams src of
         Left err -> assertFailure (toString err) >> error "unreachable"
         Right st -> return $ reprState HashMap.empty st view
+
+-- | Memory reads over the whole run, the instruction fetches included.
+sourceReads :: String -> IO Int
+sourceReads src =
+    case runSourceIo mempty src of
+        Left err -> assertFailure (toString err) >> error "unreachable"
+        Right st -> return $ acReads $ memAccessCount $ memoryDump st
 
 assertTrap :: Text -> [String] -> Assertion
 assertTrap expected = assertSourceTrap expected . toSource
