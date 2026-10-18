@@ -316,8 +316,8 @@ decodeScope :: (IsWord w) => [w] -> Either Text Scope
 decodeScope words_
     | [word0, word1] <- words_
     , let bits0 = bitsFromWord word0
-    , let bits1 = bitsFromWord word1
-    , let tag = unpackField tagBitWidth tagShift bits0 =
+          bits1 = bitsFromWord word1
+          tag = unpackField tagBitWidth tagShift bits0 =
         case safeToEnum tag of
             Just BlockTag -> Right BlockScope{csEnd = unpackAddr bits0}
             Just LoopTag -> Right LoopScope{csStart = unpackAddr bits0, csEnd = unpackAddr bits1}
