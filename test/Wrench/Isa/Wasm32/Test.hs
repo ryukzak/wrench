@@ -140,7 +140,7 @@ tests =
                         ]
             three <- sourceReads (countdown 3)
             four <- sourceReads (countdown 4)
-            four - three @?= 9 + 7 + 2
+            four - three @?= 9 + 1 + 2
         , testCase "A write that changes a remembered record is what the next branch reads" $ do
             stack <-
                 runSourceToStack $
@@ -166,6 +166,16 @@ tests =
         , testCase "A record at an I/O port is never remembered, so a branch reads the port"
             $ assertSourceTrapIo (IntMap.fromList [(0x80, ([7], []))]) "input is depleted"
             $ toSource ["i32.const 0x80 sp.init", "loop", "br 0", "end"]
+        , testCase "A pop of one of the last two values pushed reads no memory" $ do
+            sourceReads (toSource ["i32.const 2", "i32.const 3", "i32.add"]) >>= (@?= 4)
+            sourceReads (toSource ["i32.const 2", "i32.const 3", "i32.const 4", "drop", "drop", "drop"]) >>= (@?= 8)
+        , testCase "A write into a held slot is what the next pop sees" $
+            runToStack ["i32.const 5", "i32.const 9", "local.set 0", "i32.const 1", "i32.add"] >>= (@?= "10")
+        , testCase "A slot at an I/O port is never held, so a pop there reads the input" $ do
+            out <-
+                runSourceIoToView (IntMap.fromList [(0x80, ([7], []))]) "io:0x80:dec" $
+                    toSource ["i32.const 0x84", "sp.init", "i32.const 5", "i32.const 0", "i32.add"]
+            out @?= "[] >>> [5,7]"
         , testCase "Recursive call/return computes factorial(5)" $ do
             src <- readExample "factorial.s"
             out <- runSourceIoToView (IntMap.fromList [(0x80, ([5], [])), (0x84, ([], []))]) "io:0x84:dec" src
