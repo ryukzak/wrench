@@ -16,6 +16,7 @@ import Wrench.Isa.F32a (F32aIsa)
 import Wrench.Isa.M68k (M68kIsa)
 import Wrench.Isa.RiscIv (RiscIvIsa)
 import Wrench.Isa.VliwIv (VliwIvIsa)
+import Wrench.Isa.Wasm32 (Wasm32Isa)
 import Wrench.Translator.Parser (asmParser)
 import Wrench.Translator.Parser.Types (MnemonicParser)
 import Wrench.Translator.Types (Ref)
@@ -26,6 +27,7 @@ data Isa
     | RiscIv
     | M68k
     | VliwIv
+    | Wasm32
     deriving (Bounded, Enum, Eq, Show)
 
 allIsa :: [Isa]
@@ -38,6 +40,7 @@ isaName F32a = "f32a"
 isaName RiscIv = "risc-iv-32"
 isaName M68k = "m68k"
 isaName VliwIv = "vliw-iv"
+isaName Wasm32 = "wasm32"
 
 instance Read Isa where
     readsPrec _ "risc-iv" = [(RiscIv, "")] -- historical spelling of risc-iv-32
@@ -62,6 +65,7 @@ parsesAs src = \case
     RiscIv -> parses @(RiscIvIsa Int32 (Ref Int32))
     M68k -> parses @(M68kIsa Int32 (Ref Int32))
     VliwIv -> parses @(VliwIvIsa Int32 (Ref Int32))
+    Wasm32 -> parses @(Wasm32Isa Int32 (Ref Int32))
     where
         parses :: forall isa. (MnemonicParser isa) => Bool
         parses = isRight $ parse (asmParser @isa @Int32) "" (toString src <> "\n")

@@ -1,0 +1,439 @@
+---
+# Check result
+stack: 128
+---
+# Stack layout
+pc: 0
+#0 _start (pc=0, live)
+  (operands): empty, base=192
+pc: 2
+#0 _start (pc=2, live)
+  mem[188..191]: locals
+    188..191: -1858768227 (0) [sp] [frameBase]
+  (operands): empty, base=188
+pc: 7
+#0 _start (pc=7, live)
+  mem[188..191]: locals
+    188..191: -1858768227 (0) [frameBase]
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 9
+#0 _start (pc=9, live)
+  mem[188..191]: locals
+    188..191: 1 (0) [sp] [frameBase]
+  (operands): empty, base=188
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 1 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 1 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 1 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 1 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 1 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 2 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 2 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 2 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 2 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 2 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 2 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 4 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 4 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 4 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 4 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 4 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 4 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 8 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 8 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 8 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 8 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 8 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 8 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 16 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 16 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 16 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 16 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 16 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 16 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 32 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 32 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 32 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 32 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 32 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 32 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 64 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 64 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 64 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 1 (0) [sp]
+pc: 10
+#0 _start (pc=10, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 12
+#0 _start (pc=12, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 64 (0) [sp]
+pc: 17
+#0 _start (pc=17, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 64 (0)
+    180..183: 2 (1) [sp]
+pc: 18
+#0 _start (pc=18, live)
+  mem[188..191]: locals
+    188..191: 64 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 128 (0) [sp]
+pc: 20
+#0 _start (pc=20, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 22
+#0 _start (pc=22, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 128 (0) [sp]
+pc: 27
+#0 _start (pc=27, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[180..187]: (operands)
+    184..187: 128 (0)
+    180..183: 100 (1) [sp]
+pc: 28
+#0 _start (pc=28, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  mem[184..187]: (operands)
+    184..187: 0 (0) [sp]
+pc: 30
+#0 _start (pc=30, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [sp] [frameBase]
+  mem[192..199]: LoopScope { csStart = 10, csEnd = 30 }
+  (operands): empty, base=188
+pc: 31
+#0 _start (pc=31, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [sp] [frameBase]
+  (operands): empty, base=188
+pc: 33
+#0 _start (pc=33, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [frameBase]
+  mem[184..187]: (operands)
+    184..187: 128 (0) [sp]
+pc: 33
+#0 _start (pc=33, live)
+  mem[188..191]: locals
+    188..191: 128 (0) [frameBase]
+  mem[184..187]: (operands)
+    184..187: 128 (0) [sp]

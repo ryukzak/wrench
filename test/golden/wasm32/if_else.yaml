@@ -1,0 +1,10 @@
+name: "assert if/else takes the then-branch when the condition is true"
+limit: 100
+memory_size: 0x100
+reports:
+  - name: Check result
+    slice: last
+    view: |
+      stack: {stack:dec}
+    assert: |
+      stack: 30

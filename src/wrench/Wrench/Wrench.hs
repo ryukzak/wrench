@@ -27,6 +27,7 @@ import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
 import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.VliwIv (VliwIvSt)
+import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -61,7 +62,7 @@ instance Default Options where
             , stats = False
             , verbose = False
             , maxInstructionLimit = 8000000
-            , maxMemoryLimit = 8192
+            , maxMemoryLimit = 0xFFFF
             , maxStateLogLimit = 10000
             , dumpAddrFormat = Hex
             , dumpSize = SizeShown
@@ -130,6 +131,7 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
         F32a -> wrenchIO @(F32aSt Int32) opts' conf src
         Acc32 -> wrenchIO @(Acc32St Int32) opts' conf src
         M68k -> wrenchIO @(M68kSt Int32) opts' conf src
+        Wasm32 -> wrenchIO @(Wasm32St Int32) opts' conf src
     where
         isaFailure :: Text -> IO a
         isaFailure msg = do

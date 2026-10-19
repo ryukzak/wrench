@@ -32,6 +32,11 @@ library
       Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
+      Wrench.Isa.Wasm32
+      Wrench.Isa.Wasm32.Execute
+      Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.Report
+      Wrench.Isa.Wasm32.State
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types
@@ -92,6 +97,7 @@ library
     , regex-tdfa
     , relude
     , split
+    , string-interpolate
     , th-env
     , yaml
   default-language: Haskell2010
@@ -106,6 +112,11 @@ executable wrench
       Wrench.Isa.M68k
       Wrench.Isa.RiscIv
       Wrench.Isa.VliwIv
+      Wrench.Isa.Wasm32
+      Wrench.Isa.Wasm32.Execute
+      Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.Report
+      Wrench.Isa.Wasm32.State
       Wrench.Machine
       Wrench.Machine.Memory
       Wrench.Machine.Types
@@ -165,6 +176,7 @@ executable wrench
     , regex-tdfa
     , relude
     , split
+    , string-interpolate
     , th-env
     , wrench
     , yaml
@@ -221,6 +233,7 @@ executable wrench-fmt
     , servant-lucid
     , servant-server
     , split
+    , string-interpolate
     , text
     , th-env
     , time
@@ -295,6 +308,7 @@ executable wrench-serv
     , servant-lucid
     , servant-server
     , split
+    , string-interpolate
     , text
     , th-env
     , time
@@ -318,6 +332,7 @@ test-suite wrench-test
       Wrench.Isa.RiscIv.Test
       Wrench.Isa.Test
       Wrench.Isa.VliwIv.Test
+      Wrench.Isa.Wasm32.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test
@@ -365,6 +380,7 @@ test-suite wrench-test
     , regex-tdfa
     , relude
     , split
+    , string-interpolate
     , tasty
     , tasty-golden
     , tasty-hunit

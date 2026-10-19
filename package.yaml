@@ -50,6 +50,7 @@ dependencies:
   - regex-tdfa
   - relude
   - split
+  - string-interpolate
   - th-env
   - yaml
 

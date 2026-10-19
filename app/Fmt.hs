@@ -31,7 +31,7 @@ options =
                 ( long "isa"
                     <> metavar "ISA"
                     <> help
-                        "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k); detected from the source if omitted"
+                        "Instruction set architecture (acc32, f32a, risc-iv-32, vliw-iv, m68k, wasm32); detected from the source if omitted"
                 )
             )
         <*> switch
@@ -67,6 +67,7 @@ main = do
 
 data LineLayout
     = StandardLayout
+    | Wasm32Layout
     | VliwLayout {vliwSlotWidths :: [Int]}
     deriving (Eq, Show)
 
@@ -124,6 +125,7 @@ fmtConfig = \case
     Acc32 -> acc32Fmt
     M68k -> def
     VliwIv -> vliwIvFmt
+    Wasm32 -> def{textCommandTokenWidths = [], lineLayout = Wasm32Layout}
 
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
@@ -160,34 +162,58 @@ data Statement
     deriving (Show)
 
 formatFile :: FmtConfig -> Text -> Text
-formatFile fmt content =
-    let statements = formatLines fmt $ map (tokenize fmt) $ lines content
-     in unlines statements
+formatFile fmt content = unlines $ formatLines fmt $ lines content
 
-formatLines :: FmtConfig -> [[Text]] -> [Text]
-formatLines fmt tokenss =
-    let (source, comments) = unzip $ map (splitComment fmt) tokenss
+formatLines :: FmtConfig -> [Text] -> [Text]
+formatLines fmt rawLines =
+    let (source, comments) = unzip $ map (splitComment fmt . tokenize fmt) rawLines
         statements = formatLines' OutOfSection source
         -- Calculate VLIW slot widths if needed
         lineLayout' = case lineLayout fmt of
             VliwLayout widths -> VliwLayout (calculateVliwSlotWidths widths statements)
-            StandardLayout -> StandardLayout
+            other -> other
         fmt' = fmt{lineLayout = lineLayout'}
-        source' = map (pprint fmt') statements
+        indents = lineIndents fmt' statements
+        source' = zipWith (pprint . indentedBy) indents statements
+        indentedBy indent =
+            fmt'
+                { textCommandIndent = indent
+                , textCommandWidth = textCommandWidth fmt' - (indent - textCommandIndent fmt')
+                }
         comments' =
-            zipWith
-                ( \s c ->
-                    if T.null c
-                        then c
-                        else case s of
-                            OutOfSection [] -> c
-                            DataLine [] -> T.replicate 4 " " <> c
-                            TextLine [] -> T.replicate 4 " " <> c
-                            _ -> c
-                )
-                statements
-                comments
+            [ alignComment statement raw indent comment
+            | ((statement, raw, indent), comment) <- zip (zip3 statements rawLines indents) comments
+            ]
      in zipWith (\s c -> T.stripEnd (if T.null s then c else s <> " " <> c)) source' comments'
+
+lineIndents :: FmtConfig -> [Statement] -> [Int]
+lineIndents FmtConfig{lineLayout = Wasm32Layout, textCommandIndent} statements = go 0 statements
+    where
+        go _ [] = []
+        go depth (statement : rest) =
+            let (lineDepth, nextDepth) = wasm32Depths depth statement
+             in textCommandIndent * (1 + lineDepth) : go nextDepth rest
+lineIndents FmtConfig{textCommandIndent} statements = textCommandIndent <$ statements
+
+alignComment :: Statement -> Text -> Int -> Text -> Text
+alignComment statement raw indent comment
+    | T.null comment || not indented = comment
+    | otherwise = case statement of
+        DataLine [] -> aligned
+        TextLine [] -> aligned
+        _ -> comment
+    where
+        indented = raw /= T.stripStart raw
+        aligned = T.replicate indent " " <> comment
+
+wasm32Depths :: Int -> Statement -> (Int, Int)
+wasm32Depths depth (TextLine (token : _))
+    | token `elem` ["block", "loop", "if"] = (depth, depth + 1)
+    | token == "end" = (outer, outer)
+    | token == "else" = (outer, depth)
+    where
+        outer = max 0 (depth - 1)
+wasm32Depths depth _ = (depth, depth)
 
 calculateVliwSlotWidths :: [Int] -> [Statement] -> [Int]
 calculateVliwSlotWidths configWidths statements =
@@ -266,8 +292,10 @@ pprint
                 | T.isSuffixOf ":" l = l <> "\n" <> inner (TextLine rest)
             inner (TextLine tokens) = case lineLayout of
                 VliwLayout widths -> T.replicate textCommandIndent " " <> formatVliwLine widths tokens
-                StandardLayout ->
-                    let cmdTokens = zipWith width textCommandTokenWidths tokens
+                _ ->
+                    let cmdTokens =
+                            zipWith width textCommandTokenWidths tokens
+                                <> drop (length textCommandTokenWidths) tokens
                         cmd = width textCommandWidth $ unwords cmdTokens
                      in T.replicate textCommandIndent " " <> cmd
             inner st = error $ "Invalid statement: " <> show st
@@ -308,4 +336,4 @@ tokenize FmtConfig{commentStart, lineLayout} content = inner $ T.strip content
                 token : inner (T.strip rest)
         isVliwLayout = case lineLayout of
             VliwLayout _ -> True
-            StandardLayout -> False
+            _ -> False

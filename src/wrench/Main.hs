@@ -36,7 +36,7 @@ options =
             ( strOption
                 ( long "isa"
                     <> metavar "ISA"
-                    <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv); detected from the source if omitted"
+                    <> help "ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv, wasm32); detected from the source if omitted"
                 )
             )
         <*> optional

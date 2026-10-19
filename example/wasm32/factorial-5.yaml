@@ -1,0 +1,19 @@
+limit: 500
+memory_size: 0x120
+memory_mapped_io:
+  0x80: [5]
+  0x84: []
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {stack:dec}
+      {pc}:	{instruction:next}	{pc:label}
+  - name: Result
+    slice: last
+    view: |
+      numio[0x80]: {io:0x80:dec}
+      numio[0x84]: {io:0x84:dec}
+    assert: |
+      numio[0x80]: [] >>> []
+      numio[0x84]: [] >>> [120]
