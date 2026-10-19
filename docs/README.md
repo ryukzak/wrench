@@ -119,8 +119,8 @@ pascal_string:  .byte 13, 'Hello, World!'  ; Pascal-style string with length pre
 ```
 
 A numeric value, in data and in instructions alike, is decimal or hexadecimal with an `0x` prefix,
-and may carry a leading `-`. It has to start with a digit, which `_` separators may then be mixed
-into for legibility -- `1_000` and `0x8_4` are fine, `0x_84` is not.
+and only a decimal one may carry a leading `-`. It has to start with a digit, which `_` separators
+may then be mixed into for legibility -- `1_000` and `0x8_4` are fine, `0x_84` is not.
 
 A value has to fit what holds it, and it is checked before it is stored, so a too-wide one is a
 translation error instead of its own low bits. A machine word takes anything its bits can spell --
