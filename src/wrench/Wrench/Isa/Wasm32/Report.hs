@@ -6,7 +6,7 @@ module Wrench.Isa.Wasm32.Report () where
 import Data.String.Interpolate (i)
 import Data.Text qualified as T
 import Relude
-import Relude.Extra (toPairs)
+import Relude.Extra (insertWith, toPairs, (!?))
 import Wrench.Isa.Wasm32.Instruction
 import Wrench.Isa.Wasm32.State
 import Wrench.Machine.Memory
@@ -27,10 +27,10 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
         case T.splitOn ":" v of
             ["stack", f] -> formatValues f (stackWords view)
             ["locals", f] -> formatValues f (localWords view)
-            ["layout", f] -> withFormat f (renderLayout labels view) Nothing
-            ["layout", f, n] -> withFrameLimit n (withFormat f (renderLayout labels view))
-            ["dump", f] -> withFormat f (renderDump labels view) Nothing
-            ["dump", f, n] -> withFrameLimit n (withFormat f (renderDump labels view))
+            ["stackLayout", f] -> withFormat f (renderStackLayout labels view) Nothing
+            ["stackLayout", f, n] -> withFrameLimit n (withFormat f (renderStackLayout labels view))
+            ["stackDump", f] -> withFormat f (renderStackDump labels view) Nothing
+            ["stackDump", f, n] -> withFrameLimit n (withFormat f (renderStackDump labels view))
             [r] -> reprState labels st [i|#{r}:dec|]
             ["sp", f] -> viewRegister f sp
             ["stackRoot", f] -> viewRegister f stackRoot
@@ -147,20 +147,28 @@ walkFrames StackView{svMem, svPc, svSp, svFrameBase, svLocalCount, svScopeAddrs}
         readScopeFrom mem addr =
             either (const Nothing) Just . decodeScope =<< mapM (wordAt mem) (scopeWordAddrs @w addr)
 
-applyMarkers :: [(Text, Text)] -> Text -> Text
-applyMarkers marks = T.intercalate "\n" . map mark . T.lines
-    where
-        mark line = maybe line (\name -> [i|#{line} [#{name}]|]) (findName (T.stripStart line))
-        findName trimmed = listToMaybe [name | (prefix, name) <- marks, prefix `T.isPrefixOf` trimmed]
+keepLast :: Maybe Int -> [a] -> [a]
+keepLast limit xs = maybe xs (\n -> drop (max 0 (length xs - n)) xs) limit
 
-renderLayout ::
+funcNameAt :: (IsWord w) => HashMap Text w -> Int -> Text
+funcNameAt labels addr =
+    maybe "?" snd $ foldl' nearer Nothing $ toPairs labels
+    where
+        nearer best (label, labelAddr)
+            | a <- fromEnum labelAddr
+            , a <= addr
+            , maybe True ((< a) . fst) best =
+                Just (a, label)
+            | otherwise = best
+
+renderStackLayout ::
     forall isa w.
     (ByteSize isa, IsWord w) =>
     HashMap Text w
     -> StackView isa w
     -> LayoutFormat w
     -> Text
-renderLayout labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFrameLimit = frameLimit} =
+renderStackLayout labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFrameLimit = frameLimit} =
     T.intercalate "\n" $ omittedNote <> concatMap renderFrame kept
     where
         step = byteSizeT @w
@@ -177,22 +185,12 @@ renderLayout labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFr
             | (frameNo, caller, frame) <- zip3 [0 :: Int ..] (Nothing : map Just frames) frames
             ]
 
-        kept = maybe tagged (\n -> drop (max 0 (length tagged - n)) tagged) frameLimit
+        kept = keepLast frameLimit tagged
         omittedNote
             | n <- length tagged - length kept
             , n > 0 =
                 [[i|  (#{n} earlier frame(s) omitted)|]]
             | otherwise = []
-
-        funcNameAt addr =
-            maybe "?" snd $ foldl' nearer Nothing $ toPairs labels
-            where
-                nearer best (label, labelAddr)
-                    | a <- fromEnum labelAddr
-                    , a <= addr
-                    , maybe True ((< a) . fst) best =
-                        Just (a, label)
-                    | otherwise = best
 
         renderFrame (frameNo, isLive, caller, FrameLayout{flPc, flFrameBase, flLocalCount, flScanLower, flControls}) =
             header <> localsLines <> controlLines <> operandLines
@@ -202,7 +200,7 @@ renderLayout labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFr
                         <> [("frameBase", svFrameBase) | isLive, flLocalCount > 0]
                 pointerTags addr = T.concat [[i| [#{name :: Text}]|] | (name, ptr) <- livePointers, ptr == addr]
                 liveNote = if isLive then ", live" else "" :: Text
-                header = [[i|\##{frameNo} #{funcNameAt flPc} (pc=#{showAddr flPc}#{liveNote})|]]
+                header = [[i|\##{frameNo} #{funcNameAt labels flPc} (pc=#{showAddr flPc}#{liveNote})|]]
                 opTop = flFrameBase - flLocalCount * step
                 localsLines
                     | flLocalCount == 0 = []
@@ -246,25 +244,94 @@ describeScope showAddr scope = case scope of
             ]
         )
 
-renderDump ::
+renderStackDump ::
     forall isa w.
     (ByteSize isa, IsWord w, Show isa) =>
     HashMap Text w
     -> StackView isa w
     -> LayoutFormat w
     -> Text
-renderDump labels view@StackView{svMem, svPc, svCtrlSp} format =
-    applyMarkers marks
-        $ T.intercalate "\n"
-        $ filter
-            (not . T.null)
-            [ renderLayout labels view format
-            , dumpRange svCtrlSp (memCapacity svMem)
-            ]
+renderStackDump labels view LayoutFormat{lfWord = showWord, lfAddr = showAddr, lfFrameLimit = frameLimit} =
+    T.intercalate "\n" $ fillFrom (max 0 (foldl' min svSp (map itemLo items))) (sortWith itemLo items)
     where
-        marks =
-            [ ([i|mem[#{lfAddr format svPc}..|], "pc")
-            , ([i|mem[#{lfAddr format svCtrlSp}..|], "ctrlSp")
+        step = byteSizeT @w
+        StackView{svMem, svSp, svFrameBase, svLocalCount, svCtrlSp} = view
+        memEnd = memCapacity svMem
+
+        frames = zip [0 :: Int ..] (reverse (walkFrames view))
+        kept = keepLast frameLimit frames
+        omitted = length frames - length kept
+
+        pointers =
+            [("sp", svSp)]
+                <> [("frameBase", svFrameBase) | svLocalCount > 0]
+                <> [("ctrlSp", svCtrlSp)]
+        pointerTags addr = T.concat [[i| [#{name :: Text}]|] | (name, ptr) <- pointers, ptr == addr]
+        tagFirst addr = \case
+            line : rest -> (line <> pointerTags addr) : rest
+            [] -> []
+
+        owner (frameNo, FrameLayout{flPc}) = [i|\##{frameNo} #{funcNameAt labels flPc}|] :: Text
+        frameLocals frame@(_, FrameLayout{flFrameBase, flLocalCount}) =
+            [(flFrameBase - idx * step, [i|#{owner frame} local #{idx}|]) | idx <- [0 .. flLocalCount - 1]]
+        frameOperands frame@(_, FrameLayout{flFrameBase, flLocalCount, flScanLower}) =
+            zipWith
+                (\idx addr -> (addr, [i|#{owner frame} operand #{idx}|]))
+                [0 :: Int ..]
+                [opTop, opTop - step .. flScanLower]
+            where
+                opTop = flFrameBase - flLocalCount * step
+        roles :: IntMap [Text]
+        roles =
+            foldl'
+                (\m (addr, role) -> insertWith (flip (<>)) addr [role] m)
+                mempty
+                (concatMap (\frame -> frameLocals frame <> frameOperands frame) (reverse frames))
+
+        items = concat (snd (mapAccumL frameItems [] (reverse kept))) <> recordItems <> omittedItem
+        itemLo (lo, _, _) = lo
+        frameItems shown frame =
+            let fresh = filter ((`notElem` shown) . fst)
+                locals = sortWith fst (fresh (frameLocals frame))
+                operands = fresh (frameOperands frame)
+             in ( map fst (locals <> operands) <> shown
+                , localsItem frame (map fst locals) <> [(addr, addr + step, [wordLine addr]) | (addr, _) <- operands]
+                )
+        localsItem _ [] = []
+        localsItem frame addrs@(lo : _) =
+            let hi = foldl' max lo addrs + step
+             in [(lo, hi, [i|mem[#{showAddr lo}..#{showAddr (hi - 1)}]: #{owner frame} locals|] : map (("    " <>) . wordLine) addrs)]
+        wordLine addr =
+            let value = maybe "?" showWord (wordAt svMem addr)
+                owners = T.intercalate ", " (fromMaybe [] (roles !? addr))
+             in [i|mem[#{showAddr addr}..#{showAddr (addr + step - 1)}]: #{value}  #{owners}#{pointerTags addr}|]
+        recordItems =
+            [ ( lo
+              , hi
+              , [i|mem[#{showAddr lo}..#{showAddr (hi - 1)}]: #{firstLine}  #{owner frame}#{pointerTags lo}|]
+                    : map ("    " <>) restLines
+              )
+            | frame@(_, FrameLayout{flControls}) <- kept
+            , (lo, hi, scope) <- flControls
+            , let (firstLine, restLines) = describeScope showAddr scope
             ]
-        dumpRange lo hi =
-            prettyDump True (lfAddr format) labels (fromList (sliceMem [lo .. hi - 1] (dumpCells svMem)))
+        omittedItem = case kept of
+            (_, FrameLayout{flFrameBase, flControls = (callLo, _, _) : _}) : _
+                | omitted > 0 ->
+                    let lo = flFrameBase + step
+                     in [(lo, callLo, [[i|mem[#{showAddr lo}..#{showAddr (callLo - 1)}]: (#{omitted} earlier frame(s) omitted)|]])]
+            _ -> []
+
+        fillFrom cursor [] = raw cursor memEnd
+        fillFrom cursor ((lo, hi, itemLines) : rest) =
+            raw cursor lo <> itemLines <> fillFrom (max cursor hi) rest
+
+        raw lo hi =
+            concat
+                [ tagFirst a $ T.lines $ prettyDump True showAddr labels $ fromList $ sliceMem [a .. b - 1] (dumpCells svMem)
+                | let lo' = max 0 lo
+                      hi' = min memEnd hi
+                      bounds = sortNub ([lo', hi'] <> [p | (_, p) <- pointers, lo' < p, p < hi'])
+                , lo' < hi'
+                , (a, b) <- zip bounds (drop 1 bounds)
+                ]

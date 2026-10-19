@@ -10,4 +10,4 @@ reports:
       pc: {pc:hex}
       sp: {sp:hex} frameBase: {frameBase:hex}
       stackRoot: {stackRoot:hex} ctrlSp: {ctrlSp:hex}
-      {dump:hex}
+      {stackDump:hex}

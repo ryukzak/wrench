@@ -12,4 +12,4 @@ reports:
     slice: all
     view: |
       pc: {pc}
-      {layout:dec}
+      {stackLayout:dec}

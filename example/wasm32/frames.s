@@ -6,6 +6,7 @@ foo:
     local.tee 2
     block
         if
+            local.get 2
             i32.const bar call 1, 1
         end
     end

@@ -12,4 +12,4 @@ reports:
     slice: all
     view: |
       :::: {pc:hex}: {instruction:prev} {pc:label} // access: {memAccesses:dec}
-      {layout:hex}
+      {stackLayout:hex}

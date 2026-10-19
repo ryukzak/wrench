@@ -1,4 +1,4 @@
-name: "dump: three nested frames, then the memory above the control stack"
+name: "stackDump: three nested frames, then the memory above the control stack"
 limit: 500
 memory_size: 0xA0
 zero_memory_init: true
@@ -6,8 +6,8 @@ reports:
   - name: Dump
     slice: last
     view: |
-      {dump:hex}
+      {stackDump:hex}
   - name: Dump, last frame, decimal
     slice: last
     view: |
-      {dump:dec:1}
+      {stackDump:dec:1}

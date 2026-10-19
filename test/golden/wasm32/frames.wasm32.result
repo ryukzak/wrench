@@ -1,44 +1,36 @@
 ---
 # Dump
-#0 _start (pc=0x42)
-  mem[0x7c..0x7f]: (operands)
-    0x7c..0x7f: 0x0000000a (0)
-#1 foo (pc=0x13)
-  mem[0x70..0x7b]: locals
-    0x78..0x7b: 0x0000000b (0)
-    0x74..0x77: 0x0000000c (1)
-    0x70..0x73: 0x00000001 (2)
-  mem[0x80..0x87]: CallScope
+mem[0x64..0x67]: 0x0000000e  #2 bar operand 1 [sp]
+mem[0x68..0x6b]: 0x0000000e  #2 bar operand 0
+mem[0x6c..0x6f]: #2 bar locals
+    mem[0x6c..0x6f]: 0x00000001  #2 bar local 0 [frameBase]
+mem[0x70..0x7b]: #1 foo locals
+    mem[0x70..0x73]: 0x00000001  #1 foo local 2
+    mem[0x74..0x77]: 0x0000000c  #1 foo local 1
+    mem[0x78..0x7b]: 0x0000000b  #1 foo local 0
+mem[0x7c..0x7f]: 0x0000000a  #0 _start operand 0
+mem[0x80..0x87]: CallScope  #1 foo
     { csCallerFrameBase = 0x7c
     , csCallerLocalCount = 0
-    , csReturnPc = 0x42
+    , csReturnPc = 0x44
     , csResultCount = 1 }
-  mem[0x88..0x8f]: BlockScope { csEnd = 0x14 }
-  (operands): empty, base=0x70
-#2 bar (pc=0x23, live)
-  mem[0x70..0x73]: locals
-    0x70..0x73: 0x00000001 (0) [frameBase] [also #1 local 2]
-  mem[0x90..0x97]: CallScope
+mem[0x88..0x8f]: BlockScope { csEnd = 0x16 }  #1 foo
+mem[0x90..0x97]: CallScope  #2 bar
     { csCallerFrameBase = 0x78
     , csCallerLocalCount = 3
-    , csReturnPc = 0x13
+    , csReturnPc = 0x15
     , csResultCount = 1 }
-  mem[0x68..0x6f]: (operands)
-    0x6c..0x6f: 0x0000000e (0)
-    0x68..0x6b: 0x0000000e (1) [sp]
 mem[0x98..0x9f] (8 B): 	00 00 00 00 00 00 00 00 [ctrlSp]
 ---
 # Dump, last frame, decimal
-(2 earlier frame(s) omitted)
-#2 bar (pc=35, live)
-  mem[112..115]: locals
-    112..115: 1 (0) [frameBase] [also #1 local 2]
-  mem[144..151]: CallScope
+mem[100..103]: 14  #2 bar operand 1 [sp]
+mem[104..107]: 14  #2 bar operand 0
+mem[108..111]: #2 bar locals
+    mem[108..111]: 1  #2 bar local 0 [frameBase]
+mem[112..143]: (2 earlier frame(s) omitted)
+mem[144..151]: CallScope  #2 bar
     { csCallerFrameBase = 120
     , csCallerLocalCount = 3
-    , csReturnPc = 19
+    , csReturnPc = 21
     , csResultCount = 1 }
-  mem[104..111]: (operands)
-    108..111: 14 (0)
-    104..107: 14 (1) [sp]
 mem[152..159] (8 B): 	00 00 00 00 00 00 00 00 [ctrlSp]

@@ -318,17 +318,21 @@ import Wrench.Isa.Wasm32.Report ()
 -- [@stack@] The current frame's operands, top first, e.g. @14:14@.
 -- [@locals@] The current frame's locals, local 0 first.
 -- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers of the same name.
--- [@layout@] Every frame, oldest first: its locals, control records and
---   operands. @layout:hex:2@ shows the last two frames only.
--- [@dump@] @layout@ plus the raw memory from @ctrlSp@ to the end.
+-- [@stackLayout@] Every frame, oldest first: its locals, control records
+--   and operands. @stackLayout:hex:2@ shows the last two frames only.
+-- [@stackDump@] Memory from @sp@ to the end, in address order. Each word
+--   is shown once, with every frame it belongs to, and a frame's locals
+--   are grouped under one line; a control record is decoded; anything
+--   else, such as the memory above @ctrlSp@, is raw.
+--   @stackDump:hex:2@ also shows the last two frames only.
 --
--- @{layout:hex}@ after @_start@ called @foo@ with three arguments, which
+-- @{stackLayout:hex}@ after @_start@ called @foo@ with two arguments, which
 -- inside a @block@ called @bar@ with one:
 --
--- > #0 _start (pc=0x42)
+-- > #0 _start (pc=0x44)
 -- >   mem[0x7c..0x7f]: (operands)
 -- >     0x7c..0x7f: 0x0000000a (0)
--- > #1 foo (pc=0x13)
+-- > #1 foo (pc=0x15)
 -- >   mem[0x70..0x7b]: locals
 -- >     0x78..0x7b: 0x0000000b (0)
 -- >     0x74..0x77: 0x0000000c (1)
@@ -336,24 +340,21 @@ import Wrench.Isa.Wasm32.Report ()
 -- >   mem[0x80..0x87]: CallScope
 -- >     { csCallerFrameBase = 0x7c
 -- >     , csCallerLocalCount = 0
--- >     , csReturnPc = 0x42
+-- >     , csReturnPc = 0x44
 -- >     , csResultCount = 1 }
--- >   mem[0x88..0x8f]: BlockScope { csEnd = 0x14 }
+-- >   mem[0x88..0x8f]: BlockScope { csEnd = 0x16 }
 -- >   (operands): empty, base=0x70
--- > #2 bar (pc=0x23, live)
--- >   mem[0x70..0x73]: locals
--- >     0x70..0x73: 0x00000001 (0) [frameBase] [also #1 local 2]
+-- > #2 bar (pc=0x25, live)
+-- >   mem[0x6c..0x6f]: locals
+-- >     0x6c..0x6f: 0x00000001 (0) [frameBase]
 -- >   mem[0x90..0x97]: CallScope
 -- >     { csCallerFrameBase = 0x78
 -- >     , csCallerLocalCount = 3
--- >     , csReturnPc = 0x13
+-- >     , csReturnPc = 0x15
 -- >     , csResultCount = 1 }
--- >   mem[0x68..0x6f]: (operands)
--- >     0x6c..0x6f: 0x0000000e (0)
--- >     0x68..0x6b: 0x0000000e (1) [sp]
---
--- @bar@'s parameter is the value @foo@ had on top of its stack, which
--- happened to be @foo@'s local 2 -- hence the @[also #1 local 2]@.
+-- >   mem[0x64..0x6b]: (operands)
+-- >     0x68..0x6b: 0x0000000e (0)
+-- >     0x64..0x67: 0x0000000e (1) [sp]
 
 -- $differences
 -- * Only @i32@. Missing: @i32.ne@, @i32.div_u@, @i32.rem_u@,
