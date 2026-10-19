@@ -362,10 +362,15 @@ groupByIsa = foldr step []
 
 renderGroup :: (Text, [ExampleEntry]) -> Text
 renderGroup (isa, items) =
-    "<div class=\"mb-8\">"
-        <> "<h2 class=\"mb-3 pb-1 border-b border-zinc-700 text-[var(--c-grey)] text-xl\">/* "
+    "<div id=\""
         <> escapeHtml isa
-        <> " */</h2>"
+        <> "\" class=\"mb-8 scroll-mt-4\">"
+        <> "<h2 class=\"mb-3 pb-1 border-b border-zinc-700 text-[var(--c-grey)] text-xl\">"
+        <> "<a href=\"#"
+        <> escapeHtml isa
+        <> "\" class=\"hover:bg-[var(--c-grey)] hover:text-[var(--c-black)] cursor-pointer\">/* "
+        <> escapeHtml isa
+        <> " */</a></h2>"
         <> "<ul class=\"space-y-1\">"
         <> T.concat (map renderItem items)
         <> "</ul>"
