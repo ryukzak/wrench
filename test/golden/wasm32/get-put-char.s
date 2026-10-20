@@ -10,7 +10,8 @@ _start:
     halt
 
 normalize_char:
-    local.get 0
+    .frame ($ch)
+    local.get $ch
     i32.const 'X'
     i32.eq
     if
@@ -18,7 +19,7 @@ normalize_char:
         return
     end
 
-    local.get 0
+    local.get $ch
     i32.const 'Y'
     i32.eq
     if
@@ -26,5 +27,5 @@ normalize_char:
         return
     end
 
-    local.get 0
+    local.get $ch
     return

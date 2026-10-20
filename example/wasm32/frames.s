@@ -1,19 +1,21 @@
     .text
 
 foo:
+    .frame ($a, $b) $le
     locals.reserve 1
-    local.get 0 local.get 1 i32.le_s
-    local.tee 2
+    local.get $a local.get $b i32.le_s
+    local.tee $le
     block
         if
-            local.get 2
+            local.get $le
             i32.const bar call 1, 1
         end
     end
     return
 
 bar:
-    local.get 0
+    .frame ($x)
+    local.get $x
     i32.const 0xD
     i32.add
     i32.const 0xE

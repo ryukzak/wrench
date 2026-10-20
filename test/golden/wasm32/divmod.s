@@ -1,20 +1,22 @@
     .text
 
 divmod:
-    local.get 0
-    local.get 1
+    .frame ($a, $b)
+    local.get $a
+    local.get $b
     i32.div_s
-    local.get 0
-    local.get 1
+    local.get $a
+    local.get $b
     i32.rem_s
     return
 
 store2:
-    local.get 3
-    local.get 1
+    .frame ($q, $r, $q_addr, $r_addr)
+    local.get $r_addr
+    local.get $r
     i32.store
-    local.get 2
-    local.get 0
+    local.get $q_addr
+    local.get $q
     i32.store
     return
 
