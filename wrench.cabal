@@ -40,6 +40,7 @@ library
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine
+      Wrench.Machine.BitPack
       Wrench.Machine.Memory
       Wrench.Machine.Types
       Wrench.Machine.Word
@@ -123,6 +124,7 @@ executable wrench
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine
+      Wrench.Machine.BitPack
       Wrench.Machine.Memory
       Wrench.Machine.Types
       Wrench.Machine.Word
@@ -344,6 +346,7 @@ test-suite wrench-test
       Wrench.Isa.Test
       Wrench.Isa.VliwIv.Test
       Wrench.Isa.Wasm32.Test
+      Wrench.Machine.BitPack.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test
