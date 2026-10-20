@@ -35,6 +35,7 @@ library
       Wrench.Isa.Wasm32
       Wrench.Isa.Wasm32.Execute
       Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.LocalNames
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine
@@ -115,6 +116,7 @@ executable wrench
       Wrench.Isa.Wasm32
       Wrench.Isa.Wasm32.Execute
       Wrench.Isa.Wasm32.Instruction
+      Wrench.Isa.Wasm32.LocalNames
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine

@@ -1,26 +1,27 @@
     .text
 
 fib:
-    locals.reserve 1                         ; local 1: scratch, this frame only
-    local.get 0
+    .frame ($n) $prev                        ; locals 0, 1
+    locals.reserve 1                         ; $prev: scratch, this frame only
+    local.get $n
     i32.const 2
     i32.lt_s
     if
-        local.get 0                          ; fib(0) = 0, fib(1) = 1
+        local.get $n                         ; fib(0) = 0, fib(1) = 1
         return
     end
-    local.get 0
+    local.get $n
     i32.const 1
     i32.sub
     i32.const fib
     call 1, 1
-    local.set 1                              ; stash fib(n-1)
-    local.get 0
+    local.set $prev                          ; stash fib(n-1)
+    local.get $n
     i32.const 2
     i32.sub
     i32.const fib
     call 1, 1                                ; fib(n-2) -- clobbers nothing of ours
-    local.get 1
+    local.get $prev
     i32.add
     return
 

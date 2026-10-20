@@ -60,6 +60,8 @@ import Wrench.Isa.Wasm32.Report ()
 --   an unsigned byte, @0@ to @255@, checked when the program is translated.
 -- * An instruction takes one byte, plus one per byte immediate, plus four
 --   for @i32.const@'s value.
+-- * The @.frame@ directive names a function's locals and emits no code
+--   (see Functions and locals).
 
 -- $instructions
 -- An immediate is written @\<name: type\>@. A stack effect
@@ -278,6 +280,20 @@ import Wrench.Isa.Wasm32.Report ()
 -- caller's frame as it was. A local index is not checked against
 -- @localCount@.
 --
+-- Instead of remembering which index holds what, a function can name its
+-- locals with @.frame@: the parameters in parentheses, then the reserved
+-- locals. @.frame ($a, $b) $acc@ makes @$a@ and @$b@ locals 0 and 1, which
+-- the caller fills with @call 2, r@, and @$acc@ local 2; @.frame () $acc@
+-- names a frame without parameters. @local.get $acc@ is then the same
+-- instruction as @local.get 2@: a name is replaced by its index when the
+-- program is translated, so it costs nothing at run time. @.frame@ emits
+-- no code, so the function still reserves its locals with
+-- @locals.reserve@; nothing checks the names against the counts of @call@
+-- or @locals.reserve@. Names start with @$@ and hold until the next label
+-- or the end of the section, and indices keep working beside them. A
+-- @.frame@ out of this form, or naming a local twice, is an error at
+-- translation.
+--
 -- @return@ takes the top @r@ values and discards the rest of the frame --
 -- parameters, locals and leftover operands -- along with the call record
 -- and every scope the function still has open. The @r@ values take the
@@ -288,21 +304,22 @@ import Wrench.Isa.Wasm32.Report ()
 -- A factorial function, with @n@ in its parameter and the product in a
 -- reserved local:
 --
--- > factorial:                            ; local 0: n
--- >     locals.reserve 1                  ; local 1: acc
--- >     i32.const 1 local.set 1
+-- > factorial:
+-- >     .frame ($n) $acc                  ; locals 0, 1
+-- >     locals.reserve 1                  ; $acc
+-- >     i32.const 1 local.set $acc
 -- >     block
 -- >         loop
--- >             local.get 0 i32.const 1 i32.le_s
+-- >             local.get $n i32.const 1 i32.le_s
 -- >             br_if 1                   ; n <= 1 -> leave the block
--- >             local.get 1 local.get 0 i32.mul
--- >             local.set 1               ; acc *= n
--- >             local.get 0 i32.const 1 i32.sub
--- >             local.set 0               ; n -= 1
+-- >             local.get $acc local.get $n i32.mul
+-- >             local.set $acc            ; acc *= n
+-- >             local.get $n i32.const 1 i32.sub
+-- >             local.set $n              ; n -= 1
 -- >             br 0                      ; back to the loop head
 -- >         end
 -- >     end
--- >     local.get 1
+-- >     local.get $acc
 -- >     return
 --
 -- Since the target is a value, a call through a computed address -- a
@@ -363,7 +380,9 @@ import Wrench.Isa.Wasm32.Report ()
 -- * No modules, function declarations or types: a function is a label,
 --   and @call@ takes its target from the stack (like @call_indirect@)
 --   and its parameter and result counts from the instruction.
--- * Locals are added at run time by @locals.reserve@.
+-- * Locals are added at run time by @locals.reserve@, and named by
+--   @.frame ($n) $acc@ rather than by @(param $n i32)@ and
+--   @(local $acc i32)@.
 -- * Scopes have no result types, @if@ is not a branch target, and branches
 --   neither unwind nor check the operand stack.
 -- * The stacks live in ordinary memory, where a program can read and

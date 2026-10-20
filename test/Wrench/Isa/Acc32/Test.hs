@@ -86,7 +86,7 @@ translateProgram src = do
     outcome <-
         try @ErrorCall
             $ evaluate
-            $ length (show (translate @Acc32Isa @Int32 1000 (repeat 0) "test.s" src) :: String)
+            $ length (show (translate @Acc32Isa @Int32 [] 1000 (repeat 0) "test.s" src) :: String)
     return $ case outcome of
         Left (ErrorCall msg) -> Left msg
         Right n -> Right n

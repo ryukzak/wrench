@@ -27,6 +27,7 @@ import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.VliwIv qualified as VliwIv
 import Wrench.Isa.VliwIv.Test qualified
 import Wrench.Isa.Wasm32 qualified as Wasm32
+import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Isa.Wasm32.Test qualified
 import Wrench.Machine.Memory
@@ -63,7 +64,7 @@ tests =
                     try @ErrorCall
                         $ evaluate
                         $ forceTranslation
-                        $ translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "typo.s" src
+                        $ translate @RiscIv.RiscIvIsa @Int32 [] 1000 (repeat 0) "typo.s" src
                 case outcome of
                     Right _ -> assertFailure "translation unexpectedly succeeded on an unresolved label"
                     Left (ErrorCallWithLocation msg _location) -> do
@@ -72,14 +73,14 @@ tests =
                         assertBool ("no label name in: " <> msg) ("nowhere" `isInfixOf` msg')
             , testCase "A data value too wide for the word reports its position" $ do
                 let src = toString $ unlines ["    .data", "big: .word 0xFFFFFFFF, 4294967297"]
-                case translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "data.s" src of
+                case translate @RiscIv.RiscIvIsa @Int32 [] 1000 (repeat 0) "data.s" src of
                     Right _ -> assertFailure "translation unexpectedly succeeded on a too-wide .word"
                     Left err -> do
                         assertBool ("no source position in: " <> toString err) $ "data.s:2:24" `isInfixOf` err
                         assertBool ("no machine word in: " <> toString err) $ "machine word" `isInfixOf` err
             , testCase "A data value too wide for a byte reports its position" $ do
                 let src = toString $ unlines ["    .data", "small: .byte 300"]
-                case translate @RiscIv.RiscIvIsa @Int32 1000 (repeat 0) "data.s" src of
+                case translate @RiscIv.RiscIvIsa @Int32 [] 1000 (repeat 0) "data.s" src of
                     Right _ -> assertFailure "translation unexpectedly succeeded on a too-wide .byte"
                     Left err -> do
                         assertBool ("no source position in: " <> toString err) $ "data.s:2:14" `isInfixOf` err
@@ -375,12 +376,12 @@ fn2name fn =
         $ takeFileName fn
 
 goldenTranslate :: Isa -> FilePath -> TestTree
-goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.RiscIvIsa RiscIv fn
-goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a fn
-goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Acc32Isa Acc32 fn
-goldenTranslate M68k fn = goldenTranslate' @M68k.M68kIsa M68k fn
-goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.VliwIvIsa VliwIv fn
-goldenTranslate Wasm32 fn = goldenTranslate' @Wasm32.Wasm32Isa Wasm32 fn
+goldenTranslate RiscIv fn = goldenTranslate' @RiscIv.RiscIvIsa RiscIv [] fn
+goldenTranslate F32a fn = goldenTranslate' @F32a.F32aIsa F32a [] fn
+goldenTranslate Acc32 fn = goldenTranslate' @Acc32.Acc32Isa Acc32 [] fn
+goldenTranslate M68k fn = goldenTranslate' @M68k.M68kIsa M68k [] fn
+goldenTranslate VliwIv fn = goldenTranslate' @VliwIv.VliwIvIsa VliwIv [] fn
+goldenTranslate Wasm32 fn = goldenTranslate' @Wasm32.Wasm32Isa Wasm32 [resolveLocalNames] fn
 
 goldenTranslate' ::
     forall (isa :: Type -> Type -> Type).
@@ -391,12 +392,13 @@ goldenTranslate' ::
     , Show (isa Int32 Int32)
     ) =>
     Isa
+    -> [Preprocessor]
     -> FilePath
     -> TestTree
-goldenTranslate' isa fn =
+goldenTranslate' isa preprocessors fn =
     goldenVsString (fn2name fn) (fn <> "." <> isaPath isa <> ".result") $ do
         src <- decodeUtf8 <$> readFileBS fn
-        case translate @isa @Int32 1000 (repeat 0) fn src of
+        case translate @isa @Int32 preprocessors 1000 (repeat 0) fn src of
             Right (TranslatorResult dump labels _stats) ->
                 let addrShow = hexAddr (hexAddrWidth (memorySize dump))
                  in return
@@ -416,12 +418,12 @@ goldenSimulateFail = goldenSimulate' True
 goldenSimulate' :: Bool -> Isa -> FilePath -> FilePath -> TestTree
 goldenSimulate' shouldFail isa =
     case isa of
-        RiscIv -> goldenSimulateInner (wrench @(RiscIvSt Int32)) ".risc-iv-32.result" shouldFail
-        F32a -> goldenSimulateInner (wrench @(F32aSt Int32)) ".f32a.result" shouldFail
-        Acc32 -> goldenSimulateInner (wrench @(Acc32St Int32)) ".acc32.result" shouldFail
-        M68k -> goldenSimulateInner (wrench @(M68kSt Int32)) ".m68k.result" shouldFail
-        VliwIv -> goldenSimulateInner (wrench @(VliwIvSt Int32)) ".vliw-iv.result" shouldFail
-        Wasm32 -> goldenSimulateInner (wrench @(Wasm32St Int32)) ".wasm32.result" shouldFail
+        RiscIv -> goldenSimulateInner (wrench @(RiscIvSt Int32) []) ".risc-iv-32.result" shouldFail
+        F32a -> goldenSimulateInner (wrench @(F32aSt Int32) []) ".f32a.result" shouldFail
+        Acc32 -> goldenSimulateInner (wrench @(Acc32St Int32) []) ".acc32.result" shouldFail
+        M68k -> goldenSimulateInner (wrench @(M68kSt Int32) []) ".m68k.result" shouldFail
+        VliwIv -> goldenSimulateInner (wrench @(VliwIvSt Int32) []) ".vliw-iv.result" shouldFail
+        Wasm32 -> goldenSimulateInner (wrench @(Wasm32St Int32) [resolveLocalNames]) ".wasm32.result" shouldFail
     where
         goldenSimulateInner wrench' ext shouldFail' fn confFn =
             let testName = "Test case: " <> fn2name confFn
