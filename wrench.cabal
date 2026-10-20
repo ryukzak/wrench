@@ -389,6 +389,7 @@ test-suite wrench-test
     , data-interval
     , directory
     , filepath
+    , hedgehog
     , megaparsec
     , mtl
     , optparse-applicative
@@ -399,6 +400,7 @@ test-suite wrench-test
     , string-interpolate
     , tasty
     , tasty-golden
+    , tasty-hedgehog
     , tasty-hunit
     , tasty-rerun
     , th-env

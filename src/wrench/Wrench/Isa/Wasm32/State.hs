@@ -43,15 +43,13 @@ module Wrench.Isa.Wasm32.State (
     scopeAddrs,
     scopeRecordBytes,
     scopeWordAddrs,
-    decodeScope,
 ) where
 
-import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Default (def)
 import Data.String.Interpolate (i)
 import Relude
-import Relude.Extra (safeToEnum)
 import Wrench.Isa.Wasm32.Instruction
+import Wrench.Machine.BitPack
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 
@@ -201,10 +199,10 @@ pushScope scope = do
     Wasm32St{ctrlSp} <- get
     let step = byteSizeT @w
         ctrlSp' = ctrlSp + scopeRecordBytes @w
-    case encodeScope scope of
+    case packWords scope of
         Left err -> raiseInternalError [i|control record doesn't fit: #{err}|]
         Right words_ -> do
-            forM_ (zip [0 ..] words_) $ \(idx, word) -> setWord (ctrlSp + idx * step) word
+            forM_ (zip [0 ..] words_) $ \(idx, w) -> setWord (ctrlSp + idx * step) w
             modify $ \st -> st{ctrlSp = ctrlSp'}
 
 retireScopes :: forall w. (IsWord w) => Int -> State (Wasm32St w) ()
@@ -216,27 +214,24 @@ scopeAtDepth depth = do
     st <- get
     case drop depth (scopeAddrs st) of
         [] -> return Nothing
-        addr : _ -> do
-            word0 <- getWord addr
-            word1 <- getWord (addr + byteSizeT @w)
-            return $ Just $ case decodeScope [word0, word1] of
-                Left err -> Left $ ctrlCorruptedErr addr err
-                Right scope -> Right scope
+        addr : _ -> Just . first (ctrlCorruptedErr addr) <$> readScope addr unpack
 
 innermostCall :: forall w. (IsWord w) => State (Wasm32St w) (Either Text (Int, Scope))
 innermostCall = get >>= go . scopeAddrs
     where
         go [] = return $ Left "return without active function frame"
         go (addr : outer) = do
-            word0 <- getWord addr
-            case decodeScopeTag word0 of
+            result <- readScope addr callGet
+            case result of
                 Left err -> return $ Left $ ctrlCorruptedErr addr err
-                Right CallTag -> do
-                    rest <- mapM getWord (drop 1 (scopeWordAddrs @w addr))
-                    return $ case decodeScope (word0 : rest) of
-                        Left err -> Left $ ctrlCorruptedErr addr err
-                        Right scope -> Right (addr, scope)
-                Right _ -> go outer
+                Right (Just scope) -> return $ Right (addr, scope)
+                Right Nothing -> go outer
+        callGet = do
+            first_@(tag, _, _) <- getRecordHead
+            if tag == CallTag then Just <$> getRecordTail first_ else return Nothing
+
+readScope :: forall w a. (IsWord w) => Int -> BitGet w a -> State (Wasm32St w) (Either Text a)
+readScope addr = runBitGetWith (\k -> getWord (addr + k * byteSizeT @w))
 
 scopeRecordWords :: Int
 scopeRecordWords = 2
@@ -247,88 +242,62 @@ scopeRecordBytes = scopeRecordWords * byteSizeT @w
 scopeWordAddrs :: forall w. (IsWord w) => Int -> [Int]
 scopeWordAddrs addr = [addr + idx * byteSizeT @w | idx <- [0 .. scopeRecordWords - 1]]
 
-decodeScopeTag :: (IsWord w) => w -> Either Text ControlTag
-decodeScopeTag word0 =
-    maybe (Left [i|no record kind has tag #{tag}|]) Right (safeToEnum tag)
-    where
-        tag = unpackField tagBitWidth tagShift (bitsFromWord word0)
+tagBits, addrBits, countBits :: Int
+tagBits = 2
+addrBits = 22
+countBits = 8
 
-tagBitWidth, addrBitWidth, countBitWidth :: Int
-tagBitWidth = 2
-addrBitWidth = 22
-countBitWidth = 8
+instance BitPack ControlTag where
+    unpack = getEnum tagBits <?> "record kind"
+    pack tag = putEnum tagBits tag <?> "record kind"
 
-tagShift, countShift :: Int
-countShift = addrBitWidth
-tagShift = addrBitWidth + countBitWidth
+instance BitPack Scope where
+    unpack = getRecordHead >>= getRecordTail
+    pack BlockScope{csEnd} = do
+        word $ do
+            pack BlockTag
+            putPad countBits
+            putField addrBits csEnd <?> "csEnd"
+        word $ putPad 32
+    pack LoopScope{csStart, csEnd} = do
+        word $ do
+            pack LoopTag
+            putPad countBits
+            putField addrBits csStart <?> "csStart"
+        word $ do
+            putPad 10
+            putField addrBits csEnd <?> "csEnd"
+    pack CallScope{csCallerFrameBase, csCallerLocalCount, csReturnPc, csResultCount} = do
+        word $ do
+            pack CallTag
+            putField countBits csCallerLocalCount <?> "csCallerLocalCount"
+            putField addrBits csCallerFrameBase <?> "csCallerFrameBase"
+        word $ do
+            putPad 2
+            putField countBits csResultCount <?> "csResultCount"
+            putField addrBits csReturnPc <?> "csReturnPc"
 
-bitMask :: Int -> Int
-bitMask n = (1 `shiftL` n) - 1
+getRecordHead :: (IsWord w) => BitGet w (ControlTag, Int, Int)
+getRecordHead = word $ do
+    tag <- unpack
+    count <- getField countBits
+    addr <- getField addrBits
+    return (tag, count, addr)
 
-packField :: Text -> Int -> Int -> Int -> Either Text Int
-packField name width shiftAmt value
-    | value < 0 || value > bitMask width =
-        Left [i|#{name} #{value} doesn't fit in #{width} bits|]
-    | otherwise = Right (value `shiftL` shiftAmt)
-
-unpackField :: Int -> Int -> Int -> Int
-unpackField width shiftAmt word = (word `shiftR` shiftAmt) .&. bitMask width
-
-packAddr, packCount :: Text -> Int -> Either Text Int
-packAddr name = packField name addrBitWidth 0
-packCount name = packField name countBitWidth countShift
-
-unpackAddr, unpackCount :: Int -> Int
-unpackAddr = unpackField addrBitWidth 0
-unpackCount = unpackField countBitWidth countShift
-
-wordFromBits :: (IsWord w) => Int -> w
-wordFromBits = toSign . fromIntegral
-
-bitsFromWord :: (IsWord w) => w -> Int
-bitsFromWord = fromIntegral . fromSign
-
-encodeScope :: (IsWord w) => Scope -> Either Text [w]
-encodeScope scope =
-    map wordFromBits <$> case scope of
-        BlockScope{csEnd} -> do
-            end <- packAddr "csEnd" csEnd
-            return [tag .|. end, 0]
-        LoopScope{csStart, csEnd} -> do
-            start <- packAddr "csStart" csStart
-            end <- packAddr "csEnd" csEnd
-            return [tag .|. start, end]
-        CallScope{csCallerFrameBase, csCallerLocalCount, csReturnPc, csResultCount} -> do
-            frameBase <- packAddr "csCallerFrameBase" csCallerFrameBase
-            localCount <- packCount "csCallerLocalCount" csCallerLocalCount
-            returnPc <- packAddr "csReturnPc" csReturnPc
-            resultCount <- packCount "csResultCount" csResultCount
-            return [tag .|. localCount .|. frameBase, resultCount .|. returnPc]
-    where
-        tag =
-            (`shiftL` tagShift) $
-                fromEnum $ case scope of
-                    LoopScope{} -> LoopTag
-                    BlockScope{} -> BlockTag
-                    CallScope{} -> CallTag
-
-decodeScope :: (IsWord w) => [w] -> Either Text Scope
-decodeScope words_
-    | [word0, word1] <- words_
-    , let bits0 = bitsFromWord word0
-          bits1 = bitsFromWord word1
-          tag = unpackField tagBitWidth tagShift bits0 =
-        case safeToEnum tag of
-            Just BlockTag -> Right BlockScope{csEnd = unpackAddr bits0}
-            Just LoopTag -> Right LoopScope{csStart = unpackAddr bits0, csEnd = unpackAddr bits1}
-            Just CallTag ->
-                Right
-                    CallScope
-                        { csCallerFrameBase = unpackAddr bits0
-                        , csCallerLocalCount = unpackCount bits0
-                        , csReturnPc = unpackAddr bits1
-                        , csResultCount = unpackCount bits1
-                        }
-            Nothing -> Left [i|no record kind has tag #{tag}|]
-    | otherwise =
-        Left [i|expected #{scopeRecordWords} words, got #{length words_}|]
+getRecordTail :: (IsWord w) => (ControlTag, Int, Int) -> BitGet w Scope
+getRecordTail (tag, count, addr) = case tag of
+    BlockTag -> do
+        word $ getPad 32
+        return BlockScope{csEnd = addr}
+    LoopTag -> do
+        csEnd <- word $ do
+            getPad 10
+            getField addrBits
+        return LoopScope{csStart = addr, csEnd}
+    CallTag -> do
+        (csResultCount, csReturnPc) <- word $ do
+            getPad 2
+            resultCount <- getField countBits
+            returnPc <- getField addrBits
+            return (resultCount, returnPc)
+        return CallScope{csCallerFrameBase = addr, csCallerLocalCount = count, csReturnPc, csResultCount}

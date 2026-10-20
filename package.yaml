@@ -150,8 +150,10 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - directory
+      - hedgehog
       - tasty
       - tasty-golden
+      - tasty-hedgehog
       - tasty-hunit
       - tasty-rerun
       - wrench
