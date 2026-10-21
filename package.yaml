@@ -14,6 +14,7 @@ description: A multi-architecture CPU simulator, assembler, and auto-grading too
 default-extensions:
   - AllowAmbiguousTypes
   - BangPatterns
+  - BinaryLiterals
   - ConstraintKinds
   - DataKinds
   - DeriveGeneric

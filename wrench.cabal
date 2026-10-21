@@ -62,6 +62,7 @@ library
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -143,6 +144,7 @@ executable wrench
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -193,6 +195,7 @@ executable wrench-fmt
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -265,6 +268,7 @@ executable wrench-serv
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -351,6 +355,7 @@ test-suite wrench-test
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
