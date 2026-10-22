@@ -10,6 +10,7 @@ import Test.Tasty.HUnit
 import Test.Tasty.Ingredients.Rerun (defaultMainWithRerun)
 import Text.Pretty.Simple (pShowNoColor)
 import Wrench.Config
+import Wrench.Highlight.Test qualified
 import Wrench.Isa.Acc32 (Acc32St)
 import Wrench.Isa.Acc32 qualified as Acc32
 import Wrench.Isa.Acc32.Test qualified
@@ -87,6 +88,7 @@ tests =
             ]
         , Wrench.Isa.Test.tests
         , testGroup "Report" [Wrench.Report.Test.tests]
+        , Wrench.Highlight.Test.tests
         , Wrench.Machine.Types.Test.tests
         , Wrench.Machine.Memory.Test.tests
         , testGroup

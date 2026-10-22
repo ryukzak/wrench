@@ -16,7 +16,7 @@ import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
-import Lucid (Html, renderText, toHtml, toHtmlRaw)
+import Lucid (Html, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Numeric (showHex)
@@ -27,23 +27,10 @@ import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, renam
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeBaseName, takeFileName, (</>))
 import Wrench.Misc (wrenchVersion)
+import WrenchServ.CodeView
 import WrenchServ.Config
 import WrenchServ.Simulation
 import WrenchServ.Statistics
-
-formatCodeWithLineNumbers :: Text -> Text
-formatCodeWithLineNumbers code =
-    let codeLines = T.lines code
-        lineCount = length codeLines
-        lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
-        codeContent = T.concat $ map (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>") codeLines
-        container =
-            "<div class=\"code-container\"><div class=\"line-numbers\">"
-                <> lineNumbers
-                <> "</div><div class=\"code-content\">"
-                <> codeContent
-                <> "</div></div>"
-     in container
 
 main :: IO ()
 main = do
@@ -251,6 +238,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
                     else return "< 0.2.11"
             dump <- liftIO (fromMaybe "DUMP NOT AVAILABLE" <$> maybeReadFile (dir <> "/dump.txt"))
             stats <- liftIO (fromMaybe "" <$> maybeReadFile (dir <> "/stats.log"))
+            isa <- liftIO ((readMaybe . toString . T.strip =<<) <$> maybeReadFile (dir <> "/isa.txt"))
 
             template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
@@ -271,7 +259,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
                     foldl'
                         (\st (pat, new) -> replace pat new st)
                         templateWithBasicContent
-                        [ ("{{assembler_code}}", formatCodeWithLineNumbers asmContent)
+                        [ ("{{assembler_code}}", formatAsm isa asmContent)
                         , ("{{yaml_content}}", formatCodeWithLineNumbers configContent)
                         , ("{{result}}", formatCodeWithLineNumbers logContent)
                         , ("{{test_cases_result}}", formatCodeWithLineNumbers testCaseResult)
@@ -428,9 +416,6 @@ maybeReadFile path = do
     doesFileExist path >>= \case
         True -> Just . decodeUtf8 <$> readFileBS path
         False -> return Nothing
-
-escapeHtml :: Text -> Text
-escapeHtml = toText . renderText . toHtml
 
 sha1 :: Text -> Text
 sha1 text =

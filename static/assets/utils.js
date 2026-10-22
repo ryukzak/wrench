@@ -9,7 +9,15 @@ export function setupCopyButton(buttonId, sourceElementId) {
 
     const codeContent = sourceElement.querySelector('.code-content')
     if (codeContent) {
-      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(line => line.textContent)
+      const withoutComments = sourceElement.classList.contains('hide-comments')
+      const lines = Array.from(codeContent.querySelectorAll('.code-line')).map(line =>
+        withoutComments
+          ? Array.from(line.childNodes)
+              .filter(node => !node.classList?.contains('tok-comment'))
+              .map(node => node.textContent)
+              .join('')
+          : line.textContent,
+      )
       text = lines.join('\n')
     }
 
@@ -113,7 +121,7 @@ function hideConsecutiveEmptyLines(codeLines, linesNumbers) {
   let consecutiveEmptyLineCount = 0
 
   codeLines.forEach((line, index) => {
-    if (line.textContent.trim() === '') {
+    if (line.textContent.trim() === '' || line.classList.contains('comment-only')) {
       consecutiveEmptyLineCount++
     } else {
       consecutiveEmptyLineCount = 0
@@ -140,11 +148,24 @@ export function setupHideCommentsButton(buttonId, containerId, isaType) {
     const linesNumbers = codeContainer.querySelectorAll('.line-number')
 
     const commentsAreHidden = toggleButton.dataset.hidden === 'true'
+    const highlighted = codeContainer.querySelector('.code-line span') !== null
 
     if (commentsAreHidden) {
-      location.reload()
+      if (!highlighted) {
+        location.reload()
+        return
+      }
+      codeContainer.classList.remove('hide-comments')
+      for (const line of codeLines) line.classList.remove('hidden')
+      for (const number of linesNumbers) number.classList.remove('hidden')
+      toggleButton.dataset.hidden = 'false'
+      toggleButton.textContent = '[hide_comments]'
     } else {
-      hideComments(codeLines, commentSymbol)
+      if (highlighted) {
+        codeContainer.classList.add('hide-comments')
+      } else {
+        hideComments(codeLines, commentSymbol)
+      }
       hideConsecutiveEmptyLines(codeLines, linesNumbers)
       toggleButton.dataset.hidden = 'true'
       toggleButton.textContent = '[show_comments]'
