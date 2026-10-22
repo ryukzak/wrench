@@ -162,3 +162,52 @@ select > option {
 [aria-expanded='true'] span {
   padding-left: 3.5em;
 }
+
+/* Assembler syntax highlighting; light colors are darkened for contrast */
+:root {
+  --hl-mnemonic: #0058a8;
+  --hl-register: #a14d00;
+  --hl-literal: #626400;
+  --hl-label: #00704a;
+  --hl-directive: var(--c-purple);
+  --hl-ref: #b0045a;
+  --hl-comment: #646464;
+}
+
+body.dark {
+  --hl-mnemonic: var(--c-blue);
+  --hl-register: var(--c-orange);
+  --hl-literal: var(--c-yellow);
+  --hl-label: var(--c-green);
+  --hl-directive: var(--c-purple);
+  --hl-ref: var(--c-fuschia);
+  --hl-comment: var(--c-grey);
+}
+
+.tok-mnemonic {
+  color: var(--hl-mnemonic);
+}
+.tok-register {
+  color: var(--hl-register);
+}
+.tok-literal {
+  color: var(--hl-literal);
+}
+.tok-label {
+  color: var(--hl-label);
+}
+.tok-directive,
+.tok-reloc {
+  color: var(--hl-directive);
+}
+.tok-ref {
+  color: var(--hl-ref);
+}
+.tok-comment,
+.tok-separator {
+  color: var(--hl-comment);
+}
+
+.hide-comments .tok-comment {
+  display: none;
+}

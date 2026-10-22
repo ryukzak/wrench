@@ -26,17 +26,26 @@ import Servant.HTML.Lucid (HTML)
 import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, renameFile)
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeBaseName, takeFileName, (</>))
+import Wrench.Highlight (TokenKind (..), tokenizeLine)
+import Wrench.Isa (Isa)
 import Wrench.Misc (wrenchVersion)
 import WrenchServ.Config
 import WrenchServ.Simulation
 import WrenchServ.Statistics
 
 formatCodeWithLineNumbers :: Text -> Text
-formatCodeWithLineNumbers code =
+formatCodeWithLineNumbers = formatCodeLines (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>")
+
+formatAsm :: Maybe Isa -> Text -> Text
+formatAsm Nothing = formatCodeWithLineNumbers
+formatAsm (Just isa) = formatCodeLines (highlightLine isa)
+
+formatCodeLines :: (Text -> Text) -> Text -> Text
+formatCodeLines renderLine code =
     let codeLines = T.lines code
         lineCount = length codeLines
         lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
-        codeContent = T.concat $ map (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>") codeLines
+        codeContent = T.concat $ map renderLine codeLines
         container =
             "<div class=\"code-container\"><div class=\"line-numbers\">"
                 <> lineNumbers
@@ -44,6 +53,16 @@ formatCodeWithLineNumbers code =
                 <> codeContent
                 <> "</div></div>"
      in container
+
+highlightLine :: Isa -> Text -> Text
+highlightLine isa line =
+    let tokens = tokenizeLine isa line
+        commentOnly = any ((== Comment) . fst) tokens && all (\(k, t) -> k == Comment || T.null (T.strip t)) tokens
+        cls = if commentOnly then "code-line comment-only" else "code-line"
+     in "<div class=\"" <> cls <> "\">" <> T.concat (map renderToken tokens) <> "</div>"
+    where
+        renderToken (Plain, t) = escapeHtml t
+        renderToken (kind, t) = "<span class=\"tok-" <> T.toLower (show kind) <> "\">" <> escapeHtml t <> "</span>"
 
 main :: IO ()
 main = do
@@ -251,6 +270,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
                     else return "< 0.2.11"
             dump <- liftIO (fromMaybe "DUMP NOT AVAILABLE" <$> maybeReadFile (dir <> "/dump.txt"))
             stats <- liftIO (fromMaybe "" <$> maybeReadFile (dir <> "/stats.log"))
+            isa <- liftIO ((readMaybe . toString . T.strip =<<) <$> maybeReadFile (dir <> "/isa.txt"))
 
             template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
@@ -271,7 +291,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
                     foldl'
                         (\st (pat, new) -> replace pat new st)
                         templateWithBasicContent
-                        [ ("{{assembler_code}}", formatCodeWithLineNumbers asmContent)
+                        [ ("{{assembler_code}}", formatAsm isa asmContent)
                         , ("{{yaml_content}}", formatCodeWithLineNumbers configContent)
                         , ("{{result}}", formatCodeWithLineNumbers logContent)
                         , ("{{test_cases_result}}", formatCodeWithLineNumbers testCaseResult)
