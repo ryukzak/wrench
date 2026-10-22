@@ -250,6 +250,7 @@ executable wrench-fmt
 executable wrench-serv
   main-is: Main.hs
   other-modules:
+      WrenchServ.CodeView
       WrenchServ.Config
       WrenchServ.Simulation
       WrenchServ.Statistics

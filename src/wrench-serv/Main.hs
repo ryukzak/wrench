@@ -16,7 +16,7 @@ import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
-import Lucid (Html, renderText, toHtml, toHtmlRaw)
+import Lucid (Html, toHtmlRaw)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Numeric (showHex)
@@ -26,43 +26,11 @@ import Servant.HTML.Lucid (HTML)
 import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, renameFile)
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeBaseName, takeFileName, (</>))
-import Wrench.Highlight (TokenKind (..), tokenizeLine)
-import Wrench.Isa (Isa)
 import Wrench.Misc (wrenchVersion)
+import WrenchServ.CodeView
 import WrenchServ.Config
 import WrenchServ.Simulation
 import WrenchServ.Statistics
-
-formatCodeWithLineNumbers :: Text -> Text
-formatCodeWithLineNumbers = formatCodeLines (\line -> "<div class=\"code-line\">" <> escapeHtml line <> "</div>")
-
-formatAsm :: Maybe Isa -> Text -> Text
-formatAsm Nothing = formatCodeWithLineNumbers
-formatAsm (Just isa) = formatCodeLines (highlightLine isa)
-
-formatCodeLines :: (Text -> Text) -> Text -> Text
-formatCodeLines renderLine code =
-    let codeLines = T.lines code
-        lineCount = length codeLines
-        lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
-        codeContent = T.concat $ map renderLine codeLines
-        container =
-            "<div class=\"code-container\"><div class=\"line-numbers\">"
-                <> lineNumbers
-                <> "</div><div class=\"code-content\">"
-                <> codeContent
-                <> "</div></div>"
-     in container
-
-highlightLine :: Isa -> Text -> Text
-highlightLine isa line =
-    let tokens = tokenizeLine isa line
-        commentOnly = any ((== Comment) . fst) tokens && all (\(k, t) -> k == Comment || T.null (T.strip t)) tokens
-        cls = if commentOnly then "code-line comment-only" else "code-line"
-     in "<div class=\"" <> cls <> "\">" <> T.concat (map renderToken tokens) <> "</div>"
-    where
-        renderToken (Plain, t) = escapeHtml t
-        renderToken (kind, t) = "<span class=\"tok-" <> T.toLower (show kind) <> "\">" <> escapeHtml t <> "</span>"
 
 main :: IO ()
 main = do
@@ -448,9 +416,6 @@ maybeReadFile path = do
     doesFileExist path >>= \case
         True -> Just . decodeUtf8 <$> readFileBS path
         False -> return Nothing
-
-escapeHtml :: Text -> Text
-escapeHtml = toText . renderText . toHtml
 
 sha1 :: Text -> Text
 sha1 text =
