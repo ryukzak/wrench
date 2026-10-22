@@ -53,3 +53,26 @@ xpath "normalize-space(//pre[@id='status-text-element'])" contains "ExitSuccess"
 xpath "normalize-space(//div[@id='simulation-log-text-element']//div[@class='code-content'])" contains "I32Store"
 xpath "normalize-space(//div[@id='simulation-log-text-element']//div[@class='code-content'])" contains "Halt"
 xpath "normalize-space(//div[@id='dump-text-element']//div[@class='code-content'])" contains "I32Store 0"
+
+# User text with template placeholders stays literal. \u{007B} is `{`, which
+# keeps hurl from reading the placeholder as its own variable.
+POST http://localhost:8080/submit
+[Form]
+name: \u{007B}\u{007B}tracker}}
+asm: .text \n _start: \n halt \n ; \u{007B}\u{007B}dump}}
+config: {limit: 100, memory_size: 128}
+comment: \u{007B}\u{007B}dump}}
+variant:
+isa: acc32
+HTTP/1.1 301
+[Captures]
+placeholder_report_url: header "Location"
+
+GET http://localhost:8080{{placeholder_report_url}}
+HTTP/1.1 200
+[Asserts]
+xpath "normalize-space(//pre[@id='comment-text-element'])" contains "dump}}"
+xpath "normalize-space(//pre[@id='comment-text-element'])" not contains "Halt"
+xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" contains "dump}}"
+xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" not contains "mem["
+xpath "count(//script[contains(., 'posthog')])" == 1

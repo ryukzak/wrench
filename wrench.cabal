@@ -254,6 +254,7 @@ executable wrench-serv
       WrenchServ.Config
       WrenchServ.Simulation
       WrenchServ.Statistics
+      WrenchServ.Template
       Paths_wrench
   autogen-modules:
       Paths_wrench
