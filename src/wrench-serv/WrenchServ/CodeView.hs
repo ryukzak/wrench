@@ -24,7 +24,7 @@ formatReport (Just isa) = formatCodeLines (highlightLine . tokenizeReportLine is
 
 formatCodeLines :: (Text -> Text) -> Text -> Text
 formatCodeLines renderLine code =
-    let codeLines = T.lines code
+    let codeLines = T.lines (T.filter (/= '\r') code)
         lineCount = length codeLines
         lineNumbers = T.concat $ map (\i -> "<div class=\"line-number\">" <> show i <> "</div>") [1 .. lineCount]
         codeContent = T.concat $ map renderLine codeLines
