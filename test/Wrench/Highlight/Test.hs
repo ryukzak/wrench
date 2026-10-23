@@ -67,6 +67,10 @@ tests =
                 @?= [(Mnemonic, "i32.const"), (Ref, "factorial"), (Comment, "; call")]
             significant Wasm32 "local.get 0 i32.const 1 i32.sub"
                 @?= [(Mnemonic, "local.get"), (Literal, "0"), (Mnemonic, "i32.const"), (Literal, "1"), (Mnemonic, "i32.sub")]
+            significant Wasm32 ".frame () $n, $acc"
+                @?= [(Directive, ".frame"), (Register, "$n"), (Register, "$acc")]
+            significant Wasm32 "local.get $n"
+                @?= [(Mnemonic, "local.get"), (Register, "$n")]
         , testCase "f32a" $ do
             significant F32a "while: -1 + ; \\ loop"
                 @?= [(Label, "while:"), (Literal, "-1"), (Mnemonic, "+"), (Mnemonic, ";"), (Comment, "\\ loop")]
