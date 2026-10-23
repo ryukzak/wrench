@@ -1,15 +1,18 @@
-{- | Line-by-line syntax highlighting for assembler sources. Concatenating the
-token texts gives back the original line.
+{- | Line-by-line syntax highlighting for assembler sources and simulation
+reports. Concatenating the token texts gives back the original line.
 -}
 module Wrench.Highlight (
     TokenKind (..),
     tokenizeLine,
+    tokenizeReportLine,
 ) where
 
-import Data.Char (isAlphaNum, isDigit, isHexDigit, isSpace)
+import Data.Char (isAlphaNum, isDigit, isHexDigit, isLower, isSpace, isUpper)
 import Data.Text qualified as T
 import Relude
 import Wrench.Isa (Isa (..))
+import Wrench.Isa.F32a (f32aMnemonics)
+import Wrench.Isa.Wasm32 (wasm32Mnemonics)
 
 data TokenKind
     = Plain
@@ -21,6 +24,7 @@ data TokenKind
     | Literal
     | Reloc
     | Ref
+    | Call
     | Separator
     deriving (Eq, Show)
 
@@ -34,7 +38,8 @@ data Lexeme
 tokenizeLine :: Isa -> Text -> [(TokenKind, Text)]
 tokenizeLine isa line =
     let (code, comment) = splitComment (commentChar isa) line
-     in classify isa (lexCode isa (toString code)) <> [(Comment, comment) | not (T.null comment)]
+        tokens = classify isa (lexCode isa (toString code))
+     in (if isa == F32a then f32aCalls tokens else tokens) <> [(Comment, comment) | not (T.null comment)]
 
 commentChar :: Isa -> Char
 commentChar F32a = '\\'
@@ -104,9 +109,25 @@ classify isa = go True
                 | isNumber w -> (Literal, w) : go False ls
                 | "." `T.isPrefixOf` w -> (Directive, w) : go False ls
                 | "%" `T.isPrefixOf` w -> (Reloc, w) : go False ls
-                | isa == F32a || statementStart -> (Mnemonic, w) : go False ls
+                | Just known <- mnemonics isa -> (if w `elem` known then Mnemonic else Ref, w) : go False ls
+                | statementStart -> (Mnemonic, w) : go False ls
                 | isRegister isa w -> (Register, w) : go False ls
                 | otherwise -> (Ref, w) : go False ls
+
+mnemonics :: Isa -> Maybe [Text]
+mnemonics F32a = Just f32aMnemonics
+mnemonics Wasm32 = Just wasm32Mnemonics
+mnemonics _ = Nothing
+
+-- | A bare f32a word is a call unless it is the argument of a mnemonic.
+f32aCalls :: [(TokenKind, Text)] -> [(TokenKind, Text)]
+f32aCalls = go False
+    where
+        go _ [] = []
+        go arg (tok@(kind, t) : ts) = case kind of
+            Plain -> tok : go arg ts
+            Ref | not arg -> (Call, t) : go False ts
+            _ -> tok : go (kind == Mnemonic && t `elem` ["lit", "@p", "if", "-if", "next"]) ts
 
 isNumber :: Text -> Bool
 isNumber w =
@@ -134,3 +155,51 @@ riscRegisters =
         <> numbered "a" 7
     where
         numbered p n = map ((p <>) . show) [0 .. n :: Int]
+
+-- | Tokens for simulation log, memory dump and statistics lines.
+tokenizeReportLine :: Isa -> Text -> [(TokenKind, Text)]
+tokenizeReportLine isa line
+    | "#" `T.isPrefixOf` line = [(Directive, line)]
+    | T.strip line `elem` ["---", "```"] = [(Separator, line)]
+    | Just (prefix, rest) <- linePrefix line =
+        if isNumber (T.dropEnd 1 prefix) || "mem[" `T.isPrefixOf` prefix
+            then (Separator, prefix) : addressed rest
+            else (Ref, prefix) : reportBody isa (toString rest)
+    | otherwise = reportBody isa (toString line)
+    where
+        addressed rest = case T.words rest of
+            [name]
+                | not (isNumber name)
+                , maybe False ((\c -> isLower c || c == '_') . fst) (T.uncons name) ->
+                    let (sp, w) = T.span isSpace rest in [(Plain, sp), (Label, w)]
+            _ -> reportBody isa (toString rest)
+
+linePrefix :: Text -> Maybe (Text, Text)
+linePrefix line =
+    let (before, after) = T.breakOn ": " (T.replace ":\t" ": " line)
+        prefix = T.take (T.length before + 1) line
+     in if T.null after || T.null before || (T.any isSpace before && not ("mem[" `T.isPrefixOf` before))
+            then Nothing
+            else Just (prefix, T.drop (T.length prefix) line)
+
+reportBody :: Isa -> String -> [(TokenKind, Text)]
+reportBody _ [] = []
+reportBody isa s@(x : xs)
+    | isSpace x = let (sp, rest) = span isSpace s in (Plain, toText sp) : reportBody isa rest
+    | x == '"' = let (str, rest) = quoted x xs in (Literal, toText (x : str)) : reportBody isa rest
+    | x == '@', '"' : ys <- xs = let (str, rest) = quoted '"' ys in (Label, toText ('@' : '"' : str)) : reportBody isa rest
+    | x == '@', (w@(_ : _), rest) <- span isWordChar xs = (Label, toText (x : w)) : reportBody isa rest
+    | isAlphaNum x || (x == '-' && maybe False isDigit (viaNonEmpty head xs)) =
+        let (w, rest) = span (\c -> isAlphaNum c || c == '_') xs
+         in (reportWord isa (toText (x : w)), toText (x : w)) : reportBody isa rest
+    | otherwise = (Plain, one x) : reportBody isa xs
+
+reportWord :: Isa -> Text -> TokenKind
+reportWord isa w
+    | isNumber w || (T.length w == 2 && T.all (\c -> isHexDigit c && not (isUpper c)) w) = Literal
+    | w == "B" = Plain
+    | maybe False (isUpper . fst) (T.uncons w) =
+        if isRegister isa w || isRegister isa (T.toLower w) || (isa `elem` [RiscIv, VliwIv] && w == "S0Fp")
+            then Register
+            else Mnemonic
+    | otherwise = Plain

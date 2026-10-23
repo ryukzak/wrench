@@ -171,6 +171,7 @@ select > option {
   --hl-label: #00704a;
   --hl-directive: var(--c-purple);
   --hl-ref: #b0045a;
+  --hl-call: #a14d00;
   --hl-comment: #646464;
 }
 
@@ -181,6 +182,7 @@ body.dark {
   --hl-label: var(--c-green);
   --hl-directive: var(--c-purple);
   --hl-ref: var(--c-fuschia);
+  --hl-call: var(--c-orange);
   --hl-comment: var(--c-grey);
 }
 
@@ -202,6 +204,9 @@ body.dark {
 }
 .tok-ref {
   color: var(--hl-ref);
+}
+.tok-call {
+  color: var(--hl-call);
 }
 .tok-comment,
 .tok-separator {

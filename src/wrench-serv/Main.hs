@@ -266,10 +266,10 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
                         , ("version_warning", versionWarning reportWrenchVersion)
                         , ("assembler_code", formatAsm isa asmContent)
                         , ("yaml_content", formatCodeWithLineNumbers configContent)
-                        , ("result", formatCodeWithLineNumbers logContent)
-                        , ("test_cases_result", formatCodeWithLineNumbers testCaseResult)
-                        , ("execution_stats", formatCodeWithLineNumbers stats)
-                        , ("dump", formatCodeWithLineNumbers dump)
+                        , ("result", formatReport isa logContent)
+                        , ("test_cases_result", formatReport isa testCaseResult)
+                        , ("execution_stats", formatReport isa stats)
+                        , ("dump", formatReport isa dump)
                         ]
                         template
 

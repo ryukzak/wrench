@@ -6,6 +6,7 @@
 module Wrench.Isa.F32a (
     F32aIsa (..),
     F32aSt (..),
+    f32aMnemonics,
 ) where
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
@@ -164,6 +165,42 @@ data F32aIsa w l
     | -- | > halt ( -- )
       Halt
     deriving (Show)
+
+-- | Every word the 'MnemonicParser' instance accepts as an instruction.
+f32aMnemonics :: [Text]
+f32aMnemonics =
+    [ "lit"
+    , "next"
+    , "if"
+    , "-if"
+    , "a!"
+    , "b!"
+    , "+*"
+    , "+/"
+    , "2*"
+    , "2/"
+    , "inv"
+    , "+"
+    , "eam"
+    , "and"
+    , "xor"
+    , "drop"
+    , "dup"
+    , "over"
+    , "a"
+    , "@p"
+    , "@+"
+    , "@b"
+    , "@"
+    , "!p"
+    , "!b"
+    , "!+"
+    , "!"
+    , "r>"
+    , ">r"
+    , "halt"
+    , ";"
+    ]
 
 instance CommentStart (F32aIsa w l) where
     commentStart = "\\"
