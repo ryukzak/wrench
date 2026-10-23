@@ -1,9 +1,9 @@
 {- |
-Wasm32: a 32-bit stack machine for teaching, modelled on the @i32@ subset of
-<https://webassembly.github.io/spec/core/ WebAssembly>. It has no
-general-purpose registers: instructions take their operands from a stack and
-push results back. Control flow is structured (@block@, @loop@, @if@, each
-closed by @end@), and a function is called through its address.
+Wasm32: a 32-bit stack machine for teaching, based on the @i32@ subset of
+<https://webassembly.github.io/spec/core/ WebAssembly>. There are no
+general-purpose registers: instructions pop operands from a stack and push
+results. Control flow is structured (@block@, @loop@, @if@, each closed by
+@end@), and functions are called by address.
 
 > _start:
 >     i32.const 2        ; 2
@@ -50,25 +50,23 @@ import Wrench.Isa.Wasm32.Instruction (Wasm32Isa (..), wasm32Mnemonics)
 import Wrench.Isa.Wasm32.Report ()
 
 -- $program
--- Sections, labels and data directives are common to all ISAs and described
--- in the <https://github.com/ryukzak/wrench/blob/master/docs/README.md Wrench documentation>.
+-- Sections, labels and data directives are shared by all ISAs; see the
+-- <https://github.com/ryukzak/wrench/blob/master/docs/README.md Wrench documentation>.
 -- Specific to wasm32:
 --
--- * Mnemonics are WebAssembly's text-format names. A line may hold several
---   instructions separated by spaces. Comments start with @;@.
+-- * Mnemonics are WebAssembly text-format names. A line may hold several
+--   instructions. Comments start with @;@.
 -- * Execution starts at @_start@.
--- * @i32.const@ takes a 32-bit number or a label. Every other immediate is
---   an unsigned byte, @0@ to @255@, checked when the program is translated.
---   The offset of a load or store may be left out and is then @0@; when
---   given, it is a number.
--- * An instruction takes one byte, plus one per byte immediate, plus four
---   for @i32.const@'s value.
--- * The @.frame@ directive names a function's locals and emits no code
---   (see Functions and locals).
+-- * @i32.const@ takes a 32-bit number or a label. Other immediates are
+--   unsigned bytes, @0@ to @255@, checked at translation. A load or store
+--   offset is optional (default @0@) and must be a number.
+-- * An instruction is one byte, plus one per byte immediate, plus four for
+--   @i32.const@.
+-- * @.frame@ names a function's locals (see Functions and locals).
 
 -- $instructions
 -- An immediate is written @\<name: type\>@. A stack effect
--- @( before -- after )@ lists the stack top rightmost:
+-- @( before -- after )@ has the top rightmost:
 -- @i32.sub ( a: i32, b: i32 -- difference: i32 )@ pops @b@, then @a@, and
 -- pushes @a - b@. An error stops the simulation with a message.
 --
@@ -97,16 +95,16 @@ import Wrench.Isa.Wasm32.Report ()
 -- * Machine: [@sp.init@](#v:SpInit), [@halt@](#v:Halt)
 
 -- $architecture
--- wasm32 works unlike the other wrench ISAs: it has no general-purpose
--- registers, no flags and no branches to labels. Values live on stacks in
--- memory, loops are nested scopes, and every call gets a frame of its own.
--- Each section below builds on the one before.
+-- Unlike the other wrench ISAs, wasm32 has no general-purpose registers, no
+-- flags and no branches to labels. Values live on stacks in memory, loops
+-- are nested scopes, and each call gets its own frame. Each section builds
+-- on the previous one.
 
 -- $memory
--- Code, data, the I\/O ports and both of the machine's stacks share one
--- byte-addressed memory. The stacks start at @stackRoot@, three quarters of
--- the way into memory unless @sp.init@ moves it, and grow apart: the operand
--- stack down, the control stack up.
+-- Code, data, I\/O ports and both stacks share one byte-addressed memory.
+-- The stacks start at @stackRoot@ (three quarters into memory, unless
+-- @sp.init@ moves it) and grow apart: the operand stack down, the control
+-- stack up.
 --
 -- > memory end   +---------------------+
 -- >              |         ...         |
@@ -121,18 +119,16 @@ import Wrench.Isa.Wasm32.Report ()
 -- >              | .text, .data        |
 -- > 0            +---------------------+
 --
--- Besides memory, the machine keeps only @pc@, the address of the next
--- instruction, and a handful of values that track the stacks, introduced
--- below. The stacks are ordinary memory: a program can read and overwrite
--- them, and nothing stops one from growing into the other or into code and
--- data.
+-- Besides memory, the machine keeps only @pc@ and a few stack pointers,
+-- introduced below. The stacks are plain memory: a program can read and
+-- overwrite them, and nothing stops them from running into each other or
+-- into code and data.
 
 -- $operands
--- Every value is a 32-bit word. Instead of registers, instructions use the
--- /operand stack/: @i32.const@ pushes a value, and an operation pops its
--- operands and pushes its result. @sp@ is the address of the top value; a
--- push moves it four bytes down, a pop four bytes up. The comments show the
--- stack after each line as the @stack@ view prints it: top first, values
+-- Every value is a 32-bit word. @i32.const@ pushes a value; an operation
+-- pops its operands and pushes its result. @sp@ is the address of the top
+-- value; a push moves it four bytes down, a pop four bytes up. Comments
+-- show the stack after each line as the @stack@ view prints it: top first,
 -- separated by colons.
 --
 -- > i32.const 7         ; 7
@@ -141,12 +137,11 @@ import Wrench.Isa.Wasm32.Report ()
 -- > i32.const 3         ; 3:5
 -- > i32.mul             ; 15
 --
--- Memory is reached through the stack too. @i32.load@ pops an address and
--- pushes the word stored there; @i32.store@ pops a value, then the address
--- to write it to. I\/O ports (@memory_mapped_io@ in the configuration) are
--- ordinary addresses: a load from an input port reads the next input, a
--- store to an output port writes an output. This copies one value from the
--- input at @128@ to the output at @132@:
+-- Memory is accessed through the stack too: @i32.load@ pops an address and
+-- pushes the word there; @i32.store@ pops a value, then an address. I\/O
+-- ports (@memory_mapped_io@ in the configuration) are ordinary addresses:
+-- a load from an input port reads the next input, a store to an output
+-- port writes one. This copies one value from the input at @128@ to the output at @132@:
 --
 -- > i32.const 132       ; 132
 -- > i32.const 128       ; 128:132
@@ -154,13 +149,10 @@ import Wrench.Isa.Wasm32.Report ()
 -- > i32.store           ;
 
 -- $conditions
--- A condition is a value as well. A comparison pushes @1@ for true and @0@
--- for false, and @if@ pops it:
---
--- * Non-zero: execution continues with the next instruction. When it
---   reaches the @else@, it skips to after the matching @end@.
--- * Zero: execution skips to after the matching @else@, or after the @end@
---   if there is none.
+-- A comparison pushes @1@ (true) or @0@ (false), and @if@ pops it. If it is
+-- non-zero, execution enters the body, and reaching @else@ jumps past the
+-- matching @end@. If it is zero, execution jumps past the matching @else@,
+-- or past @end@ if there is none.
 --
 -- This writes @-1@ if @x@ is negative, @1@ otherwise:
 --
@@ -174,46 +166,39 @@ import Wrench.Isa.Wasm32.Report ()
 -- > end
 -- > i32.store                     ;
 --
--- Whatever a part pushes stays on the stack after the @end@: here each
--- part leaves the value to store. Nothing checks that both parts leave the
--- same number of values.
+-- What either part pushes stays on the stack after @end@. Nothing checks
+-- that both parts push the same number of values.
 --
--- The machine has no table of where each @end@ is. To skip, @if@ or @else@
--- reads the instructions after it one by one until it finds its own @else@
--- or @end@, counting every @block@, @loop@ and @if@ it passes so that their
--- @else@ and @end@ are passed over too. Each instruction read is a memory
--- access, so a skip costs one access per instruction it passes, nested
--- ones included, and each path pays for the part it skips. In the example,
--- when @x@ is negative @if@ costs 2 accesses (its fetch and the pop) and
--- the @else@ 3 (its fetch, @i32.const 1@ and @end@); otherwise @if@ costs 4
--- (fetch, pop, @i32.const -1@ and @else@). The @memAccesses@ view shows
--- these numbers. Reaching an @if@'s @end@ does nothing, and a missing
--- @end@ is noticed only when a skip looks for it.
+-- There is no table of @end@ addresses. To skip, @if@ or @else@ reads the
+-- following instructions one by one, tracking nested @block@, @loop@ and
+-- @if@, until it finds its own @else@ or @end@. Each instruction read is a
+-- memory access, so each path pays for the part it skips. In the example,
+-- when @x@ is negative @if@ costs 2 accesses (fetch, pop) and @else@ 3
+-- (fetch, @i32.const 1@, @end@); otherwise @if@ costs 4 (fetch, pop,
+-- @i32.const -1@, @else@), as the @memAccesses@ view shows. An @if@'s
+-- @end@ does nothing; a missing @end@ is noticed only when a skip looks
+-- for it.
 
 -- $control
--- An @if@ can only skip forward, and a branch cannot name a label. To
--- repeat code, a program wraps it in a /scope/ and branches to the scope.
--- Scopes nest, and each one is closed by its own @end@:
+-- @if@ only skips forward, and a branch cannot name a label. To repeat
+-- code, wrap it in a /scope/ and branch to the scope. Scopes nest, each
+-- closed by its own @end@:
 --
--- * @block ... end@ -- a branch to a block /breaks/ out of it: execution
+-- * @block ... end@ -- a branch to a block /breaks/ out: execution
 --   continues after its @end@.
--- * @loop ... end@ -- a branch to a loop /continues/ it: execution goes
---   back to the start of its body. Without a branch the body runs once.
+-- * @loop ... end@ -- a branch to a loop /continues/ it: execution returns
+--   to the start of its body. Without a branch the body runs once.
 --
--- The open scopes are kept on the /control stack/. Running @block@ or
--- @loop@ pushes an eight-byte record with the addresses a branch needs, and
--- its @end@ pops it. @ctrlSp@ is the address just past the top record.
+-- Open scopes live on the /control stack/. @block@ or @loop@ pushes an
+-- eight-byte record with the addresses a branch needs, and its @end@ pops
+-- it. @ctrlSp@ points just past the top record. To fill the record,
+-- @block@ and @loop@ search for their @end@ the way @if@ skips, every time
+-- they run, so a @block@ inside a loop body pays for it on each iteration.
 --
--- @block@ and @loop@ find their @end@ the same way an @if@ skips: each time
--- one runs, it reads its body up to the matching @end@, one access per
--- instruction, before writing its two-word record. A @block@ inside a loop
--- body pays for this on every iteration.
---
--- @br n@ branches to the scope @n@ records down the control stack, @0@
--- being the innermost, and pops the records of the scopes it leaves;
--- @br_if n@ does the same if the value it pops is non-zero. An @if@ pushes
--- no record, so it is not counted and cannot be a branch target. A branch
--- leaves the operand stack as it is.
+-- @br n@ jumps to the scope @n@ records down (@0@ is the innermost) and
+-- pops the records of the scopes it leaves; @br_if n@ does the same if the
+-- value it pops is non-zero. @if@ pushes no record, so it is not counted
+-- and cannot be a target. Branches leave the operand stack unchanged.
 --
 -- This writes @n@, @n - 1@, ..., @1@, with @n@ a word in @.data@:
 --
@@ -233,38 +218,36 @@ import Wrench.Isa.Wasm32.Report ()
 -- >     end
 -- > end
 --
--- Here @block@ costs 21 accesses: its fetch, the 18 instructions up to its
--- @end@ and the two record words. @loop@ costs 19. A missing @end@ is
--- reported when its scope runs, by that search.
+-- Here @block@ costs 21 accesses (fetch, 18 instructions up to its @end@,
+-- two record words) and @loop@ 19. A missing @end@ is reported when its
+-- scope runs.
 --
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/factorial.s example/wasm32/factorial.s>
 -- is a complete program with a loop.
 
 -- $functions
--- A function is a label, and its address is an ordinary value:
+-- A function is a label; its address is an ordinary value:
 --
 -- > i32.const 10          ; 10
 -- > i32.const fib         ; fib:10
 -- > call 1, 1             ; fib(10)     one parameter, one result
 --
 -- In <https://github.com/ryukzak/wrench/blob/master/docs/f32a.md f32a> a
--- call only saves a return address, and the callee works on the caller's
--- data stack. Here @call p, r@ pops the target and gives the callee a
--- /frame/ of its own:
+-- call only saves a return address and the callee shares the caller's data
+-- stack. Here @call p, r@ pops the target and gives the callee its own
+-- /frame/:
 --
--- 1. The @p@ values on top of the caller's stack stay where they are and
---    become the callee's first /locals/, @0@ to @p-1@: local 0 is the one
---    pushed first. These are its parameters; the caller's frame now ends
---    under them.
+-- 1. The top @p@ values stay in place and become the callee's /locals/
+--    @0@ to @p-1@ (local 0 was pushed first). These are its parameters;
+--    the caller's frame now ends below them.
 --
--- 2. A call record on the control stack saves where the caller's frame
---    is, the return address and @r@.
+-- 2. A call record on the control stack saves the caller's frame, the
+--    return address and @r@.
 --
--- 3. The callee starts at the target with no operands of its own.
+-- 3. The callee starts at the target with an empty operand stack.
 --
--- A frame begins with its locals, and the function's operands are pushed
--- after them. While @_start@ runs a function with two parameters and one
--- more local:
+-- A frame holds its locals, then its operands. While @_start@ runs a
+-- function with two parameters and one more local:
 --
 -- > ctrlSp    -> +---------------------+
 -- >              | call record         |  caller's frame, return address, r
@@ -277,43 +260,36 @@ import Wrench.Isa.Wasm32.Report ()
 -- >              | operands            |
 -- > sp        -> +---------------------+
 --
--- @frameBase@ is the address of local 0 and @localCount@ the number of
--- locals. @local.get i@ pushes local @i@, @local.set i@ pops a value into
--- it, and @local.tee i@ stores the top value without popping it.
--- @locals.reserve n@ adds @n@ locals after the ones the frame already has,
--- at first its parameters. They are simply the next @n@ words down the
--- stack, so reserve them first thing, before pushing anything; they are
--- not cleared. @_start@ runs in a frame without
--- parameters and may reserve locals too.
+-- @frameBase@ is the address of local 0, @localCount@ the number of
+-- locals. @local.get i@ pushes local @i@, @local.set i@ pops into it, and
+-- @local.tee i@ stores the top value without popping it. @locals.reserve n@
+-- adds @n@ locals after the existing ones. They are just the next @n@
+-- words down the stack, so reserve them before pushing anything; they are
+-- not cleared. @_start@ has a frame without parameters and may reserve
+-- locals too.
 --
--- Local indices count from the frame's own @frameBase@, so a function
--- reaches only its own locals, and a call -- recursive or not -- leaves the
--- caller's frame as it was. A local index is not checked against
--- @localCount@.
+-- Local indices are relative to the current @frameBase@, so a function
+-- sees only its own locals, and a call, recursive or not, leaves the
+-- caller's frame intact. Indices are not checked against @localCount@.
 --
--- Instead of remembering which index holds what, a function can name its
--- locals with @.frame@: the parameters in parentheses, then the reserved
--- locals. @.frame ($a, $b) $acc@ makes @$a@ and @$b@ locals 0 and 1, which
--- the caller fills with @call 2, r@, and @$acc@ local 2; @.frame () $acc@
--- names a frame without parameters. @local.get $acc@ is then the same
--- instruction as @local.get 2@: a name is replaced by its index when the
--- program is translated, so it costs nothing at run time. @.frame@ emits
--- no code, so the function still reserves its locals with
--- @locals.reserve@; nothing checks the names against the counts of @call@
--- or @locals.reserve@. Names start with @$@ and hold until the next label
--- or the end of the section, and indices keep working beside them. A
--- @.frame@ out of this form, or naming a local twice, is an error at
--- translation.
+-- @.frame@ names locals: parameters in parentheses, then reserved locals.
+-- @.frame ($a, $b) $acc@ makes @$a@ and @$b@ locals 0 and 1 (filled by
+-- @call 2, r@) and @$acc@ local 2; @.frame () $acc@ has no parameters.
+-- Names become indices at translation: @local.get $acc@ is
+-- @local.get 2@. @.frame@ emits no code, so the function still needs
+-- @locals.reserve@, and nothing checks the names against the counts of
+-- @call@ or @locals.reserve@. Names start with @$@, last until the next
+-- label or the end of the section, and mix freely with indices. A
+-- malformed @.frame@ or a repeated name is a translation error.
 --
--- @return@ takes the top @r@ values and discards the rest of the frame --
--- parameters, locals and leftover operands -- along with the call record
--- and every scope the function still has open. The @r@ values take the
--- parameters' place on the caller's stack, and the caller continues after
--- the @call@. @return@ outside a function is an error, and @br@ cannot
--- leave one.
+-- @return@ keeps the top @r@ values and discards the rest of the frame
+-- (parameters, locals, leftover operands), the call record and any scope
+-- still open. The results replace the parameters on the caller's stack,
+-- and the caller continues after @call@. @return@ outside a function is
+-- an error, and @br@ cannot leave a function.
 --
--- A factorial function, with @n@ in its parameter and the product in a
--- reserved local:
+-- A factorial with @n@ as its parameter and the product in a reserved
+-- local:
 --
 -- > factorial:
 -- >     .frame ($n) $acc                  ; locals 0, 1
@@ -333,30 +309,31 @@ import Wrench.Isa.Wasm32.Report ()
 -- >     local.get $acc
 -- >     return
 --
--- Since the target is a value, a call through a computed address -- a
--- table of functions, say -- is the same instruction.
+-- Since the target is a value, calling a computed address (from a function
+-- table, say) uses the same instruction.
 --
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/factorial-recursive.s example/wasm32/factorial-recursive.s>
 -- computes the factorial recursively, with @if@ and @return@.
 
 -- $views
--- Besides the common views (@pc@, @memory@, @io@), wasm32 has, each with
--- @:dec@ (default) and @:hex@:
+-- Besides the common views (@pc@, @memory@, @io@), wasm32 has these, each
+-- with @:dec@ (default) or @:hex@:
 --
 -- [@stack@] The current frame's operands, top first, e.g. @14:14@.
--- [@locals@] The current frame's locals, local 0 first.
--- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers of the same name.
---   @localCount@ has no view of its own: @locals@ shows that many words.
--- [@stackLayout@] Every frame, oldest first: its locals, control records
---   and operands. @stackLayout:hex:2@ shows the last two frames only.
--- [@stackDump@] Memory from @sp@ to the end, in address order. Each word
---   is shown once, with every frame it belongs to, and a frame's locals
---   are grouped under one line; a control record is decoded; anything
---   else, such as the memory above @ctrlSp@, is raw.
---   @stackDump:hex:2@ also shows the last two frames only.
+-- [@locals@] The current frame's locals, local 0 first. There is no
+--   @localCount@ view; this shows that many words.
+-- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers.
+-- [@stackLayout@] Every frame, oldest first: locals, control records,
+--   operands. @stackLayout:hex:2@ shows only the last two frames.
+-- [@stackDump@] Memory from @sp@ to the end, by address. Each word
+--   appears once, with every frame it belongs to; a frame's locals are
+--   grouped, control records decoded, everything else (such as memory
+--   above @ctrlSp@) raw. @stackDump:hex:2@ also limits it to two frames.
 --
--- @{stackLayout:hex}@ after @_start@ called @foo@ with two arguments, which
--- inside a @block@ called @bar@ with one:
+-- @{stackLayout:hex}@ at the @halt@ of
+-- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/frames.s example/wasm32/frames.s>:
+-- @_start@ called @foo@ with two arguments, and @foo@, inside a @block@,
+-- called @bar@ with one:
 --
 -- > #0 _start (pc=0x44)
 -- >   mem[0x7c..0x7f]: (operands)
@@ -386,17 +363,16 @@ import Wrench.Isa.Wasm32.Report ()
 -- >     0x64..0x67: 0x0000000e (1) [sp]
 
 -- $differences
--- * Only @i32@. Missing: @i32.ne@, @i32.div_u@, @i32.rem_u@,
---   rotations, @clz@\/@ctz@\/@popcnt@, 16-bit loads and stores,
---   @br_table@, @nop@, globals, @memory.size@\/@memory.grow@.
--- * No modules, function declarations or types: a function is a label,
---   and @call@ takes its target from the stack (like @call_indirect@)
---   and its parameter and result counts from the instruction.
--- * Locals are added at run time by @locals.reserve@, and named by
---   @.frame ($n) $acc@ rather than by @(param $n i32)@ and
---   @(local $acc i32)@.
+-- * Only @i32@. Missing: @i32.ne@, @i32.div_u@, @i32.rem_u@, rotations,
+--   @clz@\/@ctz@\/@popcnt@, 16-bit loads and stores, @br_table@, @nop@,
+--   globals, @memory.size@\/@memory.grow@.
+-- * No modules, function declarations or types: a function is a label, and
+--   @call@ takes its target from the stack (like @call_indirect@) and its
+--   parameter and result counts from the instruction.
+-- * Locals are added at run time by @locals.reserve@ and named by
+--   @.frame ($n) $acc@ instead of @(param $n i32)@ and @(local $acc i32)@.
 -- * Scopes have no result types, @if@ is not a branch target, and branches
 --   neither unwind nor check the operand stack.
--- * The stacks live in ordinary memory, where a program can read and
---   overwrite them; @sp.init@ places them.
+-- * The stacks live in ordinary memory, readable and writable by the
+--   program; @sp.init@ places them.
 -- * A program ends with @halt@.
