@@ -180,6 +180,7 @@ def build_one_example(
     (out_dir / "variant.txt").write_text(f"example {ex.display_name}", encoding="utf-8")
     (out_dir / "comment.txt").write_text("\n".join(comment_lines), encoding="utf-8")
     (out_dir / "wrench-version.txt").write_text(version, encoding="utf-8")
+    (out_dir / "isa.txt").write_text(isa, encoding="utf-8")
     (out_dir / "test_cases_status.log").write_text("", encoding="utf-8")
     (out_dir / "test_cases_result.log").write_text("", encoding="utf-8")
 
