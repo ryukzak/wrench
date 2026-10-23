@@ -28,13 +28,13 @@ data Acc32Isa w l
       LoadImm l
     | -- | Syntax: @load_addr <address>@ Load a value from a specific address into the accumulator.
       LoadAddr l
-    | -- | Syntax: @load <offset>@ Load a value from a relative address into the accumulator.
+    | -- | Syntax: @load <address>@ Load a value from a nearby address into the accumulator, encoded as the offset @<address> - pc@.
       Load l
     | -- | Syntax: @load_acc@ Load a value from an address in acc into the accumulator.
       LoadAcc
     | -- | Syntax: @store_addr <address>@ Store the accumulator value into a specific address.
       StoreAddr l
-    | -- | Syntax: @store <offset>@ Store the accumulator value into a relative address.
+    | -- | Syntax: @store <address>@ Store the accumulator value into a nearby address, encoded as the offset @<address> - pc@.
       Store l
     | -- | Syntax: @store_ind <address>@ Store the accumulator value into an indirect address.
       StoreInd l
@@ -140,16 +140,15 @@ cmdMnemonic1 mnemonic refParser = try $ do
 
 instance (IsWord w) => DerefMnemonic (Acc32Isa w) w where
     derefMnemonic f offset i =
-        let relF = fmap (\x -> x - offset) . f
-            offsetErr m x = m <> ": relative offset " <> x <> " is not in -128..127"
+        let offsetErr m x = m <> ": relative offset " <> x <> " is not in -128..127"
             addrErr m x = m <> ": address " <> x <> " is not in 0..65535"
          in case i of
                 LoadImm l -> LoadImm (resolveRef Right f l)
                 LoadAddr l -> LoadAddr (resolveRef Right f l)
-                Load l -> Load (resolveRef (i8 (offsetErr "load")) relF l)
+                Load l -> Load (resolveRef (i8 (offsetErr "load") . subtract offset) f l)
                 LoadAcc -> LoadAcc
                 StoreAddr l -> StoreAddr (resolveRef Right f l)
-                Store l -> Store (resolveRef (i8 (offsetErr "store")) relF l)
+                Store l -> Store (resolveRef (i8 (offsetErr "store") . subtract offset) f l)
                 StoreInd l -> StoreInd (resolveRef Right f l)
                 Add l -> Add (resolveRef (u16 (addrErr "add")) f l)
                 Sub l -> Sub (resolveRef (u16 (addrErr "sub")) f l)
