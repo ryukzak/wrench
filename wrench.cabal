@@ -40,6 +40,7 @@ library
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine
+      Wrench.Machine.BitPack
       Wrench.Machine.Memory
       Wrench.Machine.Types
       Wrench.Machine.Word
@@ -62,6 +63,7 @@ library
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -122,6 +124,7 @@ executable wrench
       Wrench.Isa.Wasm32.Report
       Wrench.Isa.Wasm32.State
       Wrench.Machine
+      Wrench.Machine.BitPack
       Wrench.Machine.Memory
       Wrench.Machine.Types
       Wrench.Machine.Word
@@ -143,6 +146,7 @@ executable wrench
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -193,6 +197,7 @@ executable wrench-fmt
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -265,6 +270,7 @@ executable wrench-serv
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -340,6 +346,7 @@ test-suite wrench-test
       Wrench.Isa.Test
       Wrench.Isa.VliwIv.Test
       Wrench.Isa.Wasm32.Test
+      Wrench.Machine.BitPack.Test
       Wrench.Machine.Memory.Test
       Wrench.Machine.Types.Test
       Wrench.Report.Test
@@ -351,6 +358,7 @@ test-suite wrench-test
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
+      BinaryLiterals
       ConstraintKinds
       DataKinds
       DeriveGeneric
@@ -381,6 +389,7 @@ test-suite wrench-test
     , data-interval
     , directory
     , filepath
+    , hedgehog
     , megaparsec
     , mtl
     , optparse-applicative
@@ -391,6 +400,7 @@ test-suite wrench-test
     , string-interpolate
     , tasty
     , tasty-golden
+    , tasty-hedgehog
     , tasty-hunit
     , tasty-rerun
     , th-env
