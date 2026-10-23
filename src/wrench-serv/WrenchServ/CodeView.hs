@@ -2,12 +2,13 @@ module WrenchServ.CodeView (
     escapeHtml,
     formatCodeWithLineNumbers,
     formatAsm,
+    formatReport,
 ) where
 
 import Data.Text qualified as T
 import Lucid (renderText, toHtml)
 import Relude
-import Wrench.Highlight (TokenKind (..), tokenizeLine)
+import Wrench.Highlight (TokenKind (..), tokenizeLine, tokenizeReportLine)
 import Wrench.Isa (Isa)
 
 formatCodeWithLineNumbers :: Text -> Text
@@ -15,7 +16,11 @@ formatCodeWithLineNumbers = formatCodeLines (\line -> "<div class=\"code-line\">
 
 formatAsm :: Maybe Isa -> Text -> Text
 formatAsm Nothing = formatCodeWithLineNumbers
-formatAsm (Just isa) = formatCodeLines (highlightLine isa)
+formatAsm (Just isa) = formatCodeLines (highlightLine . tokenizeLine isa)
+
+formatReport :: Maybe Isa -> Text -> Text
+formatReport Nothing = formatCodeWithLineNumbers
+formatReport (Just isa) = formatCodeLines (highlightLine . tokenizeReportLine isa)
 
 formatCodeLines :: (Text -> Text) -> Text -> Text
 formatCodeLines renderLine code =
@@ -31,10 +36,9 @@ formatCodeLines renderLine code =
                 <> "</div></div>"
      in container
 
-highlightLine :: Isa -> Text -> Text
-highlightLine isa line =
-    let tokens = tokenizeLine isa line
-        commentOnly = any ((== Comment) . fst) tokens && all (\(k, t) -> k == Comment || T.null (T.strip t)) tokens
+highlightLine :: [(TokenKind, Text)] -> Text
+highlightLine tokens =
+    let commentOnly = any ((== Comment) . fst) tokens && all (\(k, t) -> k == Comment || T.null (T.strip t)) tokens
         cls = if commentOnly then "code-line comment-only" else "code-line"
      in "<div class=\"" <> cls <> "\">" <> T.concat (map renderToken tokens) <> "</div>"
     where

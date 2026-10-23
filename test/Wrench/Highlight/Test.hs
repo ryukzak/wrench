@@ -96,9 +96,42 @@ tests =
                     let labels = [T.dropEnd 1 t | (Label, t) <- tokens]
                     forM_ [t | (kind, t) <- tokens, kind `elem` [Ref, Call]] $ \t ->
                         assertBool (dir </> fn <> ": " <> toString t) (t `elem` labels)
+        , testCase "report lines" $ do
+            significantReport RiscIv "8:\tLw {rd = T0, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}\t@_start"
+                @?= [ (Separator, "8:")
+                    , (Mnemonic, "Lw")
+                    , (Register, "T0")
+                    , (Mnemonic, "MemRef")
+                    , (Literal, "0")
+                    , (Register, "T0")
+                    , (Label, "@_start")
+                    ]
+            significantReport RiscIv "mem[0x000..0x003] (4 B): \t48 65 0a ff\t@\"buf\""
+                @?= [ (Separator, "mem[0x000..0x003] (4 B):")
+                    , (Literal, "48")
+                    , (Literal, "65")
+                    , (Literal, "0a")
+                    , (Literal, "ff")
+                    , (Label, "@\"buf\"")
+                    ]
+            significantReport Wasm32 "0x00c:\toutput_addr" @?= [(Separator, "0x00c:"), (Label, "output_addr")]
+            significantReport Wasm32 "0x008:\t_start" @?= [(Separator, "0x008:"), (Label, "_start")]
+            significantReport RiscIv "mem:io-ranges:  0x80..0x87 (8 B)"
+                @?= [(Ref, "mem:io-ranges:"), (Literal, "0x80"), (Literal, "0x87"), (Literal, "8")]
+            significantReport Wasm32 "numio[0x84]: [] >>> [65]" @?= [(Ref, "numio[0x84]:"), (Literal, "65")]
+            significantReport Wasm32 "# Check results" @?= [(Directive, "# Check results")]
+        , testCase "Report tokens concatenate back"
+            $ forM_
+                [ "mem[0x000..0x004] (5 B): \tI32Const 132 \t@_start"
+                , "128:132"
+                , "symio[0x84]: \"\" >>> \"Hello\\n\\0World\""
+                , "[unknown-view <T0>] -1 @"
+                ]
+            $ \l -> T.concat (map snd $ tokenizeReportLine RiscIv l) @?= l
         ]
     where
         significant isa = filter ((/= Plain) . fst) . tokenizeLine isa
+        significantReport isa = filter ((/= Plain) . fst) . tokenizeReportLine isa
 
 parseF32a :: Text -> Either (ParseErrorBundle String Void) (F32a.F32aIsa Int32 (Ref Int32))
 parseF32a = parse mnemonic "" . toString
