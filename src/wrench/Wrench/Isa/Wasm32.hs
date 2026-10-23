@@ -18,6 +18,7 @@ module Wrench.Isa.Wasm32 (
     -- * Instructions
     -- $instructions
     Wasm32Isa (..),
+    wasm32Mnemonics,
 
     -- * Architecture
     -- $architecture
@@ -45,7 +46,7 @@ module Wrench.Isa.Wasm32 (
 ) where
 
 import Wrench.Isa.Wasm32.Execute ()
-import Wrench.Isa.Wasm32.Instruction (Wasm32Isa (..))
+import Wrench.Isa.Wasm32.Instruction (Wasm32Isa (..), wasm32Mnemonics)
 import Wrench.Isa.Wasm32.Report ()
 
 -- $program

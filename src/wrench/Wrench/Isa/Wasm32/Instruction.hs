@@ -8,6 +8,7 @@ instruction occupies.
 -}
 module Wrench.Isa.Wasm32.Instruction (
     Wasm32Isa (..),
+    wasm32Mnemonics,
 ) where
 
 import Data.String.Interpolate (i)
@@ -214,6 +215,56 @@ data Wasm32Isa w l
       -- Stop the machine.
       Halt
     deriving (Eq, Functor, Show)
+
+-- | Every mnemonic the 'MnemonicParser' instance accepts.
+wasm32Mnemonics :: [Text]
+wasm32Mnemonics =
+    [ "i32.const"
+    , "i32.add"
+    , "i32.sub"
+    , "i32.mul"
+    , "i32.div_s"
+    , "i32.rem_s"
+    , "i32.and"
+    , "i32.or"
+    , "i32.xor"
+    , "i32.shl"
+    , "i32.shr_s"
+    , "i32.shr_u"
+    , "i32.eqz"
+    , "i32.eq"
+    , "i32.lt_s"
+    , "i32.le_s"
+    , "i32.gt_s"
+    , "i32.ge_s"
+    , "i32.lt_u"
+    , "i32.le_u"
+    , "i32.gt_u"
+    , "i32.ge_u"
+    , "i32.load8_u"
+    , "i32.load8_s"
+    , "i32.load"
+    , "i32.store8"
+    , "i32.store"
+    , "if"
+    , "else"
+    , "end"
+    , "loop"
+    , "block"
+    , "br"
+    , "br_if"
+    , "drop"
+    , "select"
+    , "unreachable"
+    , "local.get"
+    , "local.set"
+    , "local.tee"
+    , "locals.reserve"
+    , "call"
+    , "return"
+    , "sp.init"
+    , "halt"
+    ]
 
 instance CommentStart (Wasm32Isa w l) where
     commentStart = ";"

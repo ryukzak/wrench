@@ -10,6 +10,8 @@ import Data.Char (isAlphaNum, isDigit, isHexDigit, isSpace)
 import Data.Text qualified as T
 import Relude
 import Wrench.Isa (Isa (..))
+import Wrench.Isa.F32a (f32aMnemonics)
+import Wrench.Isa.Wasm32 (wasm32Mnemonics)
 
 data TokenKind
     = Plain
@@ -21,6 +23,7 @@ data TokenKind
     | Literal
     | Reloc
     | Ref
+    | Call
     | Separator
     deriving (Eq, Show)
 
@@ -34,7 +37,8 @@ data Lexeme
 tokenizeLine :: Isa -> Text -> [(TokenKind, Text)]
 tokenizeLine isa line =
     let (code, comment) = splitComment (commentChar isa) line
-     in classify isa (lexCode isa (toString code)) <> [(Comment, comment) | not (T.null comment)]
+        tokens = classify isa (lexCode isa (toString code))
+     in (if isa == F32a then f32aCalls tokens else tokens) <> [(Comment, comment) | not (T.null comment)]
 
 commentChar :: Isa -> Char
 commentChar F32a = '\\'
@@ -104,9 +108,25 @@ classify isa = go True
                 | isNumber w -> (Literal, w) : go False ls
                 | "." `T.isPrefixOf` w -> (Directive, w) : go False ls
                 | "%" `T.isPrefixOf` w -> (Reloc, w) : go False ls
-                | isa == F32a || statementStart -> (Mnemonic, w) : go False ls
+                | Just known <- mnemonics isa -> (if w `elem` known then Mnemonic else Ref, w) : go False ls
+                | statementStart -> (Mnemonic, w) : go False ls
                 | isRegister isa w -> (Register, w) : go False ls
                 | otherwise -> (Ref, w) : go False ls
+
+mnemonics :: Isa -> Maybe [Text]
+mnemonics F32a = Just f32aMnemonics
+mnemonics Wasm32 = Just wasm32Mnemonics
+mnemonics _ = Nothing
+
+-- | A bare f32a word is a call unless it is the argument of a mnemonic.
+f32aCalls :: [(TokenKind, Text)] -> [(TokenKind, Text)]
+f32aCalls = go False
+    where
+        go _ [] = []
+        go arg (tok@(kind, t) : ts) = case kind of
+            Plain -> tok : go arg ts
+            Ref | not arg -> (Call, t) : go False ts
+            _ -> tok : go (kind == Mnemonic && t `elem` ["lit", "@p", "if", "-if", "next"]) ts
 
 isNumber :: Text -> Bool
 isNumber w =

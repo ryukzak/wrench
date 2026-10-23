@@ -6,6 +6,7 @@ module Wrench.Isa (
     allIsa,
     isaName,
     detectIsa,
+    parsesAs,
 ) where
 
 import Prelude (Read (..))
