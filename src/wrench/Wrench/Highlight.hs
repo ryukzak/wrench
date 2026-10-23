@@ -109,6 +109,7 @@ classify isa = go True
                 | isNumber w -> (Literal, w) : go False ls
                 | "." `T.isPrefixOf` w -> (Directive, w) : go False ls
                 | "%" `T.isPrefixOf` w -> (Reloc, w) : go False ls
+                | isa == Wasm32, "$" `T.isPrefixOf` w -> (Register, w) : go False ls
                 | Just known <- mnemonics isa -> (if w `elem` known then Mnemonic else Ref, w) : go False ls
                 | statementStart -> (Mnemonic, w) : go False ls
                 | isRegister isa w -> (Register, w) : go False ls
