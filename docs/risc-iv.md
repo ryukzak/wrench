@@ -75,7 +75,7 @@ of them can hold a full 32-bit value:
 | `lw`, `lb`, `sw`, `sb` offset                                           | 12-bit signed   | `-2048..2047`       |
 | `addi`, `slti`, `andi`, `ori`, `xori` immediate                         | 12-bit signed   | `-2048..2047`       |
 | `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`, constant   |
-| `beqz`, `bnez`, `beq`, `bne`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 13-bit signed   | `-4096..4095`       |
+| `beqz`, `bnez`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` displacement | 13-bit signed   | `-4096..4095`       |
 | `j`, `jal` displacement                                                 | 21-bit signed   | `-1048576..1048575` |
 | `lui` immediate                                                         | 20-bit unsigned | `0..1048575`        |
 
