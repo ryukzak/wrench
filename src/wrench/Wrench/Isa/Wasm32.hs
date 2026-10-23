@@ -59,6 +59,8 @@ import Wrench.Isa.Wasm32.Report ()
 -- * Execution starts at @_start@.
 -- * @i32.const@ takes a 32-bit number or a label. Every other immediate is
 --   an unsigned byte, @0@ to @255@, checked when the program is translated.
+--   The offset of a load or store may be left out and is then @0@; when
+--   given, it is a number.
 -- * An instruction takes one byte, plus one per byte immediate, plus four
 --   for @i32.const@'s value.
 -- * The @.frame@ directive names a function's locals and emits no code
@@ -176,7 +178,7 @@ import Wrench.Isa.Wasm32.Report ()
 -- part leaves the value to store. Nothing checks that both parts leave the
 -- same number of values.
 --
--- The machine keeps no addresses for an @if@. To skip, @if@ or @else@
+-- The machine has no table of where each @end@ is. To skip, @if@ or @else@
 -- reads the instructions after it one by one until it finds its own @else@
 -- or @end@, counting every @block@, @loop@ and @if@ it passes so that their
 -- @else@ and @end@ are passed over too. Each instruction read is a memory
@@ -202,6 +204,11 @@ import Wrench.Isa.Wasm32.Report ()
 -- @loop@ pushes an eight-byte record with the addresses a branch needs, and
 -- its @end@ pops it. @ctrlSp@ is the address just past the top record.
 --
+-- @block@ and @loop@ find their @end@ the same way an @if@ skips: each time
+-- one runs, it reads its body up to the matching @end@, one access per
+-- instruction, before writing its two-word record. A @block@ inside a loop
+-- body pays for this on every iteration.
+--
 -- @br n@ branches to the scope @n@ records down the control stack, @0@
 -- being the innermost, and pops the records of the scopes it leaves;
 -- @br_if n@ does the same if the value it pops is non-zero. An @if@ pushes
@@ -226,7 +233,9 @@ import Wrench.Isa.Wasm32.Report ()
 -- >     end
 -- > end
 --
--- A missing @end@ is reported only when its scope runs.
+-- Here @block@ costs 21 accesses: its fetch, the 18 instructions up to its
+-- @end@ and the two record words. @loop@ costs 19. A missing @end@ is
+-- reported when its scope runs, by that search.
 --
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/factorial.s example/wasm32/factorial.s>
 -- is a complete program with a loop.
@@ -271,9 +280,10 @@ import Wrench.Isa.Wasm32.Report ()
 -- @frameBase@ is the address of local 0 and @localCount@ the number of
 -- locals. @local.get i@ pushes local @i@, @local.set i@ pops a value into
 -- it, and @local.tee i@ stores the top value without popping it.
--- @locals.reserve n@ adds @n@ locals after the parameters. They are simply
--- the next @n@ words down the stack, so reserve them first thing, before
--- pushing anything; they are not cleared. @_start@ runs in a frame without
+-- @locals.reserve n@ adds @n@ locals after the ones the frame already has,
+-- at first its parameters. They are simply the next @n@ words down the
+-- stack, so reserve them first thing, before pushing anything; they are
+-- not cleared. @_start@ runs in a frame without
 -- parameters and may reserve locals too.
 --
 -- Local indices count from the frame's own @frameBase@, so a function
@@ -336,6 +346,7 @@ import Wrench.Isa.Wasm32.Report ()
 -- [@stack@] The current frame's operands, top first, e.g. @14:14@.
 -- [@locals@] The current frame's locals, local 0 first.
 -- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers of the same name.
+--   @localCount@ has no view of its own: @locals@ shows that many words.
 -- [@stackLayout@] Every frame, oldest first: its locals, control records
 --   and operands. @stackLayout:hex:2@ shows the last two frames only.
 -- [@stackDump@] Memory from @sp@ to the end, in address order. Each word

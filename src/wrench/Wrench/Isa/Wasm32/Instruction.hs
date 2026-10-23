@@ -159,7 +159,9 @@ data Wasm32Isa w l
     | -- | > br <depth: u8> ( -- )
       --
       -- Branch to the scope @depth@ levels out, @0@ being the innermost
-      -- open @block@ or @loop@, and close every scope inside it.
+      -- open @block@ or @loop@, and close every scope inside it. A target
+      -- @block@ is closed too, since execution leaves it; a target @loop@
+      -- stays open.
       Br l
     | -- | > br_if <depth: u8> ( condition: i32 -- )
       --
