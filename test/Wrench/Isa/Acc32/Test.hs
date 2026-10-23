@@ -58,19 +58,27 @@ tests =
             ]
         , testGroup
             "Relative offset field"
-            [ testCase "an offset that fits is accepted" $ do
+            [ testCase "an address in reach is accepted" $ do
                 accepted ".text\n_start:\n    load cell\n    halt\n\n    .data\ncell:    .word 7\n"
-            , testCase "offset above the field" $ do
-                rejected
-                    ".text\n_start:\n    load 200\n    halt\n"
-                    "test.s:3:10: load: relative offset 200 is not in -128..127"
-            , testCase "offset below the field" $ do
-                rejected
-                    ".text\n_start:\n    store -129\n    halt\n"
-                    "test.s:3:11: store: relative offset -129 is not in -128..127"
+            , testCase "a constant is an address, the same as a label" $ do
+                let program operand =
+                        translateProgramShow $
+                            ".text\n_start:\n    load_imm 0\n    load "
+                                <> operand
+                                <> "\n    halt\n\n    .data\n    .org 0x10\ncell:    .word 7\n"
+                program "0x10" @?= program "cell"
             , -- The offset is counted from the instruction, so what fails is the
               -- distance, not the address written in the source.
-              testCase "a label out of reach is rejected by its distance" $ do
+              testCase "an address out of reach is rejected by its distance" $ do
+                rejected
+                    ".text\n_start:\n    load_imm 0\n    load 200\n    halt\n"
+                    "test.s:4:10: load: relative offset 195 is not in -128..127"
+            , testCase "an address behind the instruction" $ do
+                accepted ".text\n    .org 0x100\n_start:\n    store 0x80\n    halt\n"
+                rejected
+                    ".text\n    .org 0x100\n_start:\n    store 0x7f\n    halt\n"
+                    "test.s:4:11: store: relative offset -129 is not in -128..127"
+            , testCase "a label out of reach is rejected by its distance" $ do
                 rejected
                     ".text\n_start:\n    store far\n    halt\n\n    .data\n    .org 0x200\nfar:    .word 0\n"
                     "test.s:3:11: store: relative offset 512 is not in -128..127"
@@ -86,10 +94,13 @@ translateProgram src = do
     outcome <-
         try @ErrorCall
             $ evaluate
-            $ length (show (translate @Acc32Isa @Int32 [] 1000 (repeat 0) "test.s" src) :: String)
+            $ length (translateProgramShow src)
     return $ case outcome of
         Left (ErrorCall msg) -> Left msg
         Right n -> Right n
+
+translateProgramShow :: String -> String
+translateProgramShow = show . translate @Acc32Isa @Int32 [] 1000 (repeat 0) "test.s"
 
 accepted :: String -> IO ()
 accepted src = do

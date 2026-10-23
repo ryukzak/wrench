@@ -423,17 +423,17 @@ linkDispErr m x = m <> ": CTRL disp " <> x <> " is not in -16384..16383"
 jumpDispErr m x = m <> ": CTRL disp " <> x <> " is not in -524288..524287"
 
 instance (IsWord w) => DerefMnemonic (ControlOp w) w where
-    derefMnemonic f offset (J jK) = J $ resolveRef (i20 (jumpDispErr "j")) (fmap (\x -> x - offset) . f) jK
-    derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ resolveRef (i15 (linkDispErr "jal")) (fmap (\x -> x - offset) . f) jalK
+    derefMnemonic f offset (J jK) = J $ resolveRef (i20 (jumpDispErr "j") . subtract offset) f jK
+    derefMnemonic f offset (Jal jalRd jalK) = Jal jalRd $ resolveRef (i15 (linkDispErr "jal") . subtract offset) f jalK
     derefMnemonic f _ (Jalr jalrRd jalrRs1 jalrK) = Jalr jalrRd jalrRs1 $ resolveRef (i10 (ctrlImmErr "jalr")) f jalrK
-    derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ resolveRef (i15 (linkDispErr "beqz")) (fmap (\x -> x - offset) . f) beqzK
-    derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ resolveRef (i15 (linkDispErr "bnez")) (fmap (\x -> x - offset) . f) bnezK
-    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ resolveRef (i10 (branchDispErr "blt")) (fmap (\x -> x - offset) . f) bltK
-    derefMnemonic f offset (Bge bgeRs1 bgeRs2 bgeK) = Bge bgeRs1 bgeRs2 $ resolveRef (i10 (branchDispErr "bge")) (fmap (\x -> x - offset) . f) bgeK
-    derefMnemonic f offset (Bltu bltuRs1 bltuRs2 bltuK) = Bltu bltuRs1 bltuRs2 $ resolveRef (i10 (branchDispErr "bltu")) (fmap (\x -> x - offset) . f) bltuK
-    derefMnemonic f offset (Bgeu bgeuRs1 bgeuRs2 bgeuK) = Bgeu bgeuRs1 bgeuRs2 $ resolveRef (i10 (branchDispErr "bgeu")) (fmap (\x -> x - offset) . f) bgeuK
-    derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ resolveRef (i10 (branchDispErr "beq")) (fmap (\x -> x - offset) . f) beqK
-    derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ resolveRef (i10 (branchDispErr "bne")) (fmap (\x -> x - offset) . f) bneK
+    derefMnemonic f offset (Beqz beqzRs1 beqzK) = Beqz beqzRs1 $ resolveRef (i15 (linkDispErr "beqz") . subtract offset) f beqzK
+    derefMnemonic f offset (Bnez bnezRs1 bnezK) = Bnez bnezRs1 $ resolveRef (i15 (linkDispErr "bnez") . subtract offset) f bnezK
+    derefMnemonic f offset (Blt bltRs1 bltRs2 bltK) = Blt bltRs1 bltRs2 $ resolveRef (i10 (branchDispErr "blt") . subtract offset) f bltK
+    derefMnemonic f offset (Bge bgeRs1 bgeRs2 bgeK) = Bge bgeRs1 bgeRs2 $ resolveRef (i10 (branchDispErr "bge") . subtract offset) f bgeK
+    derefMnemonic f offset (Bltu bltuRs1 bltuRs2 bltuK) = Bltu bltuRs1 bltuRs2 $ resolveRef (i10 (branchDispErr "bltu") . subtract offset) f bltuK
+    derefMnemonic f offset (Bgeu bgeuRs1 bgeuRs2 bgeuK) = Bgeu bgeuRs1 bgeuRs2 $ resolveRef (i10 (branchDispErr "bgeu") . subtract offset) f bgeuK
+    derefMnemonic f offset (Beq beqRs1 beqRs2 beqK) = Beq beqRs1 beqRs2 $ resolveRef (i10 (branchDispErr "beq") . subtract offset) f beqK
+    derefMnemonic f offset (Bne bneRs1 bneRs2 bneK) = Bne bneRs1 bneRs2 $ resolveRef (i10 (branchDispErr "bne") . subtract offset) f bneK
     derefMnemonic _ _ Halt = Halt
     derefMnemonic _ _ NopC = NopC
 

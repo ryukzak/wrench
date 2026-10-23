@@ -75,7 +75,7 @@ of them can hold a full 32-bit value:
 | `lw`, `lb`, `sw`, `sb` offset                                           | 12-bit signed   | `-2048..2047`       |
 | `addi`, `slti`, `andi`, `ori`, `xori` immediate                         | 12-bit signed   | `-2048..2047`       |
 | `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`, constant   |
-| `beqz`, `bnez`, `beq`, `bne`, `bgt`, `ble`, `bgtu`, `bleu` displacement | 13-bit signed   | `-4096..4095`       |
+| `beqz`, `bnez`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` displacement | 13-bit signed   | `-4096..4095`       |
 | `j`, `jal` displacement                                                 | 21-bit signed   | `-1048576..1048575` |
 | `lui` immediate                                                         | 20-bit unsigned | `0..1048575`        |
 
@@ -112,10 +112,37 @@ resolved. The message points at the operand and names the mnemonic and the field
 error (risc-iv-32): program.s:3:17: beq: B-type disp 8192 is not in -4096..4095
 ```
 
+A displacement is the distance to the target, not the target written in the source (see
+[Branch and jump targets](#branch-and-jump-targets)), so a branch at `0x100` to `0x2100` is reported
+as `disp 8192`.
+
 Use `lui`/`addi` with the `%hi`/`%lo` directives above to build a wide constant or address in a
 register, then work through that register. `%lo` also keeps a bit pattern inside the field:
 `addi rd, rs, %lo(0x800)` is how the immediate `-2048` is written as the bits `0x800`, since the
 bare `0x800` is out of range.
+
+#### Branch and jump targets
+
+Branches (`beqz`, `bnez`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`) and jumps (`j`, `jal`) are
+written with an absolute target address. A label and a number literal mean the same thing:
+`j loop` and `j 0x40` both go to `0x40` when `loop` is there.
+
+Only the machine code is relative. The translator encodes the displacement `k = <address> - pc`,
+where `pc` is the address of the branch itself, and the processor adds it back: `pc <- pc + k`.
+
+```asm
+    .text
+    .org 0x40
+loop:
+    addi    t0, t0, -1      ; 0x40
+    bnez    t0, loop        ; 0x44: = bnez t0, 0x40, encoded as k = 0x40 - 0x44 = -4
+    j       0x50            ; 0x48: encoded as k = 0x50 - 0x48 = 8
+```
+
+The step-by-step report shows the instruction as the machine sees it, so `bnez t0, loop` above
+appears as `Bnez {rs1 = T0, k = -4}`.
+
+`jalr` is not relative: its immediate is added to a register, so it stays a plain number.
 
 #### Branch and jump displacements are not scaled (RISC-IV specific)
 
@@ -125,9 +152,9 @@ where RISC-IV deviates from it: the displacement is stored as a plain signed num
 So the intervals above are the full signed range of each field -- odd displacements included --
 where RISC-V would instead allow only the even values of a range twice as wide.
 
-Nothing requires a displacement to land on an instruction boundary either. Every RISC-IV instruction
-is 4 bytes, so a displacement that is not a multiple of 4 points into the middle of one, and the
-jump fails when that address is fetched:
+Nothing requires a target to land on an instruction boundary either. Every RISC-IV instruction is 4
+bytes, so a target that is not a multiple of 4 points into the middle of one, and the jump fails when
+that address is fetched (`j 6` at address `0`):
 
 ```text
 0: J {k = 6}
@@ -273,13 +300,13 @@ ERROR: memory[0x06]: instruction in memory corrupted
 ### Control Flow Instructions
 
 - **Jump**
-    - **Syntax:** `j <k>`
-    - **Description:** Jump to the address computed by adding the displacement to the current program counter.
+    - **Syntax:** `j <address>`
+    - **Description:** Jump to the address. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `pc <- pc + k`
 
 - **Jump and Link**
-    - **Syntax:** `jal <rd>, <k>`
-    - **Description:** Store the address of the next instruction in the destination register and jump to the address computed by adding the displacement to the current program counter.
+    - **Syntax:** `jal <rd>, <address>`
+    - **Description:** Store the address of the next instruction in the destination register and jump to the address. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `rd <- pc + 4, pc <- pc + k`
 
 - **Jump and Link Register**
@@ -288,43 +315,43 @@ ERROR: memory[0x06]: instruction in memory corrupted
     - **Operation:** `rd <- pc + 4, pc <- rs1 + k`
 
 - **Branch if Equal to Zero**
-    - **Syntax:** `beqz <rs1>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the source register is zero.
+    - **Syntax:** `beqz <rs1>, <address>`
+    - **Description:** Jump to the address if the value in the source register is zero. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 == 0 then pc <- pc + k`
 
 - **Branch if Not Equal to Zero**
-    - **Syntax:** `bnez <rs1>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the source register is not zero.
+    - **Syntax:** `bnez <rs1>, <address>`
+    - **Description:** Jump to the address if the value in the source register is not zero. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 != 0 then pc <- pc + k`
 
 - **Branch if Less Than**
-    - **Syntax:** `blt <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is less than the value in the second source register.
+    - **Syntax:** `blt <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the value in the first source register is less than the value in the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 < rs2 then pc <- pc + k`
 
 - **Branch if Greater Than or Equal**
-    - **Syntax:** `bge <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is greater than or equal to the value in the second source register.
+    - **Syntax:** `bge <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the value in the first source register is greater than or equal to the value in the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 >= rs2 then pc <- pc + k`
 
 - **Branch if Less Than (Unsigned)**
-    - **Syntax:** `bltu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is less than the unsigned interpretation of the second source register.
+    - **Syntax:** `bltu <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the unsigned interpretation of the first source register is less than the unsigned interpretation of the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if unsigned(rs1) < unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Greater Than or Equal (Unsigned)**
-    - **Syntax:** `bgeu <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the unsigned interpretation of the first source register is greater than or equal to the unsigned interpretation of the second source register.
+    - **Syntax:** `bgeu <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the unsigned interpretation of the first source register is greater than or equal to the unsigned interpretation of the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if unsigned(rs1) >= unsigned(rs2) then pc <- pc + k`
 
 - **Branch if Equal**
-    - **Syntax:** `beq <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is equal to the value in the second source register.
+    - **Syntax:** `beq <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the value in the first source register is equal to the value in the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 == rs2 then pc <- pc + k`
 
 - **Branch if Not Equal**
-    - **Syntax:** `bne <rs1>, <rs2>, <k>`
-    - **Description:** Jump to the address computed by adding the immediate value to the current program counter if the value in the first source register is not equal to the value in the second source register.
+    - **Syntax:** `bne <rs1>, <rs2>, <address>`
+    - **Description:** Jump to the address if the value in the first source register is not equal to the value in the second source register. Encoded as the displacement `k = <address> - pc`.
     - **Operation:** `if rs1 != rs2 then pc <- pc + k`
 
 - **Halt**

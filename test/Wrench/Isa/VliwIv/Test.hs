@@ -341,6 +341,14 @@ tests =
                 accepted "nop / nop / nop / j 524287"
             , testCase "j displacement above its field" $ do
                 rejected "nop / nop / nop / j 524288" "-524288..524287"
+            , testCase "a constant is an address, the same as a label" $ do
+                let resolved :: String -> Either String String
+                    resolved code = case parse mnemonic "-" (code <> "\n") of
+                        Left err -> Left (errorBundlePretty err)
+                        Right (m :: VliwIvIsa Int32 (Ref Int32)) ->
+                            Right $ show $ derefMnemonic (\case "target" -> Just 108; _ -> Nothing) (100 :: Int32) m
+                resolved "nop / nop / nop / beq a0, a1, 108" @?= resolved "nop / nop / nop / beq a0, a1, target"
+                resolved "nop / nop / nop / j 108" @?= resolved "nop / nop / nop / j target"
             , testCase "rejection names the position, the mnemonic, the field and the range" $ do
                 outcome <- fieldOutcome "nop / nop / nop / beq a0, a1, 1025"
                 case outcome of

@@ -29,10 +29,36 @@ logical field layout, not literal bit-packing):
 - No operand -- 1 byte: `<<Opcode:8>>`
   (`load_acc`, `not`, `clv`, `clc`, `halt`)
 - `load`/`store` -- 2 bytes, offset relative to the instruction: `<<Opcode:8, Offset:8/signed>>`
+  (the source names an absolute address, see [Relative Addressing](#relative-addressing))
 - Arithmetic and bitwise -- 3 bytes, absolute address: `<<Opcode:8, Address:16>>`
   (`add`, `sub`, `mul`, `div`, `rem`, `shiftl`, `shiftr`, `and`, `or`, `xor`)
 - Control flow and `load_imm`/`load_addr`/`store_addr`/`store_ind` -- 5 bytes, full word:
   `<<Opcode:8, Address:32/signed>>`
+
+### Relative Addressing
+
+`load` and `store` are written with an absolute address, the same as `load_addr` and `store_addr`.
+A label and a number literal mean the same thing: `load cell` and `load 0x10` both read the word at
+`cell` when `cell` is at `0x10`.
+
+Only the machine code is relative. The translator encodes the distance from the instruction to that
+address, `<address> - pc`, where `pc` is the address of the `load`/`store` itself, and the processor
+adds it back at run time:
+
+```asm
+    .data
+    .org 0x10
+cell:   .word 7
+
+    .text
+    .org 0x20
+_start:
+    load    cell        ; = load 0x10, encoded as offset 0x10 - 0x20 = -16
+    store   0x30        ; encoded as offset 0x30 - 0x22 = 14
+```
+
+The step-by-step report shows the instruction as the machine sees it, so `load cell` above appears
+as `Load (-16)`.
 
 ### Operand Fields
 
@@ -41,17 +67,19 @@ narrowest field in the ISA:
 
 | Operand                                                                           | Width          | Accepted values  |
 |-----------------------------------------------------------------------------------|----------------|------------------|
-| `load`, `store` offset, counted from the instruction                              | 8-bit signed   | `-128..127`      |
+| `load`, `store` distance from the instruction to the address                      | 8-bit signed   | `-128..127`      |
 | `add`, `sub`, `mul`, `div`, `rem`, `shiftl`, `shiftr`, `and`, `or`, `xor` address | 16-bit address | `0..65535`       |
 | `load_imm`, `load_addr`, `store_addr`, `store_ind` and control-flow address       | full word      | any machine word |
 
-`load`/`store` reach +-127 bytes from the instruction itself, so what is rejected is the *distance*,
-not the number written in the source. An operand out of range has no encoding, so it is a
+`load`/`store` reach -128..+127 bytes from the instruction itself, so what is rejected is the
+*distance*, not the address written in the source. An operand out of range has no encoding, so it is a
 translation error that points at the operand and names the mnemonic, the field and its range:
 
 ```text
 error (acc32): program.s:3:10: load: relative offset 200 is not in -128..127
 ```
+
+Here `load` sits at address `0` and names address `200`, which is 200 bytes away.
 
 Move the data nearer the code, or switch that access to the absolute `load_addr`/`store_addr`, which
 carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
@@ -64,14 +92,16 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
     - **Operation:** `acc <- <value>`
 
 - **Load**
-    - **Syntax:** `load <offset>`
-    - **Description:** Load a value from a relative address into the accumulator.
-    - **Operation:** `acc <- mem[pc + <offset>]`
+    - **Syntax:** `load <address>`
+    - **Description:** Load a value from an address near the instruction into the accumulator.
+      Encoded as `offset = <address> - pc`, which has to fit in -128..127.
+    - **Operation:** `acc <- mem[pc + offset]`, i.e. `acc <- mem[<address>]`
 
 - **Store**
-    - **Syntax:** `store <offset>`
-    - **Description:** Store the accumulator value into a relative address.
-    - **Operation:** `mem[pc + <offset>] <- acc`
+    - **Syntax:** `store <address>`
+    - **Description:** Store the accumulator value into an address near the instruction.
+      Encoded as `offset = <address> - pc`, which has to fit in -128..127.
+    - **Operation:** `mem[pc + offset] <- acc`, i.e. `mem[<address>] <- acc`
 
 - **Load Address**
     - **Syntax:** `load_addr <address>`
