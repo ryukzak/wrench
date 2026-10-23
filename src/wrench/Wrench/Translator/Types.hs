@@ -16,12 +16,22 @@ module Wrench.Translator.Types (
     resolveRef,
     Ref (..),
     derefSection,
+    Preprocessor,
+    preprocess,
 ) where
 
 import Prelude qualified
 import Relude
 import Text.Megaparsec.Pos (SourcePos, sourcePosPretty)
 import Wrench.Machine.Types
+
+-- | Rewrites the source before it is parsed. It keeps every character at its
+-- offset, so that errors are shown against the original source, and fails
+-- with the offset of what it rejects.
+type Preprocessor = String -> Either (Int, Text) String
+
+preprocess :: [Preprocessor] -> String -> Either (Int, Text) String
+preprocess preprocessors src = foldlM (&) src preprocessors
 
 class DerefMnemonic m w where
     derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w

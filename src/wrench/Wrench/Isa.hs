@@ -18,9 +18,10 @@ import Wrench.Isa.M68k (M68kIsa)
 import Wrench.Isa.RiscIv (RiscIvIsa)
 import Wrench.Isa.VliwIv (VliwIvIsa)
 import Wrench.Isa.Wasm32 (Wasm32Isa)
+import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Translator.Parser (asmParser)
 import Wrench.Translator.Parser.Types (MnemonicParser)
-import Wrench.Translator.Types (Ref)
+import Wrench.Translator.Types (Preprocessor, Ref, preprocess)
 
 data Isa
     = Acc32
@@ -60,13 +61,15 @@ detectIsa src = case filter (parsesAs src) allIsa of
     several -> Left $ "source parses as " <> show several
 
 parsesAs :: Text -> Isa -> Bool
-parsesAs src = \case
-    Acc32 -> parses @(Acc32Isa Int32 (Ref Int32))
-    F32a -> parses @(F32aIsa Int32 (Ref Int32))
-    RiscIv -> parses @(RiscIvIsa Int32 (Ref Int32))
-    M68k -> parses @(M68kIsa Int32 (Ref Int32))
-    VliwIv -> parses @(VliwIvIsa Int32 (Ref Int32))
-    Wasm32 -> parses @(Wasm32Isa Int32 (Ref Int32))
+parsesAs src isa = case isa of
+    Acc32 -> parses @(Acc32Isa Int32 (Ref Int32)) []
+    F32a -> parses @(F32aIsa Int32 (Ref Int32)) []
+    RiscIv -> parses @(RiscIvIsa Int32 (Ref Int32)) []
+    M68k -> parses @(M68kIsa Int32 (Ref Int32)) []
+    VliwIv -> parses @(VliwIvIsa Int32 (Ref Int32)) []
+    Wasm32 -> parses @(Wasm32Isa Int32 (Ref Int32)) [resolveLocalNames]
     where
-        parses :: forall isa. (MnemonicParser isa) => Bool
-        parses = isRight $ parse (asmParser @isa @Int32) "" (toString src <> "\n")
+        parses :: forall isa'. (MnemonicParser isa') => [Preprocessor] -> Bool
+        parses preprocessors =
+            either (const True) (isRight . parse (asmParser @isa' @Int32) "") $
+                preprocess preprocessors (toString src <> "\n")

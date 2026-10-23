@@ -7,7 +7,15 @@ module Wrench.Translator (
 
 import Relude
 import Relude.Extra
-import Text.Megaparsec (parse)
+import Text.Megaparsec (
+    ErrorFancy (..),
+    ParseError (..),
+    ParseErrorBundle (..),
+    PosState (..),
+    defaultTabWidth,
+    initialPos,
+    parse,
+ )
 import Text.Megaparsec.Error (errorBundlePretty)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
@@ -68,21 +76,36 @@ translate ::
     , MnemonicParser (isa_ w (Ref w))
     , Show (isa_ w w)
     ) =>
-    Int
+    [Preprocessor]
+    -> Int
     -> [Word8]
     -> FilePath
     -> String
     -> Either Text (TranslatorResult (Mem (isa_ w w) w) w)
-translate memorySize fillBytes fn src =
-    case parse asmParser fn src of
-        Right sections ->
-            case evaluateLabels sections of
-                Left err -> Left err
-                (Right labels) ->
-                    let resolveLabel l = (labels !? l)
-                        code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
-                        stats = computeDumpStats code
-                     in do
-                            dump <- prepareDump memorySize fillBytes code
-                            Right $ TranslatorResult dump labels stats
-        Left err -> Left $ toText $ errorBundlePretty err
+translate preprocessors memorySize fillBytes fn src = do
+    src' <- first (preprocessorError fn src) $ preprocess preprocessors src
+    sections <- first (parseError src) $ parse asmParser fn src'
+    labels <- evaluateLabels sections
+    let resolveLabel l = labels !? l
+        code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
+    dump <- prepareDump memorySize fillBytes code
+    return $ TranslatorResult dump labels (computeDumpStats code)
+    where
+        parseError original err@ParseErrorBundle{bundlePosState} =
+            toText $ errorBundlePretty err{bundlePosState = bundlePosState{pstateInput = original}}
+
+preprocessorError :: FilePath -> String -> (Int, Text) -> Text
+preprocessorError fn src (offset, msg) =
+    toText
+        $ errorBundlePretty @String @Void
+        $ ParseErrorBundle
+            { bundleErrors = FancyError offset (one $ ErrorFail $ toString msg) :| []
+            , bundlePosState =
+                PosState
+                    { pstateInput = src
+                    , pstateOffset = 0
+                    , pstateSourcePos = initialPos fn
+                    , pstateTabWidth = defaultTabWidth
+                    , pstateLinePrefix = ""
+                    }
+            }

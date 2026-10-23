@@ -12,6 +12,7 @@ import Relude
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Wrench.Isa.Wasm32
+import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..), translate)
@@ -67,6 +68,53 @@ tests =
             assertTranslationError "locals.reserve count 300 is not in 0..255" ["locals.reserve 300"]
             assertTranslationError "4:14:" ["i32.const 0", "i32.load 256"]
             assertTranslationError "expected" ["block", "br start", "end"]
+        , testCase "A local's name is the same instruction as its index" $ do
+            let program uses =
+                    Prelude.unlines $
+                        [".text", "_start:", "    .frame () $a, $b", "    locals.reserve 2"] <> map ("    " <>) uses <> ["    halt"]
+            byName <-
+                runSourceToStack $ program ["i32.const 3 local.set $a", "i32.const 4 local.set $b", "local.get $a local.get 1 i32.sub"]
+            byIndex <-
+                runSourceToStack $ program ["i32.const 3 local.set 0", "i32.const 4 local.set 1", "local.get 0 local.get 1 i32.sub"]
+            byName @?= "-1"
+            byIndex @?= byName
+        , testCase "The reserved locals are numbered after the parameters" $ do
+            stack <-
+                runSourceToStack $
+                    Prelude.unlines
+                        [ ".text"
+                        , "f:"
+                        , "    .frame ($a, $b) $c"
+                        , "    locals.reserve 1"
+                        , "    i32.const 30 local.set $c"
+                        , "    local.get $a local.get $b local.get 2"
+                        , "    halt"
+                        , "_start:"
+                        , "    i32.const 10 i32.const 20"
+                        , "    i32.const f call 2, 0"
+                        ]
+            stack @?= "30:20:10"
+        , testCase "The parentheses may follow .frame without a space" $ do
+            stack <- runSourceToStack $ toSource [".frame() $a", "locals.reserve 1", "i32.const 7 local.set $a", "local.get $a"]
+            stack @?= "7"
+        , testCase "Names hold until the next label"
+            $ assertSourceTranslationError "-:6:15:"
+            $ Prelude.unlines [".text", "f:", "    .frame ($a)", "    local.get $a", "_start:", "    local.get $a", "    halt"]
+        , testCase "A .frame out of form is rejected where it is written" $ do
+            let malformed = "malformed .frame, expected distinct names as in .frame ($a, $b) $c"
+            assertTranslationError malformed [".frame $a"]
+            assertTranslationError "-:3:5:" [".frame $a"]
+            assertTranslationError malformed [".frame"]
+            assertTranslationError malformed [".frame ($a, $b"]
+            assertTranslationError malformed [".frame ($a) ) $b"]
+            assertTranslationError malformed [".frame ($a, b) $c"]
+            assertTranslationError malformed [".frame ($a $b)"]
+            assertTranslationError malformed [".frame ($a, $a)"]
+            assertTranslationError malformed [".frame ($a) $a"]
+        , testCase "A name the .frame does not list is left for the parser" $
+            assertTranslationError "-:4:15:" [".frame ($a)", "local.get $x"]
+        , testCase "A parse error on a line with a name shows the line as written" $
+            assertTranslationError "local.get $a i32.konst" [".frame ($a)", "local.get $a i32.konst 1"]
         , testCase "A scope with no matching end fails at the scope" $ do
             assertTrap "scope at 0x00 has no matching end" ["block"]
             assertTrap "has no matching end" ["loop", "block", "end"]
@@ -189,8 +237,11 @@ assertSourceTrapIo streams expected src =
 -- instructions are forced, so walking @show@ is what provokes it -- the same
 -- thing @derefSection@ does for real.
 assertTranslationError :: Text -> [String] -> Assertion
-assertTranslationError expected instrs = do
-    let translated = translate @Wasm32Isa @Int32 1000 (repeat 0) "-" (toSource instrs)
+assertTranslationError expected = assertSourceTranslationError expected . toSource
+
+assertSourceTranslationError :: Text -> String -> Assertion
+assertSourceTranslationError expected src = do
+    let translated = translate @Wasm32Isa @Int32 [resolveLocalNames] 1000 (repeat 0) "-" src
     outcome <- try @ErrorCall $ evaluate $ length (show translated :: String)
     case outcome of
         Left (ErrorCallWithLocation msg _location) -> expect (toText msg)
@@ -214,7 +265,7 @@ withScratch instrs =
 
 runSourceIo :: IntMap ([Int32], [Int32]) -> String -> Either Text (Wasm32St Int32)
 runSourceIo streams src = do
-    TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 1000 (repeat 0) "-" src
+    TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 [resolveLocalNames] 1000 (repeat 0) "-" src
     pc <- maybeToRight "_start label should be defined." (HashMap.lookup "_start" labels)
     let ioDump = mkIoMem streams dump
         st0 = initState (fromEnum pc) ioDump (repeat 0)

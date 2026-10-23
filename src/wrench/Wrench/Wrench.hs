@@ -27,6 +27,7 @@ import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
 import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.VliwIv (VliwIvSt)
+import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Machine
 import Wrench.Machine.Memory
@@ -126,12 +127,12 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
             Left reason -> isaFailure $ "cannot detect isa (" <> reason <> "), pass --isa"
     let opts' = opts{isa = Just $ toString $ isaName resolved}
     case resolved of
-        RiscIv -> wrenchIO @(RiscIvSt Int32) opts' conf src
-        VliwIv -> wrenchIO @(VliwIvSt Int32) opts' conf src
-        F32a -> wrenchIO @(F32aSt Int32) opts' conf src
-        Acc32 -> wrenchIO @(Acc32St Int32) opts' conf src
-        M68k -> wrenchIO @(M68kSt Int32) opts' conf src
-        Wasm32 -> wrenchIO @(Wasm32St Int32) opts' conf src
+        RiscIv -> wrenchIO @(RiscIvSt Int32) [] opts' conf src
+        VliwIv -> wrenchIO @(VliwIvSt Int32) [] opts' conf src
+        F32a -> wrenchIO @(F32aSt Int32) [] opts' conf src
+        Acc32 -> wrenchIO @(Acc32St Int32) [] opts' conf src
+        M68k -> wrenchIO @(M68kSt Int32) [] opts' conf src
+        Wasm32 -> wrenchIO @(Wasm32St Int32) [resolveLocalNames] opts' conf src
     where
         isaFailure :: Text -> IO a
         isaFailure msg = do
@@ -156,14 +157,15 @@ wrenchIO ::
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
-    Options
+    [Preprocessor]
+    -> Options
     -> Config
     -> [Char]
     -> IO ()
-wrenchIO opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src = do
+wrenchIO preprocessors opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSize} conf@Config{cMemorySize} src = do
     -- Translation raises 'error' from pure code (see 'resolveRef'), so catch it here
     -- and report it. 'ExitCode' is not an 'ErrorCall' and still propagates.
-    outcome <- try @ErrorCall $ case wrench @st opts conf src of
+    outcome <- try @ErrorCall $ case wrench @st preprocessors opts conf src of
         Right Result{rLabels, rTrace, rSuccess, rDump} -> do
             if onlyTranslation
                 then translationResult rLabels rDump
@@ -207,17 +209,18 @@ wrench ::
     , isa1 ~ isa_ w (Ref w)
     , isa2 ~ isa_ w w
     ) =>
-    Options
+    [Preprocessor]
+    -> Options
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
     let (memoryGen, isaGen) = Random.split (Random.mkStdGen $ fromMaybe 0 cSeed)
         memoryFillBytes =
             if fromMaybe False cZeroMemoryInit
                 then repeat 0
                 else map fromIntegral (randomInts (0, 255) memoryGen)
-    trResult@TranslatorResult{dump, labels} <- translate cMemorySize memoryFillBytes fn src
+    trResult@TranslatorResult{dump, labels} <- translate preprocessors cMemorySize memoryFillBytes fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat

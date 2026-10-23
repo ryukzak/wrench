@@ -11,13 +11,14 @@ inner:
     return
 
 outer:
-    local.get 0
-    local.get 1
+    .frame ($a, $b, $sum)
+    local.get $a
+    local.get $b
     i32.add
-    local.set 2
+    local.set $sum
     i32.const inner
     call 0, 1
-    local.get 2
+    local.get $sum
     return
 
 _start:

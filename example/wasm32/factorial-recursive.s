@@ -22,11 +22,14 @@ _start:
     halt
 
     ; int factorial(int n)
-    ; Local 0 is the parameter n. A function that needs more locals allocates
-    ; them with locals.reserve as its first instruction: they are the next
-    ; words of the frame, after the parameters and before any operand.
+    ; .frame names the function's locals, here only the parameter n, local 0.
+    ; A function that needs more locals names them after the parentheses and
+    ; allocates them with locals.reserve as its first instruction: they are
+    ; the next words of the frame, after the parameters and before any
+    ; operand.
 factorial:
-    local.get 0
+    .frame ($n)
+    local.get $n
     i32.const 1
     i32.le_s
     ; if pops the flag: non-zero runs the code up to end, zero skips past end.
@@ -35,8 +38,8 @@ factorial:
         return                               ;     return 1;
     end
 
-    local.get 0                              ; n, kept for the multiply
-    local.get 0
+    local.get $n                             ; n, kept for the multiply
+    local.get $n
     i32.const 1
     i32.sub
     ; The inner call gets a frame of its own, so this frame's n stays put.
