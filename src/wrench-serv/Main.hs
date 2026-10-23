@@ -10,7 +10,7 @@ import Data.Aeson (FromJSON (..), defaultOptions, eitherDecodeStrict, genericPar
 import Data.Aeson.Types (Options (..))
 import Data.ByteString qualified as B
 import Data.Char (toLower)
-import Data.Text (isSuffixOf, replace)
+import Data.Text (isSuffixOf)
 import Data.Text qualified as T
 import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
@@ -31,6 +31,7 @@ import WrenchServ.CodeView
 import WrenchServ.Config
 import WrenchServ.Simulation
 import WrenchServ.Statistics
+import WrenchServ.Template
 
 main :: IO ()
 main = do
@@ -67,13 +68,12 @@ getForm conf@Config{cVariants} cookie = do
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") cVariants
     template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
     let renderedTemplate =
-            foldl'
-                (\st (pat, new) -> replace pat new st)
-                template
-                [ ("{{variants}}", mconcat options)
-                , ("{{version}}", wrenchVersion)
-                , ("{{tracker}}", postHogTracker)
+            fillTemplate
+                [ ("variants", mconcat options)
+                , ("version", wrenchVersion)
+                , ("tracker", postHogTracker)
                 ]
+                template
     liftIO $ do
         track <- getTrack cookie
         posthogId <- getPosthogIdFromCookie cookie (track <> "_mp")
@@ -214,12 +214,11 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
             template <- liftIO $ decodeUtf8 <$> readFileBS "static/inprogress.html"
             track <- liftIO $ getTrack cookie
             let rendered =
-                    foldl'
-                        (\st (pat, new) -> replace pat new st)
-                        template
-                        [ ("{{log}}", escapeHtml logContent)
-                        , ("{{tracker}}", postHogTracker)
+                    fillTemplate
+                        [ ("log", escapeHtml logContent)
+                        , ("tracker", postHogTracker)
                         ]
+                        template
             return $ addHeader (trackCookie track) $ toHtmlRaw rendered
         else do
             nameContent <- liftIO (decodeUtf8 <$> readFileBS (dir <> "/name.txt"))
@@ -242,30 +241,24 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
 
             template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
 
-            let templateWithBasicContent =
-                    foldl'
-                        (\st (pat, new) -> replace pat new st)
-                        (replace "{{tracker}}" postHogTracker template)
-                        [ ("{{name}}", escapeHtml nameContent)
-                        , ("{{variant}}", escapeHtml variantContent)
-                        , ("{{comment}}", escapeHtml commentContent)
-                        , ("{{status}}", escapeHtml status)
-                        , ("{{test_cases_status}}", escapeHtml testCaseStatus)
-                        , ("{{report_wrench_version}}", escapeHtml reportWrenchVersion)
-                        , ("{{version_warning}}", versionWarning reportWrenchVersion)
-                        ]
-
             let renderTemplate =
-                    foldl'
-                        (\st (pat, new) -> replace pat new st)
-                        templateWithBasicContent
-                        [ ("{{assembler_code}}", formatAsm isa asmContent)
-                        , ("{{yaml_content}}", formatCodeWithLineNumbers configContent)
-                        , ("{{result}}", formatCodeWithLineNumbers logContent)
-                        , ("{{test_cases_result}}", formatCodeWithLineNumbers testCaseResult)
-                        , ("{{execution_stats}}", formatCodeWithLineNumbers stats)
-                        , ("{{dump}}", formatCodeWithLineNumbers dump)
+                    fillTemplate
+                        [ ("tracker", postHogTracker)
+                        , ("name", escapeHtml nameContent)
+                        , ("variant", escapeHtml variantContent)
+                        , ("comment", escapeHtml commentContent)
+                        , ("status", escapeHtml status)
+                        , ("test_cases_status", escapeHtml testCaseStatus)
+                        , ("report_wrench_version", escapeHtml reportWrenchVersion)
+                        , ("version_warning", versionWarning reportWrenchVersion)
+                        , ("assembler_code", formatAsm isa asmContent)
+                        , ("yaml_content", formatCodeWithLineNumbers configContent)
+                        , ("result", formatCodeWithLineNumbers logContent)
+                        , ("test_cases_result", formatCodeWithLineNumbers testCaseResult)
+                        , ("execution_stats", formatCodeWithLineNumbers stats)
+                        , ("dump", formatCodeWithLineNumbers dump)
                         ]
+                        template
 
             track <- liftIO $ getTrack cookie
             posthogId <- liftIO $ getPosthogIdFromCookie cookie (track <> "_mp")
@@ -311,13 +304,12 @@ getExamples Config{cExamplesPath} = do
     template <- liftIO (decodeUtf8 <$> readFileBS "static/examples.html")
     entries <- liftIO $ readExamplesIndex cExamplesPath
     let rendered =
-            foldl'
-                (\st (pat, new) -> replace pat new st)
-                template
-                [ ("{{examples}}", renderExamplesList entries)
-                , ("{{tracker}}", postHogTracker)
-                , ("{{version}}", wrenchVersion)
+            fillTemplate
+                [ ("examples", renderExamplesList entries)
+                , ("tracker", postHogTracker)
+                , ("version", wrenchVersion)
                 ]
+                template
     return $ toHtmlRaw rendered
 
 readExamplesIndex :: FilePath -> IO [ExampleEntry]
