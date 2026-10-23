@@ -321,15 +321,14 @@ instance (IsWord w) => MnemonicParser (RiscIvIsa w (Ref w)) where
 
 instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
     derefMnemonic f offset i =
-        let relF = fmap (\x -> x - offset) . f
-            iTypeErr m x = m <> ": I-type imm " <> x <> " is not in -2048..2047"
+        let iTypeErr m x = m <> ": I-type imm " <> x <> " is not in -2048..2047"
             shamtErr m x = m <> ": shift amount " <> x <> " is not in 0..31"
             uTypeErr m x = m <> ": U-type imm " <> x <> " is not in 0..1048575"
             bTypeErr m x = m <> ": B-type disp " <> x <> " is not in -4096..4095"
             jTypeErr m x = m <> ": J-type disp " <> x <> " is not in -1048576..1048575"
          in case i of
-                J{k} -> J $ resolveRef (i21 (jTypeErr "j")) relF k
-                Jal{rd, k} -> Jal rd $ resolveRef (i21 (jTypeErr "jal")) relF k
+                J{k} -> J $ resolveRef (i21 (jTypeErr "j") . subtract offset) f k
+                Jal{rd, k} -> Jal rd $ resolveRef (i21 (jTypeErr "jal") . subtract offset) f k
                 Jalr{rd, rs1, k} -> Jalr{rd, rs1, k = resolveRef (i12 (iTypeErr "jalr")) f k}
                 Addi{rd, rs1, k} -> Addi{rd, rs1, k = resolveRef (i12 (iTypeErr "addi")) f k}
                 Slti{rd, rs1, k} -> Slti{rd, rs1, k = resolveRef (i12 (iTypeErr "slti")) f k}
@@ -357,14 +356,14 @@ instance (IsWord w) => DerefMnemonic (RiscIvIsa w) w where
                 Lui{rd, k} -> Lui{rd, k = resolveRef (u20 (uTypeErr "lui")) f k}
                 Lw{rd, offsetRs1} -> Lw{rd, offsetRs1}
                 Lb{rd, offsetRs1} -> Lb{rd, offsetRs1}
-                Beqz{rs1, k} -> Beqz rs1 $ resolveRef (i13 (bTypeErr "beqz")) relF k
-                Bnez{rs1, k} -> Bnez rs1 $ resolveRef (i13 (bTypeErr "bnez")) relF k
-                Blt{rs1, rs2, k} -> Blt rs1 rs2 $ resolveRef (i13 (bTypeErr "blt")) relF k
-                Bge{rs1, rs2, k} -> Bge rs1 rs2 $ resolveRef (i13 (bTypeErr "bge")) relF k
-                Bltu{rs1, rs2, k} -> Bltu rs1 rs2 $ resolveRef (i13 (bTypeErr "bltu")) relF k
-                Bgeu{rs1, rs2, k} -> Bgeu rs1 rs2 $ resolveRef (i13 (bTypeErr "bgeu")) relF k
-                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ resolveRef (i13 (bTypeErr "beq")) relF k
-                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ resolveRef (i13 (bTypeErr "bne")) relF k
+                Beqz{rs1, k} -> Beqz rs1 $ resolveRef (i13 (bTypeErr "beqz") . subtract offset) f k
+                Bnez{rs1, k} -> Bnez rs1 $ resolveRef (i13 (bTypeErr "bnez") . subtract offset) f k
+                Blt{rs1, rs2, k} -> Blt rs1 rs2 $ resolveRef (i13 (bTypeErr "blt") . subtract offset) f k
+                Bge{rs1, rs2, k} -> Bge rs1 rs2 $ resolveRef (i13 (bTypeErr "bge") . subtract offset) f k
+                Bltu{rs1, rs2, k} -> Bltu rs1 rs2 $ resolveRef (i13 (bTypeErr "bltu") . subtract offset) f k
+                Bgeu{rs1, rs2, k} -> Bgeu rs1 rs2 $ resolveRef (i13 (bTypeErr "bgeu") . subtract offset) f k
+                Beq{rs1, rs2, k} -> Beq rs1 rs2 $ resolveRef (i13 (bTypeErr "beq") . subtract offset) f k
+                Bne{rs1, rs2, k} -> Bne rs1 rs2 $ resolveRef (i13 (bTypeErr "bne") . subtract offset) f k
                 Halt -> Halt
 
 instance ByteSize (RiscIvIsa w l) where

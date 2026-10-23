@@ -183,6 +183,12 @@ tests =
               testCase "an odd displacement is allowed (RISC-IV specific)" $ do
                 accepted "j 1048573"
                 accepted "beq t0, t1, 4093"
+            , testCase "a constant is an address, the same as a label" $ do
+                let resolved :: String -> Either String String
+                    resolved code = show . derefMnemonic (\case "target" -> Just 108; _ -> Nothing) (100 :: Int32) <$> translate code
+                resolved "beq t0, t1, 108" @?= resolved "beq t0, t1, target"
+                resolved "j 108" @?= resolved "j target"
+                resolved "j 108" @?= Right (show (J 8 :: RiscIvIsa Int32 Int32))
             , testCase "a literal wider than the machine word" $ do
                 assertBool "addi t0, zero, 4294967296 should be rejected" $
                     isLeft (translate "addi t0, zero, 4294967296")
