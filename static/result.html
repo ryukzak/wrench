@@ -20,9 +20,9 @@
     ></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer type="module" src="/assets/utils.js"></script>
+    <script defer type="module" src="{{asset:utils.js}}"></script>
 
-    <link rel="stylesheet" href="/assets/ascii.css" />
+    <link rel="stylesheet" href="{{asset:ascii.css}}" />
 
     {{tracker}}
   </head>
@@ -37,7 +37,7 @@
         setupThemeToggle,
         findIsaFlag,
         setupHideCommentsButton,
-      } from '/assets/utils.js'
+      } from '{{asset:utils.js}}'
 
       document.addEventListener('DOMContentLoaded', () => {
         setupCopyButton(

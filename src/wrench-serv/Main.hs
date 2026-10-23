@@ -58,15 +58,28 @@ server conf =
         :<|> submitForm conf
         :<|> getReport conf
         :<|> getExamples conf
-        :<|> serveDirectoryWebApp "static/assets"
+        :<|> serveDirectoryWebApp assetsDir
         :<|> redirectToForm
 
 type GetForm = Header "Cookie" Text :> Get '[HTML] (Html ())
 
+readTemplate :: FilePath -> IO Text
+readTemplate fn = do
+    template <- decodeUtf8 <$> readFileBS fn
+    assets <- listDirectory assetsDir
+    versions <- forM assets $ \asset -> do
+        hash <- SHA1.hash <$> readFileBS (assetsDir </> asset)
+        let url = "/assets/" <> toText asset <> "?v=" <> T.take 12 (toText $ B.foldr showHex "" hash)
+        return ("asset:" <> toText asset, url)
+    return $ fillTemplate versions template
+
+assetsDir :: FilePath
+assetsDir = "static/assets"
+
 getForm :: Config -> Maybe Text -> Handler (Html ())
 getForm conf@Config{cVariants} cookie = do
     let options = map (\v -> "<option value=\"" <> toText v <> "\">" <> toText v <> "</option>") cVariants
-    template <- liftIO (decodeUtf8 <$> readFileBS "static/form.html")
+    template <- liftIO (readTemplate "static/form.html")
     let renderedTemplate =
             fillTemplate
                 [ ("variants", mconcat options)
@@ -211,7 +224,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
     if pending
         then do
             logContent <- liftIO $ decodeUtf8 <$> readFileBS (dir <> "/pending")
-            template <- liftIO $ decodeUtf8 <$> readFileBS "static/inprogress.html"
+            template <- liftIO $ readTemplate "static/inprogress.html"
             track <- liftIO $ getTrack cookie
             let rendered =
                     fillTemplate
@@ -239,7 +252,7 @@ getReport conf@Config{cStoragePath, cExamplesPath} cookie guid = do
             stats <- liftIO (fromMaybe "" <$> maybeReadFile (dir <> "/stats.log"))
             isa <- liftIO ((readMaybe . toString . T.strip =<<) <$> maybeReadFile (dir <> "/isa.txt"))
 
-            template <- liftIO (decodeUtf8 <$> readFileBS "static/result.html")
+            template <- liftIO (readTemplate "static/result.html")
 
             let renderTemplate =
                     fillTemplate
@@ -301,7 +314,7 @@ instance FromJSON ExampleEntry where
 
 getExamples :: Config -> Handler (Html ())
 getExamples Config{cExamplesPath} = do
-    template <- liftIO (decodeUtf8 <$> readFileBS "static/examples.html")
+    template <- liftIO (readTemplate "static/examples.html")
     entries <- liftIO $ readExamplesIndex cExamplesPath
     let rendered =
             fillTemplate

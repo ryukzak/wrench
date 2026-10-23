@@ -17,8 +17,8 @@
       rel="stylesheet"
     />
 
-    <script defer type="module" src="/assets/utils.js"></script>
-    <link rel="stylesheet" href="/assets/ascii.css" />
+    <script defer type="module" src="{{asset:utils.js}}"></script>
+    <link rel="stylesheet" href="{{asset:ascii.css}}" />
 
     {{tracker}}
   </head>
@@ -27,7 +27,7 @@
     class="flex justify-center items-start bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark"
   >
     <script type="module">
-      import { setupThemeToggle } from '/assets/utils.js'
+      import { setupThemeToggle } from '{{asset:utils.js}}'
 
       document.addEventListener('DOMContentLoaded', () => {
         setupThemeToggle('invert-theme-button')
