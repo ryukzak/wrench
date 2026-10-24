@@ -7,13 +7,18 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.IntMap.Strict qualified as IntMap
 import Data.String.Interpolate (i)
 import Data.Text qualified as T
+import Hedgehog (Gen, forAll, property, (===))
+import Hedgehog.Gen qualified as Gen
+import Hedgehog.Range qualified as Range
 import Prelude qualified
 import Relude
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
+import Test.Tasty.Hedgehog (testPropertyNamed)
 import Wrench.Isa.Wasm32
 import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
-import Wrench.Isa.Wasm32.State (Wasm32St)
+import Wrench.Isa.Wasm32.State (Scope (..), Wasm32St)
+import Wrench.Machine.BitPack (packWords, unpackWords)
 import Wrench.Machine.Types
 import Wrench.Translator (TranslatorResult (..), translate)
 
@@ -24,7 +29,25 @@ tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "i32.div_s truncates toward zero and i32.rem_s follows the dividend" $ do
+        [ testGroup
+            "Control record"
+            [ testPropertyNamed "A record round-trips" "prop_scopeRoundTrip" $ property $ do
+                scope <- forAll genScope
+                (unpackWords =<< packWords @Int32 scope) === Right scope
+            , testPropertyNamed "Any two words decode to a record that round-trips, or fail on the tag" "prop_scopeDecodeAny" $
+                property $ do
+                    words_ <- forAll $ Gen.list (Range.singleton 2) (Gen.int32 Range.constantBounded)
+                    case unpackWords @Scope words_ of
+                        Left err -> err === "record kind: unknown tag 3"
+                        Right scope -> (unpackWords =<< packWords @Int32 scope) === Right scope
+            , testPropertyNamed "A field too wide for the record is named in the error" "prop_scopeOverflow" $
+                property $ do
+                    (name, width, value, scope) <- forAll genOverflow
+                    packWords @Int32 scope === Left [i|#{name}: #{value} doesn't fit in #{width} bits|]
+            , testCase "An unknown tag is rejected" $
+                unpackWords @Scope [-1 :: Int32, 0] @?= Left "record kind: unknown tag 3"
+            ]
+        , testCase "i32.div_s truncates toward zero and i32.rem_s follows the dividend" $ do
             runToStack ["i32.const -7", "i32.const 2", "i32.div_s"] >>= (@?= "-3")
             runToStack ["i32.const 7", "i32.const -2", "i32.div_s"] >>= (@?= "-3")
             runToStack ["i32.const -7", "i32.const 2", "i32.rem_s"] >>= (@?= "-1")
@@ -279,3 +302,34 @@ runSourceIo streams src = do
                 Left err
                     | err == halted -> Right st
                     | otherwise -> Left err
+
+genScope :: Gen Scope
+genScope =
+    Gen.choice
+        [ BlockScope <$> genField 22
+        , LoopScope <$> genField 22 <*> genField 22
+        , CallScope <$> genField 22 <*> genField 8 <*> genField 22 <*> genField 8
+        ]
+    where
+        genField :: Int -> Gen Int
+        genField width = Gen.int (Range.constant 0 (2 ^ width - 1))
+
+-- | A record with one field pushed past its width: the field's name, width,
+-- value, and the record.
+genOverflow :: Gen (Text, Int, Int, Scope)
+genOverflow = do
+    scope <- genScope
+    (name, width :: Int, set) <- Gen.element $ case scope of
+        BlockScope{} -> [("csEnd", 22, \v -> BlockScope{csEnd = v})]
+        LoopScope{csStart, csEnd} ->
+            [ ("csStart", 22, \v -> LoopScope{csStart = v, csEnd})
+            , ("csEnd", 22, \v -> LoopScope{csStart, csEnd = v})
+            ]
+        call@CallScope{} ->
+            [ ("csCallerFrameBase", 22, \v -> call{csCallerFrameBase = v})
+            , ("csCallerLocalCount", 8, \v -> call{csCallerLocalCount = v})
+            , ("csReturnPc", 22, \v -> call{csReturnPc = v})
+            , ("csResultCount", 8, \v -> call{csResultCount = v})
+            ]
+    value <- Gen.int (Range.linear (2 ^ width) (2 ^ (width + 4)))
+    return (name, width, value, set value)

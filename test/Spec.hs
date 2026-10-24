@@ -31,6 +31,7 @@ import Wrench.Isa.Wasm32 qualified as Wasm32
 import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Isa.Wasm32.State (Wasm32St)
 import Wrench.Isa.Wasm32.Test qualified
+import Wrench.Machine.BitPack.Test qualified
 import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
@@ -92,6 +93,7 @@ tests =
         , Wrench.Highlight.Test.tests
         , Wrench.Machine.Types.Test.tests
         , Wrench.Machine.Memory.Test.tests
+        , Wrench.Machine.BitPack.Test.tests
         , testGroup
             "RiscIv IV 32"
             [ testGroup

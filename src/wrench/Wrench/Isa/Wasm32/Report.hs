@@ -9,6 +9,7 @@ import Relude
 import Relude.Extra (insertWith, toPairs, (!?))
 import Wrench.Isa.Wasm32.Instruction
 import Wrench.Isa.Wasm32.State
+import Wrench.Machine.BitPack (unpackWords)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
@@ -145,7 +146,7 @@ walkFrames StackView{svMem, svPc, svSp, svFrameBase, svLocalCount, svScopeAddrs}
                              in (span_ : rest, result)
 
         readScopeFrom mem addr =
-            either (const Nothing) Just . decodeScope =<< mapM (wordAt mem) (scopeWordAddrs @w addr)
+            either (const Nothing) Just . unpackWords =<< mapM (wordAt mem) (scopeWordAddrs @w addr)
 
 keepLast :: Maybe Int -> [a] -> [a]
 keepLast limit xs = maybe xs (\n -> drop (max 0 (length xs - n)) xs) limit
