@@ -4,5 +4,5 @@ reports:
   - name: trace
     slice: all
     view: |
-      A0 {A0} A1 {A1}
+      A0 {a0} A1 {a1}
       {pc}:	{instruction:next}	{pc:label}

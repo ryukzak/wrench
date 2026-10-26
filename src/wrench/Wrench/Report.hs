@@ -73,51 +73,59 @@ reportViews = map (contramapView reState) (isaViews @st) <> sharedViews
 -- | The views every ISA has.
 sharedViews :: forall st. (ReportViews st) => [View (ReportEnv st)]
 sharedViews =
-    [ valueView "pc" "Program counter." (programCounter . current)
-    , flagView "pc:label" "`@label` if the program counter is at a label, otherwise empty." pcLabel
-    , flagView "instruction:prev" "The instruction that produced this state, `-` for the initial state." $
-        maybe "-" show . rePrevInstr
-    , flagView "instruction:next" "The instruction to execute next, `-` once halted." (nextInstruction . current)
-    , flagView "sim:instruction-count" "Instructions executed so far." (show . reInstrCount)
-    , count
-        "memAccesses"
-        "Memory accesses of the instruction that produced this state, its fetch included."
-        (acTotal . reAccesses)
-    , count "memReads" "Reads among `memAccesses`; a fetch is a read." (acReads . reAccesses)
-    , count "memWrites" "Writes among `memAccesses`." (acWrites . reAccesses)
-    , count "memAccessesTotal" "Memory accesses of the run so far." (acTotal . runTotal)
-    , count "memReadsTotal" "Reads of the run so far." (acReads . runTotal)
-    , count "memWritesTotal" "Writes of the run so far." (acWrites . runTotal)
-    , layout "layout:sections-size" "Bytes in all sections." dsSectionsTotalBytes
-    , layout "layout:text-sections-size" "Bytes in `.text` sections." dsTextSectionsBytes
-    , layout "layout:data-sections-size" "Bytes in `.data` sections." dsDataSectionsBytes
-    , ranges "layout:text-ranges" "Address ranges of `.text` sections." (dsTextIntervals . reDumpStats)
-    , ranges "layout:data-ranges" "Address ranges of `.data` sections." (dsDataIntervals . reDumpStats)
-    , ranges "mem:instr-ranges" "Address ranges the run fetched instructions from." (alInstr . finalLog)
-    , ranges "mem:data-ranges" "Address ranges the run read or wrote data at." (alData . finalLog)
-    , ranges "mem:io-ranges" "Memory-mapped IO addresses the run accessed." (alIo . finalLog)
-    , flagView "memory:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
-        renderMemoryTable (reDumpStats e) (memoryDump (final e))
-    , checkedView
-        (lit "memory" *> ((,) <$> arg "from" <*> arg "to"))
-        "Memory dump from `<from>` to `<to>`, inclusive."
-        checkRange
-        (\e (from, to) -> viewMemory (current e) from to)
-    , checkedView
-        (lit "io" *> ((,) <$> arg "addr" <*> format [Dec, Hex, Sym] Dec))
-        "IO port at `<addr>`: `input >>> output` so far; `sym` shows characters."
-        (\env (addr, _) -> checkPort env addr)
-        (\e (addr, fmt) -> viewIO fmt addr (current e))
-    , flagView "isa-specific" "The ISA's run-wide stats, one `name: value` per line; empty if it has none." $
-        isaSpecific . reState
-    ]
+    withRenames
+        [ ("memAccesses", "mem:accesses")
+        , ("memReads", "mem:reads")
+        , ("memWrites", "mem:writes")
+        , ("memAccessesTotal", "mem:accesses-total")
+        , ("memReadsTotal", "mem:reads-total")
+        , ("memWritesTotal", "mem:writes-total")
+        , ("memory:table", "mem:table")
+        , ("memory", "mem:dump")
+        ]
+        [ valueView "pc" "Program counter." (programCounter . current)
+        , flagView "pc:label" "`@label` if the program counter is at a label, otherwise empty." pcLabel
+        , flagView "instruction:prev" "The instruction that produced this state, `-` for the initial state." $
+            maybe "-" show . rePrevInstr
+        , flagView "instruction:next" "The instruction to execute next, `-` once halted." (nextInstruction . current)
+        , valueView "sim:instruction-count" "Instructions executed so far." reInstrCount
+        , valueView
+            "mem:accesses"
+            "Memory accesses of the instruction that produced this state, its fetch included."
+            (acTotal . reAccesses)
+        , valueView "mem:reads" "Reads among `mem:accesses`; a fetch is a read." (acReads . reAccesses)
+        , valueView "mem:writes" "Writes among `mem:accesses`." (acWrites . reAccesses)
+        , valueView "mem:accesses-total" "Memory accesses of the run so far." (acTotal . runTotal)
+        , valueView "mem:reads-total" "Reads of the run so far." (acReads . runTotal)
+        , valueView "mem:writes-total" "Writes of the run so far." (acWrites . runTotal)
+        , valueView "layout:sections-size" "Bytes in all sections." (dsSectionsTotalBytes . reDumpStats)
+        , valueView "layout:text-sections-size" "Bytes in `.text` sections." (dsTextSectionsBytes . reDumpStats)
+        , valueView "layout:data-sections-size" "Bytes in `.data` sections." (dsDataSectionsBytes . reDumpStats)
+        , ranges "layout:text-ranges" "Address ranges of `.text` sections." (dsTextIntervals . reDumpStats)
+        , ranges "layout:data-ranges" "Address ranges of `.data` sections." (dsDataIntervals . reDumpStats)
+        , ranges "mem:instr-ranges" "Address ranges the run fetched instructions from." (alInstr . finalLog)
+        , ranges "mem:data-ranges" "Address ranges the run read or wrote data at." (alData . finalLog)
+        , ranges "mem:io-ranges" "Memory-mapped IO addresses the run accessed." (alIo . finalLog)
+        , flagView "mem:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
+            renderMemoryTable (reDumpStats e) (memoryDump (final e))
+        , checkedView
+            (lit "mem:dump" *> ((,) <$> arg "from" <*> arg "to"))
+            "Memory dump from `<from>` to `<to>`, inclusive."
+            checkRange
+            (\e (from, to) -> viewMemory (current e) from to)
+        , checkedView
+            (lit "io" *> ((,) <$> arg "addr" <*> format [Dec, Hex, Sym] Dec))
+            "IO port at `<addr>`: `input >>> output` so far; `sym` shows characters."
+            (\env (addr, _) -> checkPort env addr)
+            (\e (addr, fmt) -> viewIO fmt addr (current e))
+        , flagView "isa-specific" "The ISA's run-wide stats, one `name: value` per line; empty if it has none." $
+            isaSpecific . reState
+        ]
     where
         current = seState . reState
         final = seFinal . reState
         finalLog = accessLog . memoryDump . final
         runTotal = memAccessCount . memoryDump . current
-        count name doc f = mkView (lit name *> formatRequired [Dec, Hex]) doc $ \e fmt -> showValue fmt (f e)
-        layout name doc f = flagView name doc (show . f . reDumpStats)
         ranges name doc f = mkView (lit name *> format [Dec, Hex] Hex) doc $ \e fmt ->
             (if fmt == Hex then renderIntervalsHex else renderIntervals) (f e)
         pcLabel ReportEnv{reState = StateEnv{seLabels, seState}} =
@@ -172,25 +180,26 @@ data Report st = Report
 
 -- | Compile every report before the simulation runs, so a mistake fails
 -- the same way in every ISA, naming the report and the key, and rendering
--- never meets a key it cannot resolve.
-compileReports :: forall st. (ReportViews st) => CheckEnv -> [ReportConf] -> Either Text [Report st]
+-- never meets a key it cannot resolve. Also returns a warning for each key
+-- under an old name.
+compileReports :: forall st. (ReportViews st) => CheckEnv -> [ReportConf] -> Either Text ([Text], [Report st])
 compileReports checkEnv confs =
     case partitionEithers (zipWith compile [1 :: Int ..] confs) of
-        ([], reports) -> Right reports
+        ([], compiled) -> Right (ordNub (concatMap fst compiled), map snd compiled)
         (errs, _) -> Left $ T.intercalate "\n" (ordNub (concat errs))
     where
-        compile i rc@ReportConf{rcName, rcView} = case rcView of
-            Nothing -> Right (Report rc Nothing)
-            Just text ->
-                bimap
-                    (map (("report " <> maybe ("#" <> show i) show rcName <> ": ") <>))
-                    (Report rc . Just)
-                    (compileTemplate checkEnv (reportViews @st) text)
+        compile i rc@ReportConf{rcName, rcView} =
+            let named = map (("report " <> maybe ("#" <> show i) show rcName <> ": ") <>)
+             in case rcView of
+                    Nothing -> Right ([], Report rc Nothing)
+                    Just text ->
+                        bimap named (bimap named (Report rc . Just)) $
+                            compileTemplate checkEnv (reportViews @st) text
 
 -- | Render one of the ISA's own views of a state.
 renderIsaView :: forall st. (Inspectable st) => HashMap Text (WordOf st) -> st -> Text -> Either Text Text
 renderIsaView labels st key = do
-    template <- first (T.intercalate "\n") $ compileTemplate unchecked (isaViews @st) ("{" <> key <> "}")
+    (_, template) <- first (T.intercalate "\n") $ compileTemplate unchecked (isaViews @st) ("{" <> key <> "}")
     return $ renderTemplate template StateEnv{seLabels = labels, seState = st, seFinal = st}
     where
         unchecked = CheckEnv{ceMemorySize = maxBound, ceIoPorts = []}

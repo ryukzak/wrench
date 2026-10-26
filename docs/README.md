@@ -337,7 +337,7 @@ General state view expressions implemented for all ISAs:
 - `pc:label` -- Print `@label-name` if current program counter is assigned with a label.
 - `instruction:next` -- Print the next instruction to execute, or `-` when the machine has halted.
 - `instruction:prev` -- Print the instruction that was just executed, or `-` for the initial state (before any instruction has run).
-- `memory:<a>:<b>` -- Print memory dump between addresses `<a>` and `<b>`.
+- `mem:dump:<a>:<b>` -- Print memory dump between addresses `<a>` and `<b>`.
 - `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- Print input-output stream state for the specific address in decimal, symbol, or hexadecimal format. Printable char codes: [32, 126]. Also `\0`, `\n` will be printed as is. Other non-printable characters will be replaced with `?`.
 
 Execution and memory statistics. These are typically used with `slice: last` to emit one final summary line; the values are the totals for the whole run.
@@ -350,10 +350,10 @@ Execution and memory statistics. These are typically used with `slice: last` to 
 - `mem:instr-ranges` -- Address ranges of instruction fetches at runtime, rendered as comma-separated `lo..hi` clusters (e.g. `0x0..0x4b, 0x8c..0xbf`). Addresses are hex by default; append `:dec` or `:hex` to override (e.g. `{mem:instr-ranges:dec}` -> `0..75, 140..191`).
 - `mem:data-ranges` -- Address ranges of data reads and writes (merged into one set). Same `:dec`/`:hex` suffix.
 - `mem:io-ranges` -- Address ranges of memory-mapped IO accesses. Same `:dec`/`:hex` suffix.
-- `memory:table` -- Multi-line address-space table that puts the above together: one row per declared `text`/`data` section, one per IO cluster, and `x` rows for free regions (split at access boundaries, so the stack gets its own row). Columns: `Kind`, `Range`, `Bytes`, `Accessed`, `Coverage`. The `Bytes` column sums to `memory_size` as a built-in sanity check.
-- `memAccesses` -- Memory accesses made by the instruction that produced this state, its own fetch included. One access per operation, so a word read counts once whatever its width. With `slice: all` it shows what each instruction cost; the initial state reports `0`. Needs a `:dec` or `:hex` suffix.
-- `memReads`, `memWrites` -- The same, split by direction. An instruction fetch counts as a read.
-- `memAccessesTotal`, `memReadsTotal`, `memWritesTotal` -- The same three for the whole run so far.
+- `mem:table` -- Multi-line address-space table that puts the above together: one row per declared `text`/`data` section, one per IO cluster, and `x` rows for free regions (split at access boundaries, so the stack gets its own row). Columns: `Kind`, `Range`, `Bytes`, `Accessed`, `Coverage`. The `Bytes` column sums to `memory_size` as a built-in sanity check.
+- `mem:accesses` -- Memory accesses made by the instruction that produced this state, its own fetch included. One access per operation, so a word read counts once whatever its width. With `slice: all` it shows what each instruction cost; the initial state reports `0`.
+- `mem:reads`, `mem:writes` -- The same, split by direction. An instruction fetch counts as a read.
+- `mem:accesses-total`, `mem:reads-total`, `mem:writes-total` -- The same three for the whole run so far.
 - `isa-specific` -- ISA-specific summary block. Each architecture fills it with its own stat lines (e.g. `vliw:load-percent` + `vliw:avg-load` + `vliw:bundles-by-load` on vliw-iv; `f32a:data-stack-max` + `f32a:return-stack-max` on f32a); architectures without any render an empty block. Lets one report template stay uniform across ISAs, naming no ISA-specific view.
 
 Example -- print a stats summary after the simulation finishes:
@@ -370,12 +370,12 @@ reports:
         mem:instr-ranges:          {mem:instr-ranges}
         mem:data-ranges:           {mem:data-ranges}
         mem:io-ranges:             {mem:io-ranges}
-        memAccessesTotal:          {memAccessesTotal:dec}
+        mem:accesses-total:        {mem:accesses-total}
 ```
 
 Comparing `layout:*-size` with `mem:*-ranges` reveals which declared bytes the program actually touched and which addresses it accessed outside any declared section -- the stack region is a typical example.
 
-For the same picture in one shot, use `{memory:table}` -- it walks the whole address space and renders one row per section / IO cluster / free span. A typical output looks like:
+For the same picture in one shot, use `{mem:table}` -- it walks the whole address space and renders one row per section / IO cluster / free span. A typical output looks like:
 
 ```text
 Kind  Range         Bytes  Accessed                    Coverage

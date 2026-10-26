@@ -1,4 +1,4 @@
-     ; Exercises the {memory:table} report — two text and two data sections,
+     ; Exercises the {mem:table} report — two text and two data sections,
      ; partial coverage of the second data section (b_str declared but never read),
      ; a stack region, and gaps between sections.
 

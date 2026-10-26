@@ -1,3 +1,5 @@
+warning: report "Dump": {stackDump:hex} is renamed, use {stack:dump:hex}
+warning: report "Dump, last frame, decimal": {stackDump:dec:1} is renamed, use {stack:dump:dec:1}
 ---
 # Dump
 mem[0x64..0x67]: 0x0000000e  #2 bar operand 1 [sp]

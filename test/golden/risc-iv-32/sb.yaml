@@ -9,10 +9,10 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction:next}	{pc:label} buf_ptr=t0={T0:hex} char=t1={T1:hex}
+      {pc}:	{instruction:next}	{pc:label} buf_ptr=t0={t0:hex} char=t1={t1:hex}
   - name: Check results
     slice: last
     view: |
-      {memory:0:5}
+      {mem:dump:0:5}
     assert: |
       mem[0x000..0x005] (6 B): 	ff 32 33 34 ff 00

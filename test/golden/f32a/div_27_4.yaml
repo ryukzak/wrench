@@ -10,7 +10,7 @@ reports:
     slice: all
     view: |
       A B T S B {A:hex} {B:hex} {T:hex} {S:hex}
-      {memory:0x88:0x92}
+      {mem:dump:0x88:0x92}
       dstack: {stack} rstack: {rstack:hex}
       {pc}:	{instruction:next}	{pc:label}
   - name: Result

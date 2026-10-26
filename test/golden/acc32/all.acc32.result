@@ -1,3 +1,8 @@
+warning: report "Access cost per instruction": {memReads:dec} is renamed, use {mem:reads:dec}
+warning: report "Access cost per instruction": {memWrites:dec} is renamed, use {mem:writes:dec}
+warning: report "Totals": {memReadsTotal:dec} is renamed, use {mem:reads-total:dec}
+warning: report "Totals": {memWritesTotal:dec} is renamed, use {mem:writes-total:dec}
+warning: report "Totals": {memAccessesTotal:dec} is renamed, use {mem:accesses-total:dec}
 ---
 # Access cost per instruction
 reads: 0, writes: 0 -- -

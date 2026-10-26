@@ -46,7 +46,7 @@ executionStatsReport =
                 unlines
                     [ "## Execution statistics"
                     , "sim:instruction-count: {sim:instruction-count}"
-                    , "memAccessesTotal:      {memAccessesTotal:dec} (reads {memReadsTotal:dec} / writes {memWritesTotal:dec})"
+                    , "mem:accesses-total:    {mem:accesses-total} (reads {mem:reads-total} / writes {mem:writes-total})"
                     , "layout:sections-size:  {layout:sections-size} (text {layout:text-sections-size} / data {layout:data-sections-size})"
                     , "mem:instr-ranges:      {mem:instr-ranges}"
                     , "mem:data-ranges:       {mem:data-ranges}"
@@ -55,7 +55,7 @@ executionStatsReport =
                     , ""
                     , "## Memory layout"
                     , "```"
-                    , "{memory:table}"
+                    , "{mem:table}"
                     , "```"
                     ]
         }

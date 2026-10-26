@@ -5,8 +5,8 @@ reports:
   - name: Explicitly initialized data (stays 0xDEADBEEF)
     slice: last
     view: |
-      {memory:0x0:0x3}
+      {mem:dump:0x0:0x3}
   - name: Unallocated memory (random bytes; different on every run -- pin `seed:` to reproduce)
     slice: last
     view: |
-      {memory:0x20:0x2f}
+      {mem:dump:0x20:0x2f}

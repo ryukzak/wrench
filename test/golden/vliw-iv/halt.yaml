@@ -8,7 +8,7 @@ reports:
     - name: Check results
       slice: all
       view: |
-          at {pc} T0: {T0}
+          at {pc} T0: {t0}
       assert: |
           at 0 T0: 0
           at 14 T0: 1
