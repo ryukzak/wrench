@@ -34,7 +34,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
-import Wrench.Report.View (Stat (..), withRenames)
+import Wrench.Report.View (Stat (..))
 import Wrench.Translator.Parser.Misc (comma, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -572,12 +572,10 @@ instance (IsWord w) => Inspectable (VliwIvSt w) where
     isHalted VliwIvSt{stopped} = stopped
 
     views =
-        withRenames
-            [(show r, name) | r <- allRegisters, name : _ <- [asmNames r]]
-            [ valueView name ("Register `" <> T.intercalate "`/`" (asmNames r) <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
-            | r <- allRegisters
-            , name <- asmNames r
-            ]
+        [ valueView name ("Register `" <> T.intercalate "`/`" (asmNames r) <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
+        | r <- allRegisters
+        , name <- asmNames r
+        ]
         where
             asmNames r = [n | (n, r') <- registerNames, r' == r]
 
