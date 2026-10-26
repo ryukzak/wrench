@@ -13,7 +13,7 @@ import Wrench.Machine.BitPack (unpackWords)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
-import Wrench.Report.View (Format (..), View, format, lit, mkView, optArg)
+import Wrench.Report.View (Format (..), View, format, lit, mkView, optArg, withRenames)
 
 instance (IsWord w) => Inspectable (Wasm32St w) where
     type WordOf (Wasm32St w) = w
@@ -27,21 +27,28 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
 
 wasm32Views :: (IsWord w) => [View (StateEnv (Wasm32St w))]
 wasm32Views =
-    [ values "stack" "Operand stack of the current frame, top first: `a:b:c`." stackWords
-    , values "locals" "Locals of the current frame, `$0` first." localWords
-    , layout
-        "stackLayout"
-        "Call frames, outermost first: locals, open scopes, operands; `<frames>` keeps only the innermost ones."
-        renderStackLayout
-    , layout
-        "stackDump"
-        "Stack memory word by word, by address, with pointer tags; `<frames>` keeps only the innermost frames."
-        renderStackDump
-    , valueView "sp" "Address of the topmost operand." (sp . seState)
-    , valueView "frameBase" "Address of local 0 of the current frame." (frameBase . seState)
-    , valueView "ctrlSp" "Top of the control stack." (ctrlSp . seState)
-    , valueView "stackRoot" "Where both stacks start, set by `sp.init`." (stackRoot . seState)
-    ]
+    withRenames
+        [ ("stackLayout", "stack:layout")
+        , ("stackDump", "stack:dump")
+        , ("frameBase", "frame-base")
+        , ("ctrlSp", "ctrl-sp")
+        , ("stackRoot", "stack-root")
+        ]
+        [ values "stack" "Operand stack of the current frame, top first: `a:b:c`." stackWords
+        , values "locals" "Locals of the current frame, `$0` first." localWords
+        , layout
+            "stack:layout"
+            "Call frames, outermost first: locals, open scopes, operands; `<frames>` keeps only the innermost ones."
+            renderStackLayout
+        , layout
+            "stack:dump"
+            "Stack memory word by word, by address, with pointer tags; `<frames>` keeps only the innermost frames."
+            renderStackDump
+        , valueView "sp" "Address of the topmost operand." (sp . seState)
+        , valueView "frame-base" "Address of local 0 of the current frame." (frameBase . seState)
+        , valueView "ctrl-sp" "Top of the control stack." (ctrlSp . seState)
+        , valueView "stack-root" "Where both stacks start, set by `sp.init`." (stackRoot . seState)
+        ]
     where
         values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->
             showValues fmt (f (stackView seState))

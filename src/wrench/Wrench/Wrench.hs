@@ -88,6 +88,8 @@ instance Read DumpSize where
 
 data Result mem w = Result
     { rTrace :: Text
+    , rWarnings :: [Text]
+    -- ^ Report keys under an old name.
     , rLabels :: HashMap Text w
     , rSuccess :: Bool
     , rDump :: mem
@@ -167,7 +169,8 @@ wrenchIO preprocessors opts@Options{isa, onlyTranslation, dumpAddrFormat, dumpSi
     -- Translation raises 'error' from pure code (see 'resolveRef'), so catch it here
     -- and report it. 'ExitCode' is not an 'ErrorCall' and still propagates.
     outcome <- try @ErrorCall $ case wrench @st preprocessors opts conf src of
-        Right Result{rLabels, rTrace, rSuccess, rDump} -> do
+        Right Result{rLabels, rTrace, rWarnings, rSuccess, rDump} -> do
+            forM_ rWarnings $ \w -> SIO.hPutStrLn SIO.stderr $ "warning (" <> fromMaybe "?" isa <> "): " <> toString w
             if onlyTranslation
                 then translationResult rLabels rDump
                 else do
@@ -221,7 +224,7 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
             if fromMaybe False cZeroMemoryInit
                 then repeat 0
                 else map fromIntegral (randomInts (0, 255) memoryGen)
-    reports <-
+    (warnings, reports) <-
         compileReports @st
             CheckEnv{ceMemorySize = cMemorySize, ceIoPorts = maybe [] keys cMemoryMappedIoFlat}
             (fromMaybe [] cReports)
@@ -242,6 +245,7 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
     return $
         Result
             { rTrace = unlines $ map (T.strip . ("---\n" <>)) reportTexts
+            , rWarnings = warnings
             , rLabels = labels
             , rSuccess = isSuccess
             , rDump = dumpCells dump

@@ -15,7 +15,7 @@ reports:
   - name: memory-map
     slice: last
     view: |
-      {memory:table}
+      {mem:table}
     assert: |
       Kind  Range         Bytes  Accessed      Coverage
       text  0x000..0x017     24  0x000..0x017      100%

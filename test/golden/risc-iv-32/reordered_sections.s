@@ -2,7 +2,7 @@
      ; declares .text/.data/.text/.data, but the .org values put the *second*
      ; .data section (output_ptr) at a lower address than the *first* one
      ; (input_ptr) -- the two data sections end up swapped relative to how
-     ; they appear in the file. {memory:table} (address order) should read
+     ; they appear in the file. {mem:table} (address order) should read
      ; text, data, text, data with output_ptr's cluster before input_ptr's.
 
     .text
