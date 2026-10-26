@@ -36,7 +36,9 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Memory.Test qualified
 import Wrench.Machine.Types
 import Wrench.Machine.Types.Test qualified
+import Wrench.Report (sharedViews)
 import Wrench.Report.Test qualified
+import Wrench.Report.View (viewsTable)
 import Wrench.Translator
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -89,7 +91,7 @@ tests =
                         assertBool ("no byte range in: " <> toString err) $ "expected -128..255" `isInfixOf` err
             ]
         , Wrench.Isa.Test.tests
-        , testGroup "Report" [Wrench.Report.Test.tests]
+        , testGroup "Report" [Wrench.Report.Test.tests, viewsReference]
         , Wrench.Highlight.Test.tests
         , Wrench.Machine.Types.Test.tests
         , Wrench.Machine.Memory.Test.tests
@@ -362,6 +364,32 @@ forceTranslation :: (ByteSize isa, Show isa) => Either Text (TranslatorResult (M
 forceTranslation (Right (TranslatorResult dump labels _stats)) =
     T.length $ prettyDump True show labels $ dumpCells dump
 forceTranslation (Left err) = T.length err
+
+-- | @docs/report-views.md@, generated from the views themselves so it cannot
+-- fall behind them.
+viewsReference :: TestTree
+viewsReference =
+    goldenVsString "Every report view, documented" "docs/report-views.md"
+        $ return
+        $ encodeUtf8
+        $ T.intercalate "\n"
+        $ [ "# Report views\n"
+          , "<!-- Generated from the source by `make test-accept`. Do not edit. -->\n"
+          , "Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports-configuration).\n"
+          , "## All ISAs\n"
+          , viewsTable (sharedViews @(RiscIvSt Int32))
+          ]
+            <> concat
+                [ ["## " <> name <> "\n", table]
+                | (name, table) <-
+                    [ ("acc32", viewsTable (views @(Acc32St Int32)))
+                    , ("f32a", viewsTable (views @(F32aSt Int32)))
+                    , ("m68k", viewsTable (views @(M68kSt Int32)))
+                    , ("risc-iv-32", viewsTable (views @(RiscIvSt Int32)))
+                    , ("vliw-iv", viewsTable (views @(VliwIvSt Int32)))
+                    , ("wasm32", viewsTable (views @(Wasm32St Int32)))
+                    ]
+                ]
 
 goldenConfig :: FilePath -> TestTree
 goldenConfig fn =
