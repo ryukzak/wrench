@@ -9,7 +9,7 @@ reports:
   - name: Step-by-step log
     slice: all
     view: |
-      {T0} {T1} {T2}
+      T:{T} S:{S} A:{A}
       {pc}:	{instruction:next}	{pc:label}
   - name: Check results
     slice: last
