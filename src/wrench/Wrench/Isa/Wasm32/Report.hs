@@ -13,6 +13,7 @@ import Wrench.Machine.BitPack (unpackWords)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
+import Wrench.Report.View (Format (..), View, format, lit, mkView, optArg)
 
 instance (IsWord w) => Inspectable (Wasm32St w) where
     type WordOf (Wasm32St w) = w
@@ -22,42 +23,38 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
     memoryDump Wasm32St{mem} = mem
     ioStreams Wasm32St{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted Wasm32St{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState labels st@Wasm32St{mem, sp, stackRoot, ctrlSp, frameBase} v =
-        case T.splitOn ":" v of
-            ["stack", f] -> formatValues f (stackWords view)
-            ["locals", f] -> formatValues f (localWords view)
-            ["stackLayout", f] -> withFormat f (renderStackLayout labels view) Nothing
-            ["stackLayout", f, n] -> withFrameLimit n (withFormat f (renderStackLayout labels view))
-            ["stackDump", f] -> withFormat f (renderStackDump labels view) Nothing
-            ["stackDump", f, n] -> withFrameLimit n (withFormat f (renderStackDump labels view))
-            [r] -> reprState labels st [i|#{r}:dec|]
-            ["sp", f] -> viewRegister f sp
-            ["stackRoot", f] -> viewRegister f stackRoot
-            ["ctrlSp", f] -> viewRegister f ctrlSp
-            ["frameBase", f] -> viewRegister f frameBase
-            [r, _] -> unknownView r
-            _ -> errorView v
-        where
-            view = stackView st
+    views = wasm32Views
 
-            formatValues "dec" vs = toText $ intercalate ":" $ map show vs
-            formatValues "hex" vs = T.intercalate ":" $ map (toText . word32ToHex) vs
-            formatValues f _ = unknownFormat f
-
-            withFormat "dec" render limit =
-                render LayoutFormat{lfWord = show, lfAddr = show, lfFrameLimit = limit}
-            withFormat "hex" render limit =
-                render
-                    LayoutFormat
-                        { lfWord = toText . word32ToHex
-                        , lfAddr = hexAddr (hexAddrWidth (memCapacity mem))
-                        , lfFrameLimit = limit
-                        }
-            withFormat f _ _ = unknownFormat f
-
-            withFrameLimit n k = maybe (unknownFormat n) (k . Just) (readMaybe (toString n))
+wasm32Views :: (IsWord w) => [View (StateEnv (Wasm32St w))]
+wasm32Views =
+    [ values "stack" "Operand stack of the current frame, top first: `a:b:c`." stackWords
+    , values "locals" "Locals of the current frame, `$0` first." localWords
+    , layout
+        "stackLayout"
+        "Call frames, outermost first: locals, open scopes, operands; `<frames>` keeps only the innermost ones."
+        renderStackLayout
+    , layout
+        "stackDump"
+        "Stack memory word by word, by address, with pointer tags; `<frames>` keeps only the innermost frames."
+        renderStackDump
+    , valueView "sp" "Address of the topmost operand." (sp . seState)
+    , valueView "frameBase" "Address of local 0 of the current frame." (frameBase . seState)
+    , valueView "ctrlSp" "Top of the control stack." (ctrlSp . seState)
+    , valueView "stackRoot" "Where both stacks start, set by `sp.init`." (stackRoot . seState)
+    ]
+    where
+        values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->
+            showValues fmt (f (stackView seState))
+        layout name doc render = mkView (lit name *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) doc $
+            \StateEnv{seLabels, seState} (fmt, limit) -> render seLabels (stackView seState) (layoutFormat seState fmt limit)
+        layoutFormat Wasm32St{mem} fmt limit
+            | fmt == Hex =
+                LayoutFormat
+                    { lfWord = toText . word32ToHex
+                    , lfAddr = hexAddr (hexAddrWidth (memCapacity mem))
+                    , lfFrameLimit = limit
+                    }
+            | otherwise = LayoutFormat{lfWord = show, lfAddr = show, lfFrameLimit = limit}
 
 stackView :: (IsWord w) => Wasm32St w -> StackView (Wasm32Isa w w) w
 stackView st@Wasm32St{mem, pc, sp, ctrlSp, frameBase, localCount} =

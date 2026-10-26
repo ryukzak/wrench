@@ -26,6 +26,7 @@ import Wrench.Machine.Types (
     IoMem (..),
     Machine (..),
     MemOf,
+    StateEnv (..),
     fromSign,
     halted,
  )
@@ -193,43 +194,46 @@ data RiscIvIsa w l
 
 -- * Parser
 
+-- | Assembly names of the registers, in parser order (@s10@ before @s1@).
+registerNames :: [(Text, Register)]
+registerNames =
+    [ ("zero", Zero)
+    , ("ra", Ra)
+    , ("sp", Sp)
+    , ("gp", Gp)
+    , ("tp", Tp)
+    , ("t0", T0)
+    , ("t1", T1)
+    , ("t2", T2)
+    , ("s0", S0Fp)
+    , ("fp", S0Fp)
+    , ("s10", S10)
+    , ("s11", S11)
+    , ("s1", S1)
+    , ("a0", A0)
+    , ("a1", A1)
+    , ("a2", A2)
+    , ("a3", A3)
+    , ("a4", A4)
+    , ("a5", A5)
+    , ("a6", A6)
+    , ("a7", A7)
+    , ("s2", S2)
+    , ("s3", S3)
+    , ("s4", S4)
+    , ("s5", S5)
+    , ("s6", S6)
+    , ("s7", S7)
+    , ("s8", S8)
+    , ("s9", S9)
+    , ("t3", T3)
+    , ("t4", T4)
+    , ("t5", T5)
+    , ("t6", T6)
+    ]
+
 register :: Parser Register
-register =
-    choice
-        [ string "zero" >> return Zero
-        , string "ra" >> return Ra
-        , string "sp" >> return Sp
-        , string "gp" >> return Gp
-        , string "tp" >> return Tp
-        , string "t0" >> return T0
-        , string "t1" >> return T1
-        , string "t2" >> return T2
-        , string "s0" >> return S0Fp
-        , string "fp" >> return S0Fp
-        , string "s10" >> return S10
-        , string "s11" >> return S11
-        , string "s1" >> return S1
-        , string "a0" >> return A0
-        , string "a1" >> return A1
-        , string "a2" >> return A2
-        , string "a3" >> return A3
-        , string "a4" >> return A4
-        , string "a5" >> return A5
-        , string "a6" >> return A6
-        , string "a7" >> return A7
-        , string "s2" >> return S2
-        , string "s3" >> return S3
-        , string "s4" >> return S4
-        , string "s5" >> return S5
-        , string "s6" >> return S6
-        , string "s7" >> return S7
-        , string "s8" >> return S8
-        , string "s9" >> return S9
-        , string "t3" >> return T3
-        , string "t4" >> return T4
-        , string "t5" >> return T5
-        , string "t6" >> return T6
-        ]
+register = choice [string (toString name) >> return r | (name, r) <- registerNames]
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
@@ -472,16 +476,15 @@ instance (IsWord w) => Inspectable (RiscIvSt w) where
     memoryDump RiscIvSt{mem} = mem
     ioStreams RiscIvSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted RiscIvSt{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState labels st@RiscIvSt{regs} v =
-        case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
-            [r, f]
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- regs !? r' ->
-                    viewRegister f r''
-            _ -> errorView v
+
+    -- Assembly names first; the constructor spelling ({S0Fp}) last, kept
+    -- for configs written before the assembly names were views.
+    views =
+        [ valueView name ("Register `" <> T.intercalate "`/`" asm <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
+        | r <- allRegisters
+        , let asm = [n | (n, r') <- registerNames, r' == r]
+        , name <- asm <> [show r]
+        ]
 
 instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
     instructionFetch = do

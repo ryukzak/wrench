@@ -17,7 +17,6 @@ module Wrench.Isa.M68k (
 
 import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
-import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
@@ -27,6 +26,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
+import Wrench.Report.View (Format (..), format, lit, mkView)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -56,8 +56,11 @@ data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
 
 instance Hashable AddrReg
 
+addrRegisters :: [AddrReg]
+addrRegisters = [A0, A1, A2, A3, A4, A5, A6, A7]
+
 instance (Default w) => Default (HashMap AddrReg w) where
-    def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
+    def = fromList $ map (,def) addrRegisters
 
 data IndexRegister = AddrIndex AddrReg | DataIndex DataReg
     deriving (Eq, Show)
@@ -485,23 +488,19 @@ instance (IsWord w) => Inspectable (M68kSt w) where
     memoryDump M68kSt{mem} = mem
     ioStreams M68kSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted M68kSt{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState labels st@M68kSt{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
-        case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
-            ["SR", "bin"] -> view nFlag <> view zFlag <> view vFlag <> view cFlag
-                where
-                    view True = "1"
-                    view False = "0"
-            [r, f]
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- dataRegs !? r' ->
-                    viewRegister f r''
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- addrRegs !? r' ->
-                    viewRegister f r''
-            _ -> errorView v
+    views =
+        mkView
+            (lit "SR" *> format [Bin] Bin)
+            "Status register flags `NZVC` as bits."
+            (\StateEnv{seState} _ -> statusBits seState)
+            : [ valueView (show r) ("Data register `" <> show r <> "`.") (fromMaybe 0 . (!? r) . dataRegs . seState)
+              | r <- dataRegisters
+              ]
+                <> [ valueView (show r) ("Address register `" <> show r <> "`.") (fromMaybe 0 . (!? r) . addrRegs . seState)
+                   | r <- addrRegisters
+                   ]
+        where
+            statusBits M68kSt{nFlag, zFlag, vFlag, cFlag} = foldMap (\f -> if f then "1" else "0") [nFlag, zFlag, vFlag, cFlag]
 
 indirectAddr f r index = do
     M68kSt{addrRegs, dataRegs} <- get
