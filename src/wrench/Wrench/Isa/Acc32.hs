@@ -17,6 +17,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
+import Wrench.Report.Keyword (flagKey, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -277,14 +278,13 @@ instance (IsWord w) => Inspectable (Acc32St w) where
     isHalted Acc32St{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@Acc32St{acc, overflowFlag, carryFlag} v =
+    reprState _labels Acc32St{acc, overflowFlag, carryFlag} v =
         case T.splitOn ":" v of
             ["V"] -> if overflowFlag then "1" else "0"
             ["C"] -> if carryFlag then "1" else "0"
-            [r] -> reprState labels st (r <> ":dec")
             ["Acc", f] -> viewRegister f acc
-            [r, _] -> unknownView r
             _ -> errorView v
+    viewKeywords _ = [flagKey "V", flagKey "C", valueKey "Acc"]
 
 instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
     instructionFetch = do

@@ -3,12 +3,12 @@
 module Wrench.Report (
     ReportSlice (..),
     prepareReport,
+    checkReportViews,
     ReportConf (..),
     substituteBrackets,
     viewRegister,
     defaultView,
     errorView,
-    unknownView,
     unknownFormat,
 ) where
 
@@ -21,12 +21,19 @@ import Relude.Extra
 import Text.Regex.TDFA (getAllTextMatches, (=~))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
+import Wrench.Report.Keyword
 import Wrench.Translator (TranslatorResult (..))
+
+bracketRegex :: Text
+bracketRegex = "\\{([^}]*)\\}"
+
+-- | The keys a view uses, without braces.
+viewKeys :: Text -> [Text]
+viewKeys input = ordNub $ map (T.tail . T.init) $ getAllTextMatches (input =~ bracketRegex)
 
 substituteBrackets :: (Text -> Text) -> Text -> Text
 substituteBrackets f input =
-    let regex = "\\{([^}]*)\\}" :: Text -- Regex pattern to match text inside {}
-        matches = getAllTextMatches (input =~ regex)
+    let matches = getAllTextMatches (input =~ bracketRegex)
         changes =
             map
                 ( \(x :: Text) ->
@@ -53,6 +60,52 @@ data ReportConf = ReportConf
 instance FromJSON ReportConf where
     parseJSON = genericParseJSON $ (aesonDrop 2 snakeCase){rejectUnknownFields = True}
 
+-- | View keys shared by every ISA. Each ISA adds its own with 'viewKeywords'.
+commonKeywords :: [Keyword]
+commonKeywords =
+    [ valueKey "pc"
+    , flagKey "pc:label"
+    , flagKey "instruction:prev"
+    , flagKey "instruction:next"
+    , flagKey "sim:instruction-count"
+    , keyword "memAccesses" [countFormat]
+    , keyword "memReads" [countFormat]
+    , keyword "memWrites" [countFormat]
+    , keyword "memAccessesTotal" [countFormat]
+    , keyword "memReadsTotal" [countFormat]
+    , keyword "memWritesTotal" [countFormat]
+    , flagKey "layout:sections-size"
+    , flagKey "layout:text-sections-size"
+    , flagKey "layout:data-sections-size"
+    , keyword "layout:text-ranges" [rangeFormat]
+    , keyword "layout:data-ranges" [rangeFormat]
+    , keyword "mem:instr-ranges" [rangeFormat]
+    , keyword "mem:data-ranges" [rangeFormat]
+    , keyword "mem:io-ranges" [rangeFormat]
+    , flagKey "memory:table"
+    , keyword "memory" [Arg "from", Arg "to"]
+    , keyword "io" [Arg "addr", Fmt ["dec", "hex", "sym"] (Just "dec")]
+    , flagKey "isa-specific"
+    ]
+    where
+        countFormat = Fmt ["dec", "hex"] Nothing
+        rangeFormat = Fmt ["dec", "hex"] (Just "hex")
+
+-- | Check every view key of every report before the simulation runs, so a
+-- typo fails the same way in every ISA, naming the report and the key.
+checkReportViews :: (Inspectable st) => st -> [ReportConf] -> Either Text ()
+checkReportViews st reports =
+    case concatMap reportErrors reports of
+        [] -> Right ()
+        errs -> Left $ T.intercalate "\n" errs
+    where
+        keywords = commonKeywords <> viewKeywords st
+        reportErrors ReportConf{rcName, rcView} =
+            [ "report " <> maybe "(unnamed)" show rcName <> ": " <> err
+            | key <- maybe [] viewKeys rcView
+            , Left err <- [normalizeKey keywords key]
+            ]
+
 prepareReport ::
     (Inspectable st, IsWord (WordOf st), Memory (MemOf st) (IsaOf st) (WordOf st), Show (IsaOf st)) =>
     TranslatorResult mem (WordOf st)
@@ -73,16 +126,23 @@ prepareReport
             stateViews = case rcView of
                 Nothing -> ""
                 Just rvView' ->
-                    T.concat
-                        $ filter (not . T.null)
-                        $ map
-                            ( \(accesses, record) -> case record of
-                                TState{tInstructionCount, tPrevInstruction, tState} ->
-                                    prepareStateView rvView' trResult finalState tInstructionCount tPrevInstruction accesses tState
-                                (TError err) -> "ERROR: " <> err <> "\n"
-                                (TWarn warn) -> "WARN: " <> warn <> "\n"
-                            )
-                            sliced
+                    let normalized :: HashMap Text Text
+                        normalized =
+                            fromList
+                                [ (key, either errorView id (normalizeKey (commonKeywords <> viewKeywords finalState) key))
+                                | key <- viewKeys rvView'
+                                ]
+                        normalize key = fromMaybe (errorView key) (normalized !? key)
+                     in T.concat
+                            $ filter (not . T.null)
+                            $ map
+                                ( \(accesses, record) -> case record of
+                                    TState{tInstructionCount, tPrevInstruction, tState} ->
+                                        prepareStateView normalize rvView' trResult finalState tInstructionCount tPrevInstruction accesses tState
+                                    (TError err) -> "ERROR: " <> err <> "\n"
+                                    (TWarn warn) -> "WARN: " <> warn <> "\n"
+                                )
+                                sliced
 
             assertReport =
                 let actual = nospaces stateViews
@@ -143,7 +203,7 @@ selectSlice LastSlice = take 1 . reverse
 
 -----------------------------------------------------------
 
-prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount prevInstr accesses st =
+prepareStateView normalize line TranslatorResult{labels, dumpStats} finalState instrCount prevInstr accesses st =
     let DumpStats
             { dsSectionsTotalBytes
             , dsTextSectionsBytes
@@ -170,15 +230,10 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
             ["layout", "sections-size"] -> show dsSectionsTotalBytes
             ["layout", "text-sections-size"] -> show dsTextSectionsBytes
             ["layout", "data-sections-size"] -> show dsDataSectionsBytes
-            ["layout", "text-ranges"] -> renderIntervalsHex dsTextIntervals
             ["layout", "text-ranges", fmt] -> rangesFmt fmt dsTextIntervals
-            ["layout", "data-ranges"] -> renderIntervalsHex dsDataIntervals
             ["layout", "data-ranges", fmt] -> rangesFmt fmt dsDataIntervals
-            ["mem", "instr-ranges"] -> renderIntervalsHex alInstr
             ["mem", "instr-ranges", fmt] -> rangesFmt fmt alInstr
-            ["mem", "data-ranges"] -> renderIntervalsHex alData
             ["mem", "data-ranges", fmt] -> rangesFmt fmt alData
-            ["mem", "io-ranges"] -> renderIntervalsHex alIo
             ["mem", "io-ranges", fmt] -> rangesFmt fmt alIo
             ["memory", "table"] -> renderMemoryTable dumpStats (memoryDump finalState)
             -- ISA-specific summary block: each architecture fills it with its
@@ -191,7 +246,7 @@ prepareStateView line TranslatorResult{labels, dumpStats} finalState instrCount 
         rangesFmt "dec" = renderIntervals
         rangesFmt "hex" = renderIntervalsHex
         rangesFmt fmt = const (unknownFormat fmt)
-     in substituteBrackets resolver line
+     in substituteBrackets (resolver . normalize) line
 
 -- | Render a full address-space table: one row per declared section, IO
 --   cluster, or @x@ (anything else) span. Auto-sized columns, hex addresses
@@ -289,12 +344,10 @@ defaultView labels st "pc:label" =
     Just $ case filter (\(_l, a) -> a == toEnum (programCounter st)) $ toPairs labels of
         (l, _a) : _ -> "@" <> toText l
         _ -> ""
-defaultView labels st v =
+defaultView _labels st v =
     case T.splitOn ":" v of
-        ["pc"] -> Just $ reprState labels st "pc:dec"
         ["pc", f] -> Just $ viewRegister f (programCounter st)
         ["memory", a, b] -> Just $ viewMemory (memCapacity (memoryDump st)) a b $ dumpCells $ memoryDump st
-        ["io", a] -> Just $ reprState labels st ("io:" <> a <> ":dec")
         ["io", a, fmt] -> Just $ viewIO fmt a st
         _ -> Nothing
 
@@ -339,7 +392,5 @@ viewRegister "hex" = toText . word32ToHex
 viewRegister f = \_ -> unknownFormat f
 
 errorView v = error $ "view error: " <> v
-
-unknownView v = "[unknown-view <" <> v <> ">]"
 
 unknownFormat f = "[unknown-format <" <> f <> ">]"

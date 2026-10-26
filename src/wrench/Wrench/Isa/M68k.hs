@@ -27,6 +27,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
+import Wrench.Report.Keyword (Segment (..), keyword, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -56,8 +57,11 @@ data AddrReg = A0 | A1 | A2 | A3 | A4 | A5 | A6 | A7
 
 instance Hashable AddrReg
 
+addrRegisters :: [AddrReg]
+addrRegisters = [A0, A1, A2, A3, A4, A5, A6, A7]
+
 instance (Default w) => Default (HashMap AddrReg w) where
-    def = fromList $ map (,def) [A0, A1, A2, A3, A4, A5, A6, A7]
+    def = fromList $ map (,def) addrRegisters
 
 data IndexRegister = AddrIndex AddrReg | DataIndex DataReg
     deriving (Eq, Show)
@@ -487,9 +491,8 @@ instance (IsWord w) => Inspectable (M68kSt w) where
     isHalted M68kSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@M68kSt{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
+    reprState _labels M68kSt{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
         case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
             ["SR", "bin"] -> view nFlag <> view zFlag <> view vFlag <> view cFlag
                 where
                     view True = "1"
@@ -502,6 +505,10 @@ instance (IsWord w) => Inspectable (M68kSt w) where
                 , Just r'' <- addrRegs !? r' ->
                     viewRegister f r''
             _ -> errorView v
+    viewKeywords _ =
+        keyword "SR" [Fmt ["bin"] (Just "bin")]
+            : map (valueKey . show) dataRegisters
+                <> map (valueKey . show) addrRegisters
 
 indirectAddr f r index = do
     M68kSt{addrRegs, dataRegs} <- get

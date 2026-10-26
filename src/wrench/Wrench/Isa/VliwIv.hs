@@ -32,6 +32,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
+import Wrench.Report.Keyword (flagKey, valueKey)
 import Wrench.Translator.Parser.Misc (comma, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -565,14 +566,17 @@ instance (IsWord w) => Inspectable (VliwIvSt w) where
     isHalted VliwIvSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@VliwIvSt{regs} v =
+    reprState _labels VliwIvSt{regs} v =
         case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
             [r, f]
                 | Just r' <- readMaybe (toString r)
                 , Just r'' <- regs !? r' ->
                     viewRegister f r''
             _ -> errorView v
+
+    viewKeywords _ =
+        map (valueKey . show) allRegisters
+            <> map flagKey ["vliw:load-percent", "vliw:avg-load", "vliw:bundles-by-load"]
 
     summaryView _labels VliwIvSt{vliwLoad} v = case T.splitOn ":" v of
         ["vliw", "load-percent"] -> Just (show (vliwLoadPercent vliwLoad) <> "%")

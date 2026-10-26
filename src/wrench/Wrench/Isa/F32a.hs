@@ -19,6 +19,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
+import Wrench.Report.Keyword (flagKey, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -464,11 +465,10 @@ instance (IsWord w) => Inspectable (F32aSt w) where
     isHalted F32aSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@F32aSt{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
+    reprState _labels F32aSt{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
         case T.splitOn ":" v of
             ["EAM"] -> if extendedArithmeticMode then "1" else "0"
             ["C"] -> if carryFlag then "1" else "0"
-            [r] -> reprState labels st (r <> ":dec")
             ["A", f] -> viewRegister f a
             ["B", f] -> viewRegister f b
             ["T", f] -> viewRegister f $ fromMaybe 0 $ dataStack !!? 0
@@ -476,12 +476,15 @@ instance (IsWord w) => Inspectable (F32aSt w) where
             ["R", f] -> viewRegister f $ fromMaybe 0 $ returnStack !!? 0
             ["stack", f] -> stack f dataStack
             ["rstack", f] -> stack f returnStack
-            [r, _] -> unknownView r
             _ -> errorView v
         where
             stack "dec" dt = toText $ intercalate ":" $ map show dt
             stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
             stack f _ = unknownFormat f
+
+    viewKeywords _ =
+        map flagKey ["EAM", "C", "f32a:data-stack-max", "f32a:return-stack-max"]
+            <> map valueKey ["A", "B", "T", "S", "R", "stack", "rstack"]
 
     summaryView _labels F32aSt{dataStackMax, returnStackMax} v = case T.splitOn ":" v of
         ["f32a", "data-stack-max"] -> Just $ show dataStackMax

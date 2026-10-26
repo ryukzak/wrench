@@ -31,6 +31,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i12, i13, i21, lShiftR, u20, u5)
 import Wrench.Report
+import Wrench.Report.Keyword (valueKey)
 import Wrench.Translator.Parser.Misc (comma, constantRef, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -474,14 +475,14 @@ instance (IsWord w) => Inspectable (RiscIvSt w) where
     isHalted RiscIvSt{stopped} = stopped
     reprState labels st v
         | Just v' <- defaultView labels st v = v'
-    reprState labels st@RiscIvSt{regs} v =
+    reprState _labels RiscIvSt{regs} v =
         case T.splitOn ":" v of
-            [r] -> reprState labels st (r <> ":dec")
             [r, f]
                 | Just r' <- readMaybe (toString r)
                 , Just r'' <- regs !? r' ->
                     viewRegister f r''
             _ -> errorView v
+    viewKeywords _ = map (valueKey . show) allRegisters
 
 instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
     instructionFetch = do

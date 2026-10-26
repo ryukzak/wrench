@@ -46,6 +46,7 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra (keys)
+import Wrench.Report.Keyword (Keyword)
 
 -- * State
 
@@ -146,8 +147,14 @@ class Inspectable st where
     programCounter :: st -> Int
     memoryDump :: st -> MemOf st
     ioStreams :: st -> IntMap ([WordOf st], [WordOf st])
+
+    -- | Resolve a view key. Keys are checked against 'viewKeywords' and
+    --   normalized (default format filled in) beforehand.
     reprState :: HashMap Text (WordOf st) -> st -> Text -> Text
-    reprState _labels _st var = "unknown variable: " <> var
+
+    -- | The ISA's own view keywords: registers, flags, stack views and the
+    --   keys 'summaryView' answers.
+    viewKeywords :: st -> [Keyword]
 
     -- | Per-run summary views, resolved from the simulator's *final* state
     --   (not the per-state record in the trace log). Use this for stats that
