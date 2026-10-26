@@ -265,16 +265,22 @@ statView :: Stat env -> View env
 statView Stat{statName, statDoc, statRender} =
     mkView (lit statName) (statDoc <> " Listed in `{isa-specific}`.") (\env () -> statRender env)
 
--- | A Markdown table of views. Neighbours with the same description, such
--- as a register under its two names, share a row.
+-- | A Markdown table of views, its columns padded to line up in the
+-- source. Neighbours with the same description, such as a register under
+-- its two names, share a row.
 viewsTable :: [View env] -> Text
 viewsTable vs =
     T.unlines $
-        ["| View | Description |", "| --- | --- |"]
-            <> map row (NE.groupBy ((==) `on` vDoc) vs)
+        [line ("View", "Description"), line (T.replicate wView "-", T.replicate wDoc "-")]
+            <> map line rows
     where
-        row same@(View{vDoc} :| _) =
-            "| " <> T.intercalate ", " [code (viewUsage v) | v <- toList same] <> " | " <> vDoc <> " |"
+        rows =
+            [ (T.intercalate ", " [code (viewUsage v) | v <- toList same], vDoc)
+            | same@(View{vDoc} :| _) <- NE.groupBy ((==) `on` vDoc) vs
+            ]
+        wView = foldr (max . T.length . fst) (T.length "View") rows
+        wDoc = foldr (max . T.length . snd) (T.length "Description") rows
+        line (usages, doc) = "| " <> T.justifyLeft wView ' ' usages <> " | " <> T.justifyLeft wDoc ' ' doc <> " |"
         code u = "`" <> T.replace "|" "\\|" u <> "`"
 
 -- | A report template with every key already matched to its view.
