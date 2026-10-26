@@ -46,7 +46,7 @@ library
       Wrench.Machine.Word
       Wrench.Misc
       Wrench.Report
-      Wrench.Report.Keyword
+      Wrench.Report.View
       Wrench.Translator
       Wrench.Translator.Parser
       Wrench.Translator.Parser.CodeSection
@@ -131,7 +131,7 @@ executable wrench
       Wrench.Machine.Word
       Wrench.Misc
       Wrench.Report
-      Wrench.Report.Keyword
+      Wrench.Report.View
       Wrench.Translator
       Wrench.Translator.Parser
       Wrench.Translator.Parser.CodeSection

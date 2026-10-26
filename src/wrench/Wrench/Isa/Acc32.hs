@@ -9,7 +9,6 @@ module Wrench.Isa.Acc32 (
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
 import Data.Default (def)
-import Data.Text qualified as T
 import Relude
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
@@ -17,7 +16,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
-import Wrench.Report.Keyword (flagKey, valueKey)
+import Wrench.Report.View (flagKey, mkView, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -276,15 +275,13 @@ instance (IsWord w) => Inspectable (Acc32St w) where
     memoryDump Acc32St{ram} = ram
     ioStreams Acc32St{ram = IoMem{mIoStreams}} = mIoStreams
     isHalted Acc32St{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState _labels Acc32St{acc, overflowFlag, carryFlag} v =
-        case T.splitOn ":" v of
-            ["V"] -> if overflowFlag then "1" else "0"
-            ["C"] -> if carryFlag then "1" else "0"
-            ["Acc", f] -> viewRegister f acc
-            _ -> errorView v
-    viewKeywords _ = [flagKey "V", flagKey "C", valueKey "Acc"]
+    views =
+        [ mkView (valueKey "Acc") "Accumulator." $ \StateEnv{seState = Acc32St{acc}} m -> viewValue m acc
+        , mkView (flagKey "V") "Overflow flag, `1` or `0`." $ \StateEnv{seState = Acc32St{overflowFlag}} _ -> bit overflowFlag
+        , mkView (flagKey "C") "Carry flag, `1` or `0`." $ \StateEnv{seState = Acc32St{carryFlag}} _ -> bit carryFlag
+        ]
+        where
+            bit f = if f then "1" else "0"
 
 instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
     instructionFetch = do

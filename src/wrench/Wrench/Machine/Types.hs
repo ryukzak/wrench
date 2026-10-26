@@ -7,6 +7,7 @@ module Wrench.Machine.Types (
     Cell (..),
     InitState (..),
     Inspectable (..),
+    StateEnv (..),
     MemOf,
     Intervals (..),
     emptyIntervals,
@@ -46,7 +47,7 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra (keys)
-import Wrench.Report.Keyword (Keyword)
+import Wrench.Report.View (View)
 
 -- * State
 
@@ -148,24 +149,20 @@ class Inspectable st where
     memoryDump :: st -> MemOf st
     ioStreams :: st -> IntMap ([WordOf st], [WordOf st])
 
-    -- | Resolve a view key. Keys are checked against 'viewKeywords' and
-    --   normalized (default format filled in) beforehand.
-    reprState :: HashMap Text (WordOf st) -> st -> Text -> Text
-
-    -- | The ISA's own view keywords: registers, flags, stack views and the
-    --   keys 'summaryView' answers.
-    viewKeywords :: st -> [Keyword]
-
-    -- | Per-run summary views, resolved from the simulator's *final* state
-    --   (not the per-state record in the trace log). Use this for stats that
-    --   only make sense at end-of-run -- e.g. accumulators that grow each
-    --   step, where the per-state value would be off by one. Returns
-    --   'Nothing' when the variable isn't a summary view, in which case the
-    --   resolver falls through to the per-state 'reprState'.
-    summaryView :: HashMap Text (WordOf st) -> st -> Text -> Maybe Text
-    summaryView _labels _st _var = Nothing
+    -- | The ISA's own report views: registers, flags, stacks, run-wide stats.
+    views :: [View (StateEnv st)]
 
     isHalted :: st -> Bool
+
+-- | What an ISA view sees.
+data StateEnv st = StateEnv
+    { seLabels :: HashMap Text (WordOf st)
+    , seState :: st
+    -- ^ The state of the record being rendered.
+    , seFinal :: st
+    -- ^ The state the run ended in, for run-wide stats: an accumulator read
+    --   from 'seState' would lag the run.
+    }
 
 class Machine st isa w | st -> isa w where
     instructionFetch :: State st (Either Text (Int, isa))

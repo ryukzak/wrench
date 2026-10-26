@@ -20,6 +20,7 @@ import Wrench.Isa.Wasm32.LocalNames (resolveLocalNames)
 import Wrench.Isa.Wasm32.State (Scope (..), Wasm32St)
 import Wrench.Machine.BitPack (packWords, unpackWords)
 import Wrench.Machine.Types
+import Wrench.Report (renderIsaView)
 import Wrench.Translator (TranslatorResult (..), translate)
 
 -- | What the golden corpus in @test\/golden\/wasm32@ cannot check: the
@@ -194,8 +195,9 @@ tests =
             locals @?= ""
         , testCase "Recursive call/return computes factorial(5)" $ do
             src <- readExample "factorial.s"
-            out <- runSourceIoToView (IntMap.fromList [(0x80, ([5], [])), (0x84, ([], []))]) "io:0x84:dec" src
-            out @?= "[] >>> [120]"
+            case runSourceIo (IntMap.fromList [(0x80, ([5], [])), (0x84, ([], []))]) src of
+                Left err -> assertFailure (toString err)
+                Right st -> (reverse . snd <$> ioStreams st IntMap.!? 0x84) @?= Just [120]
         , testCase "Indirect call through a parameter dispatches to the right target" $ do
             stack <-
                 runSourceToStack $
@@ -241,7 +243,7 @@ runSourceIoToView :: IntMap ([Int32], [Int32]) -> Text -> String -> IO Text
 runSourceIoToView streams view src =
     case runSourceIo streams src of
         Left err -> assertFailure (toString err) >> error "unreachable"
-        Right st -> return $ reprState HashMap.empty st view
+        Right st -> either (\err -> assertFailure (toString err) >> error "unreachable") return (renderIsaView HashMap.empty st view)
 
 assertTrap :: Text -> [String] -> Assertion
 assertTrap expected = assertSourceTrap expected . toSource

@@ -17,7 +17,6 @@ module Wrench.Isa.M68k (
 
 import Data.Bits (bit, complement, finiteBitSize, shiftL, shiftR, testBit, (.&.), (.|.))
 import Data.Default (Default, def)
-import Data.Text qualified as T
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
@@ -27,7 +26,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
-import Wrench.Report.Keyword (Segment (..), keyword, valueKey)
+import Wrench.Report.View (Segment (..), keyword, mkView, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -489,26 +488,21 @@ instance (IsWord w) => Inspectable (M68kSt w) where
     memoryDump M68kSt{mem} = mem
     ioStreams M68kSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted M68kSt{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState _labels M68kSt{addrRegs, dataRegs, nFlag, zFlag, vFlag, cFlag} v =
-        case T.splitOn ":" v of
-            ["SR", "bin"] -> view nFlag <> view zFlag <> view vFlag <> view cFlag
-                where
-                    view True = "1"
-                    view False = "0"
-            [r, f]
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- dataRegs !? r' ->
-                    viewRegister f r''
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- addrRegs !? r' ->
-                    viewRegister f r''
-            _ -> errorView v
-    viewKeywords _ =
-        keyword "SR" [Fmt ["bin"] (Just "bin")]
-            : map (valueKey . show) dataRegisters
-                <> map (valueKey . show) addrRegisters
+    views =
+        mkView
+            (keyword "SR" [Fmt ["bin"] (Just "bin")])
+            "Status register flags `NZVC` as bits."
+            (\StateEnv{seState} _ -> statusBits seState)
+            : [ mkView (valueKey (show r)) ("Data register `" <> show r <> "`.") $ \StateEnv{seState = M68kSt{dataRegs}} m ->
+                    viewValue m (fromMaybe 0 (dataRegs !? r))
+              | r <- dataRegisters
+              ]
+                <> [ mkView (valueKey (show r)) ("Address register `" <> show r <> "`.") $ \StateEnv{seState = M68kSt{addrRegs}} m ->
+                        viewValue m (fromMaybe 0 (addrRegs !? r))
+                   | r <- addrRegisters
+                   ]
+        where
+            statusBits M68kSt{nFlag, zFlag, vFlag, cFlag} = foldMap (\f -> if f then "1" else "0") [nFlag, zFlag, vFlag, cFlag]
 
 indirectAddr f r index = do
     M68kSt{addrRegs, dataRegs} <- get

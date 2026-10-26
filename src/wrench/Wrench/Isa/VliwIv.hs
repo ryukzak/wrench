@@ -27,12 +27,13 @@ import Wrench.Machine.Types (
     IoMem (..),
     Machine (..),
     MemOf,
+    StateEnv (..),
     fromSign,
     halted,
  )
 import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
-import Wrench.Report.Keyword (flagKey, valueKey)
+import Wrench.Report.View (mkView, summary, valueKey)
 import Wrench.Translator.Parser.Misc (comma, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -241,42 +242,45 @@ renderBundlesByLoad (VliwLoadAcc m) =
 
 -- * Parser Helpers
 
+-- | Assembly names of the registers, in parser order (@s10@ before @s1@).
+registerNames :: [(Text, Register)]
+registerNames =
+    [ ("zero", Zero)
+    , ("a0", A0)
+    , ("a1", A1)
+    , ("a2", A2)
+    , ("a3", A3)
+    , ("a4", A4)
+    , ("a5", A5)
+    , ("a6", A6)
+    , ("a7", A7)
+    , ("s2", S2)
+    , ("s3", S3)
+    , ("ra", Ra)
+    , ("s4", S4)
+    , ("s5", S5)
+    , ("s6", S6)
+    , ("s7", S7)
+    , ("s8", S8)
+    , ("s9", S9)
+    , ("s10", S10)
+    , ("s11", S11)
+    , ("t3", T3)
+    , ("t4", T4)
+    , ("sp", Sp)
+    , ("t5", T5)
+    , ("t6", T6)
+    , ("gp", Gp)
+    , ("tp", Tp)
+    , ("t0", T0)
+    , ("t1", T1)
+    , ("t2", T2)
+    , ("s0fp", S0Fp)
+    , ("s1", S1)
+    ]
+
 register :: Parser Register
-register =
-    choice
-        [ string "zero" >> return Zero
-        , string "a0" >> return A0
-        , string "a1" >> return A1
-        , string "a2" >> return A2
-        , string "a3" >> return A3
-        , string "a4" >> return A4
-        , string "a5" >> return A5
-        , string "a6" >> return A6
-        , string "a7" >> return A7
-        , string "s2" >> return S2
-        , string "s3" >> return S3
-        , string "ra" >> return Ra
-        , string "s4" >> return S4
-        , string "s5" >> return S5
-        , string "s6" >> return S6
-        , string "s7" >> return S7
-        , string "s8" >> return S8
-        , string "s9" >> return S9
-        , string "s10" >> return S10
-        , string "s11" >> return S11
-        , string "t3" >> return T3
-        , string "t4" >> return T4
-        , string "sp" >> return Sp
-        , string "t5" >> return T5
-        , string "t6" >> return T6
-        , string "gp" >> return Gp
-        , string "tp" >> return Tp
-        , string "t0" >> return T0
-        , string "t1" >> return T1
-        , string "t2" >> return T2
-        , string "s0fp" >> return S0Fp
-        , string "s1" >> return S1
-        ]
+register = choice [string (toString name) >> return r | (name, r) <- registerNames]
 
 data MemRef w = MemRef {mrOffset :: w, mrReg :: Register} deriving (Show)
 
@@ -564,35 +568,20 @@ instance (IsWord w) => Inspectable (VliwIvSt w) where
     memoryDump VliwIvSt{mem} = mem
     ioStreams VliwIvSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted VliwIvSt{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState _labels VliwIvSt{regs} v =
-        case T.splitOn ":" v of
-            [r, f]
-                | Just r' <- readMaybe (toString r)
-                , Just r'' <- regs !? r' ->
-                    viewRegister f r''
-            _ -> errorView v
-
-    viewKeywords _ =
-        map (valueKey . show) allRegisters
-            <> map flagKey ["vliw:load-percent", "vliw:avg-load", "vliw:bundles-by-load"]
-
-    summaryView _labels VliwIvSt{vliwLoad} v = case T.splitOn ":" v of
-        ["vliw", "load-percent"] -> Just (show (vliwLoadPercent vliwLoad) <> "%")
-        ["vliw", "avg-load"] -> Just (vliwAvgLoad vliwLoad)
-        ["vliw", "bundles-by-load"] -> Just (renderBundlesByLoad vliwLoad)
-        ["isa-specific"] ->
-            Just $
-                "vliw:load-percent:    "
-                    <> show (vliwLoadPercent vliwLoad)
-                    <> "%\n"
-                    <> "vliw:avg-load:        "
-                    <> vliwAvgLoad vliwLoad
-                    <> "\n"
-                    <> "vliw:bundles-by-load: "
-                    <> renderBundlesByLoad vliwLoad
-        _ -> Nothing
+    views =
+        [ mkView (valueKey name) ("Register `" <> T.intercalate "`/`" asm <> "`.") $ \StateEnv{seState = VliwIvSt{regs}} m ->
+            viewValue m (fromMaybe 0 (regs !? r))
+        | r <- allRegisters
+        , let asm = [n | (n, r') <- registerNames, r' == r]
+        , name <- show r : asm
+        ]
+            <> [ summary "vliw:load-percent" "Average slot use over the run, in percent of the four slots." $ \StateEnv{seFinal} ->
+                    show (vliwLoadPercent (vliwLoad seFinal)) <> "%"
+               , summary "vliw:avg-load" "Average active slots per executed bundle, `0.00`-`4.00`." $ \StateEnv{seFinal} ->
+                    vliwAvgLoad (vliwLoad seFinal)
+               , summary "vliw:bundles-by-load" "Executed bundles by active slot count: `K:N (P%)`." $ \StateEnv{seFinal} ->
+                    renderBundlesByLoad (vliwLoad seFinal)
+               ]
 
 instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
     instructionFetch = do
