@@ -3,6 +3,7 @@ module Wrench.Report.Test (tests) where
 import Data.Text qualified as T
 import Relude
 import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Wrench.Isa.Acc32 (Acc32St)
 import Wrench.Isa.F32a (F32aSt)
@@ -51,6 +52,7 @@ tests =
             , unambiguous "vliw-iv" (allViews @(VliwIvSt Int32))
             , unambiguous "wasm32" (allViews @(Wasm32St Int32))
             ]
+        , viewsReference
         ]
 
 -- | Test views that render the key they parsed.
@@ -115,3 +117,29 @@ unambiguous name probes = testCase name $
             $ assertFailure
             $ toString
             $ "{" <> key <> "}, an example of " <> pUsage <> ", is accepted by " <> show takers
+
+-- | @docs/report-views.md@, generated from the views themselves so it cannot
+-- fall behind them.
+viewsReference :: TestTree
+viewsReference =
+    goldenVsString "Every report view, documented" "docs/report-views.md"
+        $ return
+        $ encodeUtf8
+        $ T.intercalate "\n"
+        $ [ "# Report views\n"
+          , "<!-- Generated from the source by `make test-accept`. Do not edit. -->\n"
+          , "Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports-configuration).\n"
+          , "## All ISAs\n"
+          , viewsTable (sharedViews @(RiscIvSt Int32))
+          ]
+            <> concat
+                [ ["## " <> name <> "\n", table]
+                | (name, table) <-
+                    [ ("acc32", viewsTable (isaViews @(Acc32St Int32)))
+                    , ("f32a", viewsTable (isaViews @(F32aSt Int32)))
+                    , ("m68k", viewsTable (isaViews @(M68kSt Int32)))
+                    , ("risc-iv-32", viewsTable (isaViews @(RiscIvSt Int32)))
+                    , ("vliw-iv", viewsTable (isaViews @(VliwIvSt Int32)))
+                    , ("wasm32", viewsTable (isaViews @(Wasm32St Int32)))
+                    ]
+                ]

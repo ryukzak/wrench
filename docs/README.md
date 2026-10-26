@@ -326,6 +326,8 @@ Each report configuration can include the following fields:
 - **Description:** Text template to print log records. In the template, you can use state view expressions in curly brackets.
 - **Example:** `program counter: {pc}`
 
+[Report views](report-views.md) lists every expression of every ISA with a one-line description. It is generated from the source, so it is always complete.
+
 Every expression is checked before the simulation starts. An unknown name, a format the expression does not take, a non-number where a number belongs, a memory range outside `memory_size`, or an IO address missing from `memory_mapped_io` stops the run with an error naming the report, the expression and its usage, e.g. `report "log": {pc:bin}: unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}`. Names are case-sensitive; for a near miss the error suggests the closest names (`{acc}` -> `did you mean {Acc[:dec|hex]}?`).
 
 General state view expressions implemented for all ISAs:
