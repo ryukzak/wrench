@@ -47,7 +47,7 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra (keys)
-import Wrench.Report.View (View)
+import Wrench.Report.View (Stat, View)
 
 -- * State
 
@@ -151,6 +151,11 @@ class Inspectable st where
 
     -- | The ISA's own report views: registers, flags, stacks, run-wide stats.
     views :: [View (StateEnv st)]
+
+    -- | The ISA's run-wide stats, read from the final state; @{isa-specific}@
+    --   lists them.
+    isaStats :: [Stat (StateEnv st)]
+    isaStats = []
 
     isHalted :: st -> Bool
 

@@ -26,7 +26,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
-import Wrench.Report.View (Segment (..), keyword, mkView, valueKey)
+import Wrench.Report.View (Format (..), format, lit, mkView)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -490,15 +490,13 @@ instance (IsWord w) => Inspectable (M68kSt w) where
     isHalted M68kSt{stopped} = stopped
     views =
         mkView
-            (keyword "SR" [Fmt ["bin"] (Just "bin")])
+            (lit "SR" *> format [Bin] Bin)
             "Status register flags `NZVC` as bits."
             (\StateEnv{seState} _ -> statusBits seState)
-            : [ mkView (valueKey (show r)) ("Data register `" <> show r <> "`.") $ \StateEnv{seState = M68kSt{dataRegs}} m ->
-                    viewValue m (fromMaybe 0 (dataRegs !? r))
+            : [ valueView (show r) ("Data register `" <> show r <> "`.") (fromMaybe 0 . (!? r) . dataRegs . seState)
               | r <- dataRegisters
               ]
-                <> [ mkView (valueKey (show r)) ("Address register `" <> show r <> "`.") $ \StateEnv{seState = M68kSt{addrRegs}} m ->
-                        viewValue m (fromMaybe 0 (addrRegs !? r))
+                <> [ valueView (show r) ("Address register `" <> show r <> "`.") (fromMaybe 0 . (!? r) . addrRegs . seState)
                    | r <- addrRegisters
                    ]
         where

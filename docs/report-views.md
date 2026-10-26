@@ -82,75 +82,75 @@ Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a
 
 | View | Description |
 | --- | --- |
-| `{Zero[:dec\|hex]}`, `{zero[:dec\|hex]}` | Register `zero`. |
-| `{Ra[:dec\|hex]}`, `{ra[:dec\|hex]}` | Register `ra`. |
-| `{Sp[:dec\|hex]}`, `{sp[:dec\|hex]}` | Register `sp`. |
-| `{Gp[:dec\|hex]}`, `{gp[:dec\|hex]}` | Register `gp`. |
-| `{Tp[:dec\|hex]}`, `{tp[:dec\|hex]}` | Register `tp`. |
-| `{T0[:dec\|hex]}`, `{t0[:dec\|hex]}` | Register `t0`. |
-| `{T1[:dec\|hex]}`, `{t1[:dec\|hex]}` | Register `t1`. |
-| `{T2[:dec\|hex]}`, `{t2[:dec\|hex]}` | Register `t2`. |
-| `{S0Fp[:dec\|hex]}`, `{s0[:dec\|hex]}`, `{fp[:dec\|hex]}` | Register `s0`/`fp`. |
-| `{S1[:dec\|hex]}`, `{s1[:dec\|hex]}` | Register `s1`. |
-| `{A0[:dec\|hex]}`, `{a0[:dec\|hex]}` | Register `a0`. |
-| `{A1[:dec\|hex]}`, `{a1[:dec\|hex]}` | Register `a1`. |
-| `{A2[:dec\|hex]}`, `{a2[:dec\|hex]}` | Register `a2`. |
-| `{A3[:dec\|hex]}`, `{a3[:dec\|hex]}` | Register `a3`. |
-| `{A4[:dec\|hex]}`, `{a4[:dec\|hex]}` | Register `a4`. |
-| `{A5[:dec\|hex]}`, `{a5[:dec\|hex]}` | Register `a5`. |
-| `{A6[:dec\|hex]}`, `{a6[:dec\|hex]}` | Register `a6`. |
-| `{A7[:dec\|hex]}`, `{a7[:dec\|hex]}` | Register `a7`. |
-| `{S2[:dec\|hex]}`, `{s2[:dec\|hex]}` | Register `s2`. |
-| `{S3[:dec\|hex]}`, `{s3[:dec\|hex]}` | Register `s3`. |
-| `{S4[:dec\|hex]}`, `{s4[:dec\|hex]}` | Register `s4`. |
-| `{S5[:dec\|hex]}`, `{s5[:dec\|hex]}` | Register `s5`. |
-| `{S6[:dec\|hex]}`, `{s6[:dec\|hex]}` | Register `s6`. |
-| `{S7[:dec\|hex]}`, `{s7[:dec\|hex]}` | Register `s7`. |
-| `{S8[:dec\|hex]}`, `{s8[:dec\|hex]}` | Register `s8`. |
-| `{S9[:dec\|hex]}`, `{s9[:dec\|hex]}` | Register `s9`. |
-| `{S10[:dec\|hex]}`, `{s10[:dec\|hex]}` | Register `s10`. |
-| `{S11[:dec\|hex]}`, `{s11[:dec\|hex]}` | Register `s11`. |
-| `{T3[:dec\|hex]}`, `{t3[:dec\|hex]}` | Register `t3`. |
-| `{T4[:dec\|hex]}`, `{t4[:dec\|hex]}` | Register `t4`. |
-| `{T5[:dec\|hex]}`, `{t5[:dec\|hex]}` | Register `t5`. |
-| `{T6[:dec\|hex]}`, `{t6[:dec\|hex]}` | Register `t6`. |
+| `{zero[:dec\|hex]}`, `{Zero[:dec\|hex]}` | Register `zero`. |
+| `{ra[:dec\|hex]}`, `{Ra[:dec\|hex]}` | Register `ra`. |
+| `{sp[:dec\|hex]}`, `{Sp[:dec\|hex]}` | Register `sp`. |
+| `{gp[:dec\|hex]}`, `{Gp[:dec\|hex]}` | Register `gp`. |
+| `{tp[:dec\|hex]}`, `{Tp[:dec\|hex]}` | Register `tp`. |
+| `{t0[:dec\|hex]}`, `{T0[:dec\|hex]}` | Register `t0`. |
+| `{t1[:dec\|hex]}`, `{T1[:dec\|hex]}` | Register `t1`. |
+| `{t2[:dec\|hex]}`, `{T2[:dec\|hex]}` | Register `t2`. |
+| `{s0[:dec\|hex]}`, `{fp[:dec\|hex]}`, `{S0Fp[:dec\|hex]}` | Register `s0`/`fp`. |
+| `{s1[:dec\|hex]}`, `{S1[:dec\|hex]}` | Register `s1`. |
+| `{a0[:dec\|hex]}`, `{A0[:dec\|hex]}` | Register `a0`. |
+| `{a1[:dec\|hex]}`, `{A1[:dec\|hex]}` | Register `a1`. |
+| `{a2[:dec\|hex]}`, `{A2[:dec\|hex]}` | Register `a2`. |
+| `{a3[:dec\|hex]}`, `{A3[:dec\|hex]}` | Register `a3`. |
+| `{a4[:dec\|hex]}`, `{A4[:dec\|hex]}` | Register `a4`. |
+| `{a5[:dec\|hex]}`, `{A5[:dec\|hex]}` | Register `a5`. |
+| `{a6[:dec\|hex]}`, `{A6[:dec\|hex]}` | Register `a6`. |
+| `{a7[:dec\|hex]}`, `{A7[:dec\|hex]}` | Register `a7`. |
+| `{s2[:dec\|hex]}`, `{S2[:dec\|hex]}` | Register `s2`. |
+| `{s3[:dec\|hex]}`, `{S3[:dec\|hex]}` | Register `s3`. |
+| `{s4[:dec\|hex]}`, `{S4[:dec\|hex]}` | Register `s4`. |
+| `{s5[:dec\|hex]}`, `{S5[:dec\|hex]}` | Register `s5`. |
+| `{s6[:dec\|hex]}`, `{S6[:dec\|hex]}` | Register `s6`. |
+| `{s7[:dec\|hex]}`, `{S7[:dec\|hex]}` | Register `s7`. |
+| `{s8[:dec\|hex]}`, `{S8[:dec\|hex]}` | Register `s8`. |
+| `{s9[:dec\|hex]}`, `{S9[:dec\|hex]}` | Register `s9`. |
+| `{s10[:dec\|hex]}`, `{S10[:dec\|hex]}` | Register `s10`. |
+| `{s11[:dec\|hex]}`, `{S11[:dec\|hex]}` | Register `s11`. |
+| `{t3[:dec\|hex]}`, `{T3[:dec\|hex]}` | Register `t3`. |
+| `{t4[:dec\|hex]}`, `{T4[:dec\|hex]}` | Register `t4`. |
+| `{t5[:dec\|hex]}`, `{T5[:dec\|hex]}` | Register `t5`. |
+| `{t6[:dec\|hex]}`, `{T6[:dec\|hex]}` | Register `t6`. |
 
 ## vliw-iv
 
 | View | Description |
 | --- | --- |
-| `{Zero[:dec\|hex]}`, `{zero[:dec\|hex]}` | Register `zero`. |
-| `{Ra[:dec\|hex]}`, `{ra[:dec\|hex]}` | Register `ra`. |
-| `{Sp[:dec\|hex]}`, `{sp[:dec\|hex]}` | Register `sp`. |
-| `{Gp[:dec\|hex]}`, `{gp[:dec\|hex]}` | Register `gp`. |
-| `{Tp[:dec\|hex]}`, `{tp[:dec\|hex]}` | Register `tp`. |
-| `{T0[:dec\|hex]}`, `{t0[:dec\|hex]}` | Register `t0`. |
-| `{T1[:dec\|hex]}`, `{t1[:dec\|hex]}` | Register `t1`. |
-| `{T2[:dec\|hex]}`, `{t2[:dec\|hex]}` | Register `t2`. |
-| `{S0Fp[:dec\|hex]}`, `{s0fp[:dec\|hex]}` | Register `s0fp`. |
-| `{S1[:dec\|hex]}`, `{s1[:dec\|hex]}` | Register `s1`. |
-| `{A0[:dec\|hex]}`, `{a0[:dec\|hex]}` | Register `a0`. |
-| `{A1[:dec\|hex]}`, `{a1[:dec\|hex]}` | Register `a1`. |
-| `{A2[:dec\|hex]}`, `{a2[:dec\|hex]}` | Register `a2`. |
-| `{A3[:dec\|hex]}`, `{a3[:dec\|hex]}` | Register `a3`. |
-| `{A4[:dec\|hex]}`, `{a4[:dec\|hex]}` | Register `a4`. |
-| `{A5[:dec\|hex]}`, `{a5[:dec\|hex]}` | Register `a5`. |
-| `{A6[:dec\|hex]}`, `{a6[:dec\|hex]}` | Register `a6`. |
-| `{A7[:dec\|hex]}`, `{a7[:dec\|hex]}` | Register `a7`. |
-| `{S2[:dec\|hex]}`, `{s2[:dec\|hex]}` | Register `s2`. |
-| `{S3[:dec\|hex]}`, `{s3[:dec\|hex]}` | Register `s3`. |
-| `{S4[:dec\|hex]}`, `{s4[:dec\|hex]}` | Register `s4`. |
-| `{S5[:dec\|hex]}`, `{s5[:dec\|hex]}` | Register `s5`. |
-| `{S6[:dec\|hex]}`, `{s6[:dec\|hex]}` | Register `s6`. |
-| `{S7[:dec\|hex]}`, `{s7[:dec\|hex]}` | Register `s7`. |
-| `{S8[:dec\|hex]}`, `{s8[:dec\|hex]}` | Register `s8`. |
-| `{S9[:dec\|hex]}`, `{s9[:dec\|hex]}` | Register `s9`. |
-| `{S10[:dec\|hex]}`, `{s10[:dec\|hex]}` | Register `s10`. |
-| `{S11[:dec\|hex]}`, `{s11[:dec\|hex]}` | Register `s11`. |
-| `{T3[:dec\|hex]}`, `{t3[:dec\|hex]}` | Register `t3`. |
-| `{T4[:dec\|hex]}`, `{t4[:dec\|hex]}` | Register `t4`. |
-| `{T5[:dec\|hex]}`, `{t5[:dec\|hex]}` | Register `t5`. |
-| `{T6[:dec\|hex]}`, `{t6[:dec\|hex]}` | Register `t6`. |
+| `{zero[:dec\|hex]}`, `{Zero[:dec\|hex]}` | Register `zero`. |
+| `{ra[:dec\|hex]}`, `{Ra[:dec\|hex]}` | Register `ra`. |
+| `{sp[:dec\|hex]}`, `{Sp[:dec\|hex]}` | Register `sp`. |
+| `{gp[:dec\|hex]}`, `{Gp[:dec\|hex]}` | Register `gp`. |
+| `{tp[:dec\|hex]}`, `{Tp[:dec\|hex]}` | Register `tp`. |
+| `{t0[:dec\|hex]}`, `{T0[:dec\|hex]}` | Register `t0`. |
+| `{t1[:dec\|hex]}`, `{T1[:dec\|hex]}` | Register `t1`. |
+| `{t2[:dec\|hex]}`, `{T2[:dec\|hex]}` | Register `t2`. |
+| `{s0fp[:dec\|hex]}`, `{S0Fp[:dec\|hex]}` | Register `s0fp`. |
+| `{s1[:dec\|hex]}`, `{S1[:dec\|hex]}` | Register `s1`. |
+| `{a0[:dec\|hex]}`, `{A0[:dec\|hex]}` | Register `a0`. |
+| `{a1[:dec\|hex]}`, `{A1[:dec\|hex]}` | Register `a1`. |
+| `{a2[:dec\|hex]}`, `{A2[:dec\|hex]}` | Register `a2`. |
+| `{a3[:dec\|hex]}`, `{A3[:dec\|hex]}` | Register `a3`. |
+| `{a4[:dec\|hex]}`, `{A4[:dec\|hex]}` | Register `a4`. |
+| `{a5[:dec\|hex]}`, `{A5[:dec\|hex]}` | Register `a5`. |
+| `{a6[:dec\|hex]}`, `{A6[:dec\|hex]}` | Register `a6`. |
+| `{a7[:dec\|hex]}`, `{A7[:dec\|hex]}` | Register `a7`. |
+| `{s2[:dec\|hex]}`, `{S2[:dec\|hex]}` | Register `s2`. |
+| `{s3[:dec\|hex]}`, `{S3[:dec\|hex]}` | Register `s3`. |
+| `{s4[:dec\|hex]}`, `{S4[:dec\|hex]}` | Register `s4`. |
+| `{s5[:dec\|hex]}`, `{S5[:dec\|hex]}` | Register `s5`. |
+| `{s6[:dec\|hex]}`, `{S6[:dec\|hex]}` | Register `s6`. |
+| `{s7[:dec\|hex]}`, `{S7[:dec\|hex]}` | Register `s7`. |
+| `{s8[:dec\|hex]}`, `{S8[:dec\|hex]}` | Register `s8`. |
+| `{s9[:dec\|hex]}`, `{S9[:dec\|hex]}` | Register `s9`. |
+| `{s10[:dec\|hex]}`, `{S10[:dec\|hex]}` | Register `s10`. |
+| `{s11[:dec\|hex]}`, `{S11[:dec\|hex]}` | Register `s11`. |
+| `{t3[:dec\|hex]}`, `{T3[:dec\|hex]}` | Register `t3`. |
+| `{t4[:dec\|hex]}`, `{T4[:dec\|hex]}` | Register `t4`. |
+| `{t5[:dec\|hex]}`, `{T5[:dec\|hex]}` | Register `t5`. |
+| `{t6[:dec\|hex]}`, `{T6[:dec\|hex]}` | Register `t6`. |
 | `{vliw:load-percent}` | Average slot use over the run, in percent of the four slots. Listed in `{isa-specific}`. |
 | `{vliw:avg-load}` | Average active slots per executed bundle, `0.00`-`4.00`. Listed in `{isa-specific}`. |
 | `{vliw:bundles-by-load}` | Executed bundles by active slot count: `K:N (P%)`. Listed in `{isa-specific}`. |

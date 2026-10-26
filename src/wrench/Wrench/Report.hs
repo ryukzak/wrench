@@ -2,14 +2,18 @@
 
 module Wrench.Report (
     ReportSlice (..),
+    ReportConf (..),
+    Report,
+    compileReports,
     prepareReport,
-    checkReportViews,
     renderIsaView,
     sharedViews,
-    ReportConf (..),
-    substituteBrackets,
-    viewValue,
-    viewValues,
+    isaViews,
+    ReportViews,
+    valueView,
+    flagView,
+    showValue,
+    showValues,
 ) where
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFields)
@@ -18,30 +22,10 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra
-import Text.Regex.TDFA (getAllTextMatches, (=~))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report.View
 import Wrench.Translator (TranslatorResult (..))
-
-bracketRegex :: Text
-bracketRegex = "\\{([^}]*)\\}"
-
--- | The keys a view uses, without braces.
-viewKeys :: Text -> [Text]
-viewKeys input = ordNub $ map (T.tail . T.init) $ getAllTextMatches (input =~ bracketRegex)
-
-substituteBrackets :: (Text -> Text) -> Text -> Text
-substituteBrackets f input =
-    let matches = getAllTextMatches (input =~ bracketRegex)
-        changes =
-            map
-                ( \(x :: Text) ->
-                    let v = T.tail $ T.init x
-                     in (x, f v)
-                )
-                matches
-     in foldr (\(old, new) st -> T.replace old new st) input changes
 
 data ReportConf = ReportConf
     { rcName :: Maybe Text
@@ -78,23 +62,23 @@ type ReportViews st =
     , Show (IsaOf st)
     )
 
--- | Every view a report on this ISA can use: the ISA's own, then the shared.
+-- | The ISA's own views, its stats among them.
+isaViews :: forall st. (Inspectable st) => [View (StateEnv st)]
+isaViews = views @st <> map statView (isaStats @st)
+
+-- | Every view a report on this ISA can use.
 reportViews :: forall st. (ReportViews st) => [View (ReportEnv st)]
-reportViews = map (mapEnv reState) (views @st) <> sharedViews
+reportViews = map (contramapView reState) (isaViews @st) <> sharedViews
 
 -- | The views every ISA has.
 sharedViews :: forall st. (ReportViews st) => [View (ReportEnv st)]
-sharedViews = commonViews (views @st)
-
-commonViews :: forall st. (ReportViews st) => [View (StateEnv st)] -> [View (ReportEnv st)]
-commonViews isaViews =
-    [ mkView (valueKey "pc") "Program counter." $ \e m -> viewValue m (programCounter (current e))
-    , mkView (flagKey "pc:label") "`@label` if the program counter is at a label, otherwise empty." $ \e _ -> pcLabel e
-    , mkView (flagKey "instruction:prev") "The instruction that produced this state, `-` for the initial state." $ \e _ ->
-        maybe "-" show (rePrevInstr e)
-    , mkView (flagKey "instruction:next") "The instruction to execute next, `-` once halted." $ \e _ ->
-        nextInstruction (current e)
-    , mkView (flagKey "sim:instruction-count") "Instructions executed so far." $ \e _ -> show (reInstrCount e)
+sharedViews =
+    [ valueView "pc" "Program counter." (programCounter . current)
+    , flagView "pc:label" "`@label` if the program counter is at a label, otherwise empty." pcLabel
+    , flagView "instruction:prev" "The instruction that produced this state, `-` for the initial state." $
+        maybe "-" show . rePrevInstr
+    , flagView "instruction:next" "The instruction to execute next, `-` once halted." (nextInstruction . current)
+    , flagView "sim:instruction-count" "Instructions executed so far." (show . reInstrCount)
     , count
         "memAccesses"
         "Memory accesses of the instruction that produced this state, its fetch included."
@@ -112,31 +96,30 @@ commonViews isaViews =
     , ranges "mem:instr-ranges" "Address ranges the run fetched instructions from." (alInstr . finalLog)
     , ranges "mem:data-ranges" "Address ranges the run read or wrote data at." (alData . finalLog)
     , ranges "mem:io-ranges" "Memory-mapped IO addresses the run accessed." (alIo . finalLog)
-    , mkView (flagKey "memory:table") "Address-space table: sections, IO, free spans and their access coverage." $ \e _ ->
+    , flagView "memory:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
         renderMemoryTable (reDumpStats e) (memoryDump (final e))
-    , ( mkView (keyword "memory" [Arg "from", Arg "to"]) "Memory dump from `<from>` to `<to>`, inclusive." $ \e m -> viewMemory (current e) m
-      )
-        { vCheck = checkRange
-        }
-    , ( mkView
-            (keyword "io" [Arg "addr", Fmt ["dec", "hex", "sym"] (Just "dec")])
-            "IO port at `<addr>`: `input >>> output` so far; `sym` shows characters."
-            $ \e m -> viewIO m (current e)
-      )
-        { vCheck = checkPort
-        }
-    , mkView (flagKey "isa-specific") "The ISA's run-wide stats, one `name: value` per line; empty if it has none." $ \e _ ->
-        isaSpecific (reState e)
+    , checkedView
+        (lit "memory" *> ((,) <$> arg "from" <*> arg "to"))
+        "Memory dump from `<from>` to `<to>`, inclusive."
+        checkRange
+        (\e (from, to) -> viewMemory (current e) from to)
+    , checkedView
+        (lit "io" *> ((,) <$> arg "addr" <*> format [Dec, Hex, Sym] Dec))
+        "IO port at `<addr>`: `input >>> output` so far; `sym` shows characters."
+        (\env (addr, _) -> checkPort env addr)
+        (\e (addr, fmt) -> viewIO fmt addr (current e))
+    , flagView "isa-specific" "The ISA's run-wide stats, one `name: value` per line; empty if it has none." $
+        isaSpecific . reState
     ]
     where
         current = seState . reState
         final = seFinal . reState
         finalLog = accessLog . memoryDump . final
         runTotal = memAccessCount . memoryDump . current
-        count name doc f = mkView (keyword name [Fmt ["dec", "hex"] Nothing]) doc $ \e m -> viewValue m (f e)
-        layout name doc f = mkView (flagKey name) doc $ \e _ -> show (f (reDumpStats e))
-        ranges name doc f = mkView (keyword name [Fmt ["dec", "hex"] (Just "hex")]) doc $ \e m ->
-            (if isHex m then renderIntervalsHex else renderIntervals) (f e)
+        count name doc f = mkView (lit name *> formatRequired [Dec, Hex]) doc $ \e fmt -> showValue fmt (f e)
+        layout name doc f = flagView name doc (show . f . reDumpStats)
+        ranges name doc f = mkView (lit name *> format [Dec, Hex] Hex) doc $ \e fmt ->
+            (if fmt == Hex then renderIntervalsHex else renderIntervals) (f e)
         pcLabel ReportEnv{reState = StateEnv{seLabels, seState}} =
             case [l | (l, a) <- toPairs seLabels, a == toEnum (programCounter seState)] of
                 l : _ -> "@" <> l
@@ -144,53 +127,73 @@ commonViews isaViews =
         nextInstruction st
             | isHalted st = "-"
             | otherwise = either (const "-") (show . snd) (readInstruction (memoryDump st) (programCounter st))
-        summaries = [v | v@View{vSummary = True} <- isaViews]
         isaSpecific env =
-            let width = foldr (max . T.length . keywordName . vKeyword) 0 summaries + 1
+            let width = foldr (max . T.length . statName) 0 (isaStats @st) + 1
              in T.intercalate
                     "\n"
-                    [ T.justifyLeft width ' ' (keywordName vKeyword <> ":") <> " " <> vRender env (Match [] "")
-                    | View{vKeyword, vRender} <- summaries
-                    ]
-        checkRange CheckEnv{ceMemorySize} Match{mArgs} = case mArgs of
-            [from, to]
-                | from < 0 || to >= ceMemorySize ->
-                    Left $ "range " <> show from <> ".." <> show to <> " is outside memory 0.." <> show (ceMemorySize - 1)
-                | from > to -> Left $ "range " <> show from <> ".." <> show to <> " is empty: <from> is after <to>"
-            _ -> Right ()
-        checkPort CheckEnv{ceIoPorts} Match{mArgs} = case mArgs of
-            [addr]
-                | addr `notElem` ceIoPorts ->
-                    Left $
-                        "no IO port at "
-                            <> hex addr
-                            <> case ceIoPorts of
-                                [] -> ", memory_mapped_io is empty"
-                                ports -> ", configured: " <> T.intercalate ", " (map hex (sort ports))
-            _ -> Right ()
+                    [T.justifyLeft width ' ' (statName <> ":") <> " " <> statRender env | Stat{statName, statRender} <- isaStats @st]
+        checkRange CheckEnv{ceMemorySize} (from, to)
+            | from < 0 || to >= ceMemorySize =
+                Left $ "range " <> show from <> ".." <> show to <> " is outside memory 0.." <> show (ceMemorySize - 1)
+            | from > to = Left $ "range " <> show from <> ".." <> show to <> " is empty: <from> is after <to>"
+            | otherwise = Right ()
+        checkPort CheckEnv{ceIoPorts} addr
+            | addr `elem` ceIoPorts = Right ()
+            | otherwise =
+                Left $
+                    "no IO port at "
+                        <> hex addr
+                        <> case ceIoPorts of
+                            [] -> ", memory_mapped_io is empty"
+                            ports -> ", configured: " <> T.intercalate ", " (map hex (sort ports))
         hex a = "0x" <> toText (showHex a "")
 
--- | Check every view key of every report before the simulation runs, so a
--- mistake fails the same way in every ISA, naming the report and the key.
-checkReportViews :: forall st. (ReportViews st) => st -> [ReportConf] -> Either Text ()
-checkReportViews st reports =
-    case errors of
-        [] -> Right ()
-        errs -> Left $ T.intercalate "\n" errs
+-- | A register-like value: @dec@ by default, or @hex@.
+valueView :: (Integral a, Show a) => Text -> Text -> (env -> a) -> View env
+valueView name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \e fmt -> showValue fmt (f e)
+
+-- | A view without arguments or format.
+flagView :: Text -> Text -> (env -> Text) -> View env
+flagView name doc f = mkView (lit name) doc (\e () -> f e)
+
+showValue :: (Integral a, Show a) => Format -> a -> Text
+showValue Hex = toText . word32ToHex
+showValue _ = show
+
+-- | Values joined top first, @a:b:c@, as stacks are shown.
+showValues :: (Integral a, Show a) => Format -> [a] -> Text
+showValues fmt = T.intercalate ":" . map (showValue fmt)
+
+-- | A report with its view template compiled against the ISA's views.
+data Report st = Report
+    { rConf :: ReportConf
+    , rTemplate :: Maybe (Template (ReportEnv st))
+    }
+
+-- | Compile every report before the simulation runs, so a mistake fails
+-- the same way in every ISA, naming the report and the key, and rendering
+-- never meets a key it cannot resolve.
+compileReports :: forall st. (ReportViews st) => CheckEnv -> [ReportConf] -> Either Text [Report st]
+compileReports checkEnv confs =
+    case partitionEithers (zipWith compile [1 :: Int ..] confs) of
+        ([], reports) -> Right reports
+        (errs, _) -> Left $ T.intercalate "\n" (ordNub (concat errs))
     where
-        env = CheckEnv{ceMemorySize = memCapacity (memoryDump st), ceIoPorts = keys (ioStreams st)}
-        errors =
-            [ "report " <> maybe ("#" <> show i) show rcName <> ": " <> err
-            | (i :: Int, ReportConf{rcName, rcView}) <- zip [1 ..] reports
-            , key <- maybe [] viewKeys rcView
-            , Left err <- [checkView env (reportViews @st) key]
-            ]
+        compile i rc@ReportConf{rcName, rcView} = case rcView of
+            Nothing -> Right (Report rc Nothing)
+            Just text ->
+                bimap
+                    (map (("report " <> maybe ("#" <> show i) show rcName <> ": ") <>))
+                    (Report rc . Just)
+                    (compileTemplate checkEnv (reportViews @st) text)
 
 -- | Render one of the ISA's own views of a state.
 renderIsaView :: forall st. (Inspectable st) => HashMap Text (WordOf st) -> st -> Text -> Either Text Text
 renderIsaView labels st key = do
-    (View{vRender}, m) <- matchView (views @st) key
-    return $ vRender StateEnv{seLabels = labels, seState = st, seFinal = st} m
+    template <- first (T.intercalate "\n") $ compileTemplate unchecked (isaViews @st) ("{" <> key <> "}")
+    return $ renderTemplate template StateEnv{seLabels = labels, seState = st, seFinal = st}
+    where
+        unchecked = CheckEnv{ceMemorySize = maxBound, ceIoPorts = []}
 
 prepareReport ::
     forall st mem.
@@ -199,45 +202,38 @@ prepareReport ::
     -> Bool
     -> st
     -> [Trace st (IsaOf st)]
-    -> ReportConf
+    -> Report st
     -> (Bool, Text)
 prepareReport
     TranslatorResult{labels, dumpStats}
     verbose
     finalState
     records
-    rc@ReportConf{rcName, rcSlice, rcAssert, rcView} =
+    Report{rConf = rc@ReportConf{rcName, rcSlice, rcAssert}, rTemplate} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
             sliced = selectSlice rcSlice (withAccessDeltas records)
-            stateViews = case rcView of
+            stateViews = case rTemplate of
                 Nothing -> ""
-                Just rvView' ->
-                    let matched :: HashMap Text (View (ReportEnv st), Match)
-                        matched = fromList [(key, either error id (matchView reportViews key)) | key <- viewKeys rvView']
-                        render env key = case matched !? key of
-                            Just (View{vRender}, m) -> vRender env m
-                            Nothing -> error $ "view error: " <> key
-                     in T.concat
-                            $ filter (not . T.null)
-                            $ map
-                                ( \(accesses, record) -> case record of
-                                    TState{tInstructionCount, tPrevInstruction, tState} ->
-                                        substituteBrackets
-                                            ( render
-                                                ReportEnv
-                                                    { reState = StateEnv{seLabels = labels, seState = tState, seFinal = finalState}
-                                                    , reDumpStats = dumpStats
-                                                    , reInstrCount = tInstructionCount
-                                                    , rePrevInstr = tPrevInstruction
-                                                    , reAccesses = accesses
-                                                    }
-                                            )
-                                            rvView'
-                                    (TError err) -> "ERROR: " <> err <> "\n"
-                                    (TWarn warn) -> "WARN: " <> warn <> "\n"
-                                )
-                                sliced
+                Just template ->
+                    T.concat
+                        $ filter (not . T.null)
+                        $ map
+                            ( \(accesses, record) -> case record of
+                                TState{tInstructionCount, tPrevInstruction, tState} ->
+                                    renderTemplate
+                                        template
+                                        ReportEnv
+                                            { reState = StateEnv{seLabels = labels, seState = tState, seFinal = finalState}
+                                            , reDumpStats = dumpStats
+                                            , reInstrCount = tInstructionCount
+                                            , rePrevInstr = tPrevInstruction
+                                            , reAccesses = accesses
+                                            }
+                                (TError err) -> "ERROR: " <> err <> "\n"
+                                (TWarn warn) -> "WARN: " <> warn <> "\n"
+                            )
+                            sliced
 
             assertReport =
                 let actual = nospaces stateViews
@@ -384,35 +380,26 @@ splitByAccess accessedAll lo hi =
             | otherwise = ("x", alo, ahi) : go (ahi + 1) rest
      in go lo inRange
 
-viewMemory :: forall st. (ReportViews st) => st -> Match -> Text
-viewMemory st Match{mArgs} = case mArgs of
-    [from, to] ->
-        toText
-            $ prettyDump True (hexAddr (hexAddrWidth (memCapacity mem))) mempty
-            $ fromList
-            $ sliceMem [from .. to] (dumpCells mem)
-    _ -> error "memory view: expected <from>:<to>"
+viewMemory :: forall st. (ReportViews st) => st -> Int -> Int -> Text
+viewMemory st from to =
+    toText
+        $ prettyDump True (hexAddr (hexAddrWidth (memCapacity mem))) mempty
+        $ fromList
+        $ sliceMem [from .. to] (dumpCells mem)
     where
         mem = memoryDump st
 
-viewIO :: (Inspectable st, IsWord (WordOf st)) => Match -> st -> Text
-viewIO Match{mArgs, mFormat} st = case mArgs of
-    [addr] | Just (is, os) <- ioStreams st !? addr -> case mFormat of
-        "hex" -> T.replace "\"" "" $ show (map word32ToHex is) <> " >>> " <> show (map word32ToHex (reverse os))
-        "sym" -> T.replace "\\NUL" "\\0" $ show (map sym is) <> " >>> " <> show (map sym (reverse os))
-        _ -> show is <> " >>> " <> show (reverse os)
-    _ -> error $ "io view: no port at " <> show mArgs
+-- | The port was checked against the configuration when the template was
+-- compiled, and ports come only from there.
+viewIO :: (Inspectable st, IsWord (WordOf st)) => Format -> Int -> st -> Text
+viewIO fmt addr st = maybe "-" render (ioStreams st !? addr)
     where
+        render (is, os) = case fmt of
+            Hex -> T.replace "\"" "" $ show (map word32ToHex is) <> " >>> " <> show (map word32ToHex (reverse os))
+            Sym -> T.replace "\\NUL" "\\0" $ show (map sym is) <> " >>> " <> show (map sym (reverse os))
+            _ -> show is <> " >>> " <> show (reverse os)
         sym w = case fromEnum w of
             0 -> '\0'
             10 -> '\n'
             x | 32 <= x && x <= 126 -> chr x
             _ -> '?'
-
--- | A register-like value in the format the view asked for.
-viewValue :: (Integral a, Show a) => Match -> a -> Text
-viewValue m = if isHex m then toText . word32ToHex else show
-
--- | Values joined top first, @a:b:c@, as stacks are shown.
-viewValues :: (Integral a, Show a) => Match -> [a] -> Text
-viewValues m = T.intercalate ":" . map (viewValue m)

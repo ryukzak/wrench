@@ -18,7 +18,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
-import Wrench.Report.View (flagKey, mkView, summary, valueKey)
+import Wrench.Report.View (Format (..), Stat (..), format, lit, mkView)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -463,21 +463,24 @@ instance (IsWord w) => Inspectable (F32aSt w) where
     ioStreams F32aSt{ram = IoMem{mIoStreams}} = mIoStreams
     isHalted F32aSt{stopped} = stopped
     views =
-        [ value "A" "Register `A`." a
-        , value "B" "Register `B`." b
-        , value "T" "Top of the data stack, `0` if empty." (fromMaybe 0 . (!!? 0) . dataStack)
-        , value "S" "Second on the data stack, `0` if absent." (fromMaybe 0 . (!!? 1) . dataStack)
-        , value "R" "Top of the return stack, `0` if empty." (fromMaybe 0 . (!!? 0) . returnStack)
-        , mkView (valueKey "stack") "Data stack, top first: `a:b:c`." $ \StateEnv{seState} m -> viewValues m (dataStack seState)
-        , mkView (valueKey "rstack") "Return stack, top first: `a:b:c`." $ \StateEnv{seState} m -> viewValues m (returnStack seState)
-        , mkView (flagKey "EAM") "Extended arithmetic mode, `1` or `0`." $ \StateEnv{seState} _ -> bit (extendedArithmeticMode seState)
-        , mkView (flagKey "C") "Carry flag, `1` or `0`." $ \StateEnv{seState} _ -> bit (carryFlag seState)
-        , summary "f32a:data-stack-max" "Deepest data stack of the run." $ \StateEnv{seFinal} -> show (dataStackMax seFinal)
-        , summary "f32a:return-stack-max" "Deepest return stack of the run." $ \StateEnv{seFinal} -> show (returnStackMax seFinal)
+        [ valueView "A" "Register `A`." (a . seState)
+        , valueView "B" "Register `B`." (b . seState)
+        , valueView "T" "Top of the data stack, `0` if empty." (fromMaybe 0 . (!!? 0) . dataStack . seState)
+        , valueView "S" "Second on the data stack, `0` if absent." (fromMaybe 0 . (!!? 1) . dataStack . seState)
+        , valueView "R" "Top of the return stack, `0` if empty." (fromMaybe 0 . (!!? 0) . returnStack . seState)
+        , stack "stack" "Data stack, top first: `a:b:c`." dataStack
+        , stack "rstack" "Return stack, top first: `a:b:c`." returnStack
+        , flagView "EAM" "Extended arithmetic mode, `1` or `0`." (bit . extendedArithmeticMode . seState)
+        , flagView "C" "Carry flag, `1` or `0`." (bit . carryFlag . seState)
         ]
         where
-            value name doc f = mkView (valueKey name) doc $ \StateEnv{seState} m -> viewValue m (f seState)
+            stack name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt -> showValues fmt (f seState)
             bit f = if f then "1" else "0"
+
+    isaStats =
+        [ Stat "f32a:data-stack-max" "Deepest data stack of the run." (show . dataStackMax . seFinal)
+        , Stat "f32a:return-stack-max" "Deepest return stack of the run." (show . returnStackMax . seFinal)
+        ]
 
 instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
     instructionFetch = do

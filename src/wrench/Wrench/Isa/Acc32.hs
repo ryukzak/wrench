@@ -16,7 +16,6 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
-import Wrench.Report.View (flagKey, mkView, valueKey)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -276,9 +275,9 @@ instance (IsWord w) => Inspectable (Acc32St w) where
     ioStreams Acc32St{ram = IoMem{mIoStreams}} = mIoStreams
     isHalted Acc32St{stopped} = stopped
     views =
-        [ mkView (valueKey "Acc") "Accumulator." $ \StateEnv{seState = Acc32St{acc}} m -> viewValue m acc
-        , mkView (flagKey "V") "Overflow flag, `1` or `0`." $ \StateEnv{seState = Acc32St{overflowFlag}} _ -> bit overflowFlag
-        , mkView (flagKey "C") "Carry flag, `1` or `0`." $ \StateEnv{seState = Acc32St{carryFlag}} _ -> bit carryFlag
+        [ valueView "Acc" "Accumulator." (acc . seState)
+        , flagView "V" "Overflow flag, `1` or `0`." (bit . overflowFlag . seState)
+        , flagView "C" "Carry flag, `1` or `0`." (bit . carryFlag . seState)
         ]
         where
             bit f = if f then "1" else "0"

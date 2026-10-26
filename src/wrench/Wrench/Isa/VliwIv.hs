@@ -33,7 +33,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i10, i15, i17, i20, lShiftR, u20)
 import Wrench.Report
-import Wrench.Report.View (mkView, summary, valueKey)
+import Wrench.Report.View (Stat (..))
 import Wrench.Translator.Parser.Misc (comma, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -568,20 +568,25 @@ instance (IsWord w) => Inspectable (VliwIvSt w) where
     memoryDump VliwIvSt{mem} = mem
     ioStreams VliwIvSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted VliwIvSt{stopped} = stopped
+
+    -- Assembly names first; the constructor spelling ({S0Fp}) last, kept
+    -- for configs written before the assembly names were views.
     views =
-        [ mkView (valueKey name) ("Register `" <> T.intercalate "`/`" asm <> "`.") $ \StateEnv{seState = VliwIvSt{regs}} m ->
-            viewValue m (fromMaybe 0 (regs !? r))
+        [ valueView name ("Register `" <> T.intercalate "`/`" asm <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
         | r <- allRegisters
         , let asm = [n | (n, r') <- registerNames, r' == r]
-        , name <- show r : asm
+        , name <- asm <> [show r]
         ]
-            <> [ summary "vliw:load-percent" "Average slot use over the run, in percent of the four slots." $ \StateEnv{seFinal} ->
-                    show (vliwLoadPercent (vliwLoad seFinal)) <> "%"
-               , summary "vliw:avg-load" "Average active slots per executed bundle, `0.00`-`4.00`." $ \StateEnv{seFinal} ->
-                    vliwAvgLoad (vliwLoad seFinal)
-               , summary "vliw:bundles-by-load" "Executed bundles by active slot count: `K:N (P%)`." $ \StateEnv{seFinal} ->
-                    renderBundlesByLoad (vliwLoad seFinal)
-               ]
+
+    isaStats =
+        [ Stat "vliw:load-percent" "Average slot use over the run, in percent of the four slots." $ \StateEnv{seFinal} ->
+            show (vliwLoadPercent (vliwLoad seFinal)) <> "%"
+        , Stat "vliw:avg-load" "Average active slots per executed bundle, `0.00`-`4.00`." (vliwAvgLoad . vliwLoad . seFinal)
+        , Stat
+            "vliw:bundles-by-load"
+            "Executed bundles by active slot count: `K:N (P%)`."
+            (renderBundlesByLoad . vliwLoad . seFinal)
+        ]
 
 instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
     instructionFetch = do

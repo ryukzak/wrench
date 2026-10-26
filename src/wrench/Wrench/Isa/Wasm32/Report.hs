@@ -13,7 +13,7 @@ import Wrench.Machine.BitPack (unpackWords)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
-import Wrench.Report.View (Match (..), Segment (..), View, isHex, keyword, mkView, valueFormat, valueKey)
+import Wrench.Report.View (Format (..), View, format, lit, mkView, optArg)
 
 instance (IsWord w) => Inspectable (Wasm32St w) where
     type WordOf (Wasm32St w) = w
@@ -27,10 +27,8 @@ instance (IsWord w) => Inspectable (Wasm32St w) where
 
 wasm32Views :: (IsWord w) => [View (StateEnv (Wasm32St w))]
 wasm32Views =
-    [ mkView (valueKey "stack") "Operand stack of the current frame, top first: `a:b:c`." $ \StateEnv{seState} m ->
-        viewValues m (stackWords (stackView seState))
-    , mkView (valueKey "locals") "Locals of the current frame, `$0` first." $ \StateEnv{seState} m ->
-        viewValues m (localWords (stackView seState))
+    [ values "stack" "Operand stack of the current frame, top first: `a:b:c`." stackWords
+    , values "locals" "Locals of the current frame, `$0` first." localWords
     , layout
         "stackLayout"
         "Call frames, outermost first: locals, open scopes, operands; `<frames>` keeps only the innermost ones."
@@ -39,17 +37,18 @@ wasm32Views =
         "stackDump"
         "Stack memory word by word, by address, with pointer tags; `<frames>` keeps only the innermost frames."
         renderStackDump
-    , register "sp" "Address of the topmost operand." sp
-    , register "frameBase" "Address of local 0 of the current frame." frameBase
-    , register "ctrlSp" "Top of the control stack." ctrlSp
-    , register "stackRoot" "Where both stacks start, set by `sp.init`." stackRoot
+    , valueView "sp" "Address of the topmost operand." (sp . seState)
+    , valueView "frameBase" "Address of local 0 of the current frame." (frameBase . seState)
+    , valueView "ctrlSp" "Top of the control stack." (ctrlSp . seState)
+    , valueView "stackRoot" "Where both stacks start, set by `sp.init`." (stackRoot . seState)
     ]
     where
-        register name doc f = mkView (valueKey name) doc $ \StateEnv{seState} m -> viewValue m (f seState)
-        layout name doc render = mkView (keyword name [valueFormat, OptArg "frames"]) doc $ \StateEnv{seLabels, seState} m@Match{mArgs} ->
-            render seLabels (stackView seState) (layoutFormat seState m (listToMaybe mArgs))
-        layoutFormat Wasm32St{mem} m limit
-            | isHex m =
+        values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->
+            showValues fmt (f (stackView seState))
+        layout name doc render = mkView (lit name *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) doc $
+            \StateEnv{seLabels, seState} (fmt, limit) -> render seLabels (stackView seState) (layoutFormat seState fmt limit)
+        layoutFormat Wasm32St{mem} fmt limit
+            | fmt == Hex =
                 LayoutFormat
                     { lfWord = toText . word32ToHex
                     , lfAddr = hexAddr (hexAddrWidth (memCapacity mem))
