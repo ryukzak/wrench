@@ -11,7 +11,6 @@ module Wrench.Isa.F32a (
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
 import Data.Default (def)
-import Data.Text qualified as T
 import Relude
 import Text.Megaparsec (anySingleBut, choice, getSourcePos, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -19,6 +18,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 import Wrench.Report
+import Wrench.Report.View (Format (..), Stat (..), format, lit, mkView)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -462,38 +462,25 @@ instance (IsWord w) => Inspectable (F32aSt w) where
     memoryDump F32aSt{ram} = ram
     ioStreams F32aSt{ram = IoMem{mIoStreams}} = mIoStreams
     isHalted F32aSt{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState labels st@F32aSt{a, b, dataStack, returnStack, extendedArithmeticMode, carryFlag} v =
-        case T.splitOn ":" v of
-            ["EAM"] -> if extendedArithmeticMode then "1" else "0"
-            ["C"] -> if carryFlag then "1" else "0"
-            [r] -> reprState labels st (r <> ":dec")
-            ["A", f] -> viewRegister f a
-            ["B", f] -> viewRegister f b
-            ["T", f] -> viewRegister f $ fromMaybe 0 $ dataStack !!? 0
-            ["S", f] -> viewRegister f $ fromMaybe 0 $ dataStack !!? 1
-            ["R", f] -> viewRegister f $ fromMaybe 0 $ returnStack !!? 0
-            ["stack", f] -> stack f dataStack
-            ["rstack", f] -> stack f returnStack
-            [r, _] -> unknownView r
-            _ -> errorView v
+    views =
+        [ valueView "A" "Register `A`." (a . seState)
+        , valueView "B" "Register `B`." (b . seState)
+        , valueView "T" "Top of the data stack, `0` if empty." (fromMaybe 0 . (!!? 0) . dataStack . seState)
+        , valueView "S" "Second on the data stack, `0` if absent." (fromMaybe 0 . (!!? 1) . dataStack . seState)
+        , valueView "R" "Top of the return stack, `0` if empty." (fromMaybe 0 . (!!? 0) . returnStack . seState)
+        , stack "stack" "Data stack, top first: `a:b:c`." dataStack
+        , stack "rstack" "Return stack, top first: `a:b:c`." returnStack
+        , flagView "EAM" "Extended arithmetic mode, `1` or `0`." (bit . extendedArithmeticMode . seState)
+        , flagView "C" "Carry flag, `1` or `0`." (bit . carryFlag . seState)
+        ]
         where
-            stack "dec" dt = toText $ intercalate ":" $ map show dt
-            stack "hex" dt = T.intercalate ":" $ map (toText . word32ToHex) dt
-            stack f _ = unknownFormat f
+            stack name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt -> showValues fmt (f seState)
+            bit f = if f then "1" else "0"
 
-    summaryView _labels F32aSt{dataStackMax, returnStackMax} v = case T.splitOn ":" v of
-        ["f32a", "data-stack-max"] -> Just $ show dataStackMax
-        ["f32a", "return-stack-max"] -> Just $ show returnStackMax
-        ["isa-specific"] ->
-            Just $
-                "f32a:data-stack-max:   "
-                    <> show dataStackMax
-                    <> "\n"
-                    <> "f32a:return-stack-max: "
-                    <> show returnStackMax
-        _ -> Nothing
+    isaStats =
+        [ Stat "f32a:data-stack-max" "Deepest data stack of the run." (show . dataStackMax . seFinal)
+        , Stat "f32a:return-stack-max" "Deepest return stack of the run." (show . returnStackMax . seFinal)
+        ]
 
 instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
     instructionFetch = do

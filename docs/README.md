@@ -326,6 +326,10 @@ Each report configuration can include the following fields:
 - **Description:** Text template to print log records. In the template, you can use state view expressions in curly brackets.
 - **Example:** `program counter: {pc}`
 
+[Report views](report-views.md) lists every expression of every ISA with a one-line description. It is generated from the source, so it is always complete.
+
+Every expression is checked before the simulation starts. An unknown name, a format the expression does not take, a non-number where a number belongs, a memory range outside `memory_size`, or an IO address missing from `memory_mapped_io` stops the run with an error naming the report, the expression and its usage, e.g. `report "log": {pc:bin}: unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}`. Names are case-sensitive; for a near miss the error suggests the closest names (`{acc}` -> `did you mean {Acc[:dec|hex]}?`).
+
 General state view expressions implemented for all ISAs:
 
 - `pc:dec`, `pc:hex` -- Print program counter in decimal or hexadecimal format.
@@ -349,7 +353,7 @@ Execution and memory statistics. These are typically used with `slice: last` to 
 - `memAccesses` -- Memory accesses made by the instruction that produced this state, its own fetch included. One access per operation, so a word read counts once whatever its width. With `slice: all` it shows what each instruction cost; the initial state reports `0`. Needs a `:dec` or `:hex` suffix.
 - `memReads`, `memWrites` -- The same, split by direction. An instruction fetch counts as a read.
 - `memAccessesTotal`, `memReadsTotal`, `memWritesTotal` -- The same three for the whole run so far.
-- `isa-specific` -- ISA-specific summary block. Each architecture fills it with its own stat lines (e.g. `vliw:load-percent` + `vliw:avg-load` + `vliw:bundles-by-load` on vliw-iv; `f32a:data-stack-max` + `f32a:return-stack-max` on f32a); architectures without any render an empty block. Lets one report template stay uniform across ISAs without emitting `[unknown-view]` for the variables that don't apply.
+- `isa-specific` -- ISA-specific summary block. Each architecture fills it with its own stat lines (e.g. `vliw:load-percent` + `vliw:avg-load` + `vliw:bundles-by-load` on vliw-iv; `f32a:data-stack-max` + `f32a:return-stack-max` on f32a); architectures without any render an empty block. Lets one report template stay uniform across ISAs, naming no ISA-specific view.
 
 Example -- print a stats summary after the simulation finishes:
 

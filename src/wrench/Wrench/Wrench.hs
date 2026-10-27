@@ -33,6 +33,7 @@ import Wrench.Machine
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report
+import Wrench.Report.View (CheckEnv (..))
 import Wrench.Translator
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -220,6 +221,10 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
             if fromMaybe False cZeroMemoryInit
                 then repeat 0
                 else map fromIntegral (randomInts (0, 255) memoryGen)
+    reports <-
+        compileReports @st
+            CheckEnv{ceMemorySize = cMemorySize, ceIoPorts = maybe [] keys cMemoryMappedIoFlat}
+            (fromMaybe [] cReports)
     trResult@TranslatorResult{dump, labels} <- translate preprocessors cMemorySize memoryFillBytes fn src
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
@@ -230,9 +235,9 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
 
     (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
 
-    let reports = maybe [] (map (prepareReport trResult verbose finalState traceLog)) cReports
-        isSuccess = all fst reports
-        reportTexts = map snd reports
+    let results = map (prepareReport trResult verbose finalState traceLog) reports
+        isSuccess = all fst results
+        reportTexts = map snd results
 
     return $
         Result

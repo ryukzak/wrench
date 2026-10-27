@@ -9,7 +9,6 @@ module Wrench.Isa.Acc32 (
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
 import Data.Default (def)
-import Data.Text qualified as T
 import Relude
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
@@ -275,16 +274,13 @@ instance (IsWord w) => Inspectable (Acc32St w) where
     memoryDump Acc32St{ram} = ram
     ioStreams Acc32St{ram = IoMem{mIoStreams}} = mIoStreams
     isHalted Acc32St{stopped} = stopped
-    reprState labels st v
-        | Just v' <- defaultView labels st v = v'
-    reprState labels st@Acc32St{acc, overflowFlag, carryFlag} v =
-        case T.splitOn ":" v of
-            ["V"] -> if overflowFlag then "1" else "0"
-            ["C"] -> if carryFlag then "1" else "0"
-            [r] -> reprState labels st (r <> ":dec")
-            ["Acc", f] -> viewRegister f acc
-            [r, _] -> unknownView r
-            _ -> errorView v
+    views =
+        [ valueView "Acc" "Accumulator." (acc . seState)
+        , flagView "V" "Overflow flag, `1` or `0`." (bit . overflowFlag . seState)
+        , flagView "C" "Carry flag, `1` or `0`." (bit . carryFlag . seState)
+        ]
+        where
+            bit f = if f then "1" else "0"
 
 instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
     instructionFetch = do
