@@ -260,7 +260,7 @@ ERROR: memory[0x06]: instruction in memory corrupted
 - **Logical Shift Right**
     - **Syntax:** `srl <rd>, <rs1>, <rs2>`
     - **Description:** Shift the value of the first source register right by the number of bits specified in the lower 5 bits of the second source register and store the result in the destination register.
-    - **Operation:** `rd <- rs1 >> (rs2 & 0x1F)`
+    - **Operation:** `rd <- rs1 >>> (rs2 & 0x1F)`
 
 - **Arithmetic Shift Right**
     - **Syntax:** `sra <rd>, <rs1>, <rs2>`
