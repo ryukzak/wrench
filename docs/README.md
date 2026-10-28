@@ -181,7 +181,7 @@ value:  .word 42
 .text
 .org 0x2000       ; Text section starts at address 0x2000
 _start:
-    load_ind value
+    load_addr value
 ```
 
 If `.org` is not specified, the assembler will automatically assign addresses starting from 0x0000 for the first section and place other sections sequentially.
