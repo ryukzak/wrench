@@ -263,5 +263,5 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 - **Compare**
     - **Syntax:** `cmp <address>`
     - **Description:** Compare the accumulator and set only flags.
-    - **Operation:** `acc - mem[pc]` and set `Z` (not't exist yet), `C` and `V` flags
+    - **Operation:** `acc - mem[pc]` and set `Z` (doesn't exist yet), `C` and `V` flags
     - Why not: create a lot of inconsistent states
