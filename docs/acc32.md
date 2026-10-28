@@ -1,4 +1,4 @@
-# Acc32 Instruction Set Architecture (ISA) Documentation
+  # Acc32 Instruction Set Architecture (ISA) Documentation
 
 The Acc32 ISA is a simple accumulator-based instruction set designed for educational purposes. This documentation provides an overview of the instructions available in the Acc32 ISA, their syntax, and their semantics.
 
@@ -263,5 +263,5 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 - **Compare**
     - **Syntax:** `cmp <address>`
     - **Description:** Compare the accumulator and set only flags.
-    - **Operation:** `acc - mem[pc]` and set `Z` (doesn't exist yet), `C` and `V` flags
+    - **Operation:** `acc - mem[<address>]` and set `Z` (doesn't exist yet), `C` and `V` flags
     - Why not: create a lot of inconsistent states
