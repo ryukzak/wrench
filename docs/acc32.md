@@ -258,7 +258,7 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 - **Load Indirect**
     - **Syntax:** `load_ind <address>`
     - **Description:** Load a value from memory using an indirect address.
-    - **Operation:** `acc <- mem[pc]`
+    - **Operation:** `acc <- mem[mem[<address>]]`
     - Why not: `load_addr` + `load_acc` looks more natural for accumulator
 - **Compare**
     - **Syntax:** `cmp <address>`
