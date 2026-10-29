@@ -13,3 +13,7 @@ reports:
     view: |
       pc: {pc}
       {stack:layout:dec}
+  - name: Memory accesses per instruction
+    slice: last
+    view: |
+      {mem:per-instruction}

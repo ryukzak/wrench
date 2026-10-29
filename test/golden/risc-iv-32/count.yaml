@@ -14,3 +14,7 @@ reports:
       {io:88:dec}
       {io:88:hex}
       {io:88:sym}
+  - name: Memory accesses per instruction
+    slice: last
+    view: |
+      {mem:per-instruction}

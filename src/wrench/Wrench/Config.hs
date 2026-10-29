@@ -57,6 +57,11 @@ executionStatsReport =
                     , "```"
                     , "{mem:table}"
                     , "```"
+                    , ""
+                    , "## Memory accesses per instruction"
+                    , "```"
+                    , "{mem:per-instruction}"
+                    , "```"
                     ]
         }
 
