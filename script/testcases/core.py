@@ -272,7 +272,7 @@ class String2String:
                     "      numio[0x84]: {io:0x84:dec}",
                     "      symio[0x84]: {io:0x84:sym}",
                 ]
-                + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
+                + [f"      {{mem:dump:{a}:{b}}}" for a, b, _ in self.mem_view]
             )
         return "\n".join(
             [
@@ -281,7 +281,7 @@ class String2String:
                 "      symio[0x80]: {io:0x80:sym}",
                 "      symio[0x84]: {io:0x84:sym}",
             ]
-            + [f"      {{memory:{a}:{b}}}" for a, b, _ in self.mem_view]
+            + [f"      {{mem:dump:{a}:{b}}}" for a, b, _ in self.mem_view]
         )
 
     def yaml_assert(self) -> str:

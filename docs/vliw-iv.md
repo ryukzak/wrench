@@ -290,7 +290,7 @@ addi rd, rs1, k / / /
 
 - `<reg>:dec`, `<reg>:hex` -- View the value of a specific register in decimal or hexadecimal format.
 
-Available registers: `Zero`, `Ra`, `Sp`, `Gp`, `Tp`, `T0`, `T1`, `T2`, `S0Fp`, `S1`, `A0`, `A1`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `S2`, `S3`, `S4`, `S5`, `S6`, `S7`, `S8`, `S9`, `S10`, `S11`, `T3`, `T4`, `T5`, `T6`.
+Available registers: `zero`, `ra`, `sp`, `gp`, `tp`, `t0`-`t6`, `s0fp`, `s1`-`s11`, `a0`-`a7`.
 
 ### Slot utilization (parallelism)
 

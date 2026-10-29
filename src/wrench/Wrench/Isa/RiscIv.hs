@@ -32,6 +32,7 @@ import Wrench.Machine.Types (
  )
 import Wrench.Machine.Word (fitSigned, i12, i13, i21, lShiftR, u20, u5)
 import Wrench.Report
+import Wrench.Report.View (withRenames)
 import Wrench.Translator.Parser.Misc (comma, constantRef, eol', reference, referenceWithDirective, wordLiteral)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -477,14 +478,15 @@ instance (IsWord w) => Inspectable (RiscIvSt w) where
     ioStreams RiscIvSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted RiscIvSt{stopped} = stopped
 
-    -- Assembly names first; the constructor spelling ({S0Fp}) last, kept
-    -- for configs written before the assembly names were views.
     views =
-        [ valueView name ("Register `" <> T.intercalate "`/`" asm <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
-        | r <- allRegisters
-        , let asm = [n | (n, r') <- registerNames, r' == r]
-        , name <- asm <> [show r]
-        ]
+        withRenames
+            [(show r, name) | r <- allRegisters, name : _ <- [asmNames r]]
+            [ valueView name ("Register `" <> T.intercalate "`/`" (asmNames r) <> "`.") (fromMaybe 0 . (!? r) . regs . seState)
+            | r <- allRegisters
+            , name <- asmNames r
+            ]
+        where
+            asmNames r = [n | (n, r') <- registerNames, r' == r]
 
 instance (IsWord w) => Machine (RiscIvSt w) (RiscIvIsa w w) w where
     instructionFetch = do

@@ -26,10 +26,12 @@ module Wrench.Report.View (
     View (..),
     mkView,
     checkedView,
+    withRenames,
     contramapView,
     viewUsage,
     viewName,
     viewsTable,
+    renamesTable,
     Stat (..),
     statView,
 
@@ -99,7 +101,7 @@ pieces :: Spec a -> [SomePiece]
 pieces (Done _) = []
 pieces (Step p rest) = SomePiece p : pieces rest
 
--- | The literal part of a key: @memory:table@, @memory@, @pc@.
+-- | The literal part of a key: @mem:table@, @mem:dump@, @pc@.
 specName :: Spec a -> Text
 specName = T.intercalate ":" . literals
 
@@ -130,7 +132,7 @@ parseSpec (Done _) extra = Left $ "unexpected '" <> T.intercalate ":" extra <> "
 parseSpec (Step p rest) parts = case parsePiece p parts of
     Right (b, parts') -> ($ b) <$> parseSpec rest parts'
     -- An optional format that does not match may be left out: the part is
-    -- then the next piece's (@stackLayout:3@). If that fails too, the format
+    -- then the next piece's (@stack:layout:3@). If that fails too, the format
     -- error is the one to report.
     Left err
         | PFormat _ (Just def) <- p
@@ -165,18 +167,31 @@ data View env = forall a. View
     , vDoc :: Text
     , vCheck :: CheckEnv -> a -> Either Text ()
     , vRender :: env -> a -> Text
+    , vRenamedTo :: Maybe [Text]
     }
 
 mkView :: Spec a -> Text -> (env -> a -> Text) -> View env
-mkView spec doc = View spec doc (\_ _ -> Right ())
+mkView spec doc = checkedView spec doc (\_ _ -> Right ())
 
 -- | A view whose arguments must also fit the configuration.
 checkedView :: Spec a -> Text -> (CheckEnv -> a -> Either Text ()) -> (env -> a -> Text) -> View env
-checkedView = View
+checkedView spec doc check render = View spec doc check render Nothing
+
+withRenames :: [(Text, Text)] -> [View env] -> [View env]
+withRenames renames vs = vs <> map alias renames
+    where
+        alias (old, new) = case find ((== new) . viewName) vs of
+            Just (View spec doc check render _) ->
+                View (lit old *> dropLiterals spec) doc check render (Just (literals spec))
+            Nothing -> error $ "renamed view not found: " <> new
+
+dropLiterals :: Spec a -> Spec a
+dropLiterals (Step (PLit _) rest) = dropLiterals (fmap ($ ()) rest)
+dropLiterals s = s
 
 -- | The same view over a larger environment.
 contramapView :: (b -> a) -> View a -> View b
-contramapView f (View spec doc check render) = View spec doc check (render . f)
+contramapView f (View spec doc check render renamedTo) = View spec doc check (render . f) renamedTo
 
 viewUsage :: View env -> Text
 viewUsage View{vSpec} = usage vSpec
@@ -186,8 +201,8 @@ viewName View{vSpec} = specName vSpec
 
 -- | Find the view a key names, read and check its arguments, and close
 -- over them. The view with the longest literal prefix wins, so
--- @memory:table@ is not read as @memory:\<from\>:\<to\>@.
-matchView :: CheckEnv -> [View env] -> Text -> Either Text (env -> Text)
+-- @stack:layout@ is not read as @stack@ with an unknown format.
+matchView :: CheckEnv -> [View env] -> Text -> Either Text (Maybe Text, env -> Text)
 matchView checkEnv views key =
     case groupByLength candidates of
         [] -> Left $ "unknown view {" <> key <> "}" <> suggestions views parts
@@ -206,11 +221,13 @@ matchView checkEnv views key =
         groupByLength vs = case vs of
             [] -> []
             v : _ -> [filter ((== prefixLength v) . prefixLength) vs]
-        try View{vSpec, vCheck, vRender} =
+        try View{vSpec, vCheck, vRender, vRenamedTo} =
             first (\err -> "{" <> key <> "}: " <> err <> ", usage: " <> usage vSpec) $ do
                 a <- parseSpec vSpec parts
                 vCheck checkEnv a
-                return (`vRender` a)
+                return (renamedWarning (length (literals vSpec)) <$> vRenamedTo, (`vRender` a))
+        renamedWarning n new =
+            "{" <> key <> "} is renamed, use {" <> T.intercalate ":" (new <> drop n parts) <> "}"
 
 -- | Views whose name is a small edit away from the key's leading parts,
 -- compared case-insensitively.
@@ -222,7 +239,7 @@ suggestions views parts =
     where
         close =
             [ (d, usage vSpec)
-            | View{vSpec} <- views
+            | View{vSpec, vRenamedTo = Nothing} <- views
             , let ls = literals vSpec
                   name = T.intercalate ":" ls
                   given = T.intercalate ":" (take (length ls) parts)
@@ -265,23 +282,34 @@ statView :: Stat env -> View env
 statView Stat{statName, statDoc, statRender} =
     mkView (lit statName) (statDoc <> " Listed in `{isa-specific}`.") (\env () -> statRender env)
 
--- | A Markdown table of views, its columns padded to line up in the
--- source. Neighbours with the same description, such as a register under
--- its two names, share a row.
+-- | A Markdown table of the current views. Neighbours with the same
+-- description, such as a register under its two names, share a row.
 viewsTable :: [View env] -> Text
 viewsTable vs =
-    T.unlines $
-        [line ("View", "Description"), line (T.replicate wView "-", T.replicate wDoc "-")]
-            <> map line rows
+    markdownTable
+        ("View", "Description")
+        [ (T.intercalate ", " [code (viewUsage v) | v <- toList same], vDoc)
+        | same@(View{vDoc} :| _) <- NE.groupBy ((==) `on` vDoc) [v | v@View{vRenamedTo = Nothing} <- vs]
+        ]
+
+renamesTable :: [View env] -> Text
+renamesTable vs =
+    case [ (usage vSpec, usage (lit (T.intercalate ":" new) *> dropLiterals vSpec))
+         | View{vSpec, vRenamedTo = Just new} <- vs
+         ] of
+        [] -> ""
+        rows -> markdownTable ("Old", "New") (map (bimap code code) rows)
+
+markdownTable :: (Text, Text) -> [(Text, Text)] -> Text
+markdownTable header rows =
+    T.unlines $ line header : line (T.replicate wA "-", T.replicate wB "-") : map line rows
     where
-        rows =
-            [ (T.intercalate ", " [code (viewUsage v) | v <- toList same], vDoc)
-            | same@(View{vDoc} :| _) <- NE.groupBy ((==) `on` vDoc) vs
-            ]
-        wView = foldr (max . T.length . fst) (T.length "View") rows
-        wDoc = foldr (max . T.length . snd) (T.length "Description") rows
-        line (usages, doc) = "| " <> T.justifyLeft wView ' ' usages <> " | " <> T.justifyLeft wDoc ' ' doc <> " |"
-        code u = "`" <> T.replace "|" "\\|" u <> "`"
+        wA = foldr (max . T.length . fst) 0 (header : rows)
+        wB = foldr (max . T.length . snd) 0 (header : rows)
+        line (a, b) = "| " <> T.justifyLeft wA ' ' a <> " | " <> T.justifyLeft wB ' ' b <> " |"
+
+code :: Text -> Text
+code u = "`" <> T.replace "|" "\\|" u <> "`"
 
 -- | A report template with every key already matched to its view.
 newtype Template env = Template [Chunk env]
@@ -289,14 +317,14 @@ newtype Template env = Template [Chunk env]
 data Chunk env = Literal Text | Hole (env -> Text)
 
 -- | Split a template into text and @{key}@ holes, matching every key.
-compileTemplate :: CheckEnv -> [View env] -> Text -> Either [Text] (Template env)
+compileTemplate :: CheckEnv -> [View env] -> Text -> Either [Text] ([Text], Template env)
 compileTemplate checkEnv views input =
     case partitionEithers (map compile (chunks input)) of
-        ([], cs) -> Right (Template cs)
+        ([], cs) -> Right (mapMaybe fst cs, Template (map snd cs))
         (errs, _) -> Left errs
     where
-        compile (Left t) = Right (Literal t)
-        compile (Right key) = Hole <$> matchView checkEnv views key
+        compile (Left t) = Right (Nothing, Literal t)
+        compile (Right key) = second Hole <$> matchView checkEnv views key
         -- A '{' without a later '}' is text, as is everything outside braces.
         chunks t
             | T.null t = []

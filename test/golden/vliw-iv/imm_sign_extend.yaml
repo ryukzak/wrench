@@ -6,4 +6,4 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      {pc}:	{instruction:next}	{T0:hex} {T1:hex} {T2:hex} {T3:hex}
+      {pc}:	{instruction:next}	{t0:hex} {t1:hex} {t2:hex} {t3:hex}

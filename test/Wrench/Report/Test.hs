@@ -29,19 +29,25 @@ tests =
             rendered "{frames:hex:2}" @?= Right "frames:Hex:Just 2"
             rendered "{frames}" @?= Right "frames:Dec:Nothing"
         , testCase "Longest literal prefix wins" $ do
-            rendered "{memory:table}" @?= Right "memory:table"
-            rendered "{memory:0:0x0f}" @?= Right "memory:0:15"
+            rendered "{mem:table}" @?= Right "mem:table"
+            rendered "{mem:0:0x0f}" @?= Right "mem:0:15"
+            "usage: {mem:table}" `isErrorFor` "mem:table:hex"
+        , testCase "An old name still works, with a warning naming the new one" $ do
+            rendered "{memory:0:0x0f}" @?= Right "mem:0:15"
+            warnings "{memory:0:0x0f} {memory:table} {mem:table}"
+                @?= ["{memory:0:0x0f} is renamed, use {mem:0:0x0f}", "{memory:table} is renamed, use {mem:table}"]
             "usage: {memory:table}" `isErrorFor` "memory:table:hex"
         , testCase "Errors name the problem and the usage" $ do
             "unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}" `isErrorFor` "pc:bin"
             "missing format, one of: dec, hex" `isErrorFor` "count"
             "<frames> should be a number, got 'x'" `isErrorFor` "frames:dec:x"
-            "<from> should be a number" `isErrorFor` "memory:a:b"
+            "<from> should be a number" `isErrorFor` "mem:a:b"
         , testCase "Arguments are checked against the configuration" $ do
-            "{memory:0:16}: range 0..16 is outside memory 0..15" `isErrorFor` "memory:0:16"
-            "range 8..4 is empty" `isErrorFor` "memory:8:4"
+            "{mem:0:16}: range 0..16 is outside memory 0..15" `isErrorFor` "mem:0:16"
+            "range 8..4 is empty" `isErrorFor` "mem:8:4"
         , testCase "Unknown keys suggest close keywords" $ do
             "unknown view {t2}, did you mean {T1[:dec|hex]}?" `isErrorFor` "t2"
+            "unknown view {memry:table}, did you mean {mem:table}?" `isErrorFor` "memry:table"
             rendered "{foo}" @?= Left ["unknown view {foo}"]
         , testGroup
             "Every example key selects its own view, and only it"
@@ -58,17 +64,19 @@ tests =
 -- | Test views that render the key they parsed.
 testViews :: [View ()]
 testViews =
-    [ mkView (lit "pc" *> format [Dec, Hex] Dec) "" (\_ f -> "pc:" <> show f)
-    , mkView (lit "pc:label") "" (\_ () -> "pc:label")
-    , mkView (lit "memory:table") "" (\_ () -> "memory:table")
-    , checkedView (lit "memory" *> ((,) <$> arg "from" <*> arg "to")) "" range $ \_ (from, to) ->
-        "memory:" <> show from <> ":" <> show to
-    , mkView (lit "count" *> formatRequired [Dec, Hex]) "" (\_ f -> show f)
-    , mkView (lit "frames" *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) "" $ \_ (f, n) ->
-        "frames:" <> show f <> ":" <> show n
-    , mkView (lit "T1" *> format [Dec, Hex] Dec) "" (\_ _ -> "T1")
-    , mkView (lit "echo") "" (\_ () -> "{pc}")
-    ]
+    withRenames
+        [("memory:table", "mem:table"), ("memory", "mem")]
+        [ mkView (lit "pc" *> format [Dec, Hex] Dec) "" (\_ f -> "pc:" <> show f)
+        , mkView (lit "pc:label") "" (\_ () -> "pc:label")
+        , mkView (lit "mem:table") "" (\_ () -> "mem:table")
+        , checkedView (lit "mem" *> ((,) <$> arg "from" <*> arg "to")) "" range $ \_ (from, to) ->
+            "mem:" <> show from <> ":" <> show to
+        , mkView (lit "count" *> formatRequired [Dec, Hex]) "" (\_ f -> show f)
+        , mkView (lit "frames" *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) "" $ \_ (f, n) ->
+            "frames:" <> show f <> ":" <> show n
+        , mkView (lit "T1" *> format [Dec, Hex] Dec) "" (\_ _ -> "T1")
+        , mkView (lit "echo") "" (\_ () -> "{pc}")
+        ]
     where
         range CheckEnv{ceMemorySize} (from, to)
             | to >= ceMemorySize =
@@ -80,7 +88,10 @@ checkEnv :: CheckEnv
 checkEnv = CheckEnv{ceMemorySize = 16, ceIoPorts = [0]}
 
 rendered :: Text -> Either [Text] Text
-rendered input = (`renderTemplate` ()) <$> compileTemplate checkEnv testViews input
+rendered input = (`renderTemplate` ()) . snd <$> compileTemplate checkEnv testViews input
+
+warnings :: Text -> [Text]
+warnings input = either id fst (compileTemplate checkEnv testViews input)
 
 isErrorFor :: Text -> Text -> Assertion
 isErrorFor expected key = case rendered ("{" <> key <> "}") of
@@ -129,17 +140,18 @@ viewsReference =
         $ [ "# Report views\n"
           , "<!-- Generated from the source by `make test-accept`. Do not edit. -->\n"
           , "Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports-configuration).\n"
-          , "## All ISAs\n"
-          , viewsTable (sharedViews @(RiscIvSt Int32))
           ]
-            <> concat
-                [ ["## " <> name <> "\n", table]
-                | (name, table) <-
-                    [ ("acc32", viewsTable (isaViews @(Acc32St Int32)))
-                    , ("f32a", viewsTable (isaViews @(F32aSt Int32)))
-                    , ("m68k", viewsTable (isaViews @(M68kSt Int32)))
-                    , ("risc-iv-32", viewsTable (isaViews @(RiscIvSt Int32)))
-                    , ("vliw-iv", viewsTable (isaViews @(VliwIvSt Int32)))
-                    , ("wasm32", viewsTable (isaViews @(Wasm32St Int32)))
-                    ]
-                ]
+            <> section "All ISAs" (sharedViews @(RiscIvSt Int32))
+            <> section "acc32" (isaViews @(Acc32St Int32))
+            <> section "f32a" (isaViews @(F32aSt Int32))
+            <> section "m68k" (isaViews @(M68kSt Int32))
+            <> section "risc-iv-32" (isaViews @(RiscIvSt Int32))
+            <> section "vliw-iv" (isaViews @(VliwIvSt Int32))
+            <> section "wasm32" (isaViews @(Wasm32St Int32))
+    where
+        section name vs =
+            ["## " <> name <> "\n", viewsTable vs]
+                <> [ "### " <> name <> ": old names\n\nStill read, with a warning naming the new one; removed in 0.0.7.0.\n\n" <> renames
+                   | let renames = renamesTable vs
+                   , not (T.null renames)
+                   ]

@@ -8,5 +8,5 @@ reports:
   - name: Step-by-step log
     slice: all
     view: |
-      {T0} {T1} {T2}
+      {t0} {t1} {t2}
       {pc}:     {instruction:next}   {pc:label}

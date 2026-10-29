@@ -9,7 +9,7 @@ reports:
   - name: Step-by-step
     slice: all
     view: |
-      A B T S BUF {A:hex} {B:hex} {T:hex} {S:hex} {memory:0x88:0x92}
+      A B T S BUF {A:hex} {B:hex} {T:hex} {S:hex} {mem:dump:0x88:0x92}
       {pc}:	{instruction:next}	{pc:label}
   - name: Result
     slice: last

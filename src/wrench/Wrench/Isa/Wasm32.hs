@@ -175,7 +175,7 @@ import Wrench.Isa.Wasm32.Report ()
 -- memory access, so each path pays for the part it skips. In the example,
 -- when @x@ is negative @if@ costs 2 accesses (fetch, pop) and @else@ 3
 -- (fetch, @i32.const 1@, @end@); otherwise @if@ costs 4 (fetch, pop,
--- @i32.const -1@, @else@), as the @memAccesses@ view shows. An @if@'s
+-- @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
 -- @end@ does nothing; a missing @end@ is noticed only when a skip looks
 -- for it.
 
@@ -316,21 +316,21 @@ import Wrench.Isa.Wasm32.Report ()
 -- computes the factorial recursively, with @if@ and @return@.
 
 -- $views
--- Besides the common views (@pc@, @memory@, @io@), wasm32 has these, each
+-- Besides the common views (@pc@, @mem:dump@, @io@), wasm32 has these, each
 -- with @:dec@ (default) or @:hex@:
 --
 -- [@stack@] The current frame's operands, top first, e.g. @14:14@.
 -- [@locals@] The current frame's locals, local 0 first. There is no
 --   @localCount@ view; this shows that many words.
--- [@sp@, @frameBase@, @ctrlSp@, @stackRoot@] The pointers.
--- [@stackLayout@] Every frame, oldest first: locals, control records,
---   operands. @stackLayout:hex:2@ shows only the last two frames.
--- [@stackDump@] Memory from @sp@ to the end, by address. Each word
+-- [@sp@, @frame-base@, @ctrl-sp@, @stack-root@] The pointers.
+-- [@stack:layout@] Every frame, oldest first: locals, control records,
+--   operands. @stack:layout:hex:2@ shows only the last two frames.
+-- [@stack:dump@] Memory from @sp@ to the end, by address. Each word
 --   appears once, with every frame it belongs to; a frame's locals are
 --   grouped, control records decoded, everything else (such as memory
---   above @ctrlSp@) raw. @stackDump:hex:2@ also limits it to two frames.
+--   above @ctrl-sp@) raw. @stack:dump:hex:2@ also limits it to two frames.
 --
--- @{stackLayout:hex}@ at the @halt@ of
+-- @{stack:layout:hex}@ at the @halt@ of
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/frames.s example/wasm32/frames.s>:
 -- @_start@ called @foo@ with two arguments, and @foo@, inside a @block@,
 -- called @bar@ with one:
