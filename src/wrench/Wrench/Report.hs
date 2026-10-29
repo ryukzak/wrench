@@ -18,6 +18,8 @@ module Wrench.Report (
 
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFields)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
+import Data.IntMap.Strict qualified as IM
+import Data.Map.Strict qualified as M
 import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
@@ -52,6 +54,8 @@ data ReportEnv st = ReportEnv
     , rePrevInstr :: Maybe (IsaOf st)
     , reAccesses :: AccessCount
     -- ^ Made by the instruction that produced this record.
+    , reInstructionCosts :: Text
+    -- ^ The whole run's per-instruction access table, built only if asked.
     }
 
 type ReportViews st =
@@ -108,6 +112,10 @@ sharedViews =
         , ranges "mem:io-ranges" "Memory-mapped IO addresses the run accessed." (alIo . finalLog)
         , flagView "mem:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
             renderMemoryTable (reDumpStats e) (memoryDump (final e))
+        , flagView
+            "mem:per-instruction"
+            "Reads and writes of each executed instruction, per run."
+            reInstructionCosts
         , checkedView
             (lit "mem:dump" *> ((,) <$> arg "from" <*> arg "to"))
             "Memory dump from `<from>` to `<to>`, inclusive."
@@ -220,7 +228,9 @@ prepareReport
     Report{rConf = rc@ReportConf{rcName, rcSlice, rcAssert}, rTemplate} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            sliced = selectSlice rcSlice (withAccessDeltas records)
+            deltas = withAccessDeltas records
+            sliced = selectSlice rcSlice deltas
+            costs = renderInstructionCosts labels finalState deltas
             stateViews = case rTemplate of
                 Nothing -> ""
                 Just template ->
@@ -237,6 +247,7 @@ prepareReport
                                             , reInstrCount = tInstructionCount
                                             , rePrevInstr = tPrevInstruction
                                             , reAccesses = accesses
+                                            , reInstructionCosts = costs
                                             }
                                 (TError err) -> "ERROR: " <> err <> "\n"
                                 (TWarn warn) -> "WARN: " <> warn <> "\n"
@@ -294,6 +305,57 @@ withAccessDeltas = go emptyAccessCount
                 let after = memAccessCount (memoryDump tState)
                  in (acSince before after, record) : go after rest
             _ -> (emptyAccessCount, record) : go before rest
+
+data InstructionCost = InstructionCost
+    { icInstruction :: Text
+    , icHistogram :: Map (Int, Int) Int
+    }
+
+instructionCosts ::
+    (Inspectable st, Show (IsaOf st)) =>
+    [(AccessCount, Trace st (IsaOf st))]
+    -> IntMap InstructionCost
+instructionCosts = go Nothing IM.empty
+    where
+        go _ acc [] = acc
+        go prevPc acc ((AccessCount{acReads, acWrites}, record) : rest) = case record of
+            TState{tPrevInstruction, tState} ->
+                let acc' = case (prevPc, tPrevInstruction) of
+                        (Just pc, Just instr) ->
+                            IM.insertWith merge pc (InstructionCost (show instr) (one ((acReads, acWrites), 1))) acc
+                        _ -> acc
+                 in go (Just $ programCounter tState) acc' rest
+            _ -> go prevPc acc rest
+        merge new old = old{icHistogram = M.unionWith (+) (icHistogram old) (icHistogram new)}
+
+renderInstructionCosts ::
+    (ReportViews st) =>
+    HashMap Text (WordOf st)
+    -> st
+    -> [(AccessCount, Trace st (IsaOf st))]
+    -> Text
+renderInstructionCosts labels finalState deltas =
+    let width = hexAddrWidth (memCapacity (memoryDump finalState))
+        labelsAt pc = sort [l | (l, a) <- toPairs labels, a == toEnum pc]
+        headerRow = ("Address", "Exec", "Read", "Write", "Instruction")
+        ditto = ("\"", "\"")
+        rows =
+            [ (addr, show n, show r, show w, instr)
+            | (pc, InstructionCost{icInstruction, icHistogram}) <- IM.toAscList (instructionCosts deltas)
+            , let named = (hexAddr width pc, T.unwords (icInstruction : map ("@" <>) (labelsAt pc)))
+            , ((addr, instr), ((r, w), n)) <- zip (named : repeat ditto) (M.toAscList icHistogram)
+            ]
+        allRows = headerRow : rows
+        colWidth f = foldr (max . T.length . f) 0 allRows
+        wAddr = colWidth (\(a, _, _, _, _) -> a)
+        wExec = colWidth (\(_, e, _, _, _) -> e)
+        wRead = colWidth (\(_, _, r, _, _) -> r)
+        wWrite = colWidth (\(_, _, _, w, _) -> w)
+        padR n s = s <> T.replicate (n - T.length s) " "
+        padL n s = T.replicate (n - T.length s) " " <> s
+        renderRow (a, e, r, w, i) =
+            T.intercalate "  " [padR wAddr a, padL wExec e, padL wRead r, padL wWrite w, i]
+     in T.intercalate "\n" (map renderRow allRows)
 
 selectSlice (HeadSlice n) = take n
 selectSlice AllSlice = id
