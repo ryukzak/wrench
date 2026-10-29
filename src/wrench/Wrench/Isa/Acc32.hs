@@ -232,12 +232,6 @@ setOverflowFlag overflowFlag = modify $ \st -> st{overflowFlag}
 setCarryFlag :: forall w. Bool -> State (Acc32St w) ()
 setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
-nextPc :: (IsWord w) => State (Acc32St w) ()
-nextPc = do
-    instructionFetch >>= \case
-        Right (pc, instruction) -> setPc (pc + byteSize instruction)
-        Left err -> raiseInternalError $ "nextPc: " <> err
-
 raiseInternalError :: Text -> State (Acc32St w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
@@ -335,6 +329,7 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
             Bcc a -> getCarryFlag >>= \carry -> if not carry then setPc (fromEnum a) else nextPc
             Halt -> modify $ \st -> st{stopped = True}
         where
+            nextPc = setPc (pc + byteSize instruction)
             withExt f addr = do
                 acc <- getAcc
                 value <- getWord $ fromEnum addr
