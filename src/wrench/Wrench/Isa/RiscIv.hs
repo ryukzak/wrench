@@ -478,8 +478,6 @@ instance (IsWord w) => Inspectable (RiscIvSt w) where
     ioStreams RiscIvSt{mem = IoMem{mIoStreams}} = mIoStreams
     isHalted RiscIvSt{stopped} = stopped
 
-    -- The constructor spelling ({S0Fp}) is the old name, from before the
-    -- assembly names were views.
     views =
         withRenames
             [(show r, name) | r <- allRegisters, name : _ <- [asmNames r]]

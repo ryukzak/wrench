@@ -168,7 +168,6 @@ data View env = forall a. View
     , vCheck :: CheckEnv -> a -> Either Text ()
     , vRender :: env -> a -> Text
     , vRenamedTo :: Maybe [Text]
-    -- ^ An old spelling: still read, with a warning naming the new one.
     }
 
 mkView :: Spec a -> Text -> (env -> a -> Text) -> View env
@@ -178,9 +177,6 @@ mkView spec doc = checkedView spec doc (\_ _ -> Right ())
 checkedView :: Spec a -> Text -> (CheckEnv -> a -> Either Text ()) -> (env -> a -> Text) -> View env
 checkedView spec doc check render = View spec doc check render Nothing
 
--- | The views, then each named one again under its old name:
--- @("memAccesses", "mem:accesses")@ reads @{memAccesses:dec}@ as
--- @{mem:accesses:dec}@ and warns.
 withRenames :: [(Text, Text)] -> [View env] -> [View env]
 withRenames renames vs = vs <> map alias renames
     where
@@ -189,7 +185,6 @@ withRenames renames vs = vs <> map alias renames
                 View (lit old *> dropLiterals spec) doc check render (Just (literals spec))
             Nothing -> error $ "renamed view not found: " <> new
 
--- | The key's parts after its literal name.
 dropLiterals :: Spec a -> Spec a
 dropLiterals (Step (PLit _) rest) = dropLiterals (fmap ($ ()) rest)
 dropLiterals s = s
@@ -205,9 +200,8 @@ viewName :: View env -> Text
 viewName View{vSpec} = specName vSpec
 
 -- | Find the view a key names, read and check its arguments, and close
--- over them, with a warning if the key is an old spelling. The view with
--- the longest literal prefix wins, so @stack:layout@ is not read as
--- @stack@ with an unknown format.
+-- over them. The view with the longest literal prefix wins, so
+-- @stack:layout@ is not read as @stack@ with an unknown format.
 matchView :: CheckEnv -> [View env] -> Text -> Either Text (Maybe Text, env -> Text)
 matchView checkEnv views key =
     case groupByLength candidates of
@@ -298,8 +292,6 @@ viewsTable vs =
         | same@(View{vDoc} :| _) <- NE.groupBy ((==) `on` vDoc) [v | v@View{vRenamedTo = Nothing} <- vs]
         ]
 
--- | A Markdown table of the old spellings and their new names; empty if
--- there are none.
 renamesTable :: [View env] -> Text
 renamesTable vs =
     case [ (usage vSpec, usage (lit (T.intercalate ":" new) *> dropLiterals vSpec))
@@ -308,7 +300,6 @@ renamesTable vs =
         [] -> ""
         rows -> markdownTable ("Old", "New") (map (bimap code code) rows)
 
--- | Columns padded to line up in the source.
 markdownTable :: (Text, Text) -> [(Text, Text)] -> Text
 markdownTable header rows =
     T.unlines $ line header : line (T.replicate wA "-", T.replicate wB "-") : map line rows
@@ -326,7 +317,6 @@ newtype Template env = Template [Chunk env]
 data Chunk env = Literal Text | Hole (env -> Text)
 
 -- | Split a template into text and @{key}@ holes, matching every key.
--- Warns about each key that is an old spelling.
 compileTemplate :: CheckEnv -> [View env] -> Text -> Either [Text] ([Text], Template env)
 compileTemplate checkEnv views input =
     case partitionEithers (map compile (chunks input)) of
