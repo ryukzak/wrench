@@ -33,21 +33,6 @@ Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a
 | `{io:<addr>[:dec\|hex\|sym]}`            | IO port at `<addr>`: `input >>> output` so far; `sym` shows characters.          |
 | `{isa-specific}`                         | The ISA's run-wide stats, one `name: value` per line; empty if it has none.      |
 
-### All ISAs: old names
-
-Still read, with a warning naming the new one; removed in 0.0.7.0.
-
-| Old                             | New                               |
-| ------------------------------- | --------------------------------- |
-| `{memAccesses[:dec\|hex]}`      | `{mem:accesses[:dec\|hex]}`       |
-| `{memReads[:dec\|hex]}`         | `{mem:reads[:dec\|hex]}`          |
-| `{memWrites[:dec\|hex]}`        | `{mem:writes[:dec\|hex]}`         |
-| `{memAccessesTotal[:dec\|hex]}` | `{mem:accesses-total[:dec\|hex]}` |
-| `{memReadsTotal[:dec\|hex]}`    | `{mem:reads-total[:dec\|hex]}`    |
-| `{memWritesTotal[:dec\|hex]}`   | `{mem:writes-total[:dec\|hex]}`   |
-| `{memory:table}`                | `{mem:table}`                     |
-| `{memory:<from>:<to>}`          | `{mem:dump:<from>:<to>}`          |
-
 ## acc32
 
 | View               | Description                |
@@ -131,45 +116,6 @@ Still read, with a warning naming the new one; removed in 0.0.7.0.
 | `{t5[:dec\|hex]}`                    | Register `t5`.      |
 | `{t6[:dec\|hex]}`                    | Register `t6`.      |
 
-### risc-iv-32: old names
-
-Still read, with a warning naming the new one; removed in 0.0.7.0.
-
-| Old                 | New                 |
-| ------------------- | ------------------- |
-| `{Zero[:dec\|hex]}` | `{zero[:dec\|hex]}` |
-| `{Ra[:dec\|hex]}`   | `{ra[:dec\|hex]}`   |
-| `{Sp[:dec\|hex]}`   | `{sp[:dec\|hex]}`   |
-| `{Gp[:dec\|hex]}`   | `{gp[:dec\|hex]}`   |
-| `{Tp[:dec\|hex]}`   | `{tp[:dec\|hex]}`   |
-| `{T0[:dec\|hex]}`   | `{t0[:dec\|hex]}`   |
-| `{T1[:dec\|hex]}`   | `{t1[:dec\|hex]}`   |
-| `{T2[:dec\|hex]}`   | `{t2[:dec\|hex]}`   |
-| `{S0Fp[:dec\|hex]}` | `{s0[:dec\|hex]}`   |
-| `{S1[:dec\|hex]}`   | `{s1[:dec\|hex]}`   |
-| `{A0[:dec\|hex]}`   | `{a0[:dec\|hex]}`   |
-| `{A1[:dec\|hex]}`   | `{a1[:dec\|hex]}`   |
-| `{A2[:dec\|hex]}`   | `{a2[:dec\|hex]}`   |
-| `{A3[:dec\|hex]}`   | `{a3[:dec\|hex]}`   |
-| `{A4[:dec\|hex]}`   | `{a4[:dec\|hex]}`   |
-| `{A5[:dec\|hex]}`   | `{a5[:dec\|hex]}`   |
-| `{A6[:dec\|hex]}`   | `{a6[:dec\|hex]}`   |
-| `{A7[:dec\|hex]}`   | `{a7[:dec\|hex]}`   |
-| `{S2[:dec\|hex]}`   | `{s2[:dec\|hex]}`   |
-| `{S3[:dec\|hex]}`   | `{s3[:dec\|hex]}`   |
-| `{S4[:dec\|hex]}`   | `{s4[:dec\|hex]}`   |
-| `{S5[:dec\|hex]}`   | `{s5[:dec\|hex]}`   |
-| `{S6[:dec\|hex]}`   | `{s6[:dec\|hex]}`   |
-| `{S7[:dec\|hex]}`   | `{s7[:dec\|hex]}`   |
-| `{S8[:dec\|hex]}`   | `{s8[:dec\|hex]}`   |
-| `{S9[:dec\|hex]}`   | `{s9[:dec\|hex]}`   |
-| `{S10[:dec\|hex]}`  | `{s10[:dec\|hex]}`  |
-| `{S11[:dec\|hex]}`  | `{s11[:dec\|hex]}`  |
-| `{T3[:dec\|hex]}`   | `{t3[:dec\|hex]}`   |
-| `{T4[:dec\|hex]}`   | `{t4[:dec\|hex]}`   |
-| `{T5[:dec\|hex]}`   | `{t5[:dec\|hex]}`   |
-| `{T6[:dec\|hex]}`   | `{t6[:dec\|hex]}`   |
-
 ## vliw-iv
 
 | View                     | Description                                                                              |
@@ -210,45 +156,6 @@ Still read, with a warning naming the new one; removed in 0.0.7.0.
 | `{vliw:avg-load}`        | Average active slots per executed bundle, `0.00`-`4.00`. Listed in `{isa-specific}`.     |
 | `{vliw:bundles-by-load}` | Executed bundles by active slot count: `K:N (P%)`. Listed in `{isa-specific}`.           |
 
-### vliw-iv: old names
-
-Still read, with a warning naming the new one; removed in 0.0.7.0.
-
-| Old                 | New                 |
-| ------------------- | ------------------- |
-| `{Zero[:dec\|hex]}` | `{zero[:dec\|hex]}` |
-| `{Ra[:dec\|hex]}`   | `{ra[:dec\|hex]}`   |
-| `{Sp[:dec\|hex]}`   | `{sp[:dec\|hex]}`   |
-| `{Gp[:dec\|hex]}`   | `{gp[:dec\|hex]}`   |
-| `{Tp[:dec\|hex]}`   | `{tp[:dec\|hex]}`   |
-| `{T0[:dec\|hex]}`   | `{t0[:dec\|hex]}`   |
-| `{T1[:dec\|hex]}`   | `{t1[:dec\|hex]}`   |
-| `{T2[:dec\|hex]}`   | `{t2[:dec\|hex]}`   |
-| `{S0Fp[:dec\|hex]}` | `{s0fp[:dec\|hex]}` |
-| `{S1[:dec\|hex]}`   | `{s1[:dec\|hex]}`   |
-| `{A0[:dec\|hex]}`   | `{a0[:dec\|hex]}`   |
-| `{A1[:dec\|hex]}`   | `{a1[:dec\|hex]}`   |
-| `{A2[:dec\|hex]}`   | `{a2[:dec\|hex]}`   |
-| `{A3[:dec\|hex]}`   | `{a3[:dec\|hex]}`   |
-| `{A4[:dec\|hex]}`   | `{a4[:dec\|hex]}`   |
-| `{A5[:dec\|hex]}`   | `{a5[:dec\|hex]}`   |
-| `{A6[:dec\|hex]}`   | `{a6[:dec\|hex]}`   |
-| `{A7[:dec\|hex]}`   | `{a7[:dec\|hex]}`   |
-| `{S2[:dec\|hex]}`   | `{s2[:dec\|hex]}`   |
-| `{S3[:dec\|hex]}`   | `{s3[:dec\|hex]}`   |
-| `{S4[:dec\|hex]}`   | `{s4[:dec\|hex]}`   |
-| `{S5[:dec\|hex]}`   | `{s5[:dec\|hex]}`   |
-| `{S6[:dec\|hex]}`   | `{s6[:dec\|hex]}`   |
-| `{S7[:dec\|hex]}`   | `{s7[:dec\|hex]}`   |
-| `{S8[:dec\|hex]}`   | `{s8[:dec\|hex]}`   |
-| `{S9[:dec\|hex]}`   | `{s9[:dec\|hex]}`   |
-| `{S10[:dec\|hex]}`  | `{s10[:dec\|hex]}`  |
-| `{S11[:dec\|hex]}`  | `{s11[:dec\|hex]}`  |
-| `{T3[:dec\|hex]}`   | `{t3[:dec\|hex]}`   |
-| `{T4[:dec\|hex]}`   | `{t4[:dec\|hex]}`   |
-| `{T5[:dec\|hex]}`   | `{t5[:dec\|hex]}`   |
-| `{T6[:dec\|hex]}`   | `{t6[:dec\|hex]}`   |
-
 ## wasm32
 
 | View                                   | Description                                                                                            |
@@ -261,15 +168,3 @@ Still read, with a warning naming the new one; removed in 0.0.7.0.
 | `{frame-base[:dec\|hex]}`              | Address of local 0 of the current frame.                                                               |
 | `{ctrl-sp[:dec\|hex]}`                 | Top of the control stack.                                                                              |
 | `{stack-root[:dec\|hex]}`              | Where both stacks start, set by `sp.init`.                                                             |
-
-### wasm32: old names
-
-Still read, with a warning naming the new one; removed in 0.0.7.0.
-
-| Old                                   | New                                    |
-| ------------------------------------- | -------------------------------------- |
-| `{stackLayout[:dec\|hex][:<frames>]}` | `{stack:layout[:dec\|hex][:<frames>]}` |
-| `{stackDump[:dec\|hex][:<frames>]}`   | `{stack:dump[:dec\|hex][:<frames>]}`   |
-| `{frameBase[:dec\|hex]}`              | `{frame-base[:dec\|hex]}`              |
-| `{ctrlSp[:dec\|hex]}`                 | `{ctrl-sp[:dec\|hex]}`                 |
-| `{stackRoot[:dec\|hex]}`              | `{stack-root[:dec\|hex]}`              |

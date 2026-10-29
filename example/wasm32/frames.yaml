@@ -8,6 +8,6 @@ reports:
     view: |
       ---
       pc: {pc:hex}
-      sp: {sp:hex} frameBase: {frame-base:hex}
-      stackRoot: {stack-root:hex} ctrlSp: {ctrl-sp:hex}
+      sp: {sp:hex} frame-base: {frame-base:hex}
+      stack-root: {stack-root:hex} ctrl-sp: {ctrl-sp:hex}
       {stack:dump:hex}

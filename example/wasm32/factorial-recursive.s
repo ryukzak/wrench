@@ -13,9 +13,9 @@ _start:
     ; call 1, 1 pops the target, then allocates the callee's frame without
     ; copying anything:
     ;   - the 1 value on top of the stack (n) becomes the callee's local 0,
-    ;     and frameBase points at it; _start's frame now ends under it;
+    ;     and frame-base points at it; _start's frame now ends under it;
     ;   - an 8-byte call record goes on the control stack, keeping _start's
-    ;     frameBase and local count, the return address, and the result
+    ;     frame-base and local count, the return address, and the result
     ;     count 1.
     call 1, 1
     i32.store                                ; *output_addr = factorial(n);
@@ -46,7 +46,7 @@ factorial:
     ; With n = 5, inside factorial(4) the operand stack is, top first:
     ;
     ;   4:5:5:132
-    ;   4    local 0 of factorial(4), where frameBase points
+    ;   4    local 0 of factorial(4), where frame-base points
     ;   5    factorial(5)'s operand: n, waiting for the multiply
     ;   5    local 0 of factorial(5)
     ;   132  _start's operand: the output address 0x84
@@ -58,7 +58,7 @@ factorial:
     ;   - it moves sp back to just above local 0, which drops all of the
     ;     frame's locals and any operands left over;
     ;   - it pops the control stack down to and including the call record,
-    ;     and restores the caller's frameBase and local count from it;
+    ;     and restores the caller's frame-base and local count from it;
     ;   - it pushes the result where the parameter was and jumps to the
     ;     return address.
     ; factorial(4) returning 24 turns 24:4:5:5:132 into 24:5:5:132.
