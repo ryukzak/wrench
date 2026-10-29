@@ -30,8 +30,8 @@ data F32aIsa w l
       Return
     | -- | > <address: i32> ( -- )
       --
-      -- Call, written as a bare label: pushes P onto the return stack and
-      -- jumps.
+      -- Call, written as a bare label: pushes the address of the next
+      -- instruction onto the return stack and jumps.
       Call l
     | -- | > lit <value: i32> ( -- value: i32 )
       --
@@ -372,15 +372,6 @@ instance (IsWord w) => InitState (F32aSt w) where
 setP :: forall w. Int -> State (F32aSt w) ()
 setP addr = modify $ \st -> st{p = addr}
 
-getP :: State (F32aSt w) Int
-getP = get <&> (fromEnum . p)
-
-nextP :: (IsWord w) => State (F32aSt w) ()
-nextP = do
-    instructionFetch >>= \case
-        Right (p, instruction) -> setP (p + byteSize instruction)
-        Left err -> raiseInternalError $ "nextPc: " <> err
-
 raiseInternalError :: Text -> State (F32aSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
@@ -494,14 +485,14 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
                     Right (ram', instruction) -> do
                         put st{ram = ram'}
                         return $ Right (p, instruction)
-    instructionExecute _pc instruction =
+    instructionExecute p instruction =
         case instruction of
             Lit l -> do
                 dataPush l
                 nextP
-            Return -> returnPop >>= setP . fromEnum >> nextP
+            Return -> returnPop >>= setP . fromEnum
             Call l -> do
-                getP >>= returnPush . toEnum
+                returnPush $ toEnum next
                 setP (fromEnum l)
             Jump l -> do
                 setP (fromEnum l)
@@ -661,3 +652,6 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
                 dataPush s
                 nextP
             Halt -> modify $ \st -> st{stopped = True}
+        where
+            next = p + byteSize instruction
+            nextP = setP next
