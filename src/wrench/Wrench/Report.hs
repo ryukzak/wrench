@@ -180,8 +180,7 @@ data Report st = Report
 
 -- | Compile every report before the simulation runs, so a mistake fails
 -- the same way in every ISA, naming the report and the key, and rendering
--- never meets a key it cannot resolve. Also returns a warning for each key
--- under an old name.
+-- never meets a key it cannot resolve.
 compileReports :: forall st. (ReportViews st) => CheckEnv -> [ReportConf] -> Either Text ([Text], [Report st])
 compileReports checkEnv confs =
     case partitionEithers (zipWith compile [1 :: Int ..] confs) of

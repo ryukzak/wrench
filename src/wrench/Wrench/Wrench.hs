@@ -89,7 +89,6 @@ instance Read DumpSize where
 data Result mem w = Result
     { rTrace :: Text
     , rWarnings :: [Text]
-    -- ^ Report keys under an old name.
     , rLabels :: HashMap Text w
     , rSuccess :: Bool
     , rDump :: mem
