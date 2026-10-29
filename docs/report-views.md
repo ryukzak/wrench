@@ -28,6 +28,7 @@ Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a
 | `{mem:data-ranges[:dec\|hex]}`           | Address ranges the run read or wrote data at.                                    |
 | `{mem:io-ranges[:dec\|hex]}`             | Memory-mapped IO addresses the run accessed.                                     |
 | `{mem:table}`                            | Address-space table: sections, IO, free spans and their access coverage.         |
+| `{mem:per-instruction}`                  | Reads and writes of each executed instruction, per run.                          |
 | `{mem:dump:<from>:<to>}`                 | Memory dump from `<from>` to `<to>`, inclusive.                                  |
 | `{io:<addr>[:dec\|hex\|sym]}`            | IO port at `<addr>`: `input >>> output` so far; `sym` shows characters.          |
 | `{isa-specific}`                         | The ISA's run-wide stats, one `name: value` per line; empty if it has none.      |
