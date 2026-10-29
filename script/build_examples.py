@@ -191,7 +191,7 @@ def build_one_example(
         "-c",
         str(ex.config_path),
     ]
-    rc, stdout, stderr, cmd_str = run_wrench(wrench, args)
+    rc, stdout, stderr, cmd_str = run_wrench(wrench, [*args, "--stats"])
     (out_dir / "result.log").write_text(crop_log(stdout, log_limit), encoding="utf-8")
     (out_dir / "status.log").write_text(
         render_status_log(version=version, cmd=cmd_str, exit_code=rc, stderr=stderr),
