@@ -334,6 +334,8 @@ instance ByteSize (F32aIsa w l) where
 
 data F32aSt w = F32aSt
     { p :: Int
+    , ir :: Maybe Int
+    -- ^ Address of the memory word held in the instruction register.
     , a :: w
     , b :: w
     , ram :: IoMem (F32aIsa w w) w
@@ -356,6 +358,7 @@ instance (IsWord w) => InitState (F32aSt w) where
     initState pc dump _randomStream =
         F32aSt
             { p = pc
+            , ir = Nothing
             , a = def
             , b = def
             , dataStack = []
@@ -479,11 +482,15 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
         case st of
             F32aSt{stopped = True} -> return $ Left halted
             F32aSt{internalError = Just err} -> return $ Left err
-            F32aSt{p, ram} ->
+            F32aSt{p, ram, ir} ->
                 case readInstruction ram p of
                     Left err -> return $ Left err
                     Right (ram', instruction) -> do
-                        put st{ram = ram'}
+                        let wordAt addr = addr - addr `mod` byteSizeT @w
+                            spanned = [wordAt p, wordAt p + byteSizeT @w .. wordAt (p + byteSize instruction - 1)]
+                            fetched = if ir == Just (wordAt p) then drop 1 spanned else spanned
+                            count = foldl' (\c _ -> bump R c) (mAccessCount ram) fetched
+                        put st{ram = ram'{mAccessCount = count}, ir = viaNonEmpty last spanned}
                         return $ Right (p, instruction)
     instructionExecute p instruction =
         case instruction of

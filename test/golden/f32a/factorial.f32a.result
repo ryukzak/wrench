@@ -1452,3 +1452,80 @@ f32a:return-stack-max: 3
 # isa-specific
 f32a:data-stack-max:   5
 f32a:return-stack-max: 3
+---
+# Memory accesses per instruction
+Address  Exec  Read  Write  Instruction
+0x090       1     2      0  Lit 8 @_start
+0x095       1     0      0  BStore
+0x096       1     2      0  FetchP 0
+0x09b       1     0      0  AStore
+0x09c       1     2      0  Fetch
+0x09d       1     0      0  Dup
+0x09e       1     1      0  MinusIf 168
+0x0a8       1     2      0  Call 236 @continue
+0x0ad       1     3      0  FetchP 4
+0x0b2       1     0      0  AStore
+0x0b3       1     0      1  Store
+0x0b4       1     1      0  Halt
+0x0cf       4     2      0  Lit 31 @multiply
+0x0d4       4     1      0  TIntoR
+0x0d5       4     0      0  MulStep @multiply_do
+"         124     1      0  "
+0x0d6     128     1      0  Next 213
+0x0db       4     0      0  Drop
+0x0dc       4     1      0  Drop
+0x0dd       4     0      0  AFetch
+0x0de       4     0      0  Return
+0x0df       4     2      0  Lit 31 @divide
+0x0e4       4     1      0  TIntoR
+0x0e5       4     1      0  DivStep @divide_do
+"         124     2      0  "
+0x0e6     128     1      0  Next 229
+0x0eb       4     0      0  Return
+0x0ec       1     2      0  Lit 1 @factorial
+0x0f1       1     0      0  Over
+0x0f2       1     0      0  TIntoR
+0x0f3       1     0      0  TIntoR
+0x0f4       1     1      0  Drop
+0x0f5       1     0      0  RIntoT
+0x0f6       1     0      0  RIntoT
+0x0f7       1     0      0  Dup @factorial_while
+"           4     1      0  "
+0x0f8       5     2      0  If 346
+0x0fd       4     0      0  Dup
+0x0fe       4     0      0  AStore
+0x0ff       4     0      0  Over
+0x100       4     1      0  TIntoR
+0x101       4     0      0  TIntoR
+0x102       4     0      0  Drop
+0x103       4     0      0  RIntoT
+0x104       4     1      0  RIntoT
+0x105       4     0      0  Dup
+0x106       4     1      1  StoreP 12
+0x10b       4     1      0  Lit 0 @continue_factorial
+0x110       4     2      0  Call 207
+0x115       4     1      0  AStore
+0x116       4     0      1  StoreB
+0x117       4     0      0  AFetch
+0x118       4     2      0  FetchB
+0x119       4     1      0  Lit 0
+0x11e       4     1      0  Lit 0
+0x123       4     1      0  Call 223
+0x128       4     1      0  Over
+0x129       4     0      0  TIntoR
+0x12a       4     0      0  TIntoR
+0x12b       4     0      0  Drop
+0x12c       4     1      0  RIntoT
+0x12d       4     0      0  RIntoT
+0x12e       4     1      0  If 312
+0x138       4     3      0  FetchP 12 @continue_factorial2
+0x13d       4     0      0  Inv
+0x13e       4     1      0  Lit 1
+0x143       4     0      0  Add
+0x144       4     1      0  Add
+0x145       4     1      0  If 335
+0x14f       4     2      0  Lit (-1) @continue_factorial3
+0x154       4     1      0  Add
+0x155       4     1      0  Jump 247
+0x15a       1     1      0  Drop @factorial_finish
+0x15b       1     0      0  Return

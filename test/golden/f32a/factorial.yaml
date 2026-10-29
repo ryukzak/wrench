@@ -33,3 +33,7 @@ reports:
     assert: |
       f32a:data-stack-max:   5
       f32a:return-stack-max: 3
+  - name: Memory accesses per instruction
+    slice: last
+    view: |
+      {mem:per-instruction}
