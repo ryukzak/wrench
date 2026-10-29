@@ -149,9 +149,4 @@ viewsReference =
             <> section "vliw-iv" (isaViews @(VliwIvSt Int32))
             <> section "wasm32" (isaViews @(Wasm32St Int32))
     where
-        section name vs =
-            ["## " <> name <> "\n", viewsTable vs]
-                <> [ "### " <> name <> ": old names\n\nStill read, with a warning naming the new one; removed in 0.0.7.0.\n\n" <> renames
-                   | let renames = renamesTable vs
-                   , not (T.null renames)
-                   ]
+        section name vs = ["## " <> name <> "\n", viewsTable vs]
