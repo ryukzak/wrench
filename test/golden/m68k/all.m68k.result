@@ -1,20 +1,20 @@
 ---
 # Access cost per instruction
 reads: 0, writes: 0 -- -
-reads: 1, writes: 0 -- MoveA {mode = Long, src = Immediate 20, dst = DirectAddrReg A7}
+reads: 2, writes: 0 -- MoveA {mode = Long, src = Immediate 20, dst = DirectAddrReg A7}
 reads: 2, writes: 0 -- MoveA {mode = Long, src = IndirectAddrReg 0 A7 Nothing, dst = DirectAddrReg A7}
-reads: 1, writes: 0 -- MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0}
+reads: 2, writes: 0 -- MoveA {mode = Long, src = Immediate 0, dst = DirectAddrReg A0}
 reads: 1, writes: 0 -- MoveA {mode = Long, src = DirectAddrReg A0, dst = DirectAddrReg A1}
-reads: 1, writes: 0 -- Move {mode = Long, src = Immediate 7, dst = DirectDataReg D0}
+reads: 2, writes: 0 -- Move {mode = Long, src = Immediate 7, dst = DirectDataReg D0}
 reads: 1, writes: 1 -- Move {mode = Long, src = DirectDataReg D0, dst = IndirectAddrReg 0 A0 Nothing}
 reads: 2, writes: 1 -- Move {mode = Long, src = IndirectAddrReg 0 A0 Nothing, dst = IndirectAddrRegPostIncrement A1}
 reads: 2, writes: 1 -- Move {mode = Long, src = IndirectAddrRegPostIncrement A0, dst = IndirectAddrRegPreDecrement A1}
 reads: 2, writes: 0 -- Move {mode = Long, src = IndirectAddrRegPreDecrement A0, dst = DirectDataReg D1}
-reads: 1, writes: 1 -- Move {mode = Byte, src = Immediate 1, dst = IndirectAddrReg 0 A0 Nothing}
+reads: 2, writes: 1 -- Move {mode = Byte, src = Immediate 1, dst = IndirectAddrReg 0 A0 Nothing}
 reads: 2, writes: 1 -- Move {mode = Long, src = IndirectAddrRegPostIncrement A0, dst = IndirectAddrRegPostIncrement A0}
 reads: 2, writes: 1 -- Move {mode = Long, src = IndirectAddrRegPreDecrement A0, dst = IndirectAddrRegPreDecrement A0}
-reads: 1, writes: 0 -- Move {mode = Long, src = Immediate 5, dst = DirectDataReg D0}
-reads: 1, writes: 0 -- Move {mode = Long, src = Immediate 3, dst = DirectDataReg D1}
+reads: 2, writes: 0 -- Move {mode = Long, src = Immediate 5, dst = DirectDataReg D0}
+reads: 2, writes: 0 -- Move {mode = Long, src = Immediate 3, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Add {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Sub {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- And {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
@@ -22,34 +22,34 @@ reads: 1, writes: 0 -- Or {mode = Long, src = DirectDataReg D0, dst = DirectData
 reads: 1, writes: 0 -- Xor {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Cmp {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Mul {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
-reads: 1, writes: 0 -- Move {mode = Long, src = Immediate 4, dst = DirectDataReg D2}
+reads: 2, writes: 0 -- Move {mode = Long, src = Immediate 4, dst = DirectDataReg D2}
 reads: 1, writes: 0 -- Div {mode = Long, src = DirectDataReg D2, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Not {mode = Long, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Neg {mode = Long, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Clr {mode = Long, dst = DirectDataReg D1}
-reads: 1, writes: 0 -- Asl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+reads: 2, writes: 0 -- Asl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Asr {mode = Long, src = DirectDataReg D0, dst = DirectDataReg D1}
-reads: 1, writes: 0 -- Lsl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
-reads: 1, writes: 0 -- Lsr {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+reads: 2, writes: 0 -- Lsl {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
+reads: 2, writes: 0 -- Lsr {mode = Long, src = Immediate 1, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Not {mode = Byte, dst = DirectDataReg D1}
 reads: 1, writes: 0 -- Clr {mode = Long, dst = DirectDataReg D1}
-reads: 1, writes: 0 -- Beq {ref = 142}
-reads: 1, writes: 0 -- Bne {ref = 148}
-reads: 1, writes: 0 -- Bgt {ref = 154}
-reads: 1, writes: 0 -- Bge {ref = 160}
-reads: 1, writes: 0 -- Blt {ref = 166}
-reads: 1, writes: 0 -- Ble {ref = 172}
-reads: 1, writes: 0 -- Bmi {ref = 178}
-reads: 1, writes: 0 -- Bpl {ref = 184}
-reads: 1, writes: 0 -- Bcc {ref = 190}
-reads: 1, writes: 0 -- Bcs {ref = 196}
-reads: 1, writes: 0 -- Bvc {ref = 202}
-reads: 1, writes: 0 -- Bvs {ref = 208}
-reads: 1, writes: 1 -- Jsr {ref = 220}
+reads: 2, writes: 0 -- Beq {ref = 142}
+reads: 2, writes: 0 -- Bne {ref = 148}
+reads: 2, writes: 0 -- Bgt {ref = 154}
+reads: 2, writes: 0 -- Bge {ref = 160}
+reads: 2, writes: 0 -- Blt {ref = 166}
+reads: 2, writes: 0 -- Ble {ref = 172}
+reads: 2, writes: 0 -- Bmi {ref = 178}
+reads: 2, writes: 0 -- Bpl {ref = 184}
+reads: 2, writes: 0 -- Bcc {ref = 190}
+reads: 2, writes: 0 -- Bcs {ref = 196}
+reads: 2, writes: 0 -- Bvc {ref = 202}
+reads: 2, writes: 0 -- Bvs {ref = 208}
+reads: 2, writes: 1 -- Jsr {ref = 220}
 reads: 2, writes: 0 -- Rts
-reads: 1, writes: 0 -- Jmp {ref = 222}
+reads: 2, writes: 0 -- Jmp {ref = 222}
 reads: 1, writes: 0 -- Halt
 ---
 # Totals
 instructions: 48
-reads: 55 writes: 7 accesses: 62
+reads: 79 writes: 7 accesses: 86

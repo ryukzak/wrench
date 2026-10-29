@@ -97,7 +97,10 @@ sharedViews =
             "mem:accesses"
             "Memory accesses of the instruction that produced this state, its fetch included."
             (acTotal . reAccesses)
-        , valueView "mem:reads" "Reads among `mem:accesses`; a fetch is a read." (acReads . reAccesses)
+        , valueView
+            "mem:reads"
+            "Reads among `mem:accesses`; a fetch reads one per word of the instruction."
+            (acReads . reAccesses)
         , valueView "mem:writes" "Writes among `mem:accesses`." (acWrites . reAccesses)
         , valueView "mem:accesses-total" "Memory accesses of the run so far." (acTotal . runTotal)
         , valueView "mem:reads-total" "Reads of the run so far." (acReads . runTotal)

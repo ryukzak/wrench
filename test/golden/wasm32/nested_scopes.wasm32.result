@@ -6,29 +6,29 @@ stack: 30:6:100
 :::: 0x00000022: - @_start // access: 0
 #0 _start (pc=0x022, live)
   (operands): empty, base=0x180
-:::: 0x00000027: I32Const 100  // access: 2
+:::: 0x00000027: I32Const 100  // access: 3
 #0 _start (pc=0x027, live)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0) [sp]
-:::: 0x0000002c: I32Const 10  // access: 2
+:::: 0x0000002c: I32Const 10  // access: 3
 #0 _start (pc=0x02c, live)
   mem[0x178..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
     0x178..0x17b: 0x0000000a (1) [sp]
-:::: 0x00000031: I32Const 20  // access: 2
+:::: 0x00000031: I32Const 20  // access: 3
 #0 _start (pc=0x031, live)
   mem[0x174..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
     0x178..0x17b: 0x0000000a (1)
     0x174..0x177: 0x00000014 (2) [sp]
-:::: 0x00000036: I32Const 0  // access: 2
+:::: 0x00000036: I32Const 0  // access: 3
 #0 _start (pc=0x036, live)
   mem[0x170..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
     0x178..0x17b: 0x0000000a (1)
     0x174..0x177: 0x00000014 (2)
     0x170..0x173: 0x00000000 (3) [sp]
-:::: 0x0000003b: I32Const 16  // access: 2
+:::: 0x0000003b: I32Const 16  // access: 3
 #0 _start (pc=0x03b, live)
   mem[0x16c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -115,7 +115,7 @@ stack: 30:6:100
     , csReturnPc = 0x03e
     , csResultCount = 2 }
   (operands): empty, base=0x170
-:::: 0x0000001c: I32Const 0  // access: 2
+:::: 0x0000001c: I32Const 0  // access: 3
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -153,7 +153,7 @@ stack: 30:6:100
     , csReturnPc = 0x01f
     , csResultCount = 1 }
   (operands): empty, base=0x170
-:::: 0x00000005: I32Const 3  // access: 2
+:::: 0x00000005: I32Const 3  // access: 3
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -176,7 +176,7 @@ stack: 30:6:100
     , csResultCount = 1 }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x00000003 (0) [sp]
-:::: 0x00000006: Block  // access: 8
+:::: 0x00000006: Block  // access: 9
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -200,7 +200,7 @@ stack: 30:6:100
   mem[0x190..0x197]: BlockScope { csEnd = 0x00e }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x00000003 (0) [sp]
-:::: 0x00000007: Loop  // access: 6
+:::: 0x00000007: Loop  // access: 7
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)
@@ -225,7 +225,7 @@ stack: 30:6:100
   mem[0x198..0x19f]: LoopScope { csStart = 0x007, csEnd = 0x00d }
   mem[0x16c..0x16f]: (operands)
     0x16c..0x16f: 0x00000003 (0) [sp]
-:::: 0x0000000c: I32Const 3  // access: 2
+:::: 0x0000000c: I32Const 3  // access: 3
 #0 _start (pc=0x03e)
   mem[0x17c..0x17f]: (operands)
     0x17c..0x17f: 0x00000064 (0)

@@ -171,11 +171,13 @@ import Wrench.Isa.Wasm32.Report ()
 --
 -- There is no table of @end@ addresses. To skip, @if@ or @else@ reads the
 -- following instructions one by one, tracking nested @block@, @loop@ and
--- @if@, until it finds its own @else@ or @end@. Each instruction read is a
--- memory access, so each path pays for the part it skips. In the example,
--- when @x@ is negative @if@ costs 2 accesses (fetch, pop) and @else@ 3
--- (fetch, @i32.const 1@, @end@); otherwise @if@ costs 4 (fetch, pop,
--- @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
+-- @if@, until it finds its own @else@ or @end@. Each instruction read costs
+-- what its fetch would (one read per started 4-byte word, so 2 for the
+-- 5-byte @i32.const@), so each path pays for the part it skips. In the
+-- example, when @x@ is negative @if@ costs 2 accesses (fetch, pop) and
+-- @else@ 4 (fetch, 2 for @i32.const 1@, @end@); otherwise @if@ costs 5
+-- (fetch, pop, 2 for @i32.const -1@, @else@), as the @mem:accesses@ view
+-- shows. An @if@'s
 -- @end@ does nothing; a missing @end@ is noticed only when a skip looks
 -- for it.
 

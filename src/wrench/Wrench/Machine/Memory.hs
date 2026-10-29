@@ -337,12 +337,13 @@ ioPortByteCollision IoMem{mIoKeys} addr =
      in (addr `elem` parts)
 
 -- | Record one access. Every successful read and write goes through exactly
--- one of these, so a word access counts once rather than per byte.
-recordInstrAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
+-- one of these, so a word access counts once rather than per byte. An
+-- instruction fetch reads a word at a time: one read per started word.
+recordInstrAccess :: forall w isa. (ByteSizeT w) => Int -> Int -> IoMem isa w -> IoMem isa w
 recordInstrAccess addr len io@IoMem{mAccessLog, mAccessCount} =
     io
         { mAccessLog = mAccessLog{alInstr = recordRange addr len (alInstr mAccessLog)}
-        , mAccessCount = bump R mAccessCount
+        , mAccessCount = iterate (bump R) mAccessCount Unsafe.!! ((len + byteSizeT @w - 1) `div` byteSizeT @w)
         }
 
 recordDataAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w

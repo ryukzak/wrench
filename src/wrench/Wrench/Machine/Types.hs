@@ -207,7 +207,7 @@ data IoMem isa w = IoMem
     , mAccessLog :: !AccessLog
     -- ^ Tracks the address ranges touched at runtime, surfaced via @mem:*@.
     , mAccessCount :: !AccessCount
-    -- ^ Accesses served, one per operation, never reset.
+    -- ^ Accesses served, never reset (see 'AccessCount').
     }
     deriving (Eq, Show)
 
@@ -326,7 +326,8 @@ data AccessLog = AccessLog
 emptyAccessLog :: AccessLog
 emptyAccessLog = AccessLog{alInstr = emptyIntervals, alData = emptyIntervals, alIo = emptyIntervals}
 
--- | Reads and writes served, counted once per operation.
+-- | Reads and writes served: one per data operation, one per word an
+-- instruction fetch spans.
 data AccessCount = AccessCount
     { acReads :: !Int
     , acWrites :: !Int

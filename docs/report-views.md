@@ -14,7 +14,7 @@ Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a
 | `{instruction:next}`                     | The instruction to execute next, `-` once halted.                                |
 | `{sim:instruction-count[:dec\|hex]}`     | Instructions executed so far.                                                    |
 | `{mem:accesses[:dec\|hex]}`              | Memory accesses of the instruction that produced this state, its fetch included. |
-| `{mem:reads[:dec\|hex]}`                 | Reads among `mem:accesses`; a fetch is a read.                                   |
+| `{mem:reads[:dec\|hex]}`                 | Reads among `mem:accesses`; a fetch reads one per word of the instruction.       |
 | `{mem:writes[:dec\|hex]}`                | Writes among `mem:accesses`.                                                     |
 | `{mem:accesses-total[:dec\|hex]}`        | Memory accesses of the run so far.                                               |
 | `{mem:reads-total[:dec\|hex]}`           | Reads of the run so far.                                                         |

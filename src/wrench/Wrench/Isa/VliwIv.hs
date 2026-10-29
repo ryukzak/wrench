@@ -27,7 +27,9 @@ import Wrench.Machine.Types (
     IoMem (..),
     Machine (..),
     MemOf,
+    RW (..),
     StateEnv (..),
+    bump,
     fromSign,
     halted,
  )
@@ -599,7 +601,7 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
                 case readInstruction mem pc of
                     Left err -> return $ Left err
                     Right (mem', instruction) -> do
-                        put st{mem = mem'}
+                        put st{mem = mem'{mAccessCount = bump R (mAccessCount mem)}}
                         return $ Right (pc, instruction)
 
     instructionExecute _pc bundle@VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} = do
