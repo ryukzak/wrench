@@ -119,10 +119,25 @@ import Wrench.Isa.Wasm32.Report ()
 -- >              | .text, .data        |
 -- > 0            +---------------------+
 --
--- Besides memory, the machine keeps only @pc@ and a few stack pointers,
--- introduced below. The stacks are plain memory: a program can read and
--- overwrite them, and nothing stops them from running into each other or
--- into code and data.
+-- Besides memory, the machine keeps only @pc@, an instruction register and
+-- a few stack pointers, introduced below. The stacks are plain memory: a
+-- program can read and overwrite them, and nothing stops them from running
+-- into each other or into code and data.
+--
+-- Memory is read a word (4 bytes) at a time, from any address. The machine
+-- keeps the instructions it read in the instruction register. A fetch takes
+-- the instruction at @pc@ from there at no cost; otherwise it reads words
+-- starting at @pc@, 1 read for an instruction of up to 4 bytes and 2 for
+-- @i32.const@, and keeps that instruction and every following one that ends
+-- inside the first word read. Here the first @local.get@ reads the word
+-- holding both @local.get@s, and @i32.mul@ the word holding @local.set@ too,
+-- so the four instructions cost 2 fetch reads:
+--
+-- > local.get $acc local.get $n i32.mul
+-- > local.set $acc
+--
+-- Data reads never come from the instruction register, and stores don't
+-- change it.
 
 -- $operands
 -- Every value is a 32-bit word. @i32.const@ pushes a value; an operation
