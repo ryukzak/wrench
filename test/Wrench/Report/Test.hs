@@ -37,6 +37,9 @@ tests =
             warnings "{memory:0:0x0f} {memory:table} {mem:table}"
                 @?= ["{memory:0:0x0f} is renamed, use {mem:0:0x0f}", "{memory:table} is renamed, use {mem:table}"]
             "usage: {memory:table}" `isErrorFor` "memory:table:hex"
+        , testCase "mem:per-instruction is renamed to profile" $
+            either id fst (compileTemplate checkEnv (sharedViews @(RiscIvSt Int32)) "{mem:per-instruction}")
+                @?= ["{mem:per-instruction} is renamed, use {profile}"]
         , testCase "Errors name the problem and the usage" $ do
             "unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}" `isErrorFor` "pc:bin"
             "missing format, one of: dec, hex" `isErrorFor` "count"

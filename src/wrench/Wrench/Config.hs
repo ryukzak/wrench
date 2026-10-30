@@ -60,7 +60,7 @@ executionStatsReport =
                     , ""
                     , "## Memory accesses per instruction"
                     , "```"
-                    , "{mem:per-instruction}"
+                    , "{profile}"
                     , "```"
                     ]
         }

@@ -77,7 +77,7 @@ follow the opcode; the remaining low bits hold the immediate/offset.
 
 A bundle is fetched in one read: the instruction bus is as wide as a bundle, so all 14 bytes come at
 once. There is no instruction register: each fetch reads memory, even for a bundle fetched before.
-`mem:reads` and `mem:per-instruction` count that read on top of the data accesses of the MEM slot, so
+`mem:reads` and `profile` count that read on top of the data accesses of the MEM slot, so
 a bundle with `lw` costs 2 reads and one with `sw` 1 read and 1 write.
 
 ### Operand Fields

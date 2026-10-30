@@ -45,7 +45,7 @@ read in an instruction register, `ir`. To fetch the instruction at `pc`:
   `ir` then holds that instruction and every following one that ends inside the first word read, so
   a 5-byte instruction comes alone.
 
-So `mem:reads` and `mem:per-instruction` show 0, 1 or 2 fetch reads on top of the instruction's own
+So `mem:reads` and `profile` show 0, 1 or 2 fetch reads on top of the instruction's own
 data accesses. A jump to an instruction already in `ir` costs no read either. Data reads never come
 from `ir`, and stores don't change it.
 
