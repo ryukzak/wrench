@@ -6,71 +6,71 @@ warning: report "Totals": {memAccessesTotal:dec} is renamed, use {mem:accesses-t
 ---
 # Access cost per instruction
 reads: 0, writes: 0 -- -
-reads: 1, writes: 0 -- LoadImm 16
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 16
-reads: 1, writes: 1 -- StoreAddr 36
+reads: 2, writes: 0 -- LoadImm 16
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 16
+reads: 2, writes: 1 -- StoreAddr 36
 reads: 2, writes: 0 -- Load (-40)
-reads: 1, writes: 1 -- StoreAddr 36
+reads: 2, writes: 1 -- StoreAddr 36
 reads: 2, writes: 0 -- Load (-67)
 reads: 2, writes: 0 -- LoadAcc
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 1, writes: 0 -- LoadImm 32
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 1, writes: 0 -- LoadImm 48
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 2, writes: 0 -- LoadImm 32
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 2, writes: 0 -- LoadImm 48
 reads: 1, writes: 1 -- Store (-54)
-reads: 1, writes: 0 -- LoadImm 64
-reads: 2, writes: 1 -- StoreInd 0
-reads: 2, writes: 0 -- LoadAddr 20
+reads: 2, writes: 0 -- LoadImm 64
+reads: 3, writes: 1 -- StoreInd 0
+reads: 3, writes: 0 -- LoadAddr 20
 reads: 2, writes: 0 -- Add 24
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 32
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 32
 reads: 2, writes: 0 -- Sub 24
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 20
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 20
 reads: 2, writes: 0 -- Mul 24
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 32
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 32
 reads: 2, writes: 0 -- Div 20
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 32
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 32
 reads: 2, writes: 0 -- Rem 24
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 16
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 16
 reads: 2, writes: 0 -- ShiftL 20
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 28
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 28
 reads: 2, writes: 0 -- ShiftR 16
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 24
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 24
 reads: 2, writes: 0 -- And 16
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 20
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 20
 reads: 2, writes: 0 -- Or 16
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 24
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 24
 reads: 2, writes: 0 -- Xor 16
-reads: 1, writes: 1 -- StoreAddr 36
-reads: 2, writes: 0 -- LoadAddr 32
+reads: 2, writes: 1 -- StoreAddr 36
+reads: 3, writes: 0 -- LoadAddr 32
 reads: 1, writes: 0 -- Not
-reads: 1, writes: 1 -- StoreAddr 36
+reads: 2, writes: 1 -- StoreAddr 36
 reads: 1, writes: 0 -- Clv
 reads: 1, writes: 0 -- Clc
-reads: 1, writes: 0 -- LoadImm 0
-reads: 1, writes: 0 -- Beqz 255
-reads: 1, writes: 0 -- LoadImm 1
-reads: 1, writes: 0 -- Bnez 265
-reads: 1, writes: 0 -- Bgz 270
-reads: 1, writes: 0 -- Bgez 275
-reads: 1, writes: 0 -- LoadImm (-1)
-reads: 1, writes: 0 -- Blz 285
-reads: 1, writes: 0 -- Bvs 290
-reads: 1, writes: 0 -- Bvc 295
-reads: 1, writes: 0 -- Bcs 300
-reads: 1, writes: 0 -- Bcc 305
-reads: 1, writes: 0 -- Jmp 310
+reads: 2, writes: 0 -- LoadImm 0
+reads: 2, writes: 0 -- Beqz 255
+reads: 2, writes: 0 -- LoadImm 1
+reads: 2, writes: 0 -- Bnez 265
+reads: 2, writes: 0 -- Bgz 270
+reads: 2, writes: 0 -- Bgez 275
+reads: 2, writes: 0 -- LoadImm (-1)
+reads: 2, writes: 0 -- Blz 285
+reads: 2, writes: 0 -- Bvs 290
+reads: 2, writes: 0 -- Bvc 295
+reads: 2, writes: 0 -- Bcs 300
+reads: 2, writes: 0 -- Bcc 305
+reads: 2, writes: 0 -- Jmp 310
 reads: 1, writes: 0 -- Halt
 ---
 # Totals
 instructions: 64
-reads: 90 writes: 18 accesses: 108
+reads: 136 writes: 18 accesses: 154

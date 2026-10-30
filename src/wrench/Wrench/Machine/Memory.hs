@@ -337,12 +337,13 @@ ioPortByteCollision IoMem{mIoKeys} addr =
      in (addr `elem` parts)
 
 -- | Record one access. Every successful read and write goes through exactly
--- one of these, so a word access counts once rather than per byte.
-recordInstrAccess :: Int -> Int -> IoMem isa w -> IoMem isa w
-recordInstrAccess addr len io@IoMem{mAccessLog, mAccessCount} =
+-- one of these, so a word access counts once rather than per byte. An
+-- instruction fetch counts one read per word it spans.
+recordInstrAccess :: Int -> Int -> Int -> IoMem isa w -> IoMem isa w
+recordInstrAccess addr len wordsRead io@IoMem{mAccessLog, mAccessCount} =
     io
         { mAccessLog = mAccessLog{alInstr = recordRange addr len (alInstr mAccessLog)}
-        , mAccessCount = bump R mAccessCount
+        , mAccessCount = mAccessCount{acReads = acReads mAccessCount + wordsRead}
         }
 
 recordDataAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
@@ -368,7 +369,10 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
                 Right (_mIoCells', instr)
                     | ioPortInstructionCollision io idx instr ->
                         Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
-                    | otherwise -> Right (recordInstrAccess idx (byteSize instr) io, instr)
+                    | otherwise ->
+                        let len = byteSize instr
+                            wordsRead = (len + byteSizeT @w - 1) `div` byteSizeT @w
+                         in Right (recordInstrAccess idx len wordsRead io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
         | Just wordIdx <- mIoByteToWord !? idx = do
