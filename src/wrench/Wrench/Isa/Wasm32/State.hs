@@ -46,6 +46,7 @@ module Wrench.Isa.Wasm32.State (
 ) where
 
 import Data.Default (def)
+import Data.List (lookup)
 import Data.String.Interpolate (i)
 import Relude
 import Wrench.Isa.Wasm32.Instruction
@@ -71,6 +72,8 @@ data Wasm32St w = Wasm32St
     -- quarters of the way into memory.
     , mem :: IoMem (Wasm32Isa w w) w
     -- ^ Memory, including the memory-mapped I\/O ports.
+    , ir :: [(Int, Wasm32Isa w w)]
+    -- ^ Instruction register: the instructions of the last fetched words, by address.
     , stopped :: Bool
     -- ^ Set by @halt@.
     , internalError :: Maybe Text
@@ -93,12 +96,14 @@ nextPc instruction = do
 
 fetchInstructionAt :: (IsWord w) => Int -> State (Wasm32St w) (Either Text (Wasm32Isa w w))
 fetchInstructionAt addr = do
-    st@Wasm32St{mem} <- get
-    case readInstruction mem addr of
-        Right (mem', instruction) -> do
-            put st{mem = mem'}
-            return $ Right instruction
-        Left err -> return $ Left err
+    st@Wasm32St{mem, ir} <- get
+    case lookup addr ir of
+        Just instruction -> return $ Right instruction
+        Nothing -> case readInstructions mem addr of
+            Right (mem', fetched@((_, instruction) :| _)) -> do
+                put st{mem = mem', ir = toList fetched}
+                return $ Right instruction
+            Left err -> return $ Left err
 
 raiseInternalError :: Text -> State (Wasm32St w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}

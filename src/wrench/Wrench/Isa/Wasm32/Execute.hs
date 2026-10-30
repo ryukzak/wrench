@@ -25,6 +25,7 @@ instance (IsWord w) => InitState (Wasm32St w) where
             , frameBase = defaultStackRoot dump - byteSizeT @w
             , localCount = 0
             , mem = dump
+            , ir = []
             , stopped = False
             , internalError = Nothing
             }
