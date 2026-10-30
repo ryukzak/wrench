@@ -54,8 +54,8 @@ data ReportEnv st = ReportEnv
     , rePrevInstr :: Maybe (IsaOf st)
     , reAccesses :: AccessCount
     -- ^ Made by the instruction that produced this record.
-    , reInstructionCosts :: Text
-    -- ^ The whole run's per-instruction access table, built only if asked.
+    , reProfile :: Text
+    -- ^ The whole run's profile table, built only if asked.
     }
 
 type ReportViews st =
@@ -86,6 +86,7 @@ sharedViews =
         , ("memWritesTotal", "mem:writes-total")
         , ("memory:table", "mem:table")
         , ("memory", "mem:dump")
+        , ("mem:per-instruction", "profile")
         ]
         [ valueView "pc" "Program counter." (programCounter . current)
         , flagView "pc:label" "`@label` if the program counter is at a label, otherwise empty." pcLabel
@@ -113,9 +114,9 @@ sharedViews =
         , flagView "mem:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
             renderMemoryTable (reDumpStats e) (memoryDump (final e))
         , flagView
-            "mem:per-instruction"
-            "Reads and writes of each executed instruction, per run."
-            reInstructionCosts
+            "profile"
+            "How often each instruction ran, with its reads and writes, over the whole run."
+            reProfile
         , checkedView
             (lit "mem:dump" *> ((,) <$> arg "from" <*> arg "to"))
             "Memory dump from `<from>` to `<to>`, inclusive."
@@ -230,7 +231,7 @@ prepareReport
             details = if verbose then show rc else ""
             deltas = withAccessDeltas records
             sliced = selectSlice rcSlice deltas
-            costs = renderInstructionCosts labels finalState deltas
+            profile = renderProfile labels finalState deltas
             stateViews = case rTemplate of
                 Nothing -> ""
                 Just template ->
@@ -247,7 +248,7 @@ prepareReport
                                             , reInstrCount = tInstructionCount
                                             , rePrevInstr = tPrevInstruction
                                             , reAccesses = accesses
-                                            , reInstructionCosts = costs
+                                            , reProfile = profile
                                             }
                                 (TError err) -> "ERROR: " <> err <> "\n"
                                 (TWarn warn) -> "WARN: " <> warn <> "\n"
@@ -306,44 +307,44 @@ withAccessDeltas = go emptyAccessCount
                  in (acSince before after, record) : go after rest
             _ -> (emptyAccessCount, record) : go before rest
 
-data InstructionCost = InstructionCost
-    { icInstruction :: Text
-    , icHistogram :: Map (Int, Int) Int
+data ProfileEntry = ProfileEntry
+    { peInstruction :: Text
+    , peRuns :: Map (Int, Int) Int
     }
 
-instructionCosts ::
+buildProfile ::
     (Inspectable st, Show (IsaOf st)) =>
     [(AccessCount, Trace st (IsaOf st))]
-    -> IntMap InstructionCost
-instructionCosts = go Nothing IM.empty
+    -> IntMap ProfileEntry
+buildProfile = go Nothing IM.empty
     where
         go _ acc [] = acc
         go prevPc acc ((AccessCount{acReads, acWrites}, record) : rest) = case record of
             TState{tPrevInstruction, tState} ->
                 let acc' = case (prevPc, tPrevInstruction) of
                         (Just pc, Just instr) ->
-                            IM.insertWith merge pc (InstructionCost (show instr) (one ((acReads, acWrites), 1))) acc
+                            IM.insertWith merge pc (ProfileEntry (show instr) (one ((acReads, acWrites), 1))) acc
                         _ -> acc
                  in go (Just $ programCounter tState) acc' rest
             _ -> go prevPc acc rest
-        merge new old = old{icHistogram = M.unionWith (+) (icHistogram old) (icHistogram new)}
+        merge new old = old{peRuns = M.unionWith (+) (peRuns old) (peRuns new)}
 
-renderInstructionCosts ::
+renderProfile ::
     (ReportViews st) =>
     HashMap Text (WordOf st)
     -> st
     -> [(AccessCount, Trace st (IsaOf st))]
     -> Text
-renderInstructionCosts labels finalState deltas =
+renderProfile labels finalState deltas =
     let width = hexAddrWidth (memCapacity (memoryDump finalState))
         labelsAt pc = sort [l | (l, a) <- toPairs labels, a == toEnum pc]
         headerRow = ("Address", "Exec", "Read", "Write", "Instruction")
         ditto = ("\"", "\"")
         rows =
             [ (addr, show n, show r, show w, instr)
-            | (pc, InstructionCost{icInstruction, icHistogram}) <- IM.toAscList (instructionCosts deltas)
-            , let named = (hexAddr width pc, T.unwords (icInstruction : map ("@" <>) (labelsAt pc)))
-            , ((addr, instr), ((r, w), n)) <- zip (named : repeat ditto) (M.toAscList icHistogram)
+            | (pc, ProfileEntry{peInstruction, peRuns}) <- IM.toAscList (buildProfile deltas)
+            , let named = (hexAddr width pc, T.unwords (peInstruction : map ("@" <>) (labelsAt pc)))
+            , ((addr, instr), ((r, w), n)) <- zip (named : repeat ditto) (M.toAscList peRuns)
             ]
         allRows = headerRow : rows
         colWidth f = foldr (max . T.length . f) 0 allRows
