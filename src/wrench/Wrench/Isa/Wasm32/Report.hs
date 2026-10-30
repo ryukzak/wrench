@@ -48,6 +48,12 @@ wasm32Views =
         , valueView "frame-base" "Address of local 0 of the current frame." (frameBase . seState)
         , valueView "ctrl-sp" "Top of the control stack." (ctrlSp . seState)
         , valueView "stack-root" "Where both stacks start, set by `sp.init`." (stackRoot . seState)
+        , mkView
+            (lit "cache:scan" *> format [Dec, Hex] Dec)
+            "The last four `else`/`end` scans, most recent first: `start->end`."
+            $ \StateEnv{seState = Wasm32St{scanCache, mem}} fmt ->
+                let addr = if fmt == Hex then hexAddr (hexAddrWidth (memCapacity mem)) else show
+                 in T.intercalate ", " [addr start <> "->" <> addr end | (start, end) <- scanCache]
         ]
     where
         values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->

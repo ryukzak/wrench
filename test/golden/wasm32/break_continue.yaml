@@ -17,3 +17,7 @@ reports:
     slice: last
     view: |
       {profile}
+  - name: Scan cache
+    slice: all
+    view: |
+      {pc:hex}: {instruction:prev} // access: {mem:accesses:dec}, cache: {cache:scan:hex}

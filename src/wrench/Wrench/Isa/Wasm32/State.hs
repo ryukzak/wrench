@@ -32,6 +32,9 @@ module Wrench.Isa.Wasm32.State (
     localAddr,
     reserveLocals,
 
+    -- * Scan cache
+    cachedScan,
+
     -- * Control stack
     Scope (..),
     pushScope,
@@ -70,6 +73,11 @@ data Wasm32St w = Wasm32St
     , stackRoot :: Int
     -- ^ Where both stacks start. Set by @sp.init@; by default three
     -- quarters of the way into memory.
+    , scanCache :: [(Int, Int)]
+    -- ^ The last 'scanCacheSize' scans for a matching @else@ or @end@, most
+    -- recently used first: where each scan started and where it ended.
+    , scanCacheSize :: Int
+    -- ^ How many scans 'scanCache' keeps.
     , mem :: IoMem (Wasm32Isa w w) w
     -- ^ Memory, including the memory-mapped I\/O ports.
     , ir :: [(Int, Wasm32Isa w w)]
@@ -170,6 +178,16 @@ localAddr :: forall w. (IsWord w) => Int -> State (Wasm32St w) Int
 localAddr idx = do
     Wasm32St{frameBase} <- get
     return $ frameBase - idx * byteSizeT @w
+
+-- * Scan cache
+
+cachedScan :: Int -> State (Wasm32St w) (Either Text Int) -> State (Wasm32St w) (Either Text Int)
+cachedScan start scan = do
+    Wasm32St{scanCache} <- get
+    result <- maybe scan (return . Right) (listToMaybe [end | (s, end) <- scanCache, s == start])
+    whenRight_ result $ \end ->
+        modify $ \st -> st{scanCache = take (scanCacheSize st) ((start, end) : filter ((/= start) . fst) scanCache)}
+    return result
 
 -- * Control stack
 

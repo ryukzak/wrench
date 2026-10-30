@@ -21,6 +21,8 @@ instance (IsWord w) => InitState (Wasm32St w) where
             { pc
             , sp = defaultStackRoot dump
             , stackRoot = defaultStackRoot dump
+            , scanCache = []
+            , scanCacheSize = 4
             , ctrlSp = defaultStackRoot dump
             , frameBase = defaultStackRoot dump - byteSizeT @w
             , localCount = 0
@@ -45,7 +47,7 @@ afterMatchingElseOrEnd pc opener f =
         Right afterEnd -> f afterEnd
 
 matchElseOrEnd :: (IsWord w) => Bool -> Int -> Wasm32Isa w w -> State (Wasm32St w) (Either Text Int)
-matchElseOrEnd stopAtElse addr opener = go (0 :: Int) (addr + byteSize opener)
+matchElseOrEnd stopAtElse addr opener = cachedScan addr $ go (0 :: Int) (addr + byteSize opener)
     where
         go depth at =
             fetchInstructionAt at >>= \case
