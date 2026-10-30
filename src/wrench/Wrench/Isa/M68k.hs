@@ -690,12 +690,12 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                 b <- fetchWord src
                 if b == 0
                     then raiseInternalError "division by zero"
-                    else wordCmd2 src dst div
+                    else wordCmd2 (Immediate b) dst div
             Div{mode = Byte, src, dst} -> do
                 b <- fetchByte src
                 if b == 0
                     then raiseInternalError "division by zero"
-                    else byteCmd2 src dst div
+                    else byteCmd2 (Immediate $ fromIntegral b) dst div
             Cmp{mode = Long, src, dst} -> do
                 a <- fetchWord dst
                 b <- fetchWord src

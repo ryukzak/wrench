@@ -529,6 +529,18 @@ tests =
                         fmap snd (readWord mem 0x10) @?= Right 0x13121110
                         fmap snd (readWord mem 0x14) @?= Right (0x13121110 + 0x17161514)
             ]
+        , testCase "div divides by the source it checked" $ do
+            let M68kSt{addrRegs, dataRegs} =
+                    simulate
+                        "div.l -(A1), D0"
+                        st0
+                            { addrRegs = insert A1 0x14 addrRegs0
+                            , dataRegs = insert D0 20 dataRegs0
+                            , mem = either error id $ writeWord mem0 0x10 5 >>= \m -> writeWord m 0x0C 0
+                            }
+             in do
+                    (addrRegs !? A1) @?= Just 0x10
+                    (dataRegs !? D0) @?= Just 4
         , testCase "Division by zero" $ do
             let M68kSt{internalError} =
                     simulate "div.l D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
