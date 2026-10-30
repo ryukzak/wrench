@@ -235,9 +235,11 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump randomStream
 
-    (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
+    let costFold = if needsInstructionCosts reports then costStep else const
+    (traceLog, finalState, costs) <-
+        powerOn cLimit (tracePlan maxStateLogLimit reports) (memAccessCount . memoryDump) costFold emptyCostAcc labels st
 
-    let results = map (prepareReport trResult verbose finalState traceLog) reports
+    let results = map (prepareReport trResult verbose finalState (caCosts costs) traceLog) reports
         isSuccess = all fst results
         reportTexts = map snd results
 

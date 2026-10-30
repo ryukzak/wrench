@@ -1,0 +1,21 @@
+limit: 30000
+memory_size: 0x100
+memory_mapped_io:
+  0x80: []
+reports:
+  - name: Start of the run
+    slice: ["head", 3]
+    view: |
+      {sim:instruction-count} {pc}: {instruction:prev} reads {mem:reads} writes {mem:writes}
+  - name: End of the run
+    slice: ["tail", 3]
+    view: |
+      {sim:instruction-count} {pc}: {instruction:prev} reads {mem:reads} writes {mem:writes}
+  - name: Result
+    slice: last
+    view: |
+      acc: {mem:dump:0:3}
+  - name: Memory accesses per instruction
+    slice: last
+    view: |
+      {mem:per-instruction}

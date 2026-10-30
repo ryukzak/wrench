@@ -188,6 +188,8 @@ data Trace st isa
       TState
         { tInstructionCount :: !Int
         , tPrevInstruction :: !(Maybe isa)
+        , tAccesses :: !AccessCount
+        -- ^ Made by the instruction that produced this state.
         , tState :: !st
         }
     | TError Text
