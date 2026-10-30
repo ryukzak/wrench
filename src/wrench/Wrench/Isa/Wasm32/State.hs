@@ -80,16 +80,16 @@ data Wasm32St w = Wasm32St
     , stackRoot :: Int
     -- ^ Where both stacks start. Set by @sp.init@; by default three
     -- quarters of the way into memory.
-    , scanCache :: [(Int, Int)]
+    , scanCache :: ![(Int, Int)]
     -- ^ The last 'scanCacheSize' scans for a matching @else@ or @end@, most
     -- recently used first: where each scan started and where it ended.
     , scanCacheSize :: Int
     -- ^ How many scans 'scanCache' keeps.
-    , branchCache :: [BranchEntry w]
+    , branchCache :: ![BranchEntry w]
     -- ^ The last 'branchCacheSize' branches taken, most recently used first.
     , branchCacheSize :: Int
     -- ^ How many branches 'branchCache' keeps.
-    , tosRegs :: [(Int, w)]
+    , tosRegs :: ![(Int, w)]
     -- ^ The top-of-stack registers: copies of the last 'tosRegCount'
     -- values pushed and not yet popped, the last pushed first, each with
     -- the address of its slot.
@@ -165,6 +165,9 @@ setByte addr b = do
         Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr 1 Nothing >> forgetTos addr 1
         Left err -> raiseInternalError [i|memory access error: #{err}|]
 
+evaluated :: [a] -> [a]
+evaluated xs = length xs `seq` xs
+
 -- * Data stack
 
 pushValue :: forall w. (IsWord w) => w -> State (Wasm32St w) ()
@@ -176,7 +179,7 @@ pushValue value = do
     Wasm32St{mem} <- get
     unless (sp' `elem` ioPorts mem) $
         modify $
-            \st -> st{tosRegs = take (tosRegCount st) ((sp', value) : tosRegs st)}
+            \st -> st{tosRegs = evaluated $ take (tosRegCount st) ((sp', value) : tosRegs st)}
 
 popValue :: forall w. (IsWord w) => State (Wasm32St w) w
 popValue = do
@@ -188,7 +191,7 @@ popValue = do
     return value
 
 forgetTos :: forall w. (IsWord w) => Int -> Int -> State (Wasm32St w) ()
-forgetTos addr size = modify $ \st -> st{tosRegs = filter (not . overlaps . fst) (tosRegs st)}
+forgetTos addr size = modify $ \st -> st{tosRegs = evaluated $ filter (not . overlaps . fst) (tosRegs st)}
     where
         overlaps slot = slot < addr + size && addr < slot + byteSizeT @w
 
@@ -214,7 +217,7 @@ cachedScan start scan = do
     Wasm32St{scanCache} <- get
     result <- maybe scan (return . Right) (listToMaybe [end | (s, end) <- scanCache, s == start])
     whenRight_ result $ \end ->
-        modify $ \st -> st{scanCache = take (scanCacheSize st) ((start, end) : filter ((/= start) . fst) scanCache)}
+        modify $ \st -> st{scanCache = evaluated $ take (scanCacheSize st) ((start, end) : filter ((/= start) . fst) scanCache)}
     return result
 
 -- * Branch cache
@@ -242,13 +245,13 @@ rememberBranch entry@BranchEntry{beFrom, beRecord} = do
     Wasm32St{mem} <- get
     unless (any (`elem` ioPorts mem) (scopeWordAddrs @w beRecord)) $
         modify $
-            \st -> st{branchCache = take (branchCacheSize st) (entry : filter (not . same) (branchCache st))}
+            \st -> st{branchCache = evaluated $ take (branchCacheSize st) (entry : filter (not . same) (branchCache st))}
     where
         same BranchEntry{beFrom = f, beRecord = r} = f == beFrom && r == beRecord
 
 forgetChangedBranches :: forall w. (IsWord w) => Int -> Int -> Maybe w -> State (Wasm32St w) ()
 forgetChangedBranches addr size value =
-    modify $ \st -> st{branchCache = filter unchanged (branchCache st)}
+    modify $ \st -> st{branchCache = evaluated $ filter unchanged (branchCache st)}
     where
         unchanged BranchEntry{beRecord, beWords} = and $ zipWith keeps (scopeWordAddrs @w beRecord) beWords
         keeps wordAddr old
