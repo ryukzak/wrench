@@ -14,6 +14,7 @@ module Wrench.Isa.VliwIv (
 
 import Data.Bits (bit, shiftL, shiftR, (.&.), (.|.))
 import Data.Default
+import Data.IntMap.Strict qualified as IM
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
@@ -205,7 +206,7 @@ bundleActiveCount VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} =
 
 recordBundle :: VliwIvIsa w l -> VliwLoadAcc -> VliwLoadAcc
 recordBundle isa (VliwLoadAcc m) =
-    VliwLoadAcc $ alter (Just . maybe 1 (+ 1)) (bundleActiveCount isa) m
+    VliwLoadAcc $ IM.insertWith (+) (bundleActiveCount isa) 1 m
 
 vliwLoadPercent :: VliwLoadAcc -> Int
 vliwLoadPercent (VliwLoadAcc m) =
