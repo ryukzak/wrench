@@ -194,6 +194,17 @@ import Wrench.Isa.Wasm32.Report ()
 -- for @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
 -- @end@ does nothing; a missing @end@ is noticed only when a skip looks
 -- for it.
+--
+-- The machine remembers its last four scans in the /scan cache/: where
+-- each scan started and where it ended. When the same @if@ or @else@ skips
+-- again while its entry is still there, it continues at the remembered
+-- address and reads nothing: in the example, a second negative @x@ costs
+-- 1 access for the @else@ (its fetch), and a second positive one 1 for the
+-- @if@ (the pop). A hit moves its entry to the front, and a new scan pushes
+-- out the entry used longest ago, so a loop whose body skips at more than
+-- four places can lose an entry before it comes round again. The cache is
+-- part of the machine, not of memory, starts empty, and is shown by the
+-- @cache:scan@ view.
 
 -- $control
 -- @if@ only skips forward, and a branch cannot name a label. To repeat
@@ -208,13 +219,26 @@ import Wrench.Isa.Wasm32.Report ()
 -- Open scopes live on the /control stack/. @block@ or @loop@ pushes an
 -- eight-byte record with the addresses a branch needs, and its @end@ pops
 -- it. @ctrlSp@ points just past the top record. To fill the record,
--- @block@ and @loop@ search for their @end@ the way @if@ skips, every time
--- they run, so a @block@ inside a loop body pays for it on each iteration.
+-- @block@ and @loop@ search for their @end@ the way @if@ skips, through the
+-- same scan cache, so entering a scope again soon costs only its fetch and
+-- the record.
 --
 -- @br n@ jumps to the scope @n@ records down (@0@ is the innermost) and
 -- pops the records of the scopes it leaves; @br_if n@ does the same if the
 -- value it pops is non-zero. @if@ pushes no record, so it is not counted
 -- and cannot be a target. Branches leave the operand stack unchanged.
+--
+-- A taken branch reads its scope's record, 2 accesses, to learn where to
+-- go. The machine remembers its last four taken branches in the /branch
+-- cache/: where each branch was, which record it read, and where it went.
+-- When the same branch is taken again with the same record at the same
+-- place on the control stack, it goes to the remembered address without
+-- reading the record: in the example below, @br 0@ costs 3 accesses in the
+-- first round and only its fetch after that. A write that changes a
+-- remembered record makes the machine forget the branches that read it, so
+-- a remembered branch always goes where reading the record would. Like the
+-- scan cache, the branch cache is part of the machine, starts empty, and
+-- is shown by the @cache:branch@ view.
 --
 -- This writes @n@, @n - 1@, ..., @1@, with @n@ a word in @.data@:
 --
@@ -339,6 +363,10 @@ import Wrench.Isa.Wasm32.Report ()
 -- [@locals@] The current frame's locals, local 0 first. There is no
 --   @localCount@ view; this shows that many words.
 -- [@sp@, @frame-base@, @ctrl-sp@, @stack-root@] The pointers.
+-- [@cache:scan@] The scan cache, most recently used first, each entry as
+--   @start->end@, e.g. @0x02e->0x044, 0x011->0x070@.
+-- [@cache:branch@] The branch cache, most recently used first, each entry
+--   as @from->to@, e.g. @0x0e->0x36, 0x32->0x06@.
 -- [@stack:layout@] Every frame, oldest first: locals, control records,
 --   operands. @stack:layout:hex:2@ shows only the last two frames.
 -- [@stack:dump@] Memory from @sp@ to the end, by address. Each word

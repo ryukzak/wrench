@@ -12,6 +12,7 @@ import Data.String.Interpolate (i)
 import Relude
 import Wrench.Isa.Wasm32.Instruction
 import Wrench.Isa.Wasm32.State
+import Wrench.Machine.BitPack (unpackWords)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 
@@ -21,6 +22,10 @@ instance (IsWord w) => InitState (Wasm32St w) where
             { pc
             , sp = defaultStackRoot dump
             , stackRoot = defaultStackRoot dump
+            , scanCache = []
+            , scanCacheSize = 4
+            , branchCache = []
+            , branchCacheSize = 4
             , ctrlSp = defaultStackRoot dump
             , frameBase = defaultStackRoot dump - byteSizeT @w
             , localCount = 0
@@ -45,7 +50,7 @@ afterMatchingElseOrEnd pc opener f =
         Right afterEnd -> f afterEnd
 
 matchElseOrEnd :: (IsWord w) => Bool -> Int -> Wasm32Isa w w -> State (Wasm32St w) (Either Text Int)
-matchElseOrEnd stopAtElse addr opener = go (0 :: Int) (addr + byteSize opener)
+matchElseOrEnd stopAtElse addr opener = cachedScan addr $ go (0 :: Int) (addr + byteSize opener)
     where
         go depth at =
             fetchInstructionAt at >>= \case
@@ -82,20 +87,27 @@ returnFromCall =
         Right (addr, other) ->
             raiseInternalError [i|control stack corrupted at #{hexAddr 2 addr}: expected a call record, found #{other}|]
 
-branchTo :: (IsWord w) => Int -> State (Wasm32St w) ()
-branchTo depth = do
-    scope <- scopeAtDepth depth
-    case scope of
-        Nothing -> raiseInternalError "br/br_if: the scope it names went missing"
-        Just (Left err) -> raiseInternalError err
-        Just (Right LoopScope{csStart}) -> do
-            retireScopes depth
-            setPc csStart
-        Just (Right BlockScope{csEnd}) -> do
-            retireScopes (depth + 1)
-            setPc (csEnd + byteSize End)
-        Just (Right CallScope{}) ->
-            raiseInternalError "br/br_if: depth reaches past the enclosing function; use return to leave it"
+branchTo :: forall w. (IsWord w) => Int -> Int -> State (Wasm32St w) ()
+branchTo from depth = do
+    Wasm32St{ctrlSp, stackRoot} <- get
+    let record = ctrlSp - (depth + 1) * scopeRecordBytes @w
+    cached <- if record >= stackRoot then cachedBranch from record else return Nothing
+    case cached of
+        Just BranchEntry{beTo, beCtrlSp} -> jump beTo beCtrlSp
+        Nothing ->
+            scopeRecordAtDepth depth >>= \case
+                Nothing -> raiseInternalError "br/br_if: the scope it names went missing"
+                Just (addr, words_) -> case unpackWords words_ of
+                    Left err -> raiseInternalError $ ctrlCorruptedErr addr err
+                    Right LoopScope{csStart} -> taken addr words_ csStart (addr + scopeRecordBytes @w)
+                    Right BlockScope{csEnd} -> taken addr words_ (csEnd + byteSize End) addr
+                    Right CallScope{} ->
+                        raiseInternalError "br/br_if: depth reaches past the enclosing function; use return to leave it"
+    where
+        jump to ctrlSp' = modify (\st -> st{ctrlSp = ctrlSp'}) >> setPc to
+        taken addr words_ to ctrlSp' = do
+            rememberBranch BranchEntry{beFrom = from, beRecord = addr, beWords = words_, beTo = to, beCtrlSp = ctrlSp'}
+            jump to ctrlSp'
 
 instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
     instructionFetch = do
@@ -174,12 +186,12 @@ instance (IsWord w) => Machine (Wasm32St w) (Wasm32Isa w w) w where
                 afterMatchingEnd pc instruction $ \afterEnd -> do
                     pushScope BlockScope{csEnd = afterEnd - byteSize End}
                     nextPc instruction
-            Br depth -> branchTo (fromEnum depth)
+            Br depth -> branchTo pc (fromEnum depth)
             BrIf depth -> do
                 condition <- popValue
                 if condition == 0
                     then nextPc instruction
-                    else branchTo (fromEnum depth)
+                    else branchTo pc (fromEnum depth)
             Drop -> popValue >> nextPc instruction
             Select -> do
                 condition <- popValue
