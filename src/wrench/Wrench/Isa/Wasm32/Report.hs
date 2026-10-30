@@ -60,6 +60,13 @@ wasm32Views =
             $ \StateEnv{seState = Wasm32St{branchCache, mem}} fmt ->
                 let addr = if fmt == Hex then hexAddr (hexAddrWidth (memCapacity mem)) else show
                  in T.intercalate ", " [addr beFrom <> "->" <> addr beTo | BranchEntry{beFrom, beTo} <- branchCache]
+        , mkView
+            (lit "stack:tos-regs" *> format [Dec, Hex] Dec)
+            "The top-of-stack registers, the last pushed first: `slot=value`."
+            $ \StateEnv{seState = Wasm32St{tosRegs, mem}} fmt ->
+                let slot = if fmt == Hex then hexAddr (hexAddrWidth (memCapacity mem)) else show
+                    value = if fmt == Hex then toText . word32ToHex else show
+                 in T.intercalate ", " [slot addr <> "=" <> value v | (addr, v) <- tosRegs]
         ]
     where
         values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->
