@@ -23,6 +23,13 @@ module Wrench.Machine.Types (
     intervalsDifference,
     AccessLog (..),
     emptyAccessLog,
+    AccessSet (..),
+    emptyAccessSet,
+    toAccessLog,
+    Touched,
+    emptyTouched,
+    touch,
+    touchedIntervals,
     AccessCount (..),
     emptyAccessCount,
     acTotal,
@@ -40,6 +47,7 @@ module Wrench.Machine.Types (
 
 import Data.Bits
 import Data.Default (Default, def)
+import Data.IntMap.Strict qualified as IM
 import Data.Interval qualified as I
 import Data.IntervalSet (IntervalSet)
 import Data.IntervalSet qualified as IS
@@ -205,8 +213,8 @@ data IoMem isa w = IoMem
     , mIoCells :: Mem isa w
     , mIoKeys :: [Int]
     , mIoByteToWord :: IntMap Int
-    , mAccessLog :: !AccessLog
-    -- ^ Tracks the address ranges touched at runtime, surfaced via @mem:*@.
+    , mAccessSet :: !AccessSet
+    -- ^ Tracks the addresses touched at runtime, surfaced via @mem:*@.
     , mAccessCount :: !AccessCount
     -- ^ Accesses served, one per operation, never reset.
     , mInstrFetchReads :: isa -> Int
@@ -216,8 +224,8 @@ data IoMem isa w = IoMem
 
 -- | Every field but the 'mInstrFetchReads' function.
 instance (Show isa, Show w) => Show (IoMem isa w) where
-    show IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount} =
-        "IoMem " <> show (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount)
+    show IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessSet, mAccessCount} =
+        "IoMem " <> show (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, toAccessLog mAccessSet, mAccessCount)
 
 mkIoMem :: forall w isa. (ByteSize isa, ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
 mkIoMem streams cells =
@@ -225,7 +233,7 @@ mkIoMem streams cells =
         { mIoStreams = streams
         , mIoCells = cells
         , mIoKeys = keys streams
-        , mAccessLog = emptyAccessLog
+        , mAccessSet = emptyAccessSet
         , mAccessCount = emptyAccessCount
         , mInstrFetchReads = \instr -> (byteSize instr + byteSizeT @w - 1) `div` byteSizeT @w
         , mIoByteToWord =
@@ -334,6 +342,55 @@ data AccessLog = AccessLog
 
 emptyAccessLog :: AccessLog
 emptyAccessLog = AccessLog{alInstr = emptyIntervals, alData = emptyIntervals, alIo = emptyIntervals}
+
+-- | Addresses touched at runtime, cheap to extend on every access; turned
+--   into 'Intervals' only when a report asks ('toAccessLog').
+--   Disjoint, non-adjacent inclusive ranges, keyed by their low end.
+newtype Touched = Touched (IntMap Int)
+    deriving (Eq, Show)
+
+-- | Record an access spanning @[addr .. addr+len-1]@. Length must be ≥ 1.
+touch :: Int -> Int -> Touched -> Touched
+touch addr len t@(Touched m)
+    | Just (_, hi) <- IM.lookupLE addr m, hi >= end = t
+    | otherwise = Touched (absorb lo0 hi0 m0)
+    where
+        end = addr + len - 1
+        (lo0, hi0, m0) = case IM.lookupLE addr m of
+            Just (lo, hi) | hi >= addr - 1 -> (lo, max hi end, IM.delete lo m)
+            _ -> (addr, end, m)
+        absorb lo hi acc = case IM.lookupGE lo acc of
+            Just (lo', hi') | lo' <= hi + 1 -> absorb lo (max hi hi') (IM.delete lo' acc)
+            _ -> IM.insert lo hi acc
+
+touchedRanges :: Touched -> [(Int, Int)]
+touchedRanges (Touched m) = IM.toAscList m
+
+emptyTouched :: Touched
+emptyTouched = Touched mempty
+
+touchedIntervals :: Touched -> Intervals
+touchedIntervals t =
+    Intervals $ IS.fromList [I.Finite (toInteger lo) I.<=..< I.Finite (toInteger hi + 1) | (lo, hi) <- touchedRanges t]
+
+-- | The raw form of 'AccessLog' that 'IoMem' keeps while the program runs.
+data AccessSet = AccessSet
+    { asInstr :: !Touched
+    , asData :: !Touched
+    , asIo :: !Touched
+    }
+    deriving (Eq, Show)
+
+emptyAccessSet :: AccessSet
+emptyAccessSet = AccessSet{asInstr = emptyTouched, asData = emptyTouched, asIo = emptyTouched}
+
+toAccessLog :: AccessSet -> AccessLog
+toAccessLog AccessSet{asInstr, asData, asIo} =
+    AccessLog
+        { alInstr = touchedIntervals asInstr
+        , alData = touchedIntervals asData
+        , alIo = touchedIntervals asIo
+        }
 
 -- | Reads and writes served, counted once per operation.
 data AccessCount = AccessCount
