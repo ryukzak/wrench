@@ -41,7 +41,7 @@ Memory is read a word (4 bytes) at a time, from any address. The processor keeps
 read in an instruction register, `ir`. To fetch the instruction at `pc`:
 
 - If `ir` holds an instruction at `pc`, the fetch takes it from there and costs no read.
-- Otherwise it reads words starting at `pc`: 1 read for a 1–3 byte instruction, 2 for a 5-byte one.
+- Otherwise it reads words starting at `pc`: 1 read for a 1–4 byte instruction, 2 for a 5-byte one.
   `ir` then holds that instruction and every following one that ends inside the first word read, so
   a 5-byte instruction comes alone.
 
@@ -54,15 +54,15 @@ for `n = 5`:
 
 ```text
 Address  Exec  Read  Write  Instruction
-0x033       5     1      1  Store (-39)
-0x035       5     1      0  Load (-45)
-0x037       5     2      0  Sub 16
-0x03a       5     1      1  Store (-50)
+0x033       5     1      1  Store (-39)    fetch 0x033..0x036, data write
+0x035       5     1      0  Load (-45)     from ir, data read
+0x037       5     2      0  Sub 16         fetch 0x037..0x03a, data read
+0x03a       5     1      1  Store (-50)    fetch 0x03a..0x03d, data write
 ```
 
-`store result` reads the word `0x033..0x036`, which also holds `load n`, so `load n` costs only its
-data read. `sub const_1` reads `0x037..0x03a`, where `store n` starts but doesn't end, so `store n`
-needs a read of its own.
+`Read` counts the fetch and the data reads together. `store result` fetches the word `0x033..0x036`,
+which also holds `load n`, so the one read of `load n` is its data read. `sub const_1` fetches
+`0x037..0x03a`, where `store n` starts but doesn't end, so `store n` needs a fetch of its own.
 
 ### Relative Addressing
 
