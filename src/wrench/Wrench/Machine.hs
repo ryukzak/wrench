@@ -56,11 +56,11 @@ simulate sim =
     let Simulation{log, machineState} = execState (simulate' Nothing) sim
      in (reverse log, machineState)
 
-simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
-simulateInstructionStep =
-    modify $ \sim@Simulation{machineState, instructionCount} ->
+simulateInstructionStep :: (Machine st isa w) => Int -> isa -> st -> State (Simulation st isa) ()
+simulateInstructionStep pc instr fetched =
+    modify $ \sim@Simulation{instructionCount} ->
         sim
-            { machineState = execState instructionStep machineState
+            { machineState = execState (instructionExecute pc instr) fetched
             , instructionCount = instructionCount + 1
             }
 
@@ -69,15 +69,15 @@ simulate' prevInstr = do
     Simulation{machineState, instructionCount, instructionLimits} <- get
     if instructionCount >= instructionLimits
         then tellError "Simulation limit reached"
-        else case evalState instructionFetch machineState of
-            Right (_, instr) -> do
+        else case runState instructionFetch machineState of
+            (Right (pc, instr), fetched) -> do
                 tellState prevInstr machineState
-                simulateInstructionStep
+                simulateInstructionStep pc instr fetched
                 simulate' (Just instr)
-            Left err | err == halted -> do
+            (Left err, _) | err == halted -> do
                 Simulation{machineState = stateAfter} <- get
                 tellState prevInstr stateAfter
-            Left err -> tellError err
+            (Left err, _) -> tellError err
 
 powerOn ::
     (IsWord w, Machine st isa w) =>
