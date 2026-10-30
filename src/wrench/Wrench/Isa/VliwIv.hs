@@ -73,7 +73,7 @@ data Register
     | T4
     | T5
     | T6
-    deriving (Eq, Generic, Read, Show)
+    deriving (Enum, Eq, Generic, Read, Show)
 
 allRegisters =
     [ Zero
@@ -110,7 +110,8 @@ allRegisters =
     , T6
     ]
 
-instance Hashable Register
+instance Hashable Register where
+    hashWithSalt salt = hashWithSalt salt . fromEnum
 
 instance (Default w) => Default (HashMap Register w) where
     def = fromList $ map (,def) allRegisters

@@ -2,9 +2,13 @@
 
 module Wrench.Machine.Types.Test (tests) where
 
+import Hedgehog (forAll, property, (===))
+import Hedgehog.Gen qualified as Gen
+import Hedgehog.Range qualified as Range
 import Relude
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.Hedgehog (testPropertyNamed)
 import Wrench.Machine.Types
 import Wrench.Machine.Word
 
@@ -14,6 +18,7 @@ tests =
         "Machine.Types"
         [ extTests
         , intervalsTests
+        , touchedTests
         ]
 
 extTests :: TestTree
@@ -121,4 +126,16 @@ intervalsTests =
                 intervalsToList (recordRange 5 4 (recordRange 0 4 emptyIntervals))
                     @?= [(0, 3), (5, 8)]
             ]
+        ]
+
+touchedTests :: TestTree
+touchedTests =
+    testGroup
+        "Touched"
+        [ testPropertyNamed "touch builds the ranges recordRange does" "prop_touchMatchesRecordRange" $
+            property $ do
+                accesses <-
+                    forAll $ Gen.list (Range.linear 0 200) ((,) <$> Gen.int (Range.constant 0 64) <*> Gen.int (Range.constant 1 8))
+                touchedIntervals (foldl' (\t (a, n) -> touch a n t) emptyTouched accesses)
+                    === foldl' (\s (a, n) -> recordRange a n s) emptyIntervals accesses
         ]

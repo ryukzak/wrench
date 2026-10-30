@@ -19,8 +19,8 @@ instance ByteSize Isa where
 instance (Eq isa, Eq w) => Eq (IoMem isa w) where
     a == b = fields a == fields b
         where
-            fields IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount} =
-                (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount)
+            fields IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessSet, mAccessCount} =
+                (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessSet, mAccessCount)
 
 tests :: TestTree
 tests =

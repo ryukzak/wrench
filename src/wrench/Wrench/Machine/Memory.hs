@@ -341,23 +341,23 @@ ioPortByteCollision IoMem{mIoKeys} addr =
 -- one of these, so a word access counts once rather than per byte. An
 -- instruction fetch counts the reads it is given.
 recordInstrAccess :: Int -> Int -> Int -> IoMem isa w -> IoMem isa w
-recordInstrAccess addr len fetchReads io@IoMem{mAccessLog, mAccessCount} =
+recordInstrAccess addr len fetchReads io@IoMem{mAccessSet, mAccessCount} =
     io
-        { mAccessLog = mAccessLog{alInstr = recordRange addr len (alInstr mAccessLog)}
+        { mAccessSet = mAccessSet{asInstr = touch addr len (asInstr mAccessSet)}
         , mAccessCount = mAccessCount{acReads = acReads mAccessCount + fetchReads}
         }
 
 recordDataAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
-recordDataAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
+recordDataAccess rw addr len io@IoMem{mAccessSet, mAccessCount} =
     io
-        { mAccessLog = mAccessLog{alData = recordRange addr len (alData mAccessLog)}
+        { mAccessSet = mAccessSet{asData = touch addr len (asData mAccessSet)}
         , mAccessCount = bump rw mAccessCount
         }
 
 recordIoAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
-recordIoAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
+recordIoAccess rw addr len io@IoMem{mAccessSet, mAccessCount} =
     io
-        { mAccessLog = mAccessLog{alIo = recordRange addr len (alIo mAccessLog)}
+        { mAccessSet = mAccessSet{asIo = touch addr len (asIo mAccessSet)}
         , mAccessCount = bump rw mAccessCount
         }
 
@@ -446,5 +446,5 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
 
     memCapacity = memCapacity . mIoCells
     ioPorts = mIoKeys
-    accessLog = mAccessLog
+    accessLog = toAccessLog . mAccessSet
     memAccessCount = mAccessCount
