@@ -35,12 +35,19 @@ module Wrench.Isa.Wasm32.State (
     -- * Scan cache
     cachedScan,
 
+    -- * Branch cache
+    BranchEntry (..),
+    cachedBranch,
+    rememberBranch,
+
     -- * Control stack
     Scope (..),
     pushScope,
     retireScopes,
     scopeAtDepth,
+    scopeRecordAtDepth,
     innermostCall,
+    ctrlCorruptedErr,
 
     -- * Control-record encoding
     scopeAddrs,
@@ -78,6 +85,10 @@ data Wasm32St w = Wasm32St
     -- recently used first: where each scan started and where it ended.
     , scanCacheSize :: Int
     -- ^ How many scans 'scanCache' keeps.
+    , branchCache :: [BranchEntry w]
+    -- ^ The last 'branchCacheSize' branches taken, most recently used first.
+    , branchCacheSize :: Int
+    -- ^ How many branches 'branchCache' keeps.
     , mem :: IoMem (Wasm32Isa w w) w
     -- ^ Memory, including the memory-mapped I\/O ports.
     , ir :: [(Int, Wasm32Isa w w)]
@@ -125,11 +136,11 @@ getWord addr = do
             raiseInternalError [i|memory access error: #{err}|]
             return def
 
-setWord :: (IsWord w) => Int -> w -> State (Wasm32St w) ()
+setWord :: forall w. (IsWord w) => Int -> w -> State (Wasm32St w) ()
 setWord addr w = do
     st@Wasm32St{mem} <- get
     case writeWord mem addr w of
-        Right mem' -> put st{mem = mem'}
+        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr (byteSizeT @w) (Just w)
         Left err -> raiseInternalError [i|memory access error: #{err}|]
 
 getByte :: (IsWord w) => Int -> State (Wasm32St w) Word8
@@ -145,7 +156,7 @@ setByte :: (IsWord w) => Int -> Word8 -> State (Wasm32St w) ()
 setByte addr b = do
     st@Wasm32St{mem} <- get
     case writeByte mem addr b of
-        Right mem' -> put st{mem = mem'}
+        Right mem' -> put st{mem = mem'} >> forgetChangedBranches addr 1 Nothing
         Left err -> raiseInternalError [i|memory access error: #{err}|]
 
 -- * Data stack
@@ -188,6 +199,44 @@ cachedScan start scan = do
     whenRight_ result $ \end ->
         modify $ \st -> st{scanCache = take (scanCacheSize st) ((start, end) : filter ((/= start) . fst) scanCache)}
     return result
+
+-- * Branch cache
+
+-- | A taken @br@ or @br_if@: where it was, the control record it read and
+-- that record's words, and where it went.
+data BranchEntry w = BranchEntry
+    { beFrom :: Int
+    , beRecord :: Int
+    , beWords :: [w]
+    , beTo :: Int
+    , beCtrlSp :: Int
+    }
+    deriving (Show)
+
+cachedBranch :: (IsWord w) => Int -> Int -> State (Wasm32St w) (Maybe (BranchEntry w))
+cachedBranch from record = do
+    Wasm32St{branchCache} <- get
+    let hit = find (\BranchEntry{beFrom, beRecord} -> beFrom == from && beRecord == record) branchCache
+    whenJust hit rememberBranch
+    return hit
+
+rememberBranch :: forall w. (IsWord w) => BranchEntry w -> State (Wasm32St w) ()
+rememberBranch entry@BranchEntry{beFrom, beRecord} = do
+    Wasm32St{mem} <- get
+    unless (any (`elem` ioPorts mem) (scopeWordAddrs @w beRecord)) $
+        modify $
+            \st -> st{branchCache = take (branchCacheSize st) (entry : filter (not . same) (branchCache st))}
+    where
+        same BranchEntry{beFrom = f, beRecord = r} = f == beFrom && r == beRecord
+
+forgetChangedBranches :: forall w. (IsWord w) => Int -> Int -> Maybe w -> State (Wasm32St w) ()
+forgetChangedBranches addr size value =
+    modify $ \st -> st{branchCache = filter unchanged (branchCache st)}
+    where
+        unchanged BranchEntry{beRecord, beWords} = and $ zipWith keeps (scopeWordAddrs @w beRecord) beWords
+        keeps wordAddr old
+            | wordAddr + byteSizeT @w <= addr || addr + size <= wordAddr = True
+            | otherwise = wordAddr == addr && value == Just old
 
 -- * Control stack
 
@@ -233,11 +282,16 @@ retireScopes n = modify $ \st ->
     st{ctrlSp = ctrlSp st - n * scopeRecordBytes @w}
 
 scopeAtDepth :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Maybe (Either Text Scope))
-scopeAtDepth depth = do
+scopeAtDepth depth = fmap decodeAt <$> scopeRecordAtDepth depth
+    where
+        decodeAt (addr, words_) = first (ctrlCorruptedErr addr) (unpackWords words_)
+
+scopeRecordAtDepth :: forall w. (IsWord w) => Int -> State (Wasm32St w) (Maybe (Int, [w]))
+scopeRecordAtDepth depth = do
     st <- get
     case drop depth (scopeAddrs st) of
         [] -> return Nothing
-        addr : _ -> Just . first (ctrlCorruptedErr addr) <$> readScope addr unpack
+        addr : _ -> Just . (addr,) <$> mapM getWord (scopeWordAddrs @w addr)
 
 innermostCall :: forall w. (IsWord w) => State (Wasm32St w) (Either Text (Int, Scope))
 innermostCall = get >>= go . scopeAddrs

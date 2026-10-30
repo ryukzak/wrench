@@ -54,6 +54,12 @@ wasm32Views =
             $ \StateEnv{seState = Wasm32St{scanCache, mem}} fmt ->
                 let addr = if fmt == Hex then hexAddr (hexAddrWidth (memCapacity mem)) else show
                  in T.intercalate ", " [addr start <> "->" <> addr end | (start, end) <- scanCache]
+        , mkView
+            (lit "cache:branch" *> format [Dec, Hex] Dec)
+            "The last four taken branches, most recent first: `from->to`."
+            $ \StateEnv{seState = Wasm32St{branchCache, mem}} fmt ->
+                let addr = if fmt == Hex then hexAddr (hexAddrWidth (memCapacity mem)) else show
+                 in T.intercalate ", " [addr beFrom <> "->" <> addr beTo | BranchEntry{beFrom, beTo} <- branchCache]
         ]
     where
         values name doc f = mkView (lit name *> format [Dec, Hex] Dec) doc $ \StateEnv{seState} fmt ->

@@ -169,3 +169,4 @@ Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a
 | `{ctrl-sp[:dec\|hex]}`                 | Top of the control stack.                                                                              |
 | `{stack-root[:dec\|hex]}`              | Where both stacks start, set by `sp.init`.                                                             |
 | `{cache:scan[:dec\|hex]}`              | The last four `else`/`end` scans, most recent first: `start->end`.                                     |
+| `{cache:branch[:dec\|hex]}`            | The last four taken branches, most recent first: `from->to`.                                           |
