@@ -622,6 +622,17 @@ storeByte (IndirectAddrRegPostIncrement r) v = do
 storeByte (Immediate _) _ = error "impossible to store into immediate destination"
 storeByte arg _ = error $ "can not store byte: " <> show arg
 
+-- | A destination that is read and then written is read through 'rmwRead'
+-- and written through 'rmwWrite', so both reach the same address and the
+-- address register moves once: @-(An)@ on the read, @(An)+@ on the write.
+rmwRead :: Argument w l -> Argument w l
+rmwRead (IndirectAddrRegPostIncrement r) = IndirectAddrReg 0 r Nothing
+rmwRead arg = arg
+
+rmwWrite :: Argument w l -> Argument w l
+rmwWrite (IndirectAddrRegPreDecrement r) = IndirectAddrReg 0 r Nothing
+rmwWrite arg = arg
+
 instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
     instructionFetch = do
         st <- get
@@ -641,8 +652,8 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             Move{mode = Byte, src, dst} -> byteCmd1 src dst id
             MoveA{mode = Long, src, dst} -> wordCmd1 src dst id
             MoveA{mode = Byte} -> error "not implemented"
-            Not{mode = Long, dst} -> wordCmd1 dst dst complement
-            Not{mode = Byte, dst} -> byteCmd1 dst dst complement
+            Not{mode = Long, dst} -> wordCmd1 (rmwRead dst) (rmwWrite dst) complement
+            Not{mode = Byte, dst} -> byteCmd1 (rmwRead dst) (rmwWrite dst) complement
             Clr{mode = Long, dst} -> do
                 storeWord dst 0
                 modify $ \st -> st{nFlag = False, zFlag = True, vFlag = False, cFlag = False}
@@ -652,15 +663,15 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                 modify $ \st -> st{nFlag = False, zFlag = True, vFlag = False, cFlag = False}
                 nextPc
             Neg{mode = Long, dst} -> do
-                a <- fetchWord dst
+                a <- fetchWord (rmwRead dst)
                 let Ext{value, carry, overflow} = subExt 0 a
-                storeWord dst value
+                storeWord (rmwWrite dst) value
                 modify $ \st -> st{nFlag = value < 0, zFlag = value == 0, vFlag = overflow, cFlag = carry}
                 nextPc
             Neg{mode = Byte, dst} -> do
-                a <- fetchByte dst
+                a <- fetchByte (rmwRead dst)
                 let Ext{value, carry, overflow} = subExt 0 a
-                storeByte dst value
+                storeByte (rmwWrite dst) value
                 modify $ \st -> st{nFlag = value < 0, zFlag = value == 0, vFlag = overflow, cFlag = carry}
                 nextPc
             And{mode = Long, src, dst} -> wordCmd2 src dst (.&.)
@@ -766,16 +777,16 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                 clearVC
                 nextPc
             wordCmd2 src dst f = do
-                a <- fetchWord dst
                 b <- fetchWord src
-                storeWord dst $ f a b
+                a <- fetchWord (rmwRead dst)
+                storeWord (rmwWrite dst) $ f a b
                 clearVC
                 nextPc
             wordCmd2Ext src dst f = do
-                a <- fetchWord dst
                 b <- fetchWord src
+                a <- fetchWord (rmwRead dst)
                 let Ext{value, carry, overflow} = f a b
-                storeWord dst value
+                storeWord (rmwWrite dst) value
                 modify $ \st ->
                     st
                         { nFlag = value < 0
@@ -790,36 +801,36 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                 clearVC
                 nextPc
             byteCmd2 src dst f = do
-                a <- fetchByte dst
                 b <- fetchByte src
-                storeByte dst $ f a b
+                a <- fetchByte (rmwRead dst)
+                storeByte (rmwWrite dst) $ f a b
                 clearVC
                 nextPc
             wordShift src dst f carryBit = do
-                a <- fetchWord dst
                 b <- fetchWord src
+                a <- fetchWord (rmwRead dst)
                 let width = finiteBitSize a
                     requested = fromEnum (b .&. 0x3F)
                     shiftBy = min (fromIntegral width) (b .&. 0x3F)
                     result = f a shiftBy
-                storeWord dst result
+                storeWord (rmwWrite dst) result
                 modify $ \st -> st{vFlag = False, cFlag = shiftCarry carryBit a width requested}
                 nextPc
             byteShift src dst f carryBit = do
-                a <- fetchByte dst
                 b <- fetchByte src
+                a <- fetchByte (rmwRead dst)
                 let width = finiteBitSize a
                     requested = fromEnum (b .&. 0x3F)
                     shiftBy = min (fromIntegral width) (b .&. 0x3F)
                     result = f a shiftBy
-                storeByte dst result
+                storeByte (rmwWrite dst) result
                 modify $ \st -> st{vFlag = False, cFlag = shiftCarry carryBit a width requested}
                 nextPc
             byteCmd2Ext src dst f = do
-                a <- fetchByte dst
                 b <- fetchByte src
+                a <- fetchByte (rmwRead dst)
                 let Ext{value, carry, overflow} = f a b
-                storeByte dst value
+                storeByte (rmwWrite dst) value
                 modify $ \st ->
                     st
                         { nFlag = value < 0
