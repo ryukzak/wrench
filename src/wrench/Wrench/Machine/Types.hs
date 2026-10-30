@@ -195,8 +195,8 @@ data Trace st isa
     deriving (Show)
 
 data Mem isa w = Mem
-    { memorySize :: Int
-    , memoryData :: IntMap (Cell isa w)
+    { memorySize :: !Int
+    , memoryData :: !(IntMap (Cell isa w))
     }
     deriving (Eq, Show)
 
@@ -233,9 +233,9 @@ mkIoMem streams cells =
         }
 
 data Cell isa w
-    = Instruction isa
+    = Instruction !isa
     | InstructionPart
-    | Value Word8
+    | Value !Word8
     deriving (Eq, Show)
 
 -----------------------------------------------------------
