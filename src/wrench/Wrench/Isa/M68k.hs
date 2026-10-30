@@ -454,12 +454,6 @@ setPc addr = modify $ \st -> st{pc = addr}
 getPc :: State (M68kSt w) Int
 getPc = get >>= \st -> return $ pc st
 
-nextPc :: (IsWord w) => State (M68kSt w) ()
-nextPc = do
-    instructionFetch >>= \case
-        Right (pc, instruction) -> setPc (pc + byteSize instruction)
-        Left err -> raiseInternalError $ "nextPc: " <> err
-
 raiseInternalError :: Text -> State (M68kSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 
@@ -646,7 +640,7 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                         put st{mem = mem'}
                         return $ Right (pc, instruction)
 
-    instructionExecute _pc instruction = do
+    instructionExecute pc instruction = do
         case instruction of
             Move{mode = Long, src, dst} -> wordCmd1 src dst id
             Move{mode = Byte, src, dst} -> byteCmd1 src dst id
@@ -768,6 +762,7 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
                 nextPc
             Halt -> modify $ \st -> st{stopped = True}
         where
+            nextPc = setPc (pc + byteSize instruction)
             branch addr True = setPc $ fromEnum addr
             branch _addr False = nextPc
             clearVC = modify $ \st -> st{vFlag = False, cFlag = False}
