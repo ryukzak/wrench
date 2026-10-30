@@ -552,7 +552,7 @@ instance (IsWord w) => InitState (VliwIvSt w) where
     initState pc dump randomStream =
         VliwIvSt
             { pc
-            , mem = dump
+            , mem = dump{mInstrFetchReads = const 1}
             , regs = def
             , stopped = False
             , internalError = Nothing

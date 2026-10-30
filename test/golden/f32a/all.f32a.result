@@ -3,72 +3,72 @@
 reads: 0, writes: 0 -- -
 reads: 2, writes: 0 -- Lit 1
 reads: 2, writes: 0 -- Lit 2
-reads: 2, writes: 0 -- Add
-reads: 2, writes: 0 -- LShift
-reads: 2, writes: 0 -- RShift
-reads: 2, writes: 0 -- Inv
-reads: 2, writes: 0 -- Inv
+reads: 1, writes: 0 -- Add
+reads: 0, writes: 0 -- LShift
+reads: 0, writes: 0 -- RShift
+reads: 0, writes: 0 -- Inv
+reads: 1, writes: 0 -- Inv
 reads: 2, writes: 0 -- Lit 1
-reads: 2, writes: 0 -- Xor
+reads: 1, writes: 0 -- Xor
 reads: 2, writes: 0 -- Lit 3
-reads: 2, writes: 0 -- And
-reads: 2, writes: 0 -- Dup
-reads: 2, writes: 0 -- Over
-reads: 2, writes: 0 -- Drop
-reads: 2, writes: 0 -- Drop
+reads: 1, writes: 0 -- And
+reads: 0, writes: 0 -- Dup
+reads: 0, writes: 0 -- Over
+reads: 0, writes: 0 -- Drop
+reads: 1, writes: 0 -- Drop
 reads: 2, writes: 0 -- Lit 1
-reads: 2, writes: 0 -- Eam
+reads: 1, writes: 0 -- Eam
 reads: 2, writes: 0 -- Lit 0
-reads: 2, writes: 0 -- Eam
+reads: 1, writes: 0 -- Eam
 reads: 3, writes: 0 -- FetchP 0
-reads: 2, writes: 0 -- AStore
+reads: 1, writes: 0 -- AStore
 reads: 3, writes: 0 -- FetchP 4
-reads: 2, writes: 0 -- BStore
-reads: 2, writes: 0 -- AFetch
-reads: 2, writes: 0 -- Drop
-reads: 2, writes: 0 -- Dup
-reads: 2, writes: 1 -- Store
-reads: 3, writes: 0 -- Fetch
-reads: 2, writes: 1 -- StoreB
-reads: 3, writes: 0 -- FetchB
-reads: 2, writes: 1 -- StorePlus
-reads: 3, writes: 0 -- FetchPlus
-reads: 2, writes: 0 -- Drop
+reads: 1, writes: 0 -- BStore
+reads: 0, writes: 0 -- AFetch
+reads: 0, writes: 0 -- Drop
+reads: 0, writes: 0 -- Dup
+reads: 1, writes: 1 -- Store
+reads: 1, writes: 0 -- Fetch
+reads: 0, writes: 1 -- StoreB
+reads: 1, writes: 0 -- FetchB
+reads: 1, writes: 1 -- StorePlus
+reads: 1, writes: 0 -- FetchPlus
+reads: 0, writes: 0 -- Drop
 reads: 2, writes: 1 -- StoreP 20
 reads: 3, writes: 0 -- FetchP 8
-reads: 2, writes: 0 -- AStore
+reads: 1, writes: 0 -- AStore
 reads: 2, writes: 0 -- Lit 2
 reads: 2, writes: 0 -- Lit 3
-reads: 2, writes: 0 -- MulStep
-reads: 2, writes: 0 -- Drop
-reads: 2, writes: 0 -- Drop
+reads: 1, writes: 0 -- MulStep
+reads: 0, writes: 0 -- Drop
+reads: 0, writes: 0 -- Drop
 reads: 3, writes: 0 -- FetchP 4
-reads: 2, writes: 0 -- BStore
+reads: 1, writes: 0 -- BStore
 reads: 3, writes: 0 -- FetchP 12
-reads: 2, writes: 0 -- AStore
+reads: 1, writes: 0 -- AStore
 reads: 2, writes: 0 -- Lit 0
 reads: 2, writes: 0 -- Lit 0
-reads: 3, writes: 0 -- DivStep
-reads: 2, writes: 0 -- Drop
-reads: 2, writes: 0 -- Drop
+reads: 2, writes: 0 -- DivStep
+reads: 0, writes: 0 -- Drop
+reads: 0, writes: 0 -- Drop
 reads: 2, writes: 0 -- Lit 5
-reads: 2, writes: 0 -- TIntoR
-reads: 2, writes: 0 -- RIntoT
-reads: 2, writes: 0 -- Drop
+reads: 1, writes: 0 -- TIntoR
+reads: 0, writes: 0 -- RIntoT
+reads: 0, writes: 0 -- Drop
 reads: 2, writes: 0 -- Lit 2
-reads: 2, writes: 0 -- TIntoR
-reads: 1, writes: 0 -- Next 152
-reads: 1, writes: 0 -- Next 152
+reads: 1, writes: 0 -- TIntoR
 reads: 2, writes: 0 -- Next 152
+reads: 0, writes: 0 -- Next 152
+reads: 0, writes: 0 -- Next 152
 reads: 2, writes: 0 -- Lit 0
-reads: 1, writes: 0 -- If 167
+reads: 2, writes: 0 -- If 167
 reads: 2, writes: 0 -- Lit 1
-reads: 1, writes: 0 -- MinusIf 177
-reads: 1, writes: 0 -- Call 187
-reads: 2, writes: 0 -- Return
-reads: 1, writes: 0 -- Jump 188
+reads: 2, writes: 0 -- MinusIf 177
+reads: 2, writes: 0 -- Call 187
+reads: 1, writes: 0 -- Return
+reads: 2, writes: 0 -- Jump 188
 reads: 1, writes: 0 -- Halt
 ---
 # Totals
 instructions: 67
-reads: 136 writes: 4 accesses: 140
+reads: 79 writes: 4 accesses: 83

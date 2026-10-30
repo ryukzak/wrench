@@ -11,6 +11,7 @@ module Wrench.Isa.F32a (
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
 import Data.Default (def)
+import Data.List (lookup)
 import Relude
 import Text.Megaparsec (anySingleBut, choice, getSourcePos, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -30,8 +31,8 @@ data F32aIsa w l
       Return
     | -- | > <address: i32> ( -- )
       --
-      -- Call, written as a bare label: pushes P onto the return stack and
-      -- jumps.
+      -- Call, written as a bare label: pushes the address of the next
+      -- instruction onto the return stack and jumps.
       Call l
     | -- | > lit <value: i32> ( -- value: i32 )
       --
@@ -337,6 +338,8 @@ data F32aSt w = F32aSt
     , a :: w
     , b :: w
     , ram :: IoMem (F32aIsa w w) w
+    , ir :: [(Int, F32aIsa w w)]
+    -- ^ Instruction register: the instructions of the last fetched words, by address.
     , dataStack :: [w]
     , returnStack :: [w]
     , dataStackMax :: !Int
@@ -363,6 +366,7 @@ instance (IsWord w) => InitState (F32aSt w) where
             , dataStackMax = 0
             , returnStackMax = 0
             , ram = dump
+            , ir = []
             , stopped = False
             , extendedArithmeticMode = False
             , carryFlag = False
@@ -371,15 +375,6 @@ instance (IsWord w) => InitState (F32aSt w) where
 
 setP :: forall w. Int -> State (F32aSt w) ()
 setP addr = modify $ \st -> st{p = addr}
-
-getP :: State (F32aSt w) Int
-getP = get <&> (fromEnum . p)
-
-nextP :: (IsWord w) => State (F32aSt w) ()
-nextP = do
-    instructionFetch >>= \case
-        Right (p, instruction) -> setP (p + byteSize instruction)
-        Left err -> raiseInternalError $ "nextPc: " <> err
 
 raiseInternalError :: Text -> State (F32aSt w) ()
 raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
@@ -488,20 +483,22 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
         case st of
             F32aSt{stopped = True} -> return $ Left halted
             F32aSt{internalError = Just err} -> return $ Left err
+            F32aSt{p, ir}
+                | Just instruction <- lookup p ir -> return $ Right (p, instruction)
             F32aSt{p, ram} ->
-                case readInstruction ram p of
+                case readInstructions ram p of
                     Left err -> return $ Left err
-                    Right (ram', instruction) -> do
-                        put st{ram = ram'}
+                    Right (ram', fetched@((_, instruction) :| _)) -> do
+                        put st{ram = ram', ir = toList fetched}
                         return $ Right (p, instruction)
-    instructionExecute _pc instruction =
+    instructionExecute p instruction =
         case instruction of
             Lit l -> do
                 dataPush l
                 nextP
-            Return -> returnPop >>= setP . fromEnum >> nextP
+            Return -> returnPop >>= setP . fromEnum
             Call l -> do
-                getP >>= returnPush . toEnum
+                returnPush $ toEnum next
                 setP (fromEnum l)
             Jump l -> do
                 setP (fromEnum l)
@@ -661,3 +658,6 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
                 dataPush s
                 nextP
             Halt -> modify $ \st -> st{stopped = True}
+        where
+            next = p + byteSize instruction
+            nextP = setP next

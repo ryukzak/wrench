@@ -35,6 +35,35 @@ logical field layout, not literal bit-packing):
 - Control flow and `load_imm`/`load_addr`/`store_addr`/`store_ind` -- 5 bytes, full word:
   `<<Opcode:8, Address:32/signed>>`
 
+### Instruction Fetch
+
+Memory is read a word (4 bytes) at a time, from any address. The processor keeps the instructions it
+read in an instruction register, `ir`. To fetch the instruction at `pc`:
+
+- If `ir` holds an instruction at `pc`, the fetch takes it from there and costs no read.
+- Otherwise it reads words starting at `pc`: 1 read for a 1–3 byte instruction, 2 for a 5-byte one.
+  `ir` then holds that instruction and every following one that ends inside the first word read, so
+  a 5-byte instruction comes alone.
+
+So `mem:reads` and `mem:per-instruction` show 0, 1 or 2 fetch reads on top of the instruction's own
+data accesses. A jump to an instruction already in `ir` costs no read either. Data reads never come
+from `ir`, and stores don't change it.
+
+The loop body of `example/acc32/factorial.s` (`store result`, `load n`, `sub const_1`, `store n`)
+for `n = 5`:
+
+```text
+Address  Exec  Read  Write  Instruction
+0x033       5     1      1  Store (-39)
+0x035       5     1      0  Load (-45)
+0x037       5     2      0  Sub 16
+0x03a       5     1      1  Store (-50)
+```
+
+`store result` reads the word `0x033..0x036`, which also holds `load n`, so `load n` costs only its
+data read. `sub const_1` reads `0x037..0x03a`, where `store n` starts but doesn't end, so `store n`
+needs a read of its own.
+
 ### Relative Addressing
 
 `load` and `store` are written with an absolute address, the same as `load_addr` and `store_addr`.

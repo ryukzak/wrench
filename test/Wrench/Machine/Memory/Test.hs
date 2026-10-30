@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-overflowed-literals #-}
+{-# OPTIONS_GHC -Wno-overflowed-literals -Wno-orphans #-}
 
 module Wrench.Machine.Memory.Test (tests) where
 
@@ -14,6 +14,13 @@ newtype Isa = Isa Int deriving (Eq, Show)
 
 instance ByteSize Isa where
     byteSize (Isa n) = n
+
+-- | Every field but the 'mInstrFetchReads' function.
+instance (Eq isa, Eq w) => Eq (IoMem isa w) where
+    a == b = fields a == fields b
+        where
+            fields IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount} =
+                (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount)
 
 tests :: TestTree
 tests =

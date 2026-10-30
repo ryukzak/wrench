@@ -119,10 +119,25 @@ import Wrench.Isa.Wasm32.Report ()
 -- >              | .text, .data        |
 -- > 0            +---------------------+
 --
--- Besides memory, the machine keeps only @pc@ and a few stack pointers,
--- introduced below. The stacks are plain memory: a program can read and
--- overwrite them, and nothing stops them from running into each other or
--- into code and data.
+-- Besides memory, the machine keeps only @pc@, an instruction register and
+-- a few stack pointers, introduced below. The stacks are plain memory: a
+-- program can read and overwrite them, and nothing stops them from running
+-- into each other or into code and data.
+--
+-- Memory is read a word (4 bytes) at a time, from any address. The machine
+-- keeps the instructions it read in the instruction register. A fetch takes
+-- the instruction at @pc@ from there at no cost; otherwise it reads words
+-- starting at @pc@, 1 read for an instruction of up to 4 bytes and 2 for
+-- @i32.const@, and keeps that instruction and every following one that ends
+-- inside the first word read. Here the first @local.get@ reads the word
+-- holding both @local.get@s, and @i32.mul@ the word holding @local.set@ too,
+-- so the four instructions cost 2 fetch reads:
+--
+-- > local.get $acc local.get $n i32.mul
+-- > local.set $acc
+--
+-- Data reads never come from the instruction register, and stores don't
+-- change it.
 
 -- $operands
 -- Every value is a 32-bit word. @i32.const@ pushes a value; an operation
@@ -171,11 +186,12 @@ import Wrench.Isa.Wasm32.Report ()
 --
 -- There is no table of @end@ addresses. To skip, @if@ or @else@ reads the
 -- following instructions one by one, tracking nested @block@, @loop@ and
--- @if@, until it finds its own @else@ or @end@. Each instruction read is a
--- memory access, so each path pays for the part it skips. In the example,
--- when @x@ is negative @if@ costs 2 accesses (fetch, pop) and @else@ 3
--- (fetch, @i32.const 1@, @end@); otherwise @if@ costs 4 (fetch, pop,
--- @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
+-- @if@, until it finds its own @else@ or @end@. Each instruction it reads
+-- is fetched like any other, so each path pays for the part it skips. In
+-- the example, @if@ comes in the same word as @i32.lt_s@, so its fetch is
+-- free. When @x@ is negative @if@ costs 1 access (pop) and @else@ 4 (fetch,
+-- 2 for the five-byte @i32.const 1@, @end@); otherwise @if@ costs 4 (pop, 2
+-- for @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
 -- @end@ does nothing; a missing @end@ is noticed only when a skip looks
 -- for it.
 
@@ -218,9 +234,9 @@ import Wrench.Isa.Wasm32.Report ()
 -- >     end
 -- > end
 --
--- Here @block@ costs 21 accesses (fetch, 18 instructions up to its @end@,
--- two record words) and @loop@ 19. A missing @end@ is reported when its
--- scope runs.
+-- Here @block@ costs 21 accesses (19 reads to fetch it and the instructions
+-- up to its @end@, two record words), and @loop@ the same. A missing @end@
+-- is reported when its scope runs.
 --
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/factorial.s example/wasm32/factorial.s>
 -- is a complete program with a loop.
