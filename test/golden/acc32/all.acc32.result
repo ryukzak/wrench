@@ -13,7 +13,7 @@ reads: 2, writes: 1 -- StoreAddr 36
 reads: 2, writes: 0 -- Load (-40)
 reads: 2, writes: 1 -- StoreAddr 36
 reads: 2, writes: 0 -- Load (-67)
-reads: 2, writes: 0 -- LoadAcc
+reads: 1, writes: 0 -- LoadAcc
 reads: 2, writes: 1 -- StoreAddr 36
 reads: 2, writes: 0 -- LoadImm 32
 reads: 2, writes: 1 -- StoreAddr 36
@@ -55,7 +55,7 @@ reads: 3, writes: 0 -- LoadAddr 32
 reads: 1, writes: 0 -- Not
 reads: 2, writes: 1 -- StoreAddr 36
 reads: 1, writes: 0 -- Clv
-reads: 1, writes: 0 -- Clc
+reads: 0, writes: 0 -- Clc
 reads: 2, writes: 0 -- LoadImm 0
 reads: 2, writes: 0 -- Beqz 255
 reads: 2, writes: 0 -- LoadImm 1
@@ -73,4 +73,4 @@ reads: 1, writes: 0 -- Halt
 ---
 # Totals
 instructions: 64
-reads: 136 writes: 18 accesses: 154
+reads: 134 writes: 18 accesses: 152

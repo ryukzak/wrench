@@ -9,6 +9,7 @@ module Wrench.Isa.Acc32 (
 
 import Data.Bits (Bits (..), complement, shiftL, shiftR, (.&.))
 import Data.Default (def)
+import Data.List (lookup)
 import Relude
 import Text.Megaparsec (choice, try)
 import Text.Megaparsec.Char (hspace, hspace1, string)
@@ -204,6 +205,8 @@ data Acc32St w = Acc32St
     , overflowFlag :: Bool
     , carryFlag :: Bool
     , ram :: IoMem (Acc32Isa w w) w
+    , ir :: [(Int, Acc32Isa w w)]
+    -- ^ Instruction register: the instructions of the last fetched words, by address.
     , stopped :: Bool
     , internalError :: Maybe Text
     }
@@ -218,6 +221,7 @@ instance (IsWord w) => InitState (Acc32St w) where
             , overflowFlag = False
             , carryFlag = False
             , ram = dump
+            , ir = []
             , stopped = False
             , pc = pc
             , internalError = Nothing
@@ -282,11 +286,13 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
         case st of
             Acc32St{stopped = True} -> return $ Left halted
             Acc32St{internalError = Just err} -> return $ Left err
+            Acc32St{pc, ir}
+                | Just instruction <- lookup pc ir -> return $ Right (pc, instruction)
             Acc32St{pc, ram} ->
-                case readInstruction ram pc of
+                case readInstructions ram pc of
                     Left err -> return $ Left err
-                    Right (ram', instruction) -> do
-                        put st{ram = ram'}
+                    Right (ram', fetched@((_, instruction) :| _)) -> do
+                        put st{ram = ram', ir = toList fetched}
                         return $ Right (pc, instruction)
     instructionExecute pc instruction =
         case instruction of

@@ -5,6 +5,7 @@ module Wrench.Machine.Memory (
     Mem (..),
     Cell (..),
     Memory (..),
+    readInstructions,
     WordParts (..),
     word32ToHex,
     hexAddr,
@@ -338,7 +339,7 @@ ioPortByteCollision IoMem{mIoKeys} addr =
 
 -- | Record one access. Every successful read and write goes through exactly
 -- one of these, so a word access counts once rather than per byte. An
--- instruction fetch counts the reads 'mInstrFetchReads' gives.
+-- instruction fetch counts the reads it is given.
 recordInstrAccess :: Int -> Int -> Int -> IoMem isa w -> IoMem isa w
 recordInstrAccess addr len fetchReads io@IoMem{mAccessLog, mAccessCount} =
     io
@@ -360,16 +361,46 @@ recordIoAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
         , mAccessCount = bump rw mAccessCount
         }
 
+-- | The instruction at @idx@, without recording an access.
+ioInstructionAt :: (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => IoMem isa w -> Int -> Either Text isa
+ioInstructionAt io@IoMem{mIoStreams, mIoCells} idx =
+    case mIoStreams !? idx of
+        Just _ -> Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
+        Nothing -> case readInstruction mIoCells idx of
+            Left err -> Left err
+            Right (_mIoCells', instr)
+                | ioPortInstructionCollision io idx instr ->
+                    Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
+                | otherwise -> Right instr
+
+-- | Read the instruction at @idx@ a word at a time from @idx@ on, one read
+-- per started word, and return it with every following instruction that
+-- ends inside the first word read. An instruction longer than a word comes
+-- alone.
+readInstructions ::
+    forall isa w.
+    (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) =>
+    IoMem isa w
+    -> Int
+    -> Either Text (IoMem isa w, NonEmpty (Int, isa))
+readInstructions io idx = do
+    instr <- ioInstructionAt io idx
+    let wordsRead = (byteSize instr + byteSizeT @w - 1) `div` byteSizeT @w
+        end = idx + byteSizeT @w
+        following addr = case ioInstructionAt io addr of
+            Right i | addr + byteSize i <= end -> (addr, i) : following (addr + byteSize i)
+            _ -> []
+        rest = following (idx + byteSize instr)
+        io' = recordInstrAccess idx (byteSize instr) wordsRead io
+    return
+        ( foldl' (\m (addr, i) -> recordInstrAccess addr (byteSize i) 0 m) io' rest
+        , (idx, instr) :| rest
+        )
+
 instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
-    readInstruction io@IoMem{mIoStreams, mIoCells, mInstrFetchReads} idx =
-        case mIoStreams !? idx of
-            Just _ -> Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
-            Nothing -> case readInstruction mIoCells idx of
-                Left err -> Left err
-                Right (_mIoCells', instr)
-                    | ioPortInstructionCollision io idx instr ->
-                        Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
-                    | otherwise -> Right (recordInstrAccess idx (byteSize instr) (mInstrFetchReads instr) io, instr)
+    readInstruction io@IoMem{mInstrFetchReads} idx = do
+        instr <- ioInstructionAt io idx
+        return (recordInstrAccess idx (byteSize instr) (mInstrFetchReads instr) io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
         | Just wordIdx <- mIoByteToWord !? idx = do
