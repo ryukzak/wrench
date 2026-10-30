@@ -491,6 +491,56 @@ tests =
              in do
                     (dataRegs !? D0) @?= Just 0x00
                     zFlag @?= True
+        , testGroup
+            "A destination read and written moves -(An) and (An)+ once"
+            [ testCase "-(An) reads and writes the word below An" $ do
+                let M68kSt{addrRegs, mem} =
+                        simulate "add.l D0, -(A0)" st0{addrRegs = insert A0 0x14 addrRegs0, dataRegs = insert D0 1 dataRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x10
+                        fmap snd (readWord mem 0x10) @?= Right 0x13121111
+                        fmap snd (readWord mem 0x0C) @?= Right 0x0F0E0D0C
+            , testCase "(An)+ reads and writes the word at An" $ do
+                let M68kSt{addrRegs, mem} =
+                        simulate "add.l D0, (A0)+" st0{addrRegs = insert A0 0x10 addrRegs0, dataRegs = insert D0 1 dataRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x14
+                        fmap snd (readWord mem 0x10) @?= Right 0x13121111
+                        fmap snd (readWord mem 0x14) @?= Right 0x17161514
+            , testCase "byte mode steps by one" $ do
+                let M68kSt{addrRegs, mem} =
+                        simulate "add.b D0, -(A0)" st0{addrRegs = insert A0 0x11 addrRegs0, dataRegs = insert D0 1 dataRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x10
+                        readMemBytes mem [0x0F, 0x10, 0x11] @?= [0x0F, 0x11, 0x11]
+            , testCase "one-operand instructions too" $ do
+                let M68kSt{addrRegs, mem} = simulate "not.l -(A0)" st0{addrRegs = insert A0 0x14 addrRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x10
+                        fmap snd (readWord mem 0x10) @?= Right (-0x13121111)
+                let M68kSt{addrRegs, mem} = simulate "neg.l (A0)+" st0{addrRegs = insert A0 0x10 addrRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x14
+                        fmap snd (readWord mem 0x10) @?= Right (negate 0x13121110)
+            , testCase "the source is taken before the destination" $ do
+                let M68kSt{addrRegs, mem} = simulate "add.l (A0)+, (A0)+" st0{addrRegs = insert A0 0x10 addrRegs0}
+                 in do
+                        (addrRegs !? A0) @?= Just 0x18
+                        fmap snd (readWord mem 0x10) @?= Right 0x13121110
+                        fmap snd (readWord mem 0x14) @?= Right (0x13121110 + 0x17161514)
+            ]
+        , testCase "div divides by the source it checked" $ do
+            let M68kSt{addrRegs, dataRegs} =
+                    simulate
+                        "div.l -(A1), D0"
+                        st0
+                            { addrRegs = insert A1 0x14 addrRegs0
+                            , dataRegs = insert D0 20 dataRegs0
+                            , mem = either error id $ writeWord mem0 0x10 5 >>= \m -> writeWord m 0x0C 0
+                            }
+             in do
+                    (addrRegs !? A1) @?= Just 0x10
+                    (dataRegs !? D0) @?= Just 4
         , testCase "Division by zero" $ do
             let M68kSt{internalError} =
                     simulate "div.l D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
