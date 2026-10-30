@@ -11,6 +11,7 @@ module Wrench.Isa.F32a (
 
 import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testBit, (.&.))
 import Data.Default (def)
+import Data.List (lookup)
 import Relude
 import Text.Megaparsec (anySingleBut, choice, getSourcePos, try)
 import Text.Megaparsec.Char (char, hspace, hspace1, string)
@@ -337,6 +338,8 @@ data F32aSt w = F32aSt
     , a :: w
     , b :: w
     , ram :: IoMem (F32aIsa w w) w
+    , ir :: [(Int, F32aIsa w w)]
+    -- ^ Instruction register: the instructions of the last fetched words, by address.
     , dataStack :: [w]
     , returnStack :: [w]
     , dataStackMax :: !Int
@@ -363,6 +366,7 @@ instance (IsWord w) => InitState (F32aSt w) where
             , dataStackMax = 0
             , returnStackMax = 0
             , ram = dump
+            , ir = []
             , stopped = False
             , extendedArithmeticMode = False
             , carryFlag = False
@@ -479,11 +483,13 @@ instance (IsWord w) => Machine (F32aSt w) (F32aIsa w w) w where
         case st of
             F32aSt{stopped = True} -> return $ Left halted
             F32aSt{internalError = Just err} -> return $ Left err
+            F32aSt{p, ir}
+                | Just instruction <- lookup p ir -> return $ Right (p, instruction)
             F32aSt{p, ram} ->
-                case readInstruction ram p of
+                case readInstructions ram p of
                     Left err -> return $ Left err
-                    Right (ram', instruction) -> do
-                        put st{ram = ram'}
+                    Right (ram', fetched@((_, instruction) :| _)) -> do
+                        put st{ram = ram', ir = toList fetched}
                         return $ Right (p, instruction)
     instructionExecute p instruction =
         case instruction of
