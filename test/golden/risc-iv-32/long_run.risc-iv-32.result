@@ -1,0 +1,25 @@
+---
+# Start of the run
+0 4: - reads 0 writes 0
+1 8: Lui {rd = T0, k = 0} reads 1 writes 0
+2 12: Addi {rd = T0, rs1 = T0, k = 0} reads 1 writes 0
+---
+# End of the run
+10002 32: Addi {rd = T1, rs1 = T1, k = -1} reads 1 writes 0
+10003 36: Bnez {rs1 = T1, k = -16} reads 1 writes 0
+10004 36: Halt reads 1 writes 0
+---
+# Result
+acc: mem[0x00..0x03] (4 B): 	d0 07 00 00
+---
+# Memory accesses per instruction
+Address  Exec  Read  Write  Instruction
+0x04        1     1      0  Lui {rd = T0, k = 0} @_start
+0x08        1     1      0  Addi {rd = T0, rs1 = T0, k = 0}
+0x0c        1     1      0  Addi {rd = T1, rs1 = Zero, k = 2000}
+0x10     2000     2      0  Lw {rd = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}} @loop
+0x14     2000     1      0  Addi {rd = T2, rs1 = T2, k = 1}
+0x18     2000     1      1  Sw {rs2 = T2, offsetRs1 = MemRef {mrOffset = 0, mrReg = T0}}
+0x1c     2000     1      0  Addi {rd = T1, rs1 = T1, k = -1}
+0x20     2000     1      0  Bnez {rs1 = T1, k = -16}
+0x24        1     1      0  Halt

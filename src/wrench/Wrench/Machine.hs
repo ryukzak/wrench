@@ -1,62 +1,84 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
-module Wrench.Machine (powerOn) where
+module Wrench.Machine (powerOn, TracePlan (..)) where
 
+import Data.Sequence (Seq (..))
+import Data.Sequence qualified as Seq
 import Relude
 import Relude.Extra
 import Wrench.Machine.Types
 
-data Simulation st isa = Simulation
-    { log :: [Trace st isa]
+-- | How many states the trace keeps from each end of the run.
+data TracePlan = TracePlan
+    { tpHead :: !Int
+    , tpTail :: !Int
+    }
+    deriving (Eq, Show)
+
+data Simulation st isa acc = Simulation
+    { headLog :: ![Trace st isa]
+    , headCount :: !Int
+    , tailLog :: !(Seq (Trace st isa))
+    , closing :: ![Trace st isa]
+    , droppedStates :: !Int
+    , prevAccesses :: !AccessCount
+    , accessCount :: st -> AccessCount
+    , observed :: !acc
+    , observe :: acc -> Trace st isa -> acc
     , machineState :: st
     , pc2label :: HashMap Int Text
     , instructionCount :: Int
     , instructionLimits :: Int
-    , stateRecordCount :: Int
-    , stateRecordLimits :: Int
-    , takePartOnStateRecordLimit :: Int
+    , plan :: !TracePlan
     }
 
-tellState :: Maybe isa -> st -> State (Simulation st isa) ()
-tellState prevInstr machineState = modify $
-    \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
-        if stateRecordCount >= stateRecordLimits
-            then
-                let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
-                    rest = drop n log
-                    rest' =
-                        filter
-                            ( \case
-                                TState{} -> False
-                                _ -> True
-                            )
-                            rest
-                    dropped = length rest - length rest'
-                    warn = "Dropped " <> show dropped <> " states"
-                 in sim
-                        { log = take n log <> rest' <> [TWarn warn]
-                        , stateRecordCount = stateRecordCount - dropped
-                        }
-            else
-                sim
-                    { log = TState{tInstructionCount = instructionCount, tPrevInstruction = prevInstr, tState = machineState} : log
-                    , stateRecordCount = stateRecordCount + 1
-                    }
+tellState :: Maybe isa -> st -> State (Simulation st isa acc) ()
+tellState prevInstr machineState =
+    modify $
+        \sim@Simulation
+            { headLog
+            , headCount
+            , tailLog
+            , droppedStates
+            , prevAccesses
+            , accessCount
+            , observed
+            , observe
+            , instructionCount
+            , plan = TracePlan{tpHead, tpTail}
+            } ->
+                let accesses = accessCount machineState
+                    !record =
+                        TState
+                            { tInstructionCount = instructionCount
+                            , tPrevInstruction = prevInstr
+                            , tAccesses = acSince prevAccesses accesses
+                            , tState = machineState
+                            }
+                    sim' = sim{prevAccesses = accesses, observed = observe observed record}
+                 in if headCount < tpHead
+                        then sim'{headLog = record : headLog, headCount = headCount + 1}
+                        else case tailLog of
+                            _ :<| rest
+                                | Seq.length tailLog >= tpTail ->
+                                    sim'{tailLog = rest :|> record, droppedStates = droppedStates + 1}
+                            Empty | tpTail <= 0 -> sim'{droppedStates = droppedStates + 1}
+                            _ -> sim'{tailLog = tailLog :|> record}
 
-tellError msg = modify $ \sim@Simulation{log} ->
-    sim{log = TError msg : log}
+tellError msg = modify $ \sim -> sim{closing = [TError msg]}
 
--- | Run the simulation and return both the recorded trace log and the final
---   machine state. The final state carries the complete runtime accumulators
---   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
---   after each step, so the last entry captures the result of the halt
---   instruction too.
-simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
+-- | Run the simulation and return the kept states, a warning where states
+--   were dropped, the final machine state and the fold over every state.
+--   The final state carries the complete runtime accumulators (e.g.
+--   'AccessLog' in 'IoMem'); per-state trace entries are recorded after each
+--   step, so the last entry captures the result of the halt instruction too.
+simulate :: (Machine st isa w) => Simulation st isa acc -> ([Trace st isa], st, acc)
 simulate sim =
-    let Simulation{log, machineState} = execState (simulate' Nothing) sim
-     in (reverse log, machineState)
+    let Simulation{headLog, tailLog, closing, droppedStates, machineState, observed} = execState (simulate' Nothing) sim
+        gap = [TWarn ("Dropped " <> show droppedStates <> " states") | droppedStates > 0]
+     in (reverse headLog <> gap <> toList tailLog <> closing, machineState, observed)
 
-simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa) ()
+simulateInstructionStep :: (Machine st isa w) => State (Simulation st isa acc) ()
 simulateInstructionStep =
     modify $ \sim@Simulation{machineState, instructionCount} ->
         sim
@@ -64,7 +86,7 @@ simulateInstructionStep =
             , instructionCount = instructionCount + 1
             }
 
-simulate' :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
+simulate' :: (Machine st isa w) => Maybe isa -> State (Simulation st isa acc) ()
 simulate' prevInstr = do
     Simulation{machineState, instructionCount, instructionLimits} <- get
     if instructionCount >= instructionLimits
@@ -82,21 +104,30 @@ simulate' prevInstr = do
 powerOn ::
     (IsWord w, Machine st isa w) =>
     Int
-    -> Int
+    -> TracePlan
+    -> (st -> AccessCount)
+    -> (acc -> Trace st isa -> acc)
+    -> acc
     -> HashMap Text w
     -> st
-    -> Either Text ([Trace st isa], st)
-powerOn instructionLimits stateRecordLimits labels machineInitState = do
+    -> Either Text ([Trace st isa], st, acc)
+powerOn instructionLimits plan accessCount observe observed labels machineInitState = do
     let pc2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
     Right $
         simulate
             Simulation
-                { log = []
+                { headLog = []
+                , headCount = 0
+                , tailLog = Seq.empty
+                , closing = []
+                , droppedStates = 0
+                , prevAccesses = emptyAccessCount
+                , accessCount
+                , observed
+                , observe
                 , machineState = machineInitState
                 , pc2label = pc2label
                 , instructionCount = 0
                 , instructionLimits
-                , stateRecordCount = 0
-                , stateRecordLimits
-                , takePartOnStateRecordLimit = 4
+                , plan
                 }

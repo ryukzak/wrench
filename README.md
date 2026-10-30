@@ -108,8 +108,8 @@ Available options:
                            Maximum number of instructions to execute
                            (default: 8000000)
   --memory-limit SIZE      Maximum memory size in bytes (default: 65535)
-  --state-log-limit LIMIT  Maximum number of state records to log
-                           (default: 10000)
+  --state-log-limit LIMIT  Most states kept from each end of the run; slice all
+                           keeps the last LIMIT (default: 10000)
   --dump-addr-format FORMAT
                            Numeral format for -S dump addresses: hex or dec
                            (default: hex)

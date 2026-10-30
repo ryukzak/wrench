@@ -38,6 +38,7 @@ module Wrench.Report.View (
     -- * Templates
     Template,
     compileTemplate,
+    templateViews,
     renderTemplate,
     examples,
 ) where
@@ -202,7 +203,7 @@ viewName View{vSpec} = specName vSpec
 -- | Find the view a key names, read and check its arguments, and close
 -- over them. The view with the longest literal prefix wins, so
 -- @stack:layout@ is not read as @stack@ with an unknown format.
-matchView :: CheckEnv -> [View env] -> Text -> Either Text (Maybe Text, env -> Text)
+matchView :: CheckEnv -> [View env] -> Text -> Either Text (Maybe Text, Text, env -> Text)
 matchView checkEnv views key =
     case groupByLength candidates of
         [] -> Left $ "unknown view {" <> key <> "}" <> suggestions views parts
@@ -225,7 +226,11 @@ matchView checkEnv views key =
             first (\err -> "{" <> key <> "}: " <> err <> ", usage: " <> usage vSpec) $ do
                 a <- parseSpec vSpec parts
                 vCheck checkEnv a
-                return (renamedWarning (length (literals vSpec)) <$> vRenamedTo, (`vRender` a))
+                return
+                    ( renamedWarning (length (literals vSpec)) <$> vRenamedTo
+                    , T.intercalate ":" (fromMaybe (literals vSpec) vRenamedTo)
+                    , (`vRender` a)
+                    )
         renamedWarning n new =
             "{" <> key <> "} is renamed, use {" <> T.intercalate ":" (new <> drop n parts) <> "}"
 
@@ -314,7 +319,8 @@ code u = "`" <> T.replace "|" "\\|" u <> "`"
 -- | A report template with every key already matched to its view.
 newtype Template env = Template [Chunk env]
 
-data Chunk env = Literal Text | Hole (env -> Text)
+-- | A hole carries the current name of its view.
+data Chunk env = Literal Text | Hole Text (env -> Text)
 
 -- | Split a template into text and @{key}@ holes, matching every key.
 compileTemplate :: CheckEnv -> [View env] -> Text -> Either [Text] ([Text], Template env)
@@ -324,7 +330,7 @@ compileTemplate checkEnv views input =
         (errs, _) -> Left errs
     where
         compile (Left t) = Right (Nothing, Literal t)
-        compile (Right key) = second Hole <$> matchView checkEnv views key
+        compile (Right key) = (\(warning, name, render) -> (warning, Hole name render)) <$> matchView checkEnv views key
         -- A '{' without a later '}' is text, as is everything outside braces.
         chunks t
             | T.null t = []
@@ -339,4 +345,8 @@ renderTemplate :: Template env -> env -> Text
 renderTemplate (Template cs) env = T.concat (map render cs)
     where
         render (Literal t) = t
-        render (Hole f) = f env
+        render (Hole _ f) = f env
+
+-- | The views a template uses, by their current names.
+templateViews :: Template env -> [Text]
+templateViews (Template cs) = [name | Hole name _ <- cs]

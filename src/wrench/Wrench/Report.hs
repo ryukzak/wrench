@@ -6,6 +6,12 @@ module Wrench.Report (
     Report,
     compileReports,
     prepareReport,
+    tracePlan,
+    needsInstructionCosts,
+    InstructionCost,
+    CostAcc (caCosts),
+    emptyCostAcc,
+    costStep,
     renderIsaView,
     sharedViews,
     isaViews,
@@ -24,6 +30,7 @@ import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra
+import Wrench.Machine (TracePlan (..))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report.View
@@ -113,7 +120,7 @@ sharedViews =
         , flagView "mem:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
             renderMemoryTable (reDumpStats e) (memoryDump (final e))
         , flagView
-            "mem:per-instruction"
+            perInstructionView
             "Reads and writes of each executed instruction, per run."
             reInstructionCosts
         , checkedView
@@ -217,6 +224,7 @@ prepareReport ::
     TranslatorResult mem (WordOf st)
     -> Bool
     -> st
+    -> IntMap InstructionCost
     -> [Trace st (IsaOf st)]
     -> Report st
     -> (Bool, Text)
@@ -224,21 +232,21 @@ prepareReport
     TranslatorResult{labels, dumpStats}
     verbose
     finalState
+    costMap
     records
     Report{rConf = rc@ReportConf{rcName, rcSlice, rcAssert}, rTemplate} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            deltas = withAccessDeltas records
-            sliced = selectSlice rcSlice deltas
-            costs = renderInstructionCosts labels finalState deltas
+            sliced = selectSlice rcSlice records
+            costs = renderInstructionCosts labels finalState costMap
             stateViews = case rTemplate of
                 Nothing -> ""
                 Just template ->
                     T.concat
                         $ filter (not . T.null)
                         $ map
-                            ( \(accesses, record) -> case record of
-                                TState{tInstructionCount, tPrevInstruction, tState} ->
+                            ( \case
+                                TState{tInstructionCount, tPrevInstruction, tAccesses, tState} ->
                                     renderTemplate
                                         template
                                         ReportEnv
@@ -246,7 +254,7 @@ prepareReport
                                             , reDumpStats = dumpStats
                                             , reInstrCount = tInstructionCount
                                             , rePrevInstr = tPrevInstruction
-                                            , reAccesses = accesses
+                                            , reAccesses = tAccesses
                                             , reInstructionCosts = costs
                                             }
                                 (TError err) -> "ERROR: " <> err <> "\n"
@@ -289,59 +297,74 @@ instance FromJSON ReportSlice where
     parseJSON (String "last") = return LastSlice
     parseJSON _ = fail "Invalid slice format, expect: [\"head\", n], \"all\", [\"tail\", n], \"last\""
 
--- | Pair each state record with the accesses the instruction that produced
--- it made. One record per step, so consecutive totals differ by one
--- instruction's worth. Before slicing, so a slice still gets real deltas.
-withAccessDeltas ::
-    forall st.
-    (Inspectable st, Memory (MemOf st) (IsaOf st) (WordOf st)) =>
-    [Trace st (IsaOf st)]
-    -> [(AccessCount, Trace st (IsaOf st))]
-withAccessDeltas = go emptyAccessCount
+-- | How many states each end of the run must keep for these reports, at
+-- most @limit@ each. @all@ keeps the last @limit@.
+tracePlan :: Int -> [Report st] -> TracePlan
+tracePlan limit reports =
+    TracePlan
+        { tpHead = min limit $ foldr max 0 [n | HeadSlice n <- slices]
+        , tpTail =
+            if any isAll slices
+                then limit
+                else min limit $ foldr max 0 ([n | TailSlice n <- slices] <> [1 | LastSlice <- slices])
+        }
     where
-        go _ [] = []
-        go before (record : rest) = case record of
-            TState{tState} ->
-                let after = memAccessCount (memoryDump tState)
-                 in (acSince before after, record) : go after rest
-            _ -> (emptyAccessCount, record) : go before rest
+        slices = map (rcSlice . rConf) reports
+        isAll = \case
+            AllSlice -> True
+            _ -> False
+
+perInstructionView :: Text
+perInstructionView = "mem:per-instruction"
+
+-- | The per-instruction table needs every state of the run, so it is
+-- folded during the simulation, and only when a report shows it.
+needsInstructionCosts :: [Report st] -> Bool
+needsInstructionCosts = any (maybe False ((perInstructionView `elem`) . templateViews) . rTemplate)
 
 data InstructionCost = InstructionCost
     { icInstruction :: Text
-    , icHistogram :: Map (Int, Int) Int
+    , icHistogram :: !(Map (Int, Int) Int)
     }
 
-instructionCosts ::
-    (Inspectable st, Show (IsaOf st)) =>
-    [(AccessCount, Trace st (IsaOf st))]
-    -> IntMap InstructionCost
-instructionCosts = go Nothing IM.empty
-    where
-        go _ acc [] = acc
-        go prevPc acc ((AccessCount{acReads, acWrites}, record) : rest) = case record of
-            TState{tPrevInstruction, tState} ->
-                let acc' = case (prevPc, tPrevInstruction) of
-                        (Just pc, Just instr) ->
-                            IM.insertWith merge pc (InstructionCost (show instr) (one ((acReads, acWrites), 1))) acc
-                        _ -> acc
-                 in go (Just $ programCounter tState) acc' rest
-            _ -> go prevPc acc rest
-        merge new old = old{icHistogram = M.unionWith (+) (icHistogram old) (icHistogram new)}
+data CostAcc = CostAcc
+    { caPrevPc :: !(Maybe Int)
+    , caCosts :: !(IntMap InstructionCost)
+    }
+
+emptyCostAcc :: CostAcc
+emptyCostAcc = CostAcc{caPrevPc = Nothing, caCosts = IM.empty}
+
+costStep :: (Inspectable st, Show (IsaOf st)) => CostAcc -> Trace st (IsaOf st) -> CostAcc
+costStep acc@CostAcc{caPrevPc, caCosts} = \case
+    TState{tPrevInstruction, tAccesses = AccessCount{acReads, acWrites}, tState} ->
+        let !pc = programCounter tState
+            key = (acReads, acWrites)
+            bumpCost instr = \case
+                Nothing -> InstructionCost (show instr) (one (key, 1))
+                Just ic -> ic{icHistogram = M.insertWith (+) key 1 (icHistogram ic)}
+         in CostAcc
+                { caPrevPc = Just pc
+                , caCosts = case (caPrevPc, tPrevInstruction) of
+                    (Just prevPc, Just instr) -> IM.alter (Just . bumpCost instr) prevPc caCosts
+                    _ -> caCosts
+                }
+    _ -> acc
 
 renderInstructionCosts ::
     (ReportViews st) =>
     HashMap Text (WordOf st)
     -> st
-    -> [(AccessCount, Trace st (IsaOf st))]
+    -> IntMap InstructionCost
     -> Text
-renderInstructionCosts labels finalState deltas =
+renderInstructionCosts labels finalState costMap =
     let width = hexAddrWidth (memCapacity (memoryDump finalState))
         labelsAt pc = sort [l | (l, a) <- toPairs labels, a == toEnum pc]
         headerRow = ("Address", "Exec", "Read", "Write", "Instruction")
         ditto = ("\"", "\"")
         rows =
             [ (addr, show n, show r, show w, instr)
-            | (pc, InstructionCost{icInstruction, icHistogram}) <- IM.toAscList (instructionCosts deltas)
+            | (pc, InstructionCost{icInstruction, icHistogram}) <- IM.toAscList costMap
             , let named = (hexAddr width pc, T.unwords (icInstruction : map ("@" <>) (labelsAt pc)))
             , ((addr, instr), ((r, w), n)) <- zip (named : repeat ditto) (M.toAscList icHistogram)
             ]

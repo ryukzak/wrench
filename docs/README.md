@@ -315,6 +315,8 @@ Each report configuration can include the following fields:
     - `["head", n]`: Include the first `n` records.
     - `["tail", n]`: Include the last `n` records.
     - `"last"`: Include only the last record.
+
+  The simulator keeps only the records the slices of all reports need: the first `n` of the largest `head`, the last `n` of the largest `tail` (one for `last`), at most `--state-log-limit` (default 10000) from each end; `all` keeps the last `--state-log-limit`. Where records were dropped, a `WARN: Dropped N states` line marks the gap.
 - **Example:**
 
   ```yaml
