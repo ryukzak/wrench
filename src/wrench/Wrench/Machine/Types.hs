@@ -45,6 +45,7 @@ import Data.IntervalSet (IntervalSet)
 import Data.IntervalSet qualified as IS
 import Data.Text qualified as T
 import Numeric (showHex)
+import Prelude qualified
 import Relude
 import Relude.Extra (keys)
 import Wrench.Report.View (Stat, View)
@@ -208,10 +209,17 @@ data IoMem isa w = IoMem
     -- ^ Tracks the address ranges touched at runtime, surfaced via @mem:*@.
     , mAccessCount :: !AccessCount
     -- ^ Accesses served, one per operation, never reset.
+    , mInstrFetchReads :: isa -> Int
+    -- ^ Reads a fetch of the instruction costs: one per started machine word
+    --   by default.
     }
-    deriving (Eq, Show)
 
-mkIoMem :: forall w isa. (ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
+-- | Every field but the 'mInstrFetchReads' function.
+instance (Show isa, Show w) => Show (IoMem isa w) where
+    show IoMem{mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount} =
+        "IoMem " <> show (mIoStreams, mIoCells, mIoKeys, mIoByteToWord, mAccessLog, mAccessCount)
+
+mkIoMem :: forall w isa. (ByteSize isa, ByteSizeT w) => IntMap ([w], [w]) -> Mem isa w -> IoMem isa w
 mkIoMem streams cells =
     IoMem
         { mIoStreams = streams
@@ -219,6 +227,7 @@ mkIoMem streams cells =
         , mIoKeys = keys streams
         , mAccessLog = emptyAccessLog
         , mAccessCount = emptyAccessCount
+        , mInstrFetchReads = \instr -> (byteSize instr + byteSizeT @w - 1) `div` byteSizeT @w
         , mIoByteToWord =
             fromList $ concatMap (\i -> map (,i) [i .. i + byteSizeT @w - 1]) (keys streams)
         }

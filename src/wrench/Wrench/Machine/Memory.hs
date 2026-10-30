@@ -338,12 +338,12 @@ ioPortByteCollision IoMem{mIoKeys} addr =
 
 -- | Record one access. Every successful read and write goes through exactly
 -- one of these, so a word access counts once rather than per byte. An
--- instruction fetch counts one read per word it spans.
+-- instruction fetch counts the reads 'mInstrFetchReads' gives.
 recordInstrAccess :: Int -> Int -> Int -> IoMem isa w -> IoMem isa w
-recordInstrAccess addr len wordsRead io@IoMem{mAccessLog, mAccessCount} =
+recordInstrAccess addr len fetchReads io@IoMem{mAccessLog, mAccessCount} =
     io
         { mAccessLog = mAccessLog{alInstr = recordRange addr len (alInstr mAccessLog)}
-        , mAccessCount = mAccessCount{acReads = acReads mAccessCount + wordsRead}
+        , mAccessCount = mAccessCount{acReads = acReads mAccessCount + fetchReads}
         }
 
 recordDataAccess :: RW -> Int -> Int -> IoMem isa w -> IoMem isa w
@@ -361,7 +361,7 @@ recordIoAccess rw addr len io@IoMem{mAccessLog, mAccessCount} =
         }
 
 instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa w) isa w where
-    readInstruction io@IoMem{mIoStreams, mIoCells} idx =
+    readInstruction io@IoMem{mIoStreams, mIoCells, mInstrFetchReads} idx =
         case mIoStreams !? idx of
             Just _ -> Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
             Nothing -> case readInstruction mIoCells idx of
@@ -369,10 +369,7 @@ instance (ByteSize isa, IsWord w, Memory (Mem isa w) isa w) => Memory (IoMem isa
                 Right (_mIoCells', instr)
                     | ioPortInstructionCollision io idx instr ->
                         Left $ "iomemory[" <> errAddr (memCapacity io) idx <> "]: instruction in memory corrupted"
-                    | otherwise ->
-                        let len = byteSize instr
-                            wordsRead = (len + byteSizeT @w - 1) `div` byteSizeT @w
-                         in Right (recordInstrAccess idx len wordsRead io, instr)
+                    | otherwise -> Right (recordInstrAccess idx (byteSize instr) (mInstrFetchReads instr) io, instr)
 
     readByte io@IoMem{mIoByteToWord} idx
         | Just wordIdx <- mIoByteToWord !? idx = do
