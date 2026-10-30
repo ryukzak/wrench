@@ -8,3 +8,7 @@ reports:
       stack: {stack:dec}
     assert: |
       stack: 19
+  - name: Top-of-stack registers
+    slice: all
+    view: |
+      {pc:hex}: {instruction:prev} // access: {mem:accesses:dec}, tos: {stack:tos-regs:hex}

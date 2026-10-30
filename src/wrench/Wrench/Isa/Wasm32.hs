@@ -162,6 +162,18 @@ import Wrench.Isa.Wasm32.Report ()
 -- > i32.const 128       ; 128:132
 -- > i32.load            ; x:132
 -- > i32.store           ;
+--
+-- A push writes its value to memory, and a pop reads it back: one access
+-- each. The machine also keeps copies of the last two values pushed in
+-- two /top-of-stack registers/, with the address of each one's slot, and
+-- popping one of them reads nothing. So most operations pay only for
+-- their fetch and their result: @i32.add@ right after two pushes reads
+-- nothing but its fetch and writes only the sum. A register lets go of its
+-- value when it is popped, when a third push needs the register, or when
+-- anything writes to its slot, so memory always holds the whole stack and
+-- the registers never disagree with it. A slot at an I\/O port is never
+-- held, since reading the port gives the next input instead. The
+-- registers start empty and are shown by the @stack:tos-regs@ view.
 
 -- $conditions
 -- A comparison pushes @1@ (true) or @0@ (false), and @if@ pops it. If it is
@@ -189,18 +201,18 @@ import Wrench.Isa.Wasm32.Report ()
 -- @if@, until it finds its own @else@ or @end@. Each instruction it reads
 -- is fetched like any other, so each path pays for the part it skips. In
 -- the example, @if@ comes in the same word as @i32.lt_s@, so its fetch is
--- free. When @x@ is negative @if@ costs 1 access (pop) and @else@ 4 (fetch,
--- 2 for the five-byte @i32.const 1@, @end@); otherwise @if@ costs 4 (pop, 2
--- for @i32.const -1@, @else@), as the @mem:accesses@ view shows. An @if@'s
--- @end@ does nothing; a missing @end@ is noticed only when a skip looks
--- for it.
+-- free, and the flag it pops is still in a top-of-stack register. When @x@
+-- is negative @if@ costs nothing and @else@ 4 (fetch, 2 for the five-byte
+-- @i32.const 1@, @end@); otherwise @if@ costs 3 (2 for @i32.const -1@,
+-- @else@), as the @mem:accesses@ view shows. An @if@'s @end@ does
+-- nothing; a missing @end@ is noticed only when a skip looks for it.
 --
 -- The machine remembers its last four scans in the /scan cache/: where
 -- each scan started and where it ended. When the same @if@ or @else@ skips
 -- again while its entry is still there, it continues at the remembered
 -- address and reads nothing: in the example, a second negative @x@ costs
--- 1 access for the @else@ (its fetch), and a second positive one 1 for the
--- @if@ (the pop). A hit moves its entry to the front, and a new scan pushes
+-- 1 access for the @else@ (its fetch), and a second positive one nothing
+-- for the @if@. A hit moves its entry to the front, and a new scan pushes
 -- out the entry used longest ago, so a loop whose body skips at more than
 -- four places can lose an entry before it comes round again. The cache is
 -- part of the machine, not of memory, starts empty, and is shown by the
@@ -373,6 +385,8 @@ import Wrench.Isa.Wasm32.Report ()
 --   appears once, with every frame it belongs to; a frame's locals are
 --   grouped, control records decoded, everything else (such as memory
 --   above @ctrl-sp@) raw. @stack:dump:hex:2@ also limits it to two frames.
+-- [@stack:tos-regs@] The top-of-stack registers, the last pushed first,
+--   each as @slot=value@, e.g. @0xb8=0x00000003, 0xbc=0x00000002@.
 --
 -- @{stack:layout:hex}@ at the @halt@ of
 -- <https://github.com/ryukzak/wrench/blob/master/example/wasm32/frames.s example/wasm32/frames.s>:
