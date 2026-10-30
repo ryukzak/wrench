@@ -65,6 +65,13 @@ addi a0, a0, %lo(address) ; Add lower 12 bits to a0
 
 Instruction size: 4 bytes.
 
+### Instruction Fetch
+
+Memory is read a word (4 bytes) at a time, and every instruction is one word, so a fetch costs 1
+read. There is no instruction register: each fetch reads memory, even for an instruction fetched
+before. `mem:reads` and `mem:per-instruction` count that read on top of the instruction's own data
+accesses, so `lw` costs 2 reads and `sw` 1 read and 1 write.
+
 ### Immediate and Offset Fields
 
 Every immediate, offset and displacement has to fit the 4-byte instruction that carries it, so none
