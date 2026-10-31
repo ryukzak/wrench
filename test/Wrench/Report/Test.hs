@@ -12,7 +12,16 @@ import Wrench.Isa.RiscIv (RiscIvSt)
 import Wrench.Isa.VliwIv (VliwIvSt)
 import Wrench.Isa.Wasm32 ()
 import Wrench.Isa.Wasm32.State (Wasm32St)
-import Wrench.Report (ReportViews, isaViews, sharedViews)
+import Wrench.Report (
+    ReportConf (..),
+    ReportSlice (..),
+    ReportViews,
+    TracePlan (..),
+    compileReports,
+    isaViews,
+    sharedViews,
+    tracePlan,
+ )
 import Wrench.Report.View
 
 tests :: TestTree
@@ -37,6 +46,14 @@ tests =
             warnings "{memory:0:0x0f} {memory:table} {mem:table}"
                 @?= ["{memory:0:0x0f} is renamed, use {mem:0:0x0f}", "{memory:table} is renamed, use {mem:table}"]
             "usage: {memory:table}" `isErrorFor` "memory:table:hex"
+        , testCase "A template names the views it uses, renamed ones by the new name" $
+            templateViews . snd <$> compileTemplate checkEnv testViews "{pc:hex} x {memory:table} {mem:0:4}"
+                @?= Right ["pc", "mem:table", "mem"]
+        , testCase "The trace keeps what the largest slices need, at most the limit" $ do
+            plan [LastSlice] @?= Right (TracePlan 0 1)
+            plan [HeadSlice 5, TailSlice 3, LastSlice] @?= Right (TracePlan 5 3)
+            plan [HeadSlice 500, AllSlice] @?= Right (TracePlan 100 100)
+            plan [] @?= Right (TracePlan 0 0)
         , testCase "mem:per-instruction is renamed to profile" $
             either id fst (compileTemplate checkEnv (sharedViews @(RiscIvSt Int32)) "{mem:per-instruction}")
                 @?= ["{mem:per-instruction} is renamed, use {profile}"]
@@ -89,6 +106,13 @@ testViews =
 
 checkEnv :: CheckEnv
 checkEnv = CheckEnv{ceMemorySize = 16, ceIoPorts = [0]}
+
+plan :: [ReportSlice] -> Either Text TracePlan
+plan slices =
+    tracePlan 100 . snd
+        <$> compileReports @(RiscIvSt Int32)
+            checkEnv
+            [ReportConf{rcName = Nothing, rcSlice = s, rcAssert = Nothing, rcView = Nothing} | s <- slices]
 
 rendered :: Text -> Either [Text] Text
 rendered input = (`renderTemplate` ()) . snd <$> compileTemplate checkEnv testViews input

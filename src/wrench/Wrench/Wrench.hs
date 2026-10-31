@@ -234,9 +234,8 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump isaGen
 
-    (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
-
-    let results = map (prepareReport trResult verbose finalState traceLog) reports
+    let (records, finalState, profile) = keepForReports maxStateLogLimit reports (powerOn cLimit st)
+        results = map (prepareReport trResult verbose finalState profile records) reports
         isSuccess = all fst results
         reportTexts = map snd results
 
