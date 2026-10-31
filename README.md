@@ -119,7 +119,7 @@ Available options:
   --version                Show version information
 ```
 
-The `wrench` app requires an input assembler file and optionally a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation. Alternatively, you can specify execution limits directly via command-line arguments.
+The `wrench` app requires an input assembler file and optionally a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation; without it, `wrench` uses [default settings](./docs/README.md#configuration-file-structure). `--instruction-limit` and `--memory-limit` don't set the limits: they are upper bounds, and a run whose `limit` or `memory_size` is above them is rejected.
 
 The [General Assembly Documentation](./docs/README.md) explains how assembly source code and simulation configuration files should be structured (ISA-agnostic), including:
 
