@@ -142,7 +142,7 @@ viewsReference =
         $ T.intercalate "\n"
         $ [ "# Report views\n"
           , "<!-- Generated from the source by `make test-accept`. Do not edit. -->\n"
-          , "Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports-configuration).\n"
+          , "Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports).\n"
           ]
             <> section "All ISAs" (sharedViews @(RiscIvSt Int32))
             <> section "acc32" (isaViews @(Acc32St Int32))
