@@ -63,7 +63,7 @@ make format-md
 For comprehensive changes affecting multiple file types:
 
 ```bash
-make fix  # Runs: lint-fix format generate-variants generate-stack-deps test-hs test-examples
+make fix  # Runs: lint-fix format generate-variants generate-stack-deps test-hs test-examples test-server
 ```
 
 Note: `test-accept` is intentionally excluded — golden file acceptance must be
