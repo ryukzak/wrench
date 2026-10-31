@@ -2,7 +2,7 @@
 
 <!-- Generated from the source by `make test-accept`. Do not edit. -->
 
-Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports-configuration).
+Every expression a report `view` can use inside `{...}`. `[...]` is optional, `a|b` is a choice, `<name>` is a number (decimal or `0x` hex). See [Reports configuration](README.md#reports).
 
 ## All ISAs
 
