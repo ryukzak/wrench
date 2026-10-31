@@ -23,6 +23,8 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
         - [Via Docker Image](#via-docker-image)
         - [Use it as a Service](#use-it-as-a-service)
     - [Usage](#usage)
+        - [Execution and memory statistics](#execution-and-memory-statistics)
+        - [Formatting](#formatting)
     - [Examples](#examples)
         - [Factorial Calculation Example (RISC-IV)](#factorial-calculation-example-risc-iv)
         - [More Examples](#more-examples)
@@ -63,10 +65,11 @@ This tradeoff is scoped to teaching -- it isn't a claim that simplified ISAs are
 
 ### Install from a Binary Release
 
-1. Open the last master build on the [Actions](https://github.com/ryukzak/wrench/actions).
-2. Download the binary for your platform: windows-x64, linux-x64, linux-arm64, macos-intel, macos-arm64.
-3. Add the binary to your `PATH`.
-4. Run `wrench <ARGS>` to execute the project.
+1. Download the archive for your platform from the [latest release](https://github.com/ryukzak/wrench/releases/latest): Linux (x64, ARM64), macOS (ARM64) or Windows (x64).
+2. Unpack it and add the binaries to your `PATH`.
+3. Run `wrench <ARGS>` to execute the project.
+
+Builds of the current master are artifacts of the master runs on the [Actions](https://github.com/ryukzak/wrench/actions) page.
 
 ### Via Docker Image
 
@@ -76,7 +79,7 @@ docker run -it --rm ryukzak/wrench:latest wrench --help
 
 ### Use it as a Service
 
-This service will be used to send laboratory works to check.
+This service will be used to send laboratory works to check. The lab assignments (variants) are described in [variants.md](./variants.md).
 
 1. Open service:
     - Last release: [wrench.edu.swampbuds.me](https://wrench.edu.swampbuds.me).
@@ -84,6 +87,17 @@ This service will be used to send laboratory works to check.
     - Service usage statistics: [PostHog](https://eu.posthog.com/shared/UAxD9XvX9pnOjWOah6l_AHCO36zPnA)
 2. Fill the form and submit.
 3. Check the results.
+
+To run the service locally, run `make run-server` in the repository root: it builds the project, generates the variants and starts `wrench-serv` on port 8080. `wrench-serv` reads `static/` from the current directory and takes these environment variables:
+
+| Variable        | Default                | Meaning                                                                      |
+| --------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `PORT`          | `8080`                 | HTTP port                                                                    |
+| `WRENCH_EXEC`   | `stack exec wrench --` | Command that runs the simulator                                              |
+| `STORAGE_PATH`  | `uploads`              | Where submissions and their results are kept                                 |
+| `VARIANTS`      | `variants`             | Generated variants (`make generate-variants`)                                |
+| `EXAMPLES_PATH` | `examples`             | `/examples` page data, from `make build-examples` (`build/examples/storage`) |
+| `LOG_LIMIT`     | `10000`                | Longest simulator output shown, in characters; longer output keeps its end   |
 
 ## Usage
 
@@ -156,6 +170,15 @@ reports:
 ```
 
 The full list of variables, including the byte-count vs. range conventions and the `:dec`/`:hex` suffix on range variables, is in the [configuration documentation](./docs/README.md#view).
+
+### Formatting
+
+`wrench-fmt` formats assembly files. Like `wrench`, it detects the ISA from the source unless `--isa` is given:
+
+```shell
+wrench-fmt --inplace example/risc-iv-32/factorial.s  # rewrite the file
+wrench-fmt --check example/risc-iv-32/factorial.s    # exit with code 1 if it needs formatting
+```
 
 ## Examples
 
