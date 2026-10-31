@@ -121,6 +121,7 @@ tests =
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/multi_sections.s" "test/golden/risc-iv-32/multi_sections.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/reordered_sections.s" "test/golden/risc-iv-32/reordered_sections.yaml"
                 , goldenSimulate RiscIv "test/golden/risc-iv-32/memory_init.s" "test/golden/risc-iv-32/memory_init.yaml"
+                , goldenSimulate RiscIv "test/golden/risc-iv-32/long_run.s" "test/golden/risc-iv-32/long_run.yaml"
                 , testGroup
                     "Factorial"
                     [ goldenSimulate RiscIv "test/golden/risc-iv-32/factorial.s" "test/golden/risc-iv-32/factorial_input_5.yaml"

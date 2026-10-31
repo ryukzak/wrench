@@ -5,6 +5,9 @@ module Wrench.Report (
     ReportConf (..),
     Report,
     compileReports,
+    TracePlan (..),
+    tracePlan,
+    keepForReports,
     prepareReport,
     renderIsaView,
     sharedViews,
@@ -20,10 +23,13 @@ import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFie
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.IntMap.Strict qualified as IM
 import Data.Map.Strict qualified as M
+import Data.Sequence (Seq (..))
+import Data.Sequence qualified as Seq
 import Data.Text qualified as T
 import Numeric (showHex)
 import Relude
 import Relude.Extra
+import Wrench.Machine (Run (..))
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Report.View
@@ -114,7 +120,7 @@ sharedViews =
         , flagView "mem:table" "Address-space table: sections, IO, free spans and their access coverage." $ \e ->
             renderMemoryTable (reDumpStats e) (memoryDump (final e))
         , flagView
-            "profile"
+            profileView
             "How often each instruction ran, with its reads and writes, over the whole run."
             reProfile
         , checkedView
@@ -218,20 +224,21 @@ prepareReport ::
     TranslatorResult mem (WordOf st)
     -> Bool
     -> st
-    -> [Trace st (IsaOf st)]
+    -> IntMap ProfileEntry
+    -> [(AccessCount, Trace st (IsaOf st))]
     -> Report st
     -> (Bool, Text)
 prepareReport
     TranslatorResult{labels, dumpStats}
     verbose
     finalState
+    profileEntries
     records
     Report{rConf = rc@ReportConf{rcName, rcSlice, rcAssert}, rTemplate} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            deltas = withAccessDeltas records
-            sliced = selectSlice rcSlice deltas
-            profile = renderProfile labels finalState deltas
+            sliced = selectSlice rcSlice records
+            profile = renderProfile labels finalState profileEntries
             stateViews = case rTemplate of
                 Nothing -> ""
                 Just template ->
@@ -290,59 +297,108 @@ instance FromJSON ReportSlice where
     parseJSON (String "last") = return LastSlice
     parseJSON _ = fail "Invalid slice format, expect: [\"head\", n], \"all\", [\"tail\", n], \"last\""
 
--- | Pair each state record with the accesses the instruction that produced
--- it made. One record per step, so consecutive totals differ by one
--- instruction's worth. Before slicing, so a slice still gets real deltas.
-withAccessDeltas ::
-    forall st.
-    (Inspectable st, Memory (MemOf st) (IsaOf st) (WordOf st)) =>
-    [Trace st (IsaOf st)]
-    -> [(AccessCount, Trace st (IsaOf st))]
-withAccessDeltas = go emptyAccessCount
+-- | How many records each end of the run keeps for the reports.
+data TracePlan = TracePlan
+    { tpHead :: !Int
+    , tpTail :: !Int
+    }
+    deriving (Eq, Show)
+
+-- | Each end of the run keeps what its largest slice needs, at most @limit@;
+-- @all@ keeps the last @limit@.
+tracePlan :: Int -> [Report st] -> TracePlan
+tracePlan limit reports =
+    TracePlan
+        { tpHead = min limit $ foldr max 0 [n | HeadSlice n <- slices]
+        , tpTail =
+            if any isAll slices
+                then limit
+                else min limit $ foldr max 0 ([n | TailSlice n <- slices] <> [1 | LastSlice <- slices])
+        }
     where
-        go _ [] = []
-        go before (record : rest) = case record of
-            TState{tState} ->
-                let after = memAccessCount (memoryDump tState)
-                 in (acSince before after, record) : go after rest
-            _ -> (emptyAccessCount, record) : go before rest
+        slices = map (rcSlice . rConf) reports
+        isAll = \case
+            AllSlice -> True
+            _ -> False
+
+profileView :: Text
+profileView = "profile"
+
+data Keeper st = Keeper
+    { kpHead :: ![(AccessCount, Trace st (IsaOf st))]
+    , kpHeadCount :: !Int
+    , kpTail :: !(Seq (AccessCount, Trace st (IsaOf st)))
+    , kpDropped :: !Int
+    , kpRunTotal :: !AccessCount
+    , kpPrevPc :: !(Maybe Int)
+    , kpProfile :: !(IntMap ProfileEntry)
+    }
+
+-- | Take what the reports show from a run in one pass, so only that stays
+-- alive; access deltas and the profile still see every state.
+keepForReports ::
+    forall st.
+    (ReportViews st) =>
+    Int
+    -> [Report st]
+    -> Run st (IsaOf st)
+    -> ([(AccessCount, Trace st (IsaOf st))], st, IntMap ProfileEntry)
+keepForReports limit reports = go (Keeper [] 0 Seq.empty 0 emptyAccessCount Nothing IM.empty)
+    where
+        TracePlan{tpHead, tpTail} = tracePlan limit reports
+        withProfile = any (maybe False ((profileView `elem`) . templateViews) . rTemplate) reports
+
+        go !kp (Step record rest) = go (keep kp record) rest
+        go Keeper{kpHead, kpTail, kpDropped, kpProfile} (End final) =
+            let gap = [(emptyAccessCount, TWarn ("Dropped " <> show kpDropped <> " states")) | kpDropped > 0]
+             in (reverse kpHead <> gap <> toList kpTail, final, kpProfile)
+
+        keep kp@Keeper{kpRunTotal, kpPrevPc, kpProfile} record = case record of
+            TState{tPrevInstruction, tState} ->
+                let !total = memAccessCount (memoryDump tState)
+                    !accesses = acSince kpRunTotal total
+                    !pc = programCounter tState
+                    profile = case (withProfile, kpPrevPc, tPrevInstruction) of
+                        (True, Just prevPc, Just instr) -> profileStep prevPc instr accesses kpProfile
+                        _ -> kpProfile
+                 in retain
+                        kp{kpRunTotal = total, kpPrevPc = Just pc, kpProfile = profile}
+                        (accesses, record)
+            _ -> retain kp (emptyAccessCount, record)
+
+        retain kp@Keeper{kpHead, kpHeadCount, kpTail, kpDropped} entry
+            | kpHeadCount < tpHead = kp{kpHead = entry : kpHead, kpHeadCount = kpHeadCount + 1}
+            | otherwise = case kpTail of
+                _ :<| rest | Seq.length kpTail >= tpTail -> kp{kpTail = rest :|> entry, kpDropped = kpDropped + 1}
+                Empty | tpTail <= 0 -> kp{kpDropped = kpDropped + 1}
+                _ -> kp{kpTail = kpTail :|> entry}
 
 data ProfileEntry = ProfileEntry
     { peInstruction :: Text
-    , peRuns :: Map (Int, Int) Int
+    , peRuns :: !(Map (Int, Int) Int)
     }
 
-buildProfile ::
-    (Inspectable st, Show (IsaOf st)) =>
-    [(AccessCount, Trace st (IsaOf st))]
-    -> IntMap ProfileEntry
-buildProfile = go Nothing IM.empty
+profileStep :: (Show isa) => Int -> isa -> AccessCount -> IntMap ProfileEntry -> IntMap ProfileEntry
+profileStep pc instr AccessCount{acReads, acWrites} = IM.alter (Just . maybe new count) pc
     where
-        go _ acc [] = acc
-        go prevPc acc ((AccessCount{acReads, acWrites}, record) : rest) = case record of
-            TState{tPrevInstruction, tState} ->
-                let acc' = case (prevPc, tPrevInstruction) of
-                        (Just pc, Just instr) ->
-                            IM.insertWith merge pc (ProfileEntry (show instr) (one ((acReads, acWrites), 1))) acc
-                        _ -> acc
-                 in go (Just $ programCounter tState) acc' rest
-            _ -> go prevPc acc rest
-        merge new old = old{peRuns = M.unionWith (+) (peRuns old) (peRuns new)}
+        key = (acReads, acWrites)
+        new = ProfileEntry (show instr) (one (key, 1))
+        count entry = entry{peRuns = M.insertWith (+) key 1 (peRuns entry)}
 
 renderProfile ::
     (ReportViews st) =>
     HashMap Text (WordOf st)
     -> st
-    -> [(AccessCount, Trace st (IsaOf st))]
+    -> IntMap ProfileEntry
     -> Text
-renderProfile labels finalState deltas =
+renderProfile labels finalState entries =
     let width = hexAddrWidth (memCapacity (memoryDump finalState))
         labelsAt pc = sort [l | (l, a) <- toPairs labels, a == toEnum pc]
         headerRow = ("Address", "Exec", "Read", "Write", "Instruction")
         ditto = ("\"", "\"")
         rows =
             [ (addr, show n, show r, show w, instr)
-            | (pc, ProfileEntry{peInstruction, peRuns}) <- IM.toAscList (buildProfile deltas)
+            | (pc, ProfileEntry{peInstruction, peRuns}) <- IM.toAscList entries
             , let named = (hexAddr width pc, T.unwords (peInstruction : map ("@" <>) (labelsAt pc)))
             , ((addr, instr), ((r, w), n)) <- zip (named : repeat ditto) (M.toAscList peRuns)
             ]
