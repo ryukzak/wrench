@@ -220,7 +220,7 @@ docker-run-server: docker-build
 
 # Meta
 
-fix: lint-fix format generate test-accept test-examples test-server
+fix: lint-fix format generate test-hs test-examples test-server
 
 fix-variant: format-py lint-fix-py generate-variants
 
