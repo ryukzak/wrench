@@ -461,7 +461,7 @@ setByte addr byte = do
 type instance MemOf (RiscIvSt w) = IoMem (RiscIvIsa w w) w
 
 instance (IsWord w) => InitState (RiscIvSt w) where
-    initState pc dump _randomStream =
+    initState pc dump _randomGen =
         RiscIvSt
             { pc
             , mem = dump

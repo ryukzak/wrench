@@ -5,6 +5,7 @@ import Data.Default
 import Data.List (isInfixOf)
 import Relude
 import Relude.Extra
+import System.Random (mkStdGen)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
@@ -614,7 +615,7 @@ tests =
         memInit = Mem 256 $ fromList $ map (\a -> (fromEnum a, Value a)) [0 .. 255]
         st0 :: M68kSt Int32
         st0@M68kSt{addrRegs = addrRegs0, dataRegs = dataRegs0, mem = mem0} =
-            (initState 256 (mkIoMem (fromList []) memInit) [])
+            (initState 256 (mkIoMem (fromList []) memInit) (mkStdGen 0))
                 { dataRegs = fromList $ zip dataRegisters [0 ..]
                 }
 

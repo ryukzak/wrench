@@ -215,7 +215,7 @@ data Acc32St w = Acc32St
 type instance MemOf (Acc32St w) = IoMem (Acc32Isa w w) w
 
 instance (IsWord w) => InitState (Acc32St w) where
-    initState pc dump _randomStream =
+    initState pc dump _randomGen =
         Acc32St
             { acc = 0
             , overflowFlag = False

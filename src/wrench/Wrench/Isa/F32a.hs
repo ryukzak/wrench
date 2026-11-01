@@ -356,7 +356,7 @@ data F32aSt w = F32aSt
 type instance MemOf (F32aSt w) = IoMem (F32aIsa w w) w
 
 instance (IsWord w) => InitState (F32aSt w) where
-    initState pc dump _randomStream =
+    initState pc dump _randomGen =
         F32aSt
             { p = pc
             , a = def

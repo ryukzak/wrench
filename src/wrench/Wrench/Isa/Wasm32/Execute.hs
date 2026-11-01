@@ -17,7 +17,7 @@ import Wrench.Machine.Memory
 import Wrench.Machine.Types
 
 instance (IsWord w) => InitState (Wasm32St w) where
-    initState pc dump _randomStream =
+    initState pc dump _randomGen =
         Wasm32St
             { pc
             , sp = defaultStackRoot dump

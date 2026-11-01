@@ -18,6 +18,7 @@ import Data.IntMap.Strict qualified as IM
 import Data.Text qualified as T
 import Relude
 import Relude.Extra
+import System.Random (StdGen, uniformR)
 import Text.Megaparsec (choice, getOffset, setOffset)
 import Text.Megaparsec.Char (char, hspace, string)
 import Wrench.Machine.Memory
@@ -480,17 +481,17 @@ data VliwIvSt w = VliwIvSt
     , regs :: HashMap Register w
     , stopped :: Bool
     , internalError :: Maybe Text
-    , randoms :: [Int]
+    , randomGen :: !StdGen
     , vliwLoad :: !VliwLoadAcc
     }
     deriving (Show)
 
 getRandoms :: forall w. Int -> State (VliwIvSt w) [Int]
 getRandoms n = do
-    VliwIvSt{randoms} <- get
-    let (taken, rest) = splitAt n randoms
-    modify $ \st -> st{randoms = rest}
-    return taken
+    st@VliwIvSt{randomGen} <- get
+    let (xs, gen) = runState (replicateM n (state (uniformR (0, maxBound)))) randomGen
+    put st{randomGen = gen}
+    return xs
 
 setPc :: forall w. Int -> State (VliwIvSt w) ()
 setPc addr = modify $ \st -> st{pc = addr}
@@ -551,14 +552,14 @@ setByte addr byte = do
 type instance MemOf (VliwIvSt w) = IoMem (VliwIvIsa w w) w
 
 instance (IsWord w) => InitState (VliwIvSt w) where
-    initState pc dump randomStream =
+    initState pc dump randomGen =
         VliwIvSt
             { pc
             , mem = dump{mInstrFetchReads = const 1}
             , regs = def
             , stopped = False
             , internalError = Nothing
-            , randoms = randomStream
+            , randomGen
             , vliwLoad = emptyVliwLoad
             }
 

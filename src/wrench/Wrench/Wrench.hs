@@ -231,9 +231,8 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
 
     pc <- maybeToRight "_start label should be defined." (labels !? "_start")
     let mIoStreams = bimap (map int2mword) (map int2mword) <$> fromMaybe mempty cMemoryMappedIoFlat
-        randomStream = randomInts (0, maxBound) isaGen
         ioDump = mkIoMem mIoStreams dump
-        st :: st = initState (fromEnum pc) ioDump randomStream
+        st :: st = initState (fromEnum pc) ioDump isaGen
 
     (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
 
