@@ -454,6 +454,39 @@ tests =
              in do
                     pc @?= 0x1211100F
                     (addrRegs !? A7) @?= Just 0x13
+        , testGroup
+            "N and Z come from the result wherever it is stored"
+            [ testCase "move to memory" $ do
+                let M68kSt{nFlag, zFlag} =
+                        simulate
+                            "move.l D1, (A0)"
+                            st0{addrRegs = insert A0 0x10 addrRegs0, dataRegs = insert D1 0 dataRegs0, nFlag = True, zFlag = False}
+                 in do
+                        nFlag @?= False
+                        zFlag @?= True
+            , testCase "a logic operation on memory" $ do
+                let M68kSt{nFlag, zFlag} =
+                        simulate "or.l D1, (A0)" st0{addrRegs = insert A0 0x10 addrRegs0, dataRegs = insert D1 minBound dataRegs0}
+                 in do
+                        nFlag @?= True
+                        zFlag @?= False
+            , testCase "a byte written to memory" $ do
+                let M68kSt{nFlag} =
+                        simulate "move.b D1, (A0)" st0{addrRegs = insert A0 0x10 addrRegs0, dataRegs = insert D1 0x80 dataRegs0}
+                 in nFlag @?= True
+            , testCase "a shift of memory" $ do
+                let M68kSt{nFlag, zFlag} =
+                        simulate "lsl.l D1, (A0)" st0{addrRegs = insert A0 0x10 addrRegs0, dataRegs = insert D1 3 dataRegs0}
+                 in do
+                        nFlag @?= True
+                        zFlag @?= False
+            , testCase "movea leaves them" $ do
+                let M68kSt{nFlag, zFlag} =
+                        simulate "movea.l D1, A1" st0{dataRegs = insert D1 0 dataRegs0, nFlag = True, zFlag = False}
+                 in do
+                        nFlag @?= True
+                        zFlag @?= False
+            ]
         , testCase "Shift carry flag" $ do
             -- LSR: shift right, last bit shifted out is bit 0
             let M68kSt{cFlag} =
