@@ -313,8 +313,8 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
             Add a -> withExt addExt a
             Sub a -> withExt subExt a
             Mul a -> withExt mulExt a
-            Div a -> withAcc div a
-            Rem a -> withAcc rem a
+            Div a -> withDivisor div a
+            Rem a -> withDivisor rem a
             Clv -> setOverflowFlag False >> nextPc
             Clc -> setCarryFlag False >> nextPc
             ShiftL a -> withAcc (\x y -> shiftL x (fromEnum y)) a
@@ -349,6 +349,12 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
                 value <- getWord $ fromEnum addr
                 setAcc $ f acc value
                 nextPc
+            withDivisor f addr = do
+                acc <- getAcc
+                value <- getWord $ fromEnum addr
+                if value == 0
+                    then raiseInternalError "division by zero"
+                    else setAcc (f acc value) >> nextPc
             condJmp p a = do
                 acc <- getAcc
                 if p acc
