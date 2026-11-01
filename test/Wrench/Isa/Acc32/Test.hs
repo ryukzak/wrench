@@ -33,6 +33,10 @@ tests =
             runBranch (Bgez 100) 5 @?= 100
         , testCase "bgez not taken (acc < 0)" $ do
             runBranch (Bgez 100) (-1) @?= 10
+        , testCase "div and rem by zero stop the simulation with an error" $
+            for_ [Div 9, Rem 9] $ \instr -> do
+                divisionOutcome instr 0 @?= Just "division by zero"
+                divisionOutcome instr 2 @?= Nothing
         , testGroup
             "Absolute address field"
             [ testCase "an address that fits is accepted" $ do
@@ -136,6 +140,26 @@ mkState branchInstr accVal =
                     }
                 )
      in initState 0 mem []
+
+-- | The error, if any, after @load_imm 7@ and @instr@ on a divisor at 9, before @halt@.
+divisionOutcome :: Acc32Isa Int32 Int32 -> Word8 -> Maybe Text
+divisionOutcome instr divisor =
+    let mem =
+            mkIoMem
+                def
+                ( Mem
+                    { memoryData =
+                        fromList $
+                            [(0, Instruction (LoadImm 7))]
+                                <> [(i, InstructionPart) | i <- [1 .. 4]]
+                                <> [(5, Instruction instr), (6, InstructionPart), (7, InstructionPart), (8, Instruction Halt)]
+                                <> zip [9 ..] (map Value [divisor, 0, 0, 0])
+                    , memorySize = 13
+                    }
+                )
+        st :: Acc32St Int32
+        st = initState 0 mem []
+     in leftToMaybe $ evalState (instructionStep >> instructionStep >> instructionFetch) st
 
 runBranch :: Acc32Isa Int32 Int32 -> Int32 -> Int
 runBranch instr accVal =
