@@ -41,7 +41,7 @@ jobs:
           config_file: .markdownlint.yaml
 
   wrench:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
@@ -50,7 +50,7 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ${{ '~/.stack' }}
-          key: wrench-job-${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
+          key: wrench-job-ubuntu-26.04-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
 
       - name: Install haskell-stack
         uses: haskell-actions/setup@v2
@@ -76,7 +76,8 @@ jobs:
       - name: Build examples
         run: make build-examples
 
-      - uses: gacts/install-hurl@v1
+      - name: Install hurl
+        run: sudo apt-get update && sudo apt-get install -y hurl
 
       - name: Test server
         run: make test-server
@@ -149,7 +150,7 @@ jobs:
     needs:
       - wrench
     if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -165,7 +166,7 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ${{ '~/.stack' }}
-          key: haddock-job-${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
+          key: haddock-job-ubuntu-26.04-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
 
       - name: Install haskell-stack
         uses: haskell-actions/setup@v2
@@ -199,7 +200,7 @@ jobs:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-15]
+        os: [ubuntu-26.04, ubuntu-24.04-arm, windows-latest, macos-15]
 
     runs-on: ${{ matrix.os }}
 
@@ -212,7 +213,7 @@ jobs:
         if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
         with:
           path: ${{ '~/.stack' }}
-          key: build-binaries-job-${{ runner.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
+          key: build-binaries-job-${{ matrix.os }}-${{ runner.arch }}-stack-${{ hashFiles('.stack-deps.txt') }}
 
       - name: Cache dependencies on Windows
         if: startsWith(runner.os, 'Windows')
