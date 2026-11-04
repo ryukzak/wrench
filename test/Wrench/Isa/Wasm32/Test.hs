@@ -12,6 +12,7 @@ import Hedgehog.Gen qualified as Gen
 import Hedgehog.Range qualified as Range
 import Prelude qualified
 import Relude
+import System.Random (mkStdGen)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
 import Test.Tasty.Hedgehog (testPropertyNamed)
@@ -356,7 +357,7 @@ runSourceIo streams src = do
     TranslatorResult{dump, labels} <- translate @Wasm32Isa @Int32 [resolveLocalNames] 1000 (repeat 0) "-" src
     pc <- maybeToRight "_start label should be defined." (HashMap.lookup "_start" labels)
     let ioDump = mkIoMem streams dump
-        st0 = initState (fromEnum pc) ioDump (repeat 0)
+        st0 = initState (fromEnum pc) ioDump (mkStdGen 0)
     runToHalt (2000 :: Int) st0
     where
         runToHalt :: Int -> Wasm32St Int32 -> Either Text (Wasm32St Int32)

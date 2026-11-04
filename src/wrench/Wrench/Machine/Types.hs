@@ -56,6 +56,7 @@ import Numeric (showHex)
 import Prelude qualified
 import Relude
 import Relude.Extra (keys)
+import System.Random (StdGen)
 import Wrench.Report.View (Stat, View)
 
 -- * State
@@ -148,7 +149,7 @@ instance (ByteSize t, Default t) => ByteSizeT t where
 type family MemOf st
 
 class InitState st where
-    initState :: Int -> MemOf st -> [Int] -> st
+    initState :: Int -> MemOf st -> StdGen -> st
 
 class Inspectable st where
     type WordOf st

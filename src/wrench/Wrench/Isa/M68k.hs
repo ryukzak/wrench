@@ -460,7 +460,7 @@ raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
 type instance MemOf (M68kSt w) = IoMem (M68kIsa w w) w
 
 instance (IsWord w) => InitState (M68kSt w) where
-    initState pc dump _randomStream =
+    initState pc dump _randomGen =
         M68kSt
             { pc
             , dataRegs = def

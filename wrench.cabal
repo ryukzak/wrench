@@ -396,6 +396,7 @@ test-suite wrench-test
     , mtl
     , optparse-applicative
     , pretty-simple
+    , random
     , regex-tdfa
     , relude
     , split

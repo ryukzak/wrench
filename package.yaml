@@ -155,5 +155,6 @@ tests:
       - tasty-golden
       - tasty-hedgehog
       - tasty-hunit
+      - random
       - tasty-rerun
       - wrench

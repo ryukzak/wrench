@@ -4,6 +4,7 @@ import Control.Exception (ErrorCall (..), evaluate, try)
 import Data.Default
 import Data.List (isInfixOf)
 import Relude
+import System.Random (mkStdGen)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Wrench.Isa.Acc32
@@ -139,7 +140,7 @@ mkState branchInstr accVal =
                     , memorySize = 10
                     }
                 )
-     in initState 0 mem []
+     in initState 0 mem (mkStdGen 0)
 
 -- | The error, if any, after @load_imm 7@ and @instr@ on a divisor at 9, before @halt@.
 divisionOutcome :: Acc32Isa Int32 Int32 -> Word8 -> Maybe Text
@@ -158,7 +159,7 @@ divisionOutcome instr divisor =
                     }
                 )
         st :: Acc32St Int32
-        st = initState 0 mem []
+        st = initState 0 mem (mkStdGen 0)
      in leftToMaybe $ evalState (instructionStep >> instructionStep >> instructionFetch) st
 
 runBranch :: Acc32Isa Int32 Int32 -> Int32 -> Int

@@ -5,6 +5,7 @@ import Data.Default
 import Data.List (isInfixOf)
 import Relude
 import Relude.Extra
+import System.Random (mkStdGen)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Text.Megaparsec (parse)
@@ -409,7 +410,7 @@ st0 =
         , regs = def
         , stopped = False
         , internalError = Nothing
-        , randoms = []
+        , randomGen = mkStdGen 0
         , vliwLoad = emptyVliwLoad
         }
 
