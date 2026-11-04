@@ -331,6 +331,8 @@ Each report configuration can include the following fields:
 
 Every expression is checked before the simulation starts. An unknown name, a format the expression does not take, a non-number where a number belongs, a memory range outside `memory_size`, or an IO address missing from `memory_mapped_io` stops the run with an error naming the report, the expression and its usage, e.g. `report "log": {pc:bin}: unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}`. Names are case-sensitive; for a near miss the error suggests the closest names (`{acc}` -> `did you mean {Acc[:dec|hex]}?`).
 
+Renamed in 0.0.7.0: `memAccesses`, `memReads`, `memWrites` and their `*Total` -> `mem:accesses`, `mem:reads`, `mem:writes` and `*-total`; `memory:table` -> `mem:table`; `memory:<a>:<b>` -> `mem:dump:<a>:<b>`; `mem:per-instruction` -> `profile`; wasm32 `stackLayout`, `stackDump`, `frameBase`, `ctrlSp`, `stackRoot` -> `stack:layout`, `stack:dump`, `frame-base`, `ctrl-sp`, `stack-root`; risc-iv and vliw-iv `T0`, `S0Fp`, ... -> `t0`, `s0` (`s0fp` on vliw-iv), ...
+
 General state view expressions implemented for all ISAs:
 
 - `pc:dec`, `pc:hex` -- Print program counter in decimal or hexadecimal format.

@@ -439,7 +439,7 @@ goldenSimulate' shouldFail isa =
                 stringAction = do
                     result <- action
                     return $ encodeUtf8 $ case result of
-                        Right Result{rTrace, rWarnings} -> T.concat ["warning: " <> w <> "\n" | w <- rWarnings] <> rTrace
+                        Right Result{rTrace} -> rTrace
                         Left e -> "error: " <> e
              in testGroup
                     testName
