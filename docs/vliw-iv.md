@@ -6,7 +6,7 @@ The VLIW ISA is a simple register-based instruction set inspired by VLIW (Very L
 
 The VLIW architecture is a 32-bit VLIW (Very Long Instruction Word) architecture inspired by RISC-V and classic VLIW designs. It features:
 
-- 32 general-purpose registers (including one hardwired zero register — writes to `Zero` are silently ignored)
+- 32 general-purpose registers (including one hardwired zero register — writes to `zero` are silently ignored)
 - Fixed-length 14-byte (112-bit) instruction bundles, divided into 4 slots for parallel execution
 - Load-store architecture (memory access only through specific instructions in dedicated slots)
 - Simple addressing modes
@@ -102,11 +102,13 @@ the machine code is relative: the translator encodes the displacement `k = <addr
 report shows `k`, and a target out of reach is rejected by that distance. `jalr` is not relative:
 its immediate is added to a register.
 
+### Execution Model
+
 Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 (Memory), Slot 3 (Control). Operations in slots execute in parallel. Unused slots are NOP (no operation). Assembly syntax uses `/` to separate slots.
 
 An unused slot can be written either as an explicit `nop` or simply left blank (just whitespace between the surrounding `/` separators) — the two forms are equivalent, and the blank form is preferred for keeping bundles terse.
 
-**Execution model:** All source operands are read first, then all results are written back simultaneously. The order of register writes from ALU1, ALU2, and Memory slots is non-deterministic — if multiple slots write to the same register, the result is undefined. The control slot always executes last. The compiler/assembler must ensure that parallel operations in the same bundle are independent (no write-write or read-write conflicts across slots).
+All source operands are read first, then the results are written back. The register writes of ALU1, ALU2 and Memory land in a random order drawn from the [`seed`](README.md#seed), so if two of them write the same register, which value stays can change from run to run. The control slot always executes last. The compiler/assembler must ensure that parallel operations in the same bundle are independent (no write-write or read-write conflicts across slots).
 
 ```assembly
 add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
@@ -120,8 +122,8 @@ addi rd, rs1, k / / /
 
 - **Load Upper Immediate**
     - **Syntax:** `lui <rd>, <k>`
-    - **Description:** Load an immediate value masked to 20 bits and shifted left by 12 bits into the destination register.
-    - **Operation:** `rd <- (k & 0x000FFFFF) << 12`
+    - **Description:** Load a 20-bit immediate value shifted left by 12 bits into the destination register.
+    - **Operation:** `rd <- k << 12`
 
 - **Move**
     - **Syntax:** `mv <rd>, <rs>`
@@ -130,8 +132,8 @@ addi rd, rs1, k / / /
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add a 17-bit sign-extended immediate value to the source register and store the result in the destination register. The immediate `k` is truncated to the 17-bit `imm_sign` field and sign-extended to 32 bits before the addition.
-    - **Operation:** `rd <- rs1 + signext(k[16:0])`
+    - **Description:** Add a 17-bit signed immediate value to the source register and store the result in the destination register. A value outside `-65536..65535` is a translation error (see [Operand Fields](#operand-fields)).
+    - **Operation:** `rd <- rs1 + k`
 
 - **Add**
     - **Syntax:** `add <rd>, <rs1>, <rs2>`
