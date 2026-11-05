@@ -225,7 +225,7 @@ prepareReport ::
     -> Bool
     -> st
     -> IntMap ProfileEntry
-    -> [(AccessCount, Trace st (IsaOf st))]
+    -> (ReportSlice -> [(AccessCount, Trace st (IsaOf st))])
     -> Report st
     -> (Bool, Text)
 prepareReport
@@ -233,11 +233,11 @@ prepareReport
     verbose
     finalState
     profileEntries
-    records
+    recordsOf
     Report{rConf = rc@ReportConf{rcName, rcSlice, rcAssert}, rTemplate} =
         let header = maybe "" ("# " <>) rcName
             details = if verbose then show rc else ""
-            sliced = selectSlice rcSlice records
+            sliced = recordsOf rcSlice
             profile = renderProfile labels finalState profileEntries
             stateViews = case rTemplate of
                 Nothing -> ""
@@ -329,6 +329,7 @@ data Keeper st = Keeper
     , kpHeadCount :: !Int
     , kpTail :: !(Seq (AccessCount, Trace st (IsaOf st)))
     , kpDropped :: !Int
+    , kpError :: ![(AccessCount, Trace st (IsaOf st))]
     , kpRunTotal :: !AccessCount
     , kpPrevPc :: !(Maybe Int)
     , kpProfile :: !(IntMap ProfileEntry)
@@ -342,16 +343,16 @@ keepForReports ::
     Int
     -> [Report st]
     -> Run st (IsaOf st)
-    -> ([(AccessCount, Trace st (IsaOf st))], st, IntMap ProfileEntry)
-keepForReports limit reports = go (Keeper [] 0 Seq.empty 0 emptyAccessCount Nothing IM.empty)
+    -> (ReportSlice -> [(AccessCount, Trace st (IsaOf st))], st, IntMap ProfileEntry)
+keepForReports limit reports = go (Keeper [] 0 Seq.empty 0 [] emptyAccessCount Nothing IM.empty)
     where
         TracePlan{tpHead, tpTail} = tracePlan limit reports
         withProfile = any (maybe False ((profileView `elem`) . templateViews) . rTemplate) reports
 
         go !kp (Step record rest) = go (keep kp record) rest
-        go Keeper{kpHead, kpTail, kpDropped, kpProfile} (End final) =
-            let gap = [(emptyAccessCount, TWarn ("Dropped " <> show kpDropped <> " states")) | kpDropped > 0]
-             in (reverse kpHead <> gap <> toList kpTail, final, kpProfile)
+        go Keeper{kpHead, kpHeadCount, kpTail, kpDropped, kpError, kpProfile} (End final) =
+            let total = kpHeadCount + kpDropped + Seq.length kpTail
+             in (selectSlice limit total (reverse kpHead <> toList kpTail) kpError, final, kpProfile)
 
         keep kp@Keeper{kpRunTotal, kpPrevPc, kpProfile} record = case record of
             TState{tPrevInstruction, tState} ->
@@ -364,7 +365,7 @@ keepForReports limit reports = go (Keeper [] 0 Seq.empty 0 emptyAccessCount Noth
                  in retain
                         kp{kpRunTotal = total, kpPrevPc = Just pc, kpProfile = profile}
                         (accesses, record)
-            _ -> retain kp (emptyAccessCount, record)
+            _ -> kp{kpError = [(emptyAccessCount, record)]}
 
         retain kp@Keeper{kpHead, kpHeadCount, kpTail, kpDropped} entry
             | kpHeadCount < tpHead = kp{kpHead = entry : kpHead, kpHeadCount = kpHeadCount + 1}
@@ -414,10 +415,19 @@ renderProfile labels finalState entries =
             T.intercalate "  " [padR wAddr a, padL wExec e, padL wRead r, padL wWrite w, i]
      in T.intercalate "\n" (map renderRow allRows)
 
-selectSlice (HeadSlice n) = take n
-selectSlice AllSlice = id
-selectSlice (TailSlice n) = reverse . take n . reverse
-selectSlice LastSlice = take 1 . reverse
+-- | The records a slice shows: at most @limit@ states from its end of the run,
+-- whatever other slices kept, with one warning if that leaves the slice short.
+selectSlice limit total states runError = \case
+    HeadSlice n
+        | n > limit -> take limit states <> gap <> runError
+        | otherwise -> take n (states <> runError)
+    AllSlice -> fromEnd
+    TailSlice n -> lastOf n fromEnd
+    LastSlice -> lastOf 1 fromEnd
+    where
+        gap = [(emptyAccessCount, TWarn ("Dropped " <> show (total - limit) <> " states")) | total > limit]
+        fromEnd = gap <> lastOf limit states <> runError
+        lastOf n = reverse . take n . reverse
 
 -----------------------------------------------------------
 

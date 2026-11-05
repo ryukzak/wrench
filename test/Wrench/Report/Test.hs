@@ -1,10 +1,12 @@
 module Wrench.Report.Test (tests) where
 
+import Data.Default (def)
 import Data.Text qualified as T
 import Relude
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.HUnit (Assertion, assertFailure, testCase, (@?=))
+import Wrench.Config (Config (..))
 import Wrench.Isa.Acc32 (Acc32St)
 import Wrench.Isa.F32a (F32aSt)
 import Wrench.Isa.M68k (M68kSt)
@@ -23,6 +25,7 @@ import Wrench.Report (
     tracePlan,
  )
 import Wrench.Report.View
+import Wrench.Wrench (Options (maxStateLogLimit), Result (rTrace), wrench)
 
 tests :: TestTree
 tests =
@@ -79,7 +82,65 @@ tests =
             , unambiguous "wasm32" (allViews @(Wasm32St Int32))
             ]
         , viewsReference
+        , testGroup
+            "State log limit"
+            [ testCase "A failed run keeps its error at any limit" $ do
+                failing 5 [HeadSlice 8] @?= [["0", "1", "2", "3", "4", dropped 45, limitError]]
+                failing 0 [HeadSlice 8] @?= [[dropped 50, limitError]]
+                failing 0 [AllSlice] @?= [[dropped 50, limitError]]
+                failing 0 [LastSlice] @?= [[limitError]]
+                failing 5 [LastSlice] @?= [[limitError]]
+                failing 5 [TailSlice 2] @?= [["49", limitError]]
+            , testCase "A slice over the limit stays at its end of the run" $ do
+                halting 3 [HeadSlice 8, TailSlice 8]
+                    @?= [["0", "1", "2", dropped 8], [dropped 8, "8", "9", "10"]]
+                failing 3 [HeadSlice 8, TailSlice 8]
+                    @?= [["0", "1", "2", dropped 47, limitError], [dropped 47, "47", "48", "49", limitError]]
+                halting 3 [AllSlice] @?= [[dropped 8, "8", "9", "10"]]
+                halting 0 [LastSlice] @?= [[dropped 11]]
+            , testCase "A slice within the limit shows what it asked for, with no warning" $ do
+                halting 5 [HeadSlice 3, TailSlice 3, LastSlice] @?= [["0", "1", "2"], ["8", "9", "10"], ["10"]]
+                failing 5 [HeadSlice 3, TailSlice 3] @?= [["0", "1", "2"], ["48", "49", limitError]]
+            , testCase "A limit above the run drops nothing" $ do
+                let run = map show [0 .. 10 :: Int]
+                halting 11 [AllSlice, HeadSlice 20, TailSlice 20] @?= [run, run, run]
+                failing 50 [HeadSlice 60] @?= [map show [0 .. 49 :: Int] <> [limitError]]
+            , testCase "A report does not depend on the others" $
+                forM_ [0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12] $ \limit -> do
+                    let slices = [AllSlice, HeadSlice 2, HeadSlice 8, TailSlice 2, TailSlice 8, LastSlice]
+                    halting limit slices @?= concatMap (\s -> halting limit [s]) slices
+                    failing limit slices @?= concatMap (\s -> failing limit [s]) slices
+            , testCase "Access counts and the profile cover the dropped states" $ do
+                shown "{mem:accesses}\n" haltingSrc 1000 2 [TailSlice 2] @?= [["1", "1"]]
+                shown "{profile}\n" haltingSrc 1000 1 [LastSlice] @?= shown "{profile}\n" haltingSrc 1000 100 [LastSlice]
+            ]
         ]
+
+-- | What each slice of a run shows, a state as its instruction count: 50 steps
+-- up to the instruction limit, or 11 states up to a halt.
+failing, halting :: Int -> [ReportSlice] -> [[Text]]
+failing = shown "{sim:instruction-count}\n" "    .text\n_start:\n    j        _start\n" 50
+halting = shown "{sim:instruction-count}\n" haltingSrc 1000
+
+haltingSrc :: String
+haltingSrc = toString $ unlines $ ["    .text", "_start:"] <> replicate 9 "    addi     t1, t1, 1" <> ["    halt"]
+
+shown :: Text -> String -> Int -> Int -> [ReportSlice] -> [[Text]]
+shown view src cLimit stateLogLimit slices =
+    either (error . ("simulation failed: " <>)) (drop 1 . map T.lines . T.splitOn "---\n" . rTrace) $
+        wrench @(RiscIvSt Int32) [] def{maxStateLogLimit = stateLogLimit} conf src
+    where
+        conf =
+            def
+                { cLimit
+                , cReports = Just [ReportConf{rcName = Nothing, rcSlice = s, rcAssert = Nothing, rcView = Just view} | s <- slices]
+                }
+
+dropped :: Int -> Text
+dropped n = "WARN: Dropped " <> show n <> " states"
+
+limitError :: Text
+limitError = "ERROR: Simulation limit reached"
 
 -- | Test views that render the key they parsed.
 testViews :: [View ()]
