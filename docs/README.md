@@ -315,6 +315,8 @@ Each report configuration can include the following fields:
     - `["head", n]`: Include the first `n` records.
     - `["tail", n]`: Include the last `n` records.
     - `"last"`: Include only the last record.
+
+  A slice shows at most `--state-log-limit` (default 10000) states: `head` the first ones, `tail` and `all` the last ones. A slice cut by the limit shows a `WARN: Dropped N states` line, where `N` counts the states of the run it does not show. The `ERROR` line of a failed run is never dropped: it ends every slice that reaches the end of the run or is cut by the limit. The simulator keeps only the records the slices of all reports need, but dropped records still count: `mem:accesses` of the first record shown and the `profile` view cover every step of the run.
 - **Example:**
 
   ```yaml
