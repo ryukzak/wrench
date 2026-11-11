@@ -1,102 +1,25 @@
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
-
-module Wrench.Machine (powerOn) where
+module Wrench.Machine (powerOn, Run (..)) where
 
 import Relude
-import Relude.Extra
 import Wrench.Machine.Types
 
-data Simulation st isa = Simulation
-    { log :: [Trace st isa]
-    , machineState :: st
-    , pc2label :: HashMap Int Text
-    , instructionCount :: Int
-    , instructionLimits :: Int
-    , stateRecordCount :: Int
-    , stateRecordLimits :: Int
-    , takePartOnStateRecordLimit :: Int
-    }
+-- | Every record of a run in order, then the state it ended in, which
+--   carries the run's accumulators (e.g. 'AccessLog' in 'IoMem').
+data Run st isa
+    = Step !(Trace st isa) (Run st isa)
+    | End st
 
-tellState :: Maybe isa -> st -> State (Simulation st isa) ()
-tellState prevInstr machineState = modify $
-    \sim@Simulation{log, stateRecordCount, stateRecordLimits, takePartOnStateRecordLimit, instructionCount} ->
-        if stateRecordCount >= stateRecordLimits
-            then
-                let n = (stateRecordLimits `div` takePartOnStateRecordLimit)
-                    rest = drop n log
-                    rest' =
-                        filter
-                            ( \case
-                                TState{} -> False
-                                _ -> True
-                            )
-                            rest
-                    dropped = length rest - length rest'
-                    warn = "Dropped " <> show dropped <> " states"
-                 in sim
-                        { log = take n log <> rest' <> [TWarn warn]
-                        , stateRecordCount = stateRecordCount - dropped
-                        }
-            else
-                sim
-                    { log = TState{tInstructionCount = instructionCount, tPrevInstruction = prevInstr, tState = machineState} : log
-                    , stateRecordCount = stateRecordCount + 1
-                    }
-
-tellError msg = modify $ \sim@Simulation{log} ->
-    sim{log = TError msg : log}
-
--- | Run the simulation and return both the recorded trace log and the final
---   machine state. The final state carries the complete runtime accumulators
---   (e.g. 'AccessLog' in 'IoMem'); per-state trace entries are recorded
---   after each step, so the last entry captures the result of the halt
---   instruction too.
-simulate :: (Machine st isa w) => Simulation st isa -> ([Trace st isa], st)
-simulate sim =
-    let Simulation{log, machineState} = execState (simulate' Nothing) sim
-     in (reverse log, machineState)
-
-simulateInstructionStep :: (Machine st isa w) => Int -> isa -> st -> State (Simulation st isa) ()
-simulateInstructionStep pc instr fetched =
-    modify $ \sim@Simulation{instructionCount} ->
-        sim
-            { machineState = execState (instructionExecute pc instr) fetched
-            , instructionCount = instructionCount + 1
-            }
-
-simulate' :: (Machine st isa w) => Maybe isa -> State (Simulation st isa) ()
-simulate' prevInstr = do
-    Simulation{machineState, instructionCount, instructionLimits} <- get
-    if instructionCount >= instructionLimits
-        then tellError "Simulation limit reached"
-        else case runState instructionFetch machineState of
-            (Right (pc, instr), fetched) -> do
-                tellState prevInstr machineState
-                simulateInstructionStep pc instr fetched
-                simulate' (Just instr)
-            (Left err, _) | err == halted -> do
-                Simulation{machineState = stateAfter} <- get
-                tellState prevInstr stateAfter
-            (Left err, _) -> tellError err
-
-powerOn ::
-    (IsWord w, Machine st isa w) =>
-    Int
-    -> Int
-    -> HashMap Text w
-    -> st
-    -> Either Text ([Trace st isa], st)
-powerOn instructionLimits stateRecordLimits labels machineInitState = do
-    let pc2label = fromList $ map (\(a, b) -> (fromEnum b, a)) $ toPairs labels
-    Right $
-        simulate
-            Simulation
-                { log = []
-                , machineState = machineInitState
-                , pc2label = pc2label
-                , instructionCount = 0
-                , instructionLimits
-                , stateRecordCount = 0
-                , stateRecordLimits
-                , takePartOnStateRecordLimit = 4
-                }
+-- | Run the simulation as a lazy stream, so a consumer keeps alive only
+--   what it keeps.
+powerOn :: (Machine st isa w) => Int -> st -> Run st isa
+powerOn instructionLimits = go Nothing 0
+    where
+        go prevInstr !count st
+            | count >= instructionLimits = Step (TError "Simulation limit reached") (End st)
+            | otherwise =
+                let record = TState{tInstructionCount = count, tPrevInstruction = prevInstr, tState = st}
+                 in case runState instructionFetch st of
+                        (Right (pc, instr), fetched) ->
+                            Step record $ go (Just instr) (count + 1) (execState (instructionExecute pc instr) fetched)
+                        (Left err, _) | err == halted -> Step record (End st)
+                        (Left err, _) -> Step (TError err) (End st)

@@ -81,7 +81,7 @@ options =
             auto
             ( long "state-log-limit"
                 <> metavar "LIMIT"
-                <> help "Maximum number of state records to log"
+                <> help "Most states kept from each end of the run; slice all keeps the last LIMIT"
                 <> value (maxStateLogLimit def)
                 <> showDefault
             )
