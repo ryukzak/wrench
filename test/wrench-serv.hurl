@@ -3,7 +3,7 @@ HTTP/1.1 200
 [Asserts]
 xpath "normalize-space(//head/title)" startsWith "Wrench"
 xpath "//select[@id='variant']/option[@value='factorial']" exists
-xpath "//select[@id='isa']/option[@value='wasm32']" exists
+xpath "//fieldset[@id='isa']//input[@name='isa'][@value='wasm32']" exists
 
 POST http://localhost:8080/submit
 [Form]

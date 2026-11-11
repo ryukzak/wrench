@@ -91,21 +91,84 @@
           </select>
         </div>
 
-        <div class="mb-6">
-          <label for="isa" class="block text-[var(--c-grey)]">/* ISA */</label>
-          <select
-            id="isa"
-            name="isa"
-            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full"
-          >
-            <option value="risc-iv-32" selected>risc-iv-32</option>
-            <option value="vliw-iv">vliw-iv</option>
-            <option value="f32a">f32a</option>
-            <option value="acc32">acc32</option>
-            <option value="m68k">m68k</option>
-            <option value="wasm32">wasm32</option>
-          </select>
-        </div>
+        <fieldset id="isa" class="mb-6">
+          <legend class="block text-[var(--c-grey)]">/* ISA */</legend>
+          <div class="flex flex-wrap gap-x-2 gap-y-1 mt-1">
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="acc32"
+                class="sr-only peer"
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[acc32]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="f32a"
+                class="sr-only peer"
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[f32a]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="risc-iv-32"
+                class="sr-only peer"
+                checked
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[risc-iv-32]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="m68k"
+                class="sr-only peer"
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[m68k]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="vliw-iv"
+                class="sr-only peer"
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[vliw-iv]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input
+                type="radio"
+                name="isa"
+                value="wasm32"
+                class="sr-only peer"
+              />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[wasm32]</span
+              >
+            </label>
+          </div>
+        </fieldset>
 
         <div class="mb-6">
           <label for="name" class="block text-[var(--c-grey)]"
