@@ -1,0 +1,14 @@
+name: shift count uses its low 5 bits
+limit: 10
+memory_size: 0x100
+reports:
+  - name: Step-by-step
+    slice: all
+    view: |
+      {pc}:	{instruction:next}	{pc:label} {Acc}
+    assert: |
+      12:	LoadAddr 0	@_start 0
+      17:	ShiftL 4	 1
+      20:	ShiftR 8	 -2147483648
+      23:	Halt	 -1073741824
+      23:	-	 -1073741824

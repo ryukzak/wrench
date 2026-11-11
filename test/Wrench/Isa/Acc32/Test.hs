@@ -36,8 +36,11 @@ tests =
             runBranch (Bgez 100) (-1) @?= 10
         , testCase "div and rem by zero stop the simulation with an error" $
             for_ [Div 9, Rem 9] $ \instr -> do
-                divisionOutcome instr 0 @?= Just "division by zero"
-                divisionOutcome instr 2 @?= Nothing
+                divisionOutcome instr 7 0 @?= Just "division by zero"
+                divisionOutcome instr 7 2 @?= Nothing
+        , testCase "a quotient that does not fit stops the simulation with an error" $ do
+            divisionOutcome (Div 9) minBound (-1) @?= Just "integer overflow"
+            divisionOutcome (Rem 9) minBound (-1) @?= Nothing
         , testGroup
             "Absolute address field"
             [ testCase "an address that fits is accepted" $ do
@@ -142,19 +145,19 @@ mkState branchInstr accVal =
                 )
      in initState 0 mem (mkStdGen 0)
 
--- | The error, if any, after @load_imm 7@ and @instr@ on a divisor at 9, before @halt@.
-divisionOutcome :: Acc32Isa Int32 Int32 -> Word8 -> Maybe Text
-divisionOutcome instr divisor =
+-- | The error, if any, after @load_imm dividend@ and @instr@ on a divisor at 9, before @halt@.
+divisionOutcome :: Acc32Isa Int32 Int32 -> Int32 -> Int32 -> Maybe Text
+divisionOutcome instr dividend divisor =
     let mem =
             mkIoMem
                 def
                 ( Mem
                     { memoryData =
                         fromList $
-                            [(0, Instruction (LoadImm 7))]
+                            [(0, Instruction (LoadImm dividend))]
                                 <> [(i, InstructionPart) | i <- [1 .. 4]]
                                 <> [(5, Instruction instr), (6, InstructionPart), (7, InstructionPart), (8, Instruction Halt)]
-                                <> zip [9 ..] (map Value [divisor, 0, 0, 0])
+                                <> zip [9 ..] (map Value (wordSplit divisor))
                     , memorySize = 13
                     }
                 )

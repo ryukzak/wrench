@@ -66,7 +66,7 @@ subExt x y =
 mulExt :: (IsWord w) => w -> w -> Ext w
 mulExt x y =
     let result = x * y
-        overflow = (x /= 0 && y /= 0 && result `div` x /= y)
+        overflow = toInteger result /= toInteger x * toInteger y
         carry = (fromIntegral x * fromIntegral y) > (maxBound :: Word)
      in Ext{value = result, overflow, carry}
 

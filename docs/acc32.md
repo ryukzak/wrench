@@ -171,7 +171,7 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 
 - **Divide**
     - **Syntax:** `div <address>`
-    - **Description:** Divide the accumulator by a value from a specific address. The quotient is rounded down, toward minus infinity: `-7 / 2 = -4`. Division by zero stops the simulation with `ERROR: division by zero`.
+    - **Description:** Divide the accumulator by a value from a specific address. The quotient is rounded down, toward minus infinity: `-7 / 2 = -4`. Division by zero stops the simulation with `ERROR: division by zero`, and `-2^31 / -1` with `ERROR: integer overflow`.
     - **Operation:** `acc <- acc / mem[<address>]`
 
 - **Remainder**
@@ -193,12 +193,12 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 
 - **Shift Left**
     - **Syntax:** `shiftl <address>`
-    - **Description:** Shift the accumulator left by a number of bits from a specific address (Carry flag will not be used).
+    - **Description:** Shift the accumulator left by the number of bits in the lower 5 bits of a value from a specific address (Carry flag will not be used).
     - **Operation:** `acc <- acc << mem[<address>]`
 
 - **Shift Right**
     - **Syntax:** `shiftr <address>`
-    - **Description:** Shift the accumulator right by a number of bits from a specific address, preserving the sign (Carry flag will not be used).
+    - **Description:** Shift the accumulator right by the number of bits in the lower 5 bits of a value from a specific address, preserving the sign (Carry flag will not be used).
     - **Operation:** `acc <- acc >> mem[<address>]`
 
 - **Bitwise AND**

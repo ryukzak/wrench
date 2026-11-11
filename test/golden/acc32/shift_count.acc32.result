@@ -1,0 +1,7 @@
+---
+# Step-by-step
+12:	LoadAddr 0	@_start 0
+17:	ShiftL 4	 1
+20:	ShiftR 8	 -2147483648
+23:	Halt	 -1073741824
+23:	-	 -1073741824
