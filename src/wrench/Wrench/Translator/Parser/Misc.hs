@@ -31,7 +31,6 @@ import Relude.Unsafe as Unsafe
 import Text.Megaparsec (
     SourcePos,
     anySingle,
-    anySingleBut,
     choice,
     getOffset,
     getSourcePos,
@@ -50,6 +49,7 @@ import Text.Megaparsec.Char (
     letterChar,
     string,
  )
+import Text.Megaparsec.Char.Lexer (charLiteral)
 import Wrench.Machine.Word (fitSigned)
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
@@ -180,7 +180,7 @@ constantAt f pos =
     choice
         [ do
             void quote
-            c <- anySingleBut '\''
+            c <- charLiteral
             void quote
             return $ ValueR f pos $ fromIntegral $ ord c
         , ValueR f pos <$> wordLiteral

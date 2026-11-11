@@ -114,6 +114,8 @@ tests =
                 @?= Right (Move Long (IndirectAddrReg (-8) A2 (Just $ AddrIndex A1)) (DirectDataReg D0))
             translate "cmp.l D1, D0" @?= Right (Cmp Long (DirectDataReg D1) (DirectDataReg D0))
             translate "cmp.b 10, D0" @?= Right (Cmp Byte (Immediate $ valueR 10) (DirectDataReg D0))
+            translate "cmp.b 'A', D0" @?= Right (Cmp Byte (Immediate $ valueR 65) (DirectDataReg D0))
+            translate "cmp.b '\\n', D0" @?= Right (Cmp Byte (Immediate $ valueR 10) (DirectDataReg D0))
             translate "cmp.l (A1), D0" @?= Right (Cmp Long (IndirectAddrReg 0 A1 Nothing) (DirectDataReg D0))
             -- movea is the one instruction that legitimately accepts An as source.
             translate "movea.l A2, A0" @?= Right (MoveA Long (DirectAddrReg A2) (DirectAddrReg A0))
