@@ -20,7 +20,10 @@ tests :: TestTree
 tests =
     testGroup
         "ISA"
-        [ testCase "Bundle with single ALU operation: Addi" $ do
+        [ testCase "An error in the bundle of halt is the outcome, not the halt" $ do
+            let st = simulate "/ / lw t0, 0(t3) / halt" (withRegs [(T3, 5000)])
+             in fmap (("out of memory" `isInfixOf`) . toString) (leftToMaybe (evalState instructionFetch st)) @?= Just True
+        , testCase "Bundle with single ALU operation: Addi" $ do
             let VliwIvSt{regs} =
                     simulate
                         "addi a1, a0, 3 / nop / nop / nop"

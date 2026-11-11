@@ -238,7 +238,7 @@ setCarryFlag :: forall w. Bool -> State (Acc32St w) ()
 setCarryFlag carryFlag = modify $ \st -> st{carryFlag}
 
 raiseInternalError :: Text -> State (Acc32St w) ()
-raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
+raiseInternalError msg = modify $ \st@Acc32St{internalError} -> st{internalError = internalError <|> Just msg}
 
 getWord addr = do
     st@Acc32St{ram} <- get

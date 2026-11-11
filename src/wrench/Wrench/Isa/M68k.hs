@@ -456,7 +456,7 @@ getPc :: State (M68kSt w) Int
 getPc = get >>= \st -> return $ pc st
 
 raiseInternalError :: Text -> State (M68kSt w) ()
-raiseInternalError msg = modify $ \st -> st{internalError = Just msg}
+raiseInternalError msg = modify $ \st@M68kSt{internalError} -> st{internalError = internalError <|> Just msg}
 
 type instance MemOf (M68kSt w) = IoMem (M68kIsa w w) w
 
