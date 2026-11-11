@@ -1,0 +1,4 @@
+{
+  "title": "Random memory init",
+  "description": "Memory not set by the program is filled with random bytes on each run. The .word marker stays 0xDEADBEEF. Set seed: in the config to repeat a run."
+}

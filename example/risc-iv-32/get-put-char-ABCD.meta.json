@@ -1,0 +1,4 @@
+{
+  "title": "Echo one char: 'ABCD'",
+  "description": "Same program with input \"ABCD\": only the first character is read and echoed, \"BCD\" stays in the input."
+}

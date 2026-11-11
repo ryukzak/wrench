@@ -1,0 +1,4 @@
+{
+  "title": "Parallel slots and hazards",
+  "description": "Runs several operations in one bundle: read-after-read, write-after-write and write-after-read. Change seed: in the config to see the write-after-write result change."
+}

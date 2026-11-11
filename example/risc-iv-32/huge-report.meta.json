@@ -1,0 +1,4 @@
+{
+  "title": "Huge report",
+  "description": "A loop of 1 000 000 steps that hits the 600 000 step limit. Shows how a very long step-by-step report is cropped."
+}

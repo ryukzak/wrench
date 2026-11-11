@@ -1,0 +1,4 @@
+{
+  "title": "Factorial (recursive)",
+  "description": "Computes 5! = 120 with a recursive subroutine (jsr/rts). Saves n on the stack with move.l D0, -(A7)."
+}

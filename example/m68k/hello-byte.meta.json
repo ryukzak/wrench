@@ -1,0 +1,4 @@
+{
+  "title": "Hello world (byte writes)",
+  "description": "Same as Hello world, but writes each character to the output port with move.b."
+}

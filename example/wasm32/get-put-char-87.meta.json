@@ -1,0 +1,4 @@
+{
+  "title": "Echo one char: 'W'",
+  "description": "Reads one character from the input port 0x80 and writes it to the output port 0x84. Input: 'W' (87)."
+}

@@ -1,0 +1,4 @@
+{
+  "title": "Factorial (loop)",
+  "description": "Reads n = 4 from the input port 0x80, computes n! in a loop and writes 24 to the output port 0x84. Multiplication is done with +* steps, as f32a has no multiply instruction."
+}
