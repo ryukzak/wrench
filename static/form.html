@@ -234,6 +234,9 @@
             if (savedName) {
               document.getElementById('name').value = savedName
             }
+            document.getElementById('main-form').addEventListener('submit', () => {
+              window.localStorage.setItem('author-name', document.getElementById('name').value)
+            })
           })
         </script>
 
