@@ -123,6 +123,10 @@ A numeric value, in data and in instructions alike, is decimal or hexadecimal wi
 and only a decimal one may carry a leading `-`. It has to start with a digit, which `_` separators
 may then be mixed into for legibility -- `1_000` and `0x8_4` are fine, `0x_84` is not.
 
+A character in single quotes is its code: `'A'` is `65`. In an instruction it is one character
+(`cmp.b '\n', D0`), in data it may be a whole string. Common escapes: `\n`, `\t`, `\0`, `\\`, `\'`,
+`\x41`.
+
 A value has to fit what holds it, and it is checked before it is stored, so a too-wide one is a
 translation error instead of its own low bits. A machine word takes anything its bits can spell --
 `-2147483648..4294967295` for a 32-bit word, which is why `0xFFFFFFFF` and `-1` are both fine and
