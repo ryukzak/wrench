@@ -52,7 +52,7 @@ Bundle: [ALU1:32] [ALU2:32] [MEM:24] [CTRL:24]
 [ALU1/ALU2]:
   [opcode:5] [rd:5] [rs1:5] [rs2:5] [reserved:12]   ; add sub mul mulh div rem sll srl sra and or xor
   [opcode:5] [rd:5] [rs1:5] [imm_sign:17]           ; addi slti
-  [opcode:5] [rd:5] [imm_unsign:22]                 ; lui
+  [opcode:5] [rd:5] [imm_unsign:20] [reserved:2]    ; lui
   [opcode:5] [rd:5] [rs1:5] [reserved:17]           ; mv
   [opcode:5] [reserved:27]                          ; nop
 [MEM] (24 bits):
@@ -83,7 +83,7 @@ a bundle with `lw` costs 2 reads and one with `sw` 1 read and 1 write.
 ### Operand Fields
 
 Every immediate and offset is narrower than the machine word, because a slot is 24 or 32 bits with
-the opcode and register fields already spent:
+the opcode and register fields already spent. A value outside its field is a translation error:
 
 | Operand                                                   | Width           | Accepted values   |
 | --------------------------------------------------------- | --------------- | ----------------- |
@@ -108,7 +108,7 @@ Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 
 
 An unused slot can be written either as an explicit `nop` or simply left blank (just whitespace between the surrounding `/` separators) — the two forms are equivalent, and the blank form is preferred for keeping bundles terse.
 
-The ALU1, ALU2, and Memory slots execute one by one in a random order drawn from the [`seed`](README.md#seed). Each slot reads registers after the slots before it have written their results, so a bundle with a read-write or write-write conflict across slots gives an undefined result. The control slot always executes last. The compiler/assembler must ensure that operations in the same bundle are independent.
+ALU1, ALU2 and Memory run one by one in a random order drawn from the [`seed`](README.md#seed), each seeing the writes of the slots before it. So if two of them use the same register and one writes it, the result is undefined. The control slot runs last.
 
 ```assembly
 ; undefined: t3 gets t1 before or after the second slot changes it
@@ -116,7 +116,7 @@ add t3, t1, t2 / add t1, t0, t1 / /
 ```
 
 ```assembly
-add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
+add rd1, rs1, rs2 / addi rd2, rs1, k / lw rd3, offset(rs1) / beq rs1, rs2, k
 
 ; a bundle with only the first ALU slot active; the other three slots are
 ; left blank instead of writing `nop / nop / nop`
@@ -137,7 +137,7 @@ addi rd, rs1, k / / /
 
 - **Add Immediate**
     - **Syntax:** `addi <rd>, <rs1>, <k>`
-    - **Description:** Add a 17-bit signed immediate value to the source register and store the result in the destination register. A value outside `-65536..65535` is a translation error (see [Operand Fields](#operand-fields)).
+    - **Description:** Add a 17-bit signed immediate value to the source register and store the result in the destination register.
     - **Operation:** `rd <- rs1 + k`
 
 - **Add**

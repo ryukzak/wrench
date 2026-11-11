@@ -88,16 +88,7 @@ This service will be used to send laboratory works to check. The lab assignments
 2. Fill the form and submit.
 3. Check the results.
 
-To run the service locally, run `make run-server` in the repository root: it builds the project, generates the variants and starts `wrench-serv` on port 8080. `wrench-serv` reads `static/` from the current directory and takes these environment variables:
-
-| Variable        | Default                | Meaning                                                                      |
-| --------------- | ---------------------- | ---------------------------------------------------------------------------- |
-| `PORT`          | `8080`                 | HTTP port                                                                    |
-| `WRENCH_EXEC`   | `stack exec wrench --` | Command that runs the simulator                                              |
-| `STORAGE_PATH`  | `uploads`              | Where submissions and their results are kept                                 |
-| `VARIANTS`      | `variants`             | Generated variants (`make generate-variants`)                                |
-| `EXAMPLES_PATH` | `examples`             | `/examples` page data, from `make build-examples` (`build/examples/storage`) |
-| `LOG_LIMIT`     | `10000`                | Longest simulator output shown, in characters; longer output keeps its end   |
+To run the service locally, run `make run-server` in the repository root (port 8080); it needs Python 3.14. A local server also sends usage events to the project's PostHog. Its settings are environment variables, see [`src/wrench-serv/WrenchServ/Config.hs`](./src/wrench-serv/WrenchServ/Config.hs).
 
 ## Usage
 
@@ -133,7 +124,7 @@ Available options:
   --version                Show version information
 ```
 
-The `wrench` app requires an input assembler file and optionally a configuration file. The assembler file should contain the source code in the ISA-specific assembly language. The configuration file is a YAML file that specifies various settings and parameters for the simulation; without it, `wrench` uses [default settings](./docs/README.md#configuration-file-structure). `--instruction-limit` and `--memory-limit` don't set the limits: they are upper bounds, and a run whose `limit` or `memory_size` is above them is rejected.
+`wrench` takes an assembly file and, optionally, a YAML configuration file; without one it uses [default settings](./docs/README.md#configuration-file-structure). `--instruction-limit` and `--memory-limit` only cap `limit` and `memory_size`: a higher value is rejected.
 
 The [General Assembly Documentation](./docs/README.md) explains how assembly source code and simulation configuration files should be structured (ISA-agnostic), including:
 
@@ -177,7 +168,7 @@ The full list of variables, including the byte-count vs. range conventions and t
 
 ```shell
 wrench-fmt --inplace example/risc-iv-32/factorial.s  # rewrite the file
-wrench-fmt --check example/risc-iv-32/factorial.s    # exit with code 1 if it needs formatting
+wrench-fmt --check example/risc-iv-32/factorial.s    # exit code 1 if it needs formatting or its ISA can't be detected; -v says which
 ```
 
 ## Examples
