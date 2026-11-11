@@ -32,12 +32,17 @@ tests =
              in (dataRegs !? D0) @?= Just 5
             let M68kSt{dataRegs, nFlag} = simulate "sub.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 5 dataRegs0}
              in do
-                    (dataRegs !? D0) @?= Just (-5)
+                    (dataRegs !? D0) @?= Just 0xFB
                     nFlag @?= True
             let M68kSt{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 3 $ insert D0 4 dataRegs0}
              in (dataRegs !? D0) @?= Just 12
             let M68kSt{dataRegs} = simulate "mul.b D1, D0" st0{dataRegs = insert D1 10 $ insert D0 10 dataRegs0}
              in (dataRegs !? D0) @?= Just 100
+        , testCase "A byte written to a data register keeps its upper bytes" $ do
+            let M68kSt{dataRegs} = simulate "add.b 1, D1" st0{dataRegs = insert D1 0x1234567F dataRegs0}
+             in (dataRegs !? D1) @?= Just 0x12345680
+            let M68kSt{dataRegs} = simulate "move.b -1, D0" st0{dataRegs = insert D0 0x12345600 dataRegs0}
+             in (dataRegs !? D0) @?= Just 0x123456FF
         , testCase "Compare operations" $ do
             let M68kSt{dataRegs, zFlag, nFlag, cFlag} =
                     simulate "cmp.l D1, D0" st0{dataRegs = insert D1 5 $ insert D0 5 dataRegs0}
@@ -513,7 +518,7 @@ tests =
                     zFlag @?= True
             let M68kSt{dataRegs, nFlag} = simulate "neg.b D0" st0{dataRegs = insert D0 3 dataRegs0}
              in do
-                    (dataRegs !? D0) @?= Just (-3)
+                    (dataRegs !? D0) @?= Just 0xFD
                     nFlag @?= True
         , testCase "Clear operations" $ do
             let M68kSt{dataRegs, zFlag, nFlag, vFlag, cFlag} = simulate "clr.l D0" st0{dataRegs = insert D0 42 dataRegs0}

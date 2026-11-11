@@ -601,7 +601,7 @@ storeByte :: forall w. (IsWord w) => Argument w w -> Int8 -> State (M68kSt w) ()
 storeByte (DirectDataReg r) v = do
     st@M68kSt{dataRegs} <- get
     let w = fromMaybe (error $ "invalid register: " <> show r) $ dataRegs !? r
-        w' = (w .&. 0xFFFFFF00) .|. fromInteger (toInteger v)
+        w' = (w .&. 0xFFFFFF00) .|. fromIntegral (fromSign v)
     put st{dataRegs = insert r w' dataRegs}
 storeByte (IndirectAddrReg offset r index) v = do
     addr <- indirectAddr (+ offset) r index
