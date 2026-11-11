@@ -1,0 +1,4 @@
+{
+  "title": "Hello world",
+  "description": "Prints \"Hello\\n\\0World\" to the output port 0x84, one character at a time."
+}

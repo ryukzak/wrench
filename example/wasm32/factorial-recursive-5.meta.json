@@ -1,0 +1,4 @@
+{
+  "title": "Factorial (recursive)",
+  "description": "Computes 5! = 120 with a function that calls itself. Each call gets its own frame on the operand stack."
+}

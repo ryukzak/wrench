@@ -1,0 +1,4 @@
+{
+  "title": "Call frames",
+  "description": "Nested calls with .frame locals. Stops inside the inner call to show the stack layout: frames, locals and the control stack."
+}

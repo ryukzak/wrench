@@ -1,0 +1,4 @@
+{
+  "title": "Factorial (loop)",
+  "description": "Reads n = 5 from the input port 0x80, computes n! in a loop and writes 120 to the output port 0x84."
+}

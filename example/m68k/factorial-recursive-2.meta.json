@@ -1,0 +1,4 @@
+{
+  "title": "Factorial (recursive, link/unlk)",
+  "description": "Computes 5! = 120 with a recursive subroutine. Keeps n in a stack frame made by link/unlk."
+}

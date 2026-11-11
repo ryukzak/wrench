@@ -1,0 +1,4 @@
+{
+  "title": "Logical NOT",
+  "description": "Reads a boolean (0 is true, 1 is false) from the input port 0x80 and writes its negation to 0x84. Input: 1, output: 0."
+}

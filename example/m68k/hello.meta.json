@@ -1,0 +1,4 @@
+{
+  "title": "Hello world",
+  "description": "Prints \"Hello\\n\\0World\" to the output port 0x84. Reads each character with move.b and writes it as a long word (move.l)."
+}
