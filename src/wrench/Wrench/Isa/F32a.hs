@@ -13,8 +13,8 @@ import Data.Bits (Bits (..), clearBit, complement, setBit, shiftL, shiftR, testB
 import Data.Default (def)
 import Data.List (lookup)
 import Relude
-import Text.Megaparsec (anySingleBut, choice, getSourcePos, try)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (choice, try)
+import Text.Megaparsec.Char (hspace, hspace1, string)
 import Wrench.Machine.Memory
 import Wrench.Machine.Types
 import Wrench.Machine.Word
@@ -255,16 +255,7 @@ instance (IsWord w) => MnemonicParser (F32aIsa w (Ref w)) where
 bareLiteral :: (IsWord w) => Parser (Ref w)
 bareLiteral = try $ do
     hspace
-    pos <- getSourcePos
-    ref <-
-        choice
-            [ do
-                void $ char '\''
-                c <- anySingleBut '\''
-                void $ char '\''
-                return $ ValueR id pos $ fromIntegral $ ord c
-            , ValueR id pos <$> wordLiteral
-            ]
+    ref <- constantRef
     hspace1 <|> eol' "\\"
     return ref
 

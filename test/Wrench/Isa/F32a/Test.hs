@@ -41,6 +41,9 @@ tests =
         , testCase "Bare char literal pushes to stack" $ do
             let F32aSt{dataStack} = simulate "'A'" st0
              in dataStack @?= [65]
+        , testCase "Bare char literal with an escape pushes to stack" $ do
+            let F32aSt{dataStack} = simulate "'\\n'" st0
+             in dataStack @?= [10]
         , testCase "lit keyword still works" $ do
             let F32aSt{dataStack} = simulate "lit 42" st0
              in dataStack @?= [42]
