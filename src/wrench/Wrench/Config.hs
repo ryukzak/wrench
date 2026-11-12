@@ -1,6 +1,7 @@
 module Wrench.Config (
     Config (..),
     readConfig,
+    parseConfig,
     ensureSeed,
     executionStatsReport,
     withExecutionStats,
@@ -9,24 +10,23 @@ module Wrench.Config (
 import Data.Aeson (FromJSON (..), Value (..), genericParseJSON, rejectUnknownFields)
 import Data.Aeson.Casing (aesonDrop, snakeCase)
 import Data.Default
-import Data.Yaml (decodeFileEither, prettyPrintParseException)
+import Data.Yaml (ParseException, decodeEither', decodeFileEither, prettyPrintParseException)
 import Relude
 import Relude.Extra
 import Relude.Unsafe qualified as Unsafe
 import System.Random qualified as Random
 import Wrench.Report
 
-throwE :: (Monad m) => e -> ExceptT e m a
-throwE = ExceptT . return . Left
-
 readConfig :: FilePath -> IO (Either String Config)
-readConfig path = runExceptT $ do
-    result <- liftIO $ decodeFileEither path
-    conf@Config{cMemoryMappedIo} <- case result of
-        Left e -> throwE $ prettyPrintParseException e
-        Right conf -> return conf
-    let conf' = (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
-    return conf'
+readConfig path = fromParsed <$> decodeFileEither path
+
+parseConfig :: ByteString -> Either String Config
+parseConfig = fromParsed . decodeEither'
+
+fromParsed :: Either ParseException Config -> Either String Config
+fromParsed result = do
+    conf@Config{cMemoryMappedIo} <- first prettyPrintParseException result
+    return (conf <> def){cMemoryMappedIoFlat = fmap flattenIoStream cMemoryMappedIo}
 
 ensureSeed :: Config -> IO Config
 ensureSeed conf@Config{cSeed = Just _} = return conf

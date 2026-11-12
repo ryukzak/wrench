@@ -75,6 +75,7 @@ test-examples: build
 
 	stack exec wrench -- --isa acc32      example/acc32/not.s               -c example/acc32/not-true.yaml
 	stack exec wrench -- --isa acc32      example/acc32/hello.s             -c example/acc32/hello.yaml
+	stack exec wrench -- --isa acc32      -                                 --conf-text "$$(cat example/acc32/hello.yaml)" < example/acc32/hello.s
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-87.yaml
 	stack exec wrench -- --isa acc32      example/acc32/get-put-char.s      -c example/acc32/get-put-char-ABCD.yaml
 	stack exec wrench -- --isa acc32      example/acc32/factorial.s         -c example/acc32/factorial-5.yaml

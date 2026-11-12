@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Data.ByteString qualified as B
 import Data.Default
 import Data.Text qualified as T
 import Options.Applicative
@@ -23,7 +24,7 @@ options =
         <$> some
             ( strArgument
                 ( metavar "FILENAME"
-                    <> help "Assembly file name"
+                    <> help "Assembly file name, or - for stdin"
                 )
             )
         <*> optional
@@ -129,7 +130,7 @@ fmtConfig = \case
 
 process :: Options -> String -> IO (Either Text Text)
 process Options{isa, inplace, check} fileName = do
-    content <- decodeUtf8 <$> readFileBS fileName
+    content <- decodeUtf8 <$> if fileName == "-" then B.getContents else readFileBS fileName
     case resolveIsa isa content of
         Left err -> return $ Left $ toText fileName <> ": " <> err
         Right isa' -> reformat content isa'
