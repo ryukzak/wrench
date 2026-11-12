@@ -32,7 +32,8 @@ _start:
 
 count:
     ; Increment the counter by the step value
-    add t2, t2, t1                 / nop                            / sw t2, 0(t0) / nop
+    nop                            / nop                            / sw t2, 0(t0) / nop
+    add t2, t2, t1                 / nop                            / nop          / nop
 
     ; Output the updated counter value
     nop                            / nop                            / sw t2, 0(t4) / blt t5, t2, end

@@ -608,17 +608,17 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
     instructionExecute _pc bundle@VliwIvIsa{memOp, alu1Op, alu2Op, ctrlOp} = do
         -- Tally per-bundle slot usage for the vliw:* report variables.
         modify $ \st -> st{vliwLoad = recordBundle bundle (vliwLoad st)}
-        -- Phase 1: Read all source operands and compute results (without modifying state)
-        memResult <- computeMem memOp
-        alu1OpResult <- computeAlu alu1Op
-        alu2OpResult <- computeAlu alu2Op
+        -- Execute ALU1, ALU2 and Memory slots one by one in random order:
+        -- each slot reads registers written by the slots before it
+        let slots =
+                [ computeMem memOp >>= applyMemResult
+                , computeAlu alu1Op >>= applyAluResult
+                , computeAlu alu2Op >>= applyAluResult
+                ]
+        shuffledSlots <- shuffleList slots
+        forM_ shuffledSlots id
 
-        -- Phase 2: Apply all register writes simultaneously in random order
-        let results = [applyMemResult memResult, applyAluResult alu1OpResult, applyAluResult alu2OpResult]
-        shuffledResults <- shuffleList results
-        forM_ shuffledResults id
-
-        -- Phase 3: Execute control operation (always last, may branch)
+        -- Execute control operation (always last, may branch)
         branched <- execCtrl ctrlOp
 
         -- If no branch taken, advance PC

@@ -108,7 +108,12 @@ Each instruction is a bundle with 4 slots: Slot 0 (ALU1), Slot 1 (ALU2), Slot 2 
 
 An unused slot can be written either as an explicit `nop` or simply left blank (just whitespace between the surrounding `/` separators) — the two forms are equivalent, and the blank form is preferred for keeping bundles terse.
 
-All source operands are read first, then the results are written back. The register writes of ALU1, ALU2 and Memory land in a random order drawn from the [`seed`](README.md#seed), so if two of them write the same register, which value stays can change from run to run. The control slot always executes last. The compiler/assembler must ensure that parallel operations in the same bundle are independent (no write-write or read-write conflicts across slots).
+The ALU1, ALU2, and Memory slots execute one by one in a random order drawn from the [`seed`](README.md#seed). Each slot reads registers after the slots before it have written their results, so a bundle with a read-write or write-write conflict across slots gives an undefined result. The control slot always executes last. The compiler/assembler must ensure that operations in the same bundle are independent.
+
+```assembly
+; undefined: t3 gets t1 before or after the second slot changes it
+add t3, t1, t2 / add t1, t0, t1 / /
+```
 
 ```assembly
 add rd, rs1, rs2 / addi rd, rs1, k / lw rd, offset(rs1) / beq rs1, rs2, k
