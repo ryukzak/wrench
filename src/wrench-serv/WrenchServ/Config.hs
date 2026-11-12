@@ -10,6 +10,8 @@ data Config = Config
     { cPort :: Int
     , cWrenchPath :: FilePath
     , cWrenchArgs :: [String]
+    , cWrenchFmtPath :: FilePath
+    , cWrenchFmtArgs :: [String]
     , cStoragePath :: FilePath
     , cVariantsPath :: FilePath
     , cExamplesPath :: FilePath
@@ -22,6 +24,8 @@ initConfig :: IO Config
 initConfig = do
     cPort <- maybe 8080 Unsafe.read <$> lookupEnv "PORT"
     (cWrenchPath : cWrenchArgs) <- maybe ["stack", "exec", "wrench", "--"] (splitOn " ") <$> lookupEnv "WRENCH_EXEC"
+    (cWrenchFmtPath : cWrenchFmtArgs) <-
+        maybe ["stack", "exec", "wrench-fmt", "--"] (splitOn " ") <$> lookupEnv "WRENCH_FMT_EXEC"
     cStoragePath <- fromMaybe "uploads" <$> lookupEnv "STORAGE_PATH"
     cVariantsPath <- fromMaybe "variants" <$> lookupEnv "VARIANTS"
     cExamplesPath <- fromMaybe "examples" <$> lookupEnv "EXAMPLES_PATH"
@@ -33,6 +37,8 @@ initConfig = do
             { cPort
             , cWrenchPath
             , cWrenchArgs
+            , cWrenchFmtPath
+            , cWrenchFmtArgs
             , cStoragePath
             , cVariantsPath
             , cExamplesPath

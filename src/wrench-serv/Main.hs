@@ -4,9 +4,9 @@
 module Main (main) where
 
 import Control.Concurrent (forkIO)
-import Control.Exception (try)
+import Control.Exception (finally, try)
 import Crypto.Hash.SHA1 qualified as SHA1
-import Data.Aeson (FromJSON (..), defaultOptions, eitherDecodeStrict, genericParseJSON)
+import Data.Aeson (FromJSON (..), Value, defaultOptions, eitherDecodeStrict, genericParseJSON, object, (.=))
 import Data.Aeson.Types (Options (..))
 import Data.ByteString qualified as B
 import Data.Char (toLower)
@@ -23,9 +23,19 @@ import Numeric (showHex)
 import Relude
 import Servant
 import Servant.HTML.Lucid (HTML)
-import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, renameFile)
+import System.Directory (
+    createDirectoryIfMissing,
+    doesDirectoryExist,
+    doesFileExist,
+    getTemporaryDirectory,
+    listDirectory,
+    removePathForcibly,
+    renameFile,
+ )
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeBaseName, takeFileName, (</>))
+import System.Process (readProcessWithExitCode)
+import Web.FormUrlEncoded (FromForm)
 import Wrench.Misc (wrenchVersion)
 import WrenchServ.CodeView
 import WrenchServ.Config
@@ -49,6 +59,7 @@ type API =
         :<|> "submit" :> SubmitForm
         :<|> "report" :> GetReport
         :<|> "examples" :> GetExamples
+        :<|> "fmt" :> Fmt
         :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" Text] NoContent)
 
@@ -58,6 +69,7 @@ server conf =
         :<|> submitForm conf
         :<|> getReport conf
         :<|> getExamples conf
+        :<|> fmt conf
         :<|> serveDirectoryWebApp assetsDir
         :<|> redirectToForm
 
@@ -394,6 +406,32 @@ renderItem ExampleEntry{eeGuid, eeTitle, eeDescription, eeOk} =
             <> "]</a>"
             <> descHtml
             <> "</li>"
+
+data FmtRequest = FmtRequest
+    { isa :: Text
+    , asm :: Text
+    }
+    deriving (Generic, Show)
+
+instance FromForm FmtRequest
+
+type Fmt = ReqBody '[FormUrlEncoded] FmtRequest :> Post '[JSON] Value
+
+fmt :: Config -> FmtRequest -> Handler Value
+fmt Config{cWrenchFmtPath, cWrenchFmtArgs} FmtRequest{isa, asm} = liftIO $ do
+    guid <- nextRandom
+    dir <- (</> ("wrench-fmt" </> show guid)) <$> getTemporaryDirectory
+    let asmFn = dir </> "source.s"
+    (exitCode, out, err) <- flip finally (removePathForcibly dir) $ do
+        createDirectoryIfMissing True dir
+        writeFileText asmFn asm
+        readProcessWithExitCode cWrenchFmtPath (cWrenchFmtArgs <> ["--isa", toString isa, asmFn]) ""
+    return $
+        object
+            [ "success" .= (exitCode == ExitSuccess)
+            , "asm" .= fromMaybe (toText out) (T.stripSuffix "\n" (toText out))
+            , "error" .= toText err
+            ]
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}
