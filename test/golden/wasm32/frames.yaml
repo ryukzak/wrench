@@ -6,8 +6,8 @@ reports:
   - name: Dump
     slice: last
     view: |
-      {stackDump:hex}
+      {stack:dump:hex}
   - name: Dump, last frame, decimal
     slice: last
     view: |
-      {stackDump:dec:1}
+      {stack:dump:dec:1}
