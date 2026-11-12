@@ -33,6 +33,8 @@ extTests =
             addExt (maxBound :: Int32) maxBound @?= Ext{value = -2, overflow = True, carry = False}
         , testCase "addExt: 0xFFFFFFFF + 1, overflow, carry" $ do
             addExt (0xFFFFFFFF :: Int32) 1 @?= Ext{value = 0, overflow = False, carry = True}
+        , testCase "addExt: minBound + minBound = 0, overflow, carry" $ do
+            addExt (minBound :: Int32) minBound @?= Ext{value = 0, overflow = True, carry = True}
         , testCase "subExt: 1 - 1 = 0, no overflow, no carry" $ do
             subExt (1 :: Int32) 1 @?= Ext{value = 0, overflow = False, carry = False}
         , testCase "subExt: minBound - 1 = maxBound, overflow, carry" $ do
@@ -45,14 +47,18 @@ extTests =
             subExt (1 :: Int32) 2 @?= Ext{value = -1, overflow = False, carry = True}
         , testCase "subExt: 5 - 3 = 2, no overflow, no carry" $ do
             subExt (5 :: Int32) 3 @?= Ext{value = 2, overflow = False, carry = False}
+        , testCase "subExt: 0 - minBound = minBound, overflow, carry (borrow)" $ do
+            subExt (0 :: Int32) minBound @?= Ext{value = minBound, overflow = True, carry = True}
         , testCase "mulExt: 2 * 3 = 6, no overflow, no carry" $ do
             mulExt (2 :: Int32) 3 @?= Ext{value = 6, overflow = False, carry = False}
         , testCase "mulExt: maxBound * 2 = -2, overflow, carry" $ do
             mulExt (maxBound :: Int32) 2 @?= Ext{value = -2, overflow = True, carry = False}
         , testCase "mulExt: maxBound * maxBound = 1, overflow, carry" $ do
-            mulExt (maxBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = False}
+            mulExt (maxBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = True}
+        , testCase "mulExt: 0x10000 * 0x10000 = 0, overflow, carry" $ do
+            mulExt (0x10000 :: Int32) 0x10000 @?= Ext{value = 0, overflow = True, carry = True}
         , testCase "mulExt: -1 * minBound = minBound, overflow" $ do
-            mulExt (-1 :: Int32) minBound @?= Ext{value = minBound, overflow = True, carry = False}
+            mulExt (-1 :: Int32) minBound @?= Ext{value = minBound, overflow = True, carry = True}
         ]
 
 intervalsTests :: TestTree

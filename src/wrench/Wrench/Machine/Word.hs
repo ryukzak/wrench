@@ -52,14 +52,14 @@ data Ext a = Ext {value :: a, overflow :: Bool, carry :: Bool}
 addExt :: (IsWord w) => w -> w -> Ext w
 addExt x y =
     let result = x + y
-        overflow = ((x > 0 && y > 0 && result < 0) || (x < 0 && y < 0 && result > 0))
+        overflow = toInteger result /= toInteger x + toInteger y
         carry = testBit (toInteger (fromSign x) + toInteger (fromSign y)) (finiteBitSize x)
      in Ext{value = result, overflow, carry}
 
 subExt :: (IsWord w) => w -> w -> Ext w
 subExt x y =
     let result = x - y
-        overflow = ((x > 0 && y < 0 && result < 0) || (x < 0 && y > 0 && result > 0))
+        overflow = toInteger result /= toInteger x - toInteger y
         carry = fromSign x < fromSign y
      in Ext{value = result, overflow, carry}
 
@@ -67,7 +67,7 @@ mulExt :: (IsWord w) => w -> w -> Ext w
 mulExt x y =
     let result = x * y
         overflow = toInteger result /= toInteger x * toInteger y
-        carry = (fromIntegral x * fromIntegral y) > (maxBound :: Word)
+        carry = toInteger (fromSign result) /= toInteger (fromSign x) * toInteger (fromSign y)
      in Ext{value = result, overflow, carry}
 
 -- Field guards: a value that does not fit the field it is encoded into stops
