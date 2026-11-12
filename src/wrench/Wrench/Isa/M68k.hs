@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
@@ -685,14 +686,26 @@ instance (IsWord w) => Machine (M68kSt w) (M68kIsa w w) w where
             Mul{mode = Byte, src, dst} -> byteCmd2Ext src dst mulExt
             Div{mode = Long, src, dst} -> do
                 b <- fetchWord src
-                if b == 0
-                    then raiseInternalError "division by zero"
-                    else wordCmd2 (Immediate b) dst div
+                a <- fetchWord (rmwRead dst)
+                if
+                    | b == 0 -> raiseInternalError "division by zero"
+                    | a == minBound && b == -1 -> raiseInternalError "integer overflow"
+                    | otherwise -> do
+                        let result = a `div` b
+                        storeWord (rmwWrite dst) result
+                        logicFlags result
+                        nextPc
             Div{mode = Byte, src, dst} -> do
                 b <- fetchByte src
-                if b == 0
-                    then raiseInternalError "division by zero"
-                    else byteCmd2 (Immediate $ fromIntegral b) dst div
+                a <- fetchByte (rmwRead dst)
+                if
+                    | b == 0 -> raiseInternalError "division by zero"
+                    | a == minBound && b == -1 -> raiseInternalError "integer overflow"
+                    | otherwise -> do
+                        let result = a `div` b
+                        storeByte (rmwWrite dst) result
+                        logicFlags result
+                        nextPc
             Cmp{mode = Long, src, dst} -> do
                 a <- fetchWord dst
                 b <- fetchWord src

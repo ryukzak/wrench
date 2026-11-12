@@ -584,6 +584,13 @@ tests =
             let M68kSt{internalError} =
                     simulate "div.b D1, D0" st0{dataRegs = insert D1 0 $ insert D0 10 dataRegs0}
              in internalError @?= Just "division by zero"
+        , testCase "Division overflow" $ do
+            let M68kSt{internalError} =
+                    simulate "div.l D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 minBound dataRegs0}
+             in internalError @?= Just "integer overflow"
+            let M68kSt{internalError} =
+                    simulate "div.b D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 0x80 dataRegs0}
+             in internalError @?= Just "integer overflow"
         , testCase "LINK and UNLK operations" $ do
             let M68kSt{addrRegs, mem} =
                     simulate

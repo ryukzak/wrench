@@ -196,6 +196,7 @@ tests =
                 [ goldenSimulate Acc32 "test/golden/acc32/all.s" "test/golden/acc32/all.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/error_sym.s" "test/golden/acc32/error_sym.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/overflow.s" "test/golden/acc32/overflow.yaml"
+                , goldenSimulate Acc32 "test/golden/acc32/shift_count.s" "test/golden/acc32/shift_count.yaml"
                 , goldenSimulate Acc32 "test/golden/acc32/get_put_char.s" "test/golden/acc32/get_put_char_nothing.yaml"
                 ]
             , testGroup

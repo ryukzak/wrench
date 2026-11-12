@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
@@ -317,8 +318,8 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
             Rem a -> withDivisor rem a
             Clv -> setOverflowFlag False >> nextPc
             Clc -> setCarryFlag False >> nextPc
-            ShiftL a -> withAcc (\x y -> shiftL x (fromEnum y)) a
-            ShiftR a -> withAcc (\x y -> shiftR x (fromEnum y)) a
+            ShiftL a -> withAcc (\x y -> shiftL x (fromEnum y .&. 0x1F)) a
+            ShiftR a -> withAcc (\x y -> shiftR x (fromEnum y .&. 0x1F)) a
             And a -> withAcc (.&.) a
             Or a -> withAcc (.|.) a
             Xor a -> withAcc xor a
@@ -352,9 +353,12 @@ instance (IsWord w) => Machine (Acc32St w) (Acc32Isa w w) w where
             withDivisor f addr = do
                 acc <- getAcc
                 value <- getWord $ fromEnum addr
-                if value == 0
-                    then raiseInternalError "division by zero"
-                    else setAcc (f acc value) >> nextPc
+                let exact = toInteger acc `f` toInteger value
+                    result = fromInteger exact
+                if
+                    | value == 0 -> raiseInternalError "division by zero"
+                    | toInteger result /= exact -> raiseInternalError "integer overflow"
+                    | otherwise -> setAcc result >> nextPc
             condJmp p a = do
                 acc <- getAcc
                 if p acc

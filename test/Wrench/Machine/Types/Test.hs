@@ -51,6 +51,8 @@ extTests =
             mulExt (maxBound :: Int32) 2 @?= Ext{value = -2, overflow = True, carry = False}
         , testCase "mulExt: maxBound * maxBound = 1, overflow, carry" $ do
             mulExt (maxBound :: Int32) maxBound @?= Ext{value = 1, overflow = True, carry = False}
+        , testCase "mulExt: -1 * minBound = minBound, overflow" $ do
+            mulExt (-1 :: Int32) minBound @?= Ext{value = minBound, overflow = True, carry = False}
         ]
 
 intervalsTests :: TestTree
