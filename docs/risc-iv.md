@@ -6,7 +6,7 @@ The RISC-IV ISA is a simple register-based instruction set inspired by the RISC-
 
 The RISC-IV architecture is a 32-bit RISC (Reduced Instruction Set Computer) architecture inspired by the RISC-V specification. It features:
 
-- 32 general-purpose registers (including one hardwired zero register — writes to `Zero` are silently discarded)
+- 32 general-purpose registers (including one hardwired zero register — writes to `zero` are silently discarded)
 - Fixed-length 4-byte instructions
 - Load-store architecture (memory access only through specific instructions)
 - Simple addressing modes
@@ -26,15 +26,15 @@ Although most registers can technically be used for any purposes, the following 
 
 | Register(s) | Purpose                                                                       | Convention   |
 | ----------- | ----------------------------------------------------------------------------- | ------------ |
-| `Zero`      | Constant zero value. Writes are ignored                                       | Preserved    |
-| `Ra`        | Return address for function calls                                             | Caller-saved |
-| `Sp`        | Stack pointer                                                                 | Callee-saved |
-| `Gp`        | Global pointer. Points to a region containing frequently accessed global data | Callee-saved |
-| `Tp`        | Thread pointer. Reserved for thread-local data                                | Callee-saved |
-| `A0-A7`     | Function arguments and return values                                          | Caller-saved |
-| `T0-T6`     | Temporary registers for intermediate calculations                             | Caller-saved |
-| `S0Fp`      | Frame pointer or saved register                                               | Callee-saved |
-| `S1-S11`    | Saved registers for long-lived values                                         | Callee-saved |
+| `zero`      | Constant zero value. Writes are ignored                                       | Preserved    |
+| `ra`        | Return address for function calls                                             | Caller-saved |
+| `sp`        | Stack pointer                                                                 | Callee-saved |
+| `gp`        | Global pointer. Points to a region containing frequently accessed global data | Callee-saved |
+| `tp`        | Thread pointer. Reserved for thread-local data                                | Callee-saved |
+| `a0`-`a7`   | Function arguments and return values                                          | Caller-saved |
+| `t0`-`t6`   | Temporary registers for intermediate calculations                             | Caller-saved |
+| `s0`/`fp`   | Frame pointer or saved register                                               | Callee-saved |
+| `s1`-`s11`  | Saved registers for long-lived values                                         | Callee-saved |
 
 **Caller-saved** registers may be freely modified by the called function. If the caller needs their values after a function call, it must save and restore them
 
@@ -80,7 +80,7 @@ of them can hold a full 32-bit value:
 | Field                                                                   | Width           | Accepted values     |
 | ----------------------------------------------------------------------- | --------------- | ------------------- |
 | `lw`, `lb`, `sw`, `sb` offset                                           | 12-bit signed   | `-2048..2047`       |
-| `addi`, `slti`, `andi`, `ori`, `xori` immediate                         | 12-bit signed   | `-2048..2047`       |
+| `addi`, `slti`, `andi`, `ori`, `xori`, `jalr` immediate                 | 12-bit signed   | `-2048..2047`       |
 | `slli`, `srli`, `srai` shift amount                                     | 5-bit unsigned  | `0..31`, constant   |
 | `beqz`, `bnez`, `beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu` displacement | 13-bit signed   | `-4096..4095`       |
 | `j`, `jal` displacement                                                 | 21-bit signed   | `-1048576..1048575` |
@@ -172,8 +172,8 @@ ERROR: memory[0x06]: instruction in memory corrupted
 
 - **Load Upper Immediate**
     - **Syntax:** `lui <rd>, <k>`
-    - **Description:** Load an immediate value shifted left by 12 bits into the destination register.
-    - **Operation:** `rd <- (k & 0x000FFFFF) << 12`
+    - **Description:** Load a 20-bit immediate value shifted left by 12 bits into the destination register.
+    - **Operation:** `rd <- k << 12`
 
 - **Move**
     - **Syntax:** `mv <rd>, <rs>`

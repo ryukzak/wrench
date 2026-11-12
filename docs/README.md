@@ -14,6 +14,7 @@ Wrench is an educational project designed to explore different types of processo
         - [Data Section](#data-section)
         - [Text Section](#text-section)
         - [Setting Section Addresses](#setting-section-addresses)
+    - [Running a Program](#running-a-program)
     - [Configuration Files](#configuration-files)
         - [Configuration File Structure](#configuration-file-structure)
         - [Configuration Options](#configuration-options)
@@ -92,17 +93,17 @@ loop_start:       ; This defines a label called "loop_start"
 
 The data section is where you define variables, constants, and other data used by your program. It starts with the `.data` directive.
 
-A data line in the data section typically consists of a label, a directive, and one or more values:
+Each data line consists of a label, a directive, and one or more values:
 
 ```assembly
 label:    directive    value(s)
 ```
 
-- **label**: An identifier followed by a colon `:` that marks the memory location
+- **label**: An identifier followed by a colon `:` that marks the memory location. A data line without a label is a translation error.
 - **directive**: Specifies the type and size of data being defined
 - **value(s)**: The actual data to be stored (multiple values can be separated by commas)
 
-Common data directives include:
+There are two data directives:
 
 - `.word` - Define word-sized data (typically 32 bits)
 - `.byte` - Define byte-sized data (8 bits)
@@ -162,6 +163,8 @@ label:                    ; Optional label
     ...
 ```
 
+Execution starts at the `_start` label, which every program has to define.
+
 For ISA-specific details (instructions, registers, etc.), refer to the respective documentation:
 
 - [Acc32](./acc32.md) - Accumulator-based architecture
@@ -191,6 +194,16 @@ _start:
 
 If `.org` is not specified, the assembler will automatically assign addresses starting from 0x0000 for the first section and place other sections sequentially.
 
+## Running a Program
+
+The simulator starts at `_start` and records the machine state before every instruction. It stops at the first of:
+
+- `halt`. The last record is the state after it.
+- [`limit`](#limit) executed instructions. The last record is `ERROR: Simulation limit reached`.
+- A runtime error, such as a load from an input port with no input left. The last record is `ERROR:` with the message.
+
+Then every report prints the records its [`slice`](#slice) selects, so after an error a `slice: last` report prints the `ERROR:` line instead of its `view`. `wrench` exits with code 1 if the program or the configuration is rejected or an [`assert`](#assert) fails, and with 0 otherwise, even after an `ERROR:` record.
+
 ## Configuration Files
 
 Wrench uses YAML configuration files (`.yaml` extension) to control simulation parameters. These files allow you to:
@@ -205,6 +218,8 @@ Wrench uses YAML configuration files (`.yaml` extension) to control simulation p
 A configuration file typically contains the following sections:
 
 ```yaml
+name: "factorial of 5" # Optional title for people
+
 # Execution limits
 limit: 1000            # Maximum instructions to execute
 memory_size: 8192      # Memory size in bytes
@@ -229,13 +244,15 @@ reports:
       numio[0x84]: [] >>> [120]
 ```
 
+`limit` and `memory_size` are required. `name` is an optional title for people; the simulator does not use it. Without a configuration file, `wrench` runs with `limit: 1000`, `memory_size: 512` and one report, `Executed Instruction Log`, that prints `{pc}: {instruction:next} {pc:label}` for every step.
+
 ### Configuration Options
 
 #### `limit`
 
-- **Type:** Integer
-- **Description:** Specifies the maximum number of instructions the simulation can execute. If the simulation exceeds this limit, it will be terminated.
-- **CLI Override:** `--instruction-limit LIMIT` sets the upper limit for that option.
+- **Type:** Integer (required)
+- **Description:** Specifies the maximum number of instructions the simulation can execute. A run that reaches it stops with `ERROR: Simulation limit reached`.
+- **CLI bound:** `wrench` rejects a `limit` above `--instruction-limit` (default 8000000). The flag does not change `limit`.
 - **Example:**
 
   ```yaml
@@ -244,9 +261,9 @@ reports:
 
 #### `memory_size`
 
-- **Type:** Integer
+- **Type:** Integer (required)
 - **Description:** Specifies the memory size in bytes.
-- **CLI Override:** `--memory-limit SIZE` sets the upper limit for that option.
+- **CLI bound:** `wrench` rejects a `memory_size` above `--memory-limit` (default 65535). The flag does not change `memory_size`.
 - **Example:**
 
   ```yaml
@@ -256,7 +273,7 @@ reports:
 #### `seed`
 
 - **Type:** Integer (optional)
-- **Description:** Seed for the simulation's pseudo-random number generator. Used by [`zero_memory_init`](#zero_memory_init) (specifically, its absence) and by architectures that consume randomness at runtime (e.g. `vliw-iv`'s hazard simulation). If omitted, the `wrench` CLI draws a fresh random seed for each run (visible with `--verbose`, so you can pin it via `seed:` to replay an interesting run); library/test callers that invoke the simulator directly without going through the CLI default to seed `0` instead, for reproducibility.
+- **Description:** Seed for the simulation's pseudo-random number generator. It fills the memory that no section initializes (unless [`zero_memory_init`](#zero_memory_init) is set), and it orders the register writes of a `vliw-iv` bundle (see [its execution model](vliw-iv.md#execution-model)). If omitted, the `wrench` CLI draws a fresh random seed for each run (visible with `--verbose`, so you can pin it via `seed:` to replay an interesting run); library/test callers that invoke the simulator directly without going through the CLI default to seed `0` instead, for reproducibility.
 - **Example:**
 
   ```yaml
@@ -276,7 +293,9 @@ reports:
 #### `memory_mapped_io`
 
 - **Type:** Map of decimal or hexadecimal addresses to lists of inputs
-- **Description:** Defines the memory-mapped IO streams for the simulation. Each key is a memory address, and the value is a list of inputs that should be fed into the simulation at that address. To define an output port only, leave the list empty.
+- **Description:** Defines the memory-mapped IO ports. Each key is a port address, and its list is the input the program reads there. To define an output port only, leave the list empty. A string in the list stands for its character codes: `[1, "Hi"]` is `[1, 72, 105]`.
+
+  A load from a port takes its next input value; a byte load keeps the low byte of that value. A store appends the value to the port's output; a byte store appends the byte as an unsigned number. A load from a port with no input left stops the run with `ERROR: ... input is depleted`. The [`io` view](#view) shows a port as `[remaining input] >>> [output]`.
 - **Example:**
 
   ```yaml
@@ -288,7 +307,7 @@ reports:
 #### `reports`
 
 - **Type:** List of report configurations
-- **Description:** Specifies the reports to generate during the simulation. Each report configuration includes settings such as the name, slice, filter, inspector, and assertions.
+- **Description:** Specifies the reports to print after the simulation. Each report has the fields below; only `slice` is required.
 - **Example:**
 
   ```yaml
@@ -313,7 +332,7 @@ Each report configuration can include the following fields:
 
 ##### `slice`
 
-- **Type:** String or List
+- **Type:** String or List (required)
 - **Description:** Specifies which part of the simulation records should be included in the report. Possible values are:
     - `"all"`: Include all records.
     - `["head", n]`: Include the first `n` records.
@@ -327,7 +346,7 @@ Each report configuration can include the following fields:
 
 ##### `view`
 
-- **Type:** String (template)
+- **Type:** String (template, optional)
 - **Description:** Text template to print log records. In the template, you can use state view expressions in curly brackets.
 - **Example:** `program counter: {pc}`
 
@@ -342,7 +361,7 @@ General state view expressions implemented for all ISAs:
 - `instruction:next` -- Print the next instruction to execute, or `-` when the machine has halted.
 - `instruction:prev` -- Print the instruction that was just executed, or `-` for the initial state (before any instruction has run).
 - `mem:dump:<a>:<b>` -- Print memory dump between addresses `<a>` and `<b>`.
-- `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- Print input-output stream state for the specific address in decimal, symbol, or hexadecimal format. Printable char codes: [32, 126]. Also `\0`, `\n` will be printed as is. Other non-printable characters will be replaced with `?`.
+- `io:<a>:dec`, `io:<a>:sym`, `io:<a>:hex` -- Print the IO port at `<a>` as `[remaining input] >>> [output]`, e.g. `[66,67] >>> [65]`, with values in decimal, as characters (`"BC" >>> "A"`) or in hexadecimal. In `sym`, char codes 32..126 print as they are, `\0` and `\n` as these escapes, and any other code as `?`.
 
 Execution and memory statistics. These are typically used with `slice: last` to emit one final summary line; the values are the totals for the whole run.
 
@@ -399,10 +418,13 @@ For ISA-specific state views, see the respective architecture documentation.
 ##### `assert`
 
 - **Type:** String (optional)
-- **Description:** Specifies the expected final state of the simulation. If the actual final state does not match, an assertion failure will be reported.
+- **Description:** The text the report's `view` has to print over its `slice`. The two texts are compared line by line, ignoring leading and trailing whitespace. If they differ, the report prints `ASSERTION FAIL, expect:` and the expected text, and `wrench` exits with code 1.
 - **Example:**
 
   ```yaml
+  view: |
+    numio[0x80]: {io:0x80:dec}
+    numio[0x84]: {io:0x84:dec}
   assert: |
     numio[0x80]: [] >>> []
     numio[0x84]: [] >>> [120]
