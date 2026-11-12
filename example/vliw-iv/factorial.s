@@ -23,8 +23,9 @@ factorial_begin:
 factorial_while:
     ; Check if n == 0, if so exit loop
                                    /                                /              / beqz t1, factorial_end
-    ; acc *= n, n = n - 1 in parallel
-    mul t2, t2, t1                 / addi t1, t1, -1                /              / j factorial_while
+    ; acc *= n, then n = n - 1 (one bundle would read t1 before or after the write)
+    mul t2, t2, t1                 /                                /              /
+    addi t1, t1, -1                /                                /              / j factorial_while
 
 factorial_end:
     ; Load output_addr constant

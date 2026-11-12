@@ -15,8 +15,8 @@ _start:
     ; Expected: t4 = either 100 or 200 (last write wins)
 
     ; Write-After-Read hazard - one reads t2, another writes t2
-    ; The read should see the old value (10), not the new value
+    ; Slots run one by one in random order, so the read may see either value
     addi t2, zero, 99              / mv t5, t2                      / nop / nop
-    ; Expected: t2 = 99 (new value), t5 = 10 (old t2)
+    ; Expected: t2 = 99, t5 = either 10 (old t2) or 99 (new t2)
 
     nop                            / nop                            / nop / halt
