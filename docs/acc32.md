@@ -171,7 +171,7 @@ carry a full word and are unaffected. `example/acc32/hello.s` mixes both.
 
 - **Divide**
     - **Syntax:** `div <address>`
-    - **Description:** Divide the accumulator by a value from a specific address. The quotient is rounded down, toward minus infinity: `-7 / 2 = -4`. Division by zero stops the simulation with `ERROR: division by zero`, and `-2^31 / -1` with `ERROR: integer overflow`.
+    - **Description:** Divide the accumulator by a value from a specific address. The quotient is rounded down: `-7 / 2 = -4`. Division by zero stops the simulation with `ERROR: division by zero`, and `-2^31 / -1` with `ERROR: integer overflow`.
     - **Operation:** `acc <- acc / mem[<address>]`
 
 - **Remainder**
