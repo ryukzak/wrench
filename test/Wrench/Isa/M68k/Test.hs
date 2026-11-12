@@ -591,6 +591,10 @@ tests =
             let M68kSt{internalError} =
                     simulate "div.b D1, D0" st0{dataRegs = insert D1 (-1) $ insert D0 0x80 dataRegs0}
              in internalError @?= Just "integer overflow"
+        , testCase "A divisor that cannot be read is the error, not a division by zero" $ do
+            let M68kSt{internalError} =
+                    simulate "div.l (A0), D0" st0{addrRegs = insert A0 0x1000 addrRegs0}
+             in fmap (("out of memory" `isInfixOf`) . toString) internalError @?= Just True
         , testCase "LINK and UNLK operations" $ do
             let M68kSt{addrRegs, mem} =
                     simulate

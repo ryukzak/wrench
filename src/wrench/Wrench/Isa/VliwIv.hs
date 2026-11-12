@@ -596,8 +596,8 @@ instance (IsWord w) => Machine (VliwIvSt w) (VliwIvIsa w w) w where
     instructionFetch = do
         st <- get
         case st of
-            VliwIvSt{stopped = True} -> return $ Left halted
             VliwIvSt{internalError = Just err} -> return $ Left err
+            VliwIvSt{stopped = True} -> return $ Left halted
             VliwIvSt{pc, mem} ->
                 case readInstruction mem pc of
                     Left err -> return $ Left err

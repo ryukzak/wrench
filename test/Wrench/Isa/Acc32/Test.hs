@@ -41,6 +41,9 @@ tests =
         , testCase "a quotient that does not fit stops the simulation with an error" $ do
             divisionOutcome (Div 9) minBound (-1) @?= Just "integer overflow"
             divisionOutcome (Rem 9) minBound (-1) @?= Nothing
+        , testCase "a divisor that cannot be read is the error, not a division by zero" $
+            for_ [Div 100, Rem 100] $ \instr ->
+                fmap (("out of memory" `isInfixOf`) . toString) (divisionOutcome instr 7 0) @?= Just True
         , testGroup
             "Absolute address field"
             [ testCase "an address that fits is accepted" $ do
