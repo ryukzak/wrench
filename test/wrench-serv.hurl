@@ -77,6 +77,48 @@ xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='cod
 xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" not contains "mem["
 xpath "count(//script[contains(., 'posthog')])" == 1
 
+# Scratchpad: a run answers with the result and keeps nothing on the server.
+GET http://localhost:8080/scratch
+HTTP/1.1 200
+[Asserts]
+xpath "normalize-space(//head/title)" == "Wrench Scratchpad"
+xpath "//fieldset[@id='isa']//input[@name='isa'][@value='wasm32']" exists
+
+POST http://localhost:8080/scratch/run
+[Form]
+isa: acc32
+asm: .text \n _start: \n halt \n
+config: {limit: 100, memory_size: 128}
+editStats: {"origin": "starter"}
+HTTP/1.1 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.status" contains "ExitSuccess"
+jsonpath "$.log" contains "Halt"
+jsonpath "$.status" contains "$ wrench --isa acc32 source.s -c config.yaml"
+jsonpath "$.status" not contains "/"
+jsonpath "$.dump" not exists
+
+POST http://localhost:8080/scratch/dump
+[Form]
+isa: acc32
+asm: .text \n _start: \n halt \n
+config: {limit: 100, memory_size: 128}
+HTTP/1.1 200
+[Asserts]
+jsonpath "$.dump" contains "mem[0x00..0x00] (1 B)"
+
+# The scratchpad has tighter limits than a submission.
+POST http://localhost:8080/scratch/run
+[Form]
+isa: acc32
+asm: .text \n _start: \n halt \n
+config: {limit: 100, memory_size: 1024}
+HTTP/1.1 200
+[Asserts]
+jsonpath "$.success" == false
+jsonpath "$.status" contains "memory size too high"
+
 POST http://localhost:8080/fmt?isa=risc-iv-32
 Content-Type: text/plain; charset=utf-8
 ```

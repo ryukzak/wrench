@@ -6,13 +6,22 @@ module Main (main) where
 import Control.Concurrent (forkIO)
 import Control.Exception (try)
 import Crypto.Hash.SHA1 qualified as SHA1
-import Data.Aeson (FromJSON (..), defaultOptions, eitherDecodeStrict, genericParseJSON)
+import Data.Aeson (
+    FromJSON (..),
+    Value (Null),
+    decodeStrict,
+    defaultOptions,
+    eitherDecodeStrict,
+    genericParseJSON,
+    object,
+    (.=),
+ )
 import Data.Aeson.Types (Options (..))
 import Data.ByteString qualified as B
 import Data.Char (toLower)
 import Data.Text (isSuffixOf)
 import Data.Text qualified as T
-import Data.Time (getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time (diffUTCTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
@@ -51,6 +60,9 @@ type API =
         :<|> "report" :> GetReport
         :<|> "examples" :> GetExamples
         :<|> "fmt" :> Fmt
+        :<|> "scratch" :> GetScratch
+        :<|> "scratch" :> "run" :> RunScratch
+        :<|> "scratch" :> "dump" :> DumpScratch
         :<|> "assets" :> Raw
         :<|> Get '[JSON] (Headers '[Header "Location" Text] NoContent)
 
@@ -61,6 +73,9 @@ server conf =
         :<|> getReport conf
         :<|> getExamples conf
         :<|> fmt conf
+        :<|> getScratch conf
+        :<|> runScratch conf
+        :<|> dumpScratch conf
         :<|> serveDirectoryWebApp assetsDir
         :<|> redirectToForm
 
@@ -397,6 +412,90 @@ renderItem ExampleEntry{eeGuid, eeTitle, eeDescription, eeOk} =
             <> "]</a>"
             <> descHtml
             <> "</li>"
+
+type GetScratch = Header "Cookie" Text :> Get '[HTML] (Html ())
+
+getScratch :: Config -> Maybe Text -> Handler (Html ())
+getScratch conf@Config{cScratchLimits} cookie = do
+    template <- liftIO (readTemplate "static/scratch.html")
+    let rendered =
+            fillTemplate
+                [ ("limits", unwords $ map nowrap $ limitFlags cScratchLimits)
+                , ("tracker", postHogTracker)
+                ]
+                template
+    liftIO $ do
+        track <- getTrack cookie
+        posthogId <- getPosthogIdFromCookie cookie (track <> "_mp")
+        trackEvent conf ScratchViewEvent{mpVersion = wrenchVersion, mpPosthogId = posthogId}
+    return $ toHtmlRaw rendered
+    where
+        nowrap flag = "<span class=\"whitespace-nowrap\">" <> escapeHtml (unwords $ map toText flag) <> "</span>"
+
+type RunScratch =
+    Header "Cookie" Text
+        :> ReqBody '[FormUrlEncoded] ScratchRequest
+        :> Post '[JSON] Value
+
+runScratch :: Config -> Maybe Text -> ScratchRequest -> Handler Value
+runScratch conf@Config{cScratchLimits} cookie ScratchRequest{isa, asm, config, editStats} = liftIO $ do
+    startAt <- getCurrentTime
+    (exitCode, out, err) <- runScratchWrench conf isa asm config ["--stats"]
+    endAt <- getCurrentTime
+    let success = exitCode == ExitSuccess
+
+    track <- getTrack cookie
+    posthogId <- getPosthogIdFromCookie cookie (track <> "_mp")
+    void
+        $ forkIO
+        $ trackEvent
+            conf
+            ScratchRunEvent
+                { mpIsa = isa
+                , mpAsm = asm
+                , mpConfig = config
+                , mpVersion = wrenchVersion
+                , mpPosthogId = posthogId
+                , mpSuccess = success
+                , mpExitCode = show exitCode
+                , mpDurationMs = floor (1000 * diffUTCTime endAt startAt)
+                , mpEditStats = fromMaybe Null (decodeStrict . encodeUtf8 =<< editStats)
+                }
+
+    -- The command as the page shows it, without the server's paths.
+    let cmd = unwords $ ["$ wrench --isa", isa, "source.s -c config.yaml"] <> map toText (concat $ limitFlags cScratchLimits)
+    return $
+        object
+            [ "success" .= success
+            , "status" .= T.intercalate "\n" ["$ wrench --version", wrenchVersion, cmd, show exitCode, err]
+            , "log" .= formatReport (readMaybe (toString isa)) out
+            ]
+
+type DumpScratch = ReqBody '[FormUrlEncoded] ScratchRequest :> Post '[JSON] Value
+
+-- | A separate request: the page asks for the dump only when it is shown.
+dumpScratch :: Config -> ScratchRequest -> Handler Value
+dumpScratch conf ScratchRequest{isa, asm, config} = liftIO $ do
+    (_exitCode, out, err) <- runScratchWrench conf isa asm config ["-S"]
+    return $ object ["dump" .= formatReport (readMaybe (toString isa)) (unlines [out, err])]
+
+-- | Nothing is kept on the server: the code goes to wrench on stdin, the config as text.
+runScratchWrench :: Config -> Text -> Text -> Text -> [String] -> IO (ExitCode, Text, Text)
+runScratchWrench Config{cWrenchPath, cWrenchArgs, cScratchLimits, cLogLimit} isa asm config flags = do
+    let args =
+            cWrenchArgs
+                <> concat (limitFlags cScratchLimits)
+                <> ["--isa", toString isa, "-", "--conf-text", toString config]
+                <> flags
+    (exitCode, out, err) <- readProcessWithExitCode cWrenchPath args (toString asm)
+    return (exitCode, cropLog cLogLimit (toText out), toText err)
+
+limitFlags :: Limits -> [[String]]
+limitFlags Limits{lInstruction, lMemory, lStateLog} =
+    [ ["--instruction-limit", show lInstruction]
+    , ["--memory-limit", show lMemory]
+    , ["--state-log-limit", show lStateLog]
+    ]
 
 type Fmt = QueryParam' '[Required, Strict] "isa" Text :> ReqBody '[PlainText] Text :> Post '[PlainText] Text
 

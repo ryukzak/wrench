@@ -1,7 +1,11 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+
 module WrenchServ.Simulation (
     SimulationRequest (..),
+    ScratchRequest (..),
     SimulationResult (..),
     SimulationTask (..),
+    cropLog,
     doSimulation,
     spitDump,
     spitSimulationRequest,
@@ -32,6 +36,16 @@ data SimulationRequest = SimulationRequest
     deriving (Generic, Show)
 
 instance FromForm SimulationRequest
+
+data ScratchRequest = ScratchRequest
+    { isa :: Text
+    , asm :: Text
+    , config :: Text
+    , editStats :: Maybe Text
+    }
+    deriving (Generic, Show)
+
+instance FromForm ScratchRequest
 
 nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn, dumpFn :: FilePath -> UUID -> FilePath
 nameFn path guid = path <> "/" <> show guid <> "/name.txt"
@@ -87,6 +101,11 @@ spitDump Config{cStoragePath, cWrenchPath, cWrenchArgs} SimulationTask{stIsa, st
     (_exitCode, stdoutDump, stderrDump) <- readProcessWithExitCode cWrenchPath args ""
     writeFileText (dumpFn cStoragePath stGuid) $ unlines $ map toText [stdoutDump, stderrDump]
 
+cropLog :: Int -> Text -> Text
+cropLog limit text
+    | T.length text > limit = "LOG TOO LONG, CROPPED\n\n" <> T.takeEnd limit text
+    | otherwise = text
+
 doSimulation :: Config -> SimulationTask -> IO SimulationResult
 doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, stAsmFn, stConfFn} = do
     let args = cWrenchArgs <> ["--isa", toString stIsa, stAsmFn, "-c", stConfFn, "--stats"]
@@ -100,10 +119,7 @@ doSimulation Config{cWrenchPath, cWrenchArgs, cLogLimit} SimulationTask{stIsa, s
                 ["$ date", show currentTime, "$ wrench --version", wrenchVersion, srCmd, show srExitCode, toText srError]
         stdoutText = toText out
         srStats = extractStats stdoutText
-        srOutput =
-            if T.length stdoutText > cLogLimit
-                then "LOG TOO LONG, CROPPED\n\n" <> T.drop (T.length stdoutText - cLogLimit) stdoutText
-                else toText stdoutText
+        srOutput = cropLog cLogLimit stdoutText
         srError = toText err
         srTestCaseStatus = toText stConfFn <> ": " <> show srExitCode <> "\n" <> srError
         srTestCase =

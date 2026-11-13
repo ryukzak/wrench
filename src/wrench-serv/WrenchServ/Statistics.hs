@@ -6,6 +6,8 @@ module WrenchServ.Statistics (
     GetFormEvent (..),
     trackEvent,
     SimulationEvent (..),
+    ScratchViewEvent (..),
+    ScratchRunEvent (..),
     getTrack,
     getPosthogIdFromCookie,
     trackCookie,
@@ -137,6 +139,58 @@ instance PosthogEvent ReportViewEvent where
                     ]
                 )
             ]
+
+data ScratchViewEvent = ScratchViewEvent
+    { mpVersion :: Text
+    , mpPosthogId :: Text
+    }
+    deriving (Show)
+
+instance PosthogEvent ScratchViewEvent where
+    posthogEvent apiKey ScratchViewEvent{mpVersion, mpPosthogId} =
+        object
+            [ ("api_key", String apiKey)
+            , ("event", String "wrench:scratch_view")
+            , ("distinct_id", String mpPosthogId)
+            , ("properties", object [("wrench_version", String mpVersion)])
+            ]
+
+data ScratchRunEvent = ScratchRunEvent
+    { mpIsa :: Text
+    , mpAsm :: Text
+    , mpConfig :: Text
+    , mpVersion :: Text
+    , mpPosthogId :: Text
+    , mpSuccess :: Bool
+    , mpExitCode :: Text
+    , mpDurationMs :: Int
+    , mpEditStats :: Value
+    -- ^ How the code was written since the previous run, as the page reports it.
+    }
+    deriving (Show)
+
+instance PosthogEvent ScratchRunEvent where
+    posthogEvent
+        apiKey
+        ScratchRunEvent{mpIsa, mpAsm, mpConfig, mpVersion, mpPosthogId, mpSuccess, mpExitCode, mpDurationMs, mpEditStats} =
+            object
+                [ ("api_key", String apiKey)
+                , ("event", String "wrench:scratch_run")
+                , ("distinct_id", String mpPosthogId)
+                ,
+                    ( "properties"
+                    , object
+                        [ ("wrench_version", String mpVersion)
+                        , ("isa", String mpIsa)
+                        , ("asm", String mpAsm)
+                        , ("config", String mpConfig)
+                        , ("success", Bool mpSuccess)
+                        , ("exit_code", String mpExitCode)
+                        , ("duration_ms", Number $ fromInteger $ toInteger mpDurationMs)
+                        , ("edit", mpEditStats)
+                        ]
+                    )
+                ]
 
 trackEvent :: (PosthogEvent a) => Config -> a -> IO ()
 trackEvent conf event = do

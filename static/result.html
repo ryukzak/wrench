@@ -38,6 +38,7 @@
         findIsaFlag,
         setupHideCommentsButton,
       } from '{{asset:utils.js}}'
+      import { setupOpenInScratchLink } from '{{asset:scratch.js}}'
 
       document.addEventListener('DOMContentLoaded', () => {
         setupCopyButton(
@@ -94,6 +95,13 @@
           document.getElementById('status-text-element').textContent,
         )
 
+        setupOpenInScratchLink(
+          'open-in-scratch-link',
+          'assembler-code-text-element',
+          'simulation-config-text-element',
+          isa,
+        )
+
         setupHideCommentsButton(
           'hide-comments-button',
           'assembler-code-text-element',
@@ -135,6 +143,12 @@
         href="/examples"
         class="hover:bg-[var(--c-green)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-green)] hover:text-[var(--c-black)] cursor-pointer"
         >[examples]</a
+      >
+      <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
+      <a
+        href="/scratch"
+        class="hover:bg-[var(--c-yellow)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-yellow)] hover:text-[var(--c-black)] cursor-pointer"
+        >[scratch]</a
       >
       <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
       <button
@@ -181,6 +195,13 @@
             <div class="flex justify-between items-center mt-6 mb-4 pr-6">
               <span class="text-[var(--c-grey)]">/* assembler_code */</span>
               <div class="flex gap-2">
+                <a
+                  id="open-in-scratch-link"
+                  href="/scratch"
+                  target="_blank"
+                  class="hidden hover:bg-[var(--c-yellow)] text-[var(--c-yellow)] hover:text-[var(--c-black)] cursor-pointer"
+                  >[open_in_scratch]</a
+                >
                 <button
                   type="button"
                   id="hide-comments-button"

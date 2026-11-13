@@ -22,6 +22,7 @@ Join our development channel: [Zed Channel](https://zed.dev/channel/wrench-20237
         - [Install from a Binary Release](#install-from-a-binary-release)
         - [Via Docker Image](#via-docker-image)
         - [Use it as a Service](#use-it-as-a-service)
+        - [Live Coding in the Scratchpad](#live-coding-in-the-scratchpad)
     - [Usage](#usage)
         - [Execution and memory statistics](#execution-and-memory-statistics)
         - [Formatting](#formatting)
@@ -89,6 +90,18 @@ This service will be used to send laboratory works to check. The lab assignments
 3. Check the results.
 
 To run the service locally, run `make run-server` in the repository root (port 8080); it needs Python 3.14. A local server also sends usage events to the project's PostHog. Its settings are environment variables, see [`src/wrench-serv/WrenchServ/Config.hs`](./src/wrench-serv/WrenchServ/Config.hs).
+
+### Live Coding in the Scratchpad
+
+The `/scratch` page ([wrench.edu.swampbuds.me/scratch](https://wrench.edu.swampbuds.me/scratch)) is for live coding: in a lecture, in a lab, or alone. Write a few instructions, run them, and look at the result right away.
+
+- Pick an ISA. The page gives a starter program and a config with a step-by-step log.
+- `[run]` (Cmd/Ctrl+Enter) shows the result and the log next to the code. Open `/* dump */` to see the memory.
+- `[fmt]` formats the code.
+- `[share]` copies a link with your code. Send it to students as a task: "handle the integer overflow here", "look at the stack in the report".
+- `[open_in_scratch]` on a report page opens that code in the scratchpad.
+
+History and the draft stay in your browser. Each run sends its code and config to the project's PostHog. Runs are small: 1000 instructions and 512 bytes of memory at most.
 
 ## Usage
 
