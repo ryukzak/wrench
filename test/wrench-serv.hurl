@@ -76,3 +76,20 @@ xpath "normalize-space(//pre[@id='comment-text-element'])" not contains "Halt"
 xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" contains "dump}}"
 xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" not contains "mem["
 xpath "count(//script[contains(., 'posthog')])" == 1
+
+POST http://localhost:8080/fmt
+[Form]
+isa: risc-iv-32
+asm: .text\n_start:\naddi t0,t0,1\nhalt\n
+HTTP/1.1 200
+[Asserts]
+jsonpath "$.success" == true
+jsonpath "$.asm" == "    .text\n_start:\n    addi     t0,t0,1\n    halt\n"
+
+POST http://localhost:8080/fmt
+[Form]
+isa: unknown
+asm: _start:\n    halt\n
+HTTP/1.1 200
+[Asserts]
+jsonpath "$.success" == false

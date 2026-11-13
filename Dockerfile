@@ -77,6 +77,7 @@ ENV LC_ALL=en_US.UTF-8
 ENV VARIANTS=/app/variants
 ENV EXAMPLES_PATH=/app/examples
 ENV WRENCH_EXEC=wrench
+ENV WRENCH_FMT_EXEC=wrench-fmt
 
 WORKDIR /app
 COPY --from=wrench-build /app/.local/bin/wrench /app/.local/bin/wrench-serv /app/.local/bin/wrench-fmt /bin/
