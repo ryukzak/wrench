@@ -218,7 +218,8 @@ export function setupScratchpad() {
       remove.className = 'hover:bg-[var(--c-grey)] text-[var(--c-grey)] hover:text-[var(--c-black)] cursor-pointer'
       remove.textContent = '[x]'
       remove.addEventListener('click', () => {
-        save(HISTORY_KEY, load(HISTORY_KEY, []).filter(other => other.time !== entry.time))
+        const entries = load(HISTORY_KEY, []).filter(other => other.time !== entry.time)
+        save(HISTORY_KEY, entries)
         renderHistory()
       })
 
