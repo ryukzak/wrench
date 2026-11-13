@@ -23,7 +23,7 @@ import Options.Applicative (
  )
 import Relude
 import Wrench.Misc (wrenchVersion)
-import Wrench.Wrench (Options (..), runWrenchIO)
+import Wrench.Wrench (Limits (..), Options (..), runWrenchIO)
 
 options :: Parser Options
 options =
@@ -68,30 +68,7 @@ options =
                 <> short 'v'
                 <> help "Verbose output"
             )
-        <*> option
-            auto
-            ( long "instruction-limit"
-                <> metavar "LIMIT"
-                <> help "Maximum number of instructions to execute"
-                <> value (maxInstructionLimit def)
-                <> showDefault
-            )
-        <*> option
-            auto
-            ( long "memory-limit"
-                <> metavar "SIZE"
-                <> help "Maximum memory size in bytes"
-                <> value (maxMemoryLimit def)
-                <> showDefault
-            )
-        <*> option
-            auto
-            ( long "state-log-limit"
-                <> metavar "LIMIT"
-                <> help "Maximum number of state records to log"
-                <> value (maxStateLogLimit def)
-                <> showDefault
-            )
+        <*> limitsParser
         <*> option
             auto
             ( long "dump-addr-format"
@@ -105,6 +82,34 @@ options =
                 <> metavar "MODE"
                 <> help "Show or hide the (N B) byte-count suffix on -S dump address ranges: show or hide (default: show)"
                 <> value (dumpSize def)
+            )
+
+limitsParser :: Parser Limits
+limitsParser =
+    Limits
+        <$> option
+            auto
+            ( long "instruction-limit"
+                <> metavar "LIMIT"
+                <> help "Maximum number of instructions to execute"
+                <> value (lInstruction def)
+                <> showDefault
+            )
+        <*> option
+            auto
+            ( long "memory-limit"
+                <> metavar "SIZE"
+                <> help "Maximum memory size in bytes"
+                <> value (lMemory def)
+                <> showDefault
+            )
+        <*> option
+            auto
+            ( long "state-log-limit"
+                <> metavar "LIMIT"
+                <> help "Maximum number of state records to log"
+                <> value (lStateLog def)
+                <> showDefault
             )
 
 main :: IO ()
