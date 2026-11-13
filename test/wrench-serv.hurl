@@ -77,19 +77,28 @@ xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='cod
 xpath "normalize-space(//div[@id='assembler-code-text-element']//div[@class='code-content'])" not contains "mem["
 xpath "count(//script[contains(., 'posthog')])" == 1
 
-POST http://localhost:8080/fmt
-[Form]
-isa: risc-iv-32
-asm: .text\n_start:\naddi t0,t0,1\nhalt\n
+POST http://localhost:8080/fmt?isa=risc-iv-32
+Content-Type: text/plain; charset=utf-8
+```
+.text
+_start:
+addi t0,t0,1
+halt
+```
 HTTP/1.1 200
-[Asserts]
-jsonpath "$.success" == true
-jsonpath "$.asm" == "    .text\n_start:\n    addi     t0,t0,1\n    halt\n"
+```
+    .text
+_start:
+    addi     t0,t0,1
+    halt
+```
 
-POST http://localhost:8080/fmt
-[Form]
-isa: unknown
-asm: _start:\n    halt\n
-HTTP/1.1 200
+POST http://localhost:8080/fmt?isa=unknown
+Content-Type: text/plain; charset=utf-8
+```
+_start:
+    halt
+```
+HTTP/1.1 400
 [Asserts]
-jsonpath "$.success" == false
+body contains "Invalid ISA"

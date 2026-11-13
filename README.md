@@ -169,7 +169,7 @@ The full list of variables, including the byte-count vs. range conventions and t
 
 ```shell
 wrench-fmt --inplace example/risc-iv-32/factorial.s  # rewrite the file
-wrench-fmt --check example/risc-iv-32/factorial.s    # exit code 1 if it needs formatting or its ISA can't be detected; -v says which
+wrench-fmt --check example/risc-iv-32/factorial.s    # exit code 1 if it needs formatting or its ISA can't be detected
 ```
 
 ## Examples
