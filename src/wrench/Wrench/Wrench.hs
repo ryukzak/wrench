@@ -2,6 +2,7 @@
 
 module Wrench.Wrench (
     Options (..),
+    Limits (..),
     Result (..),
     prettyLabels,
     runWrenchIO,
@@ -48,9 +49,7 @@ data Options = Options
     , onlyTranslation :: Bool
     , stats :: Bool
     , verbose :: Bool
-    , maxInstructionLimit :: Int
-    , maxMemoryLimit :: Int
-    , maxStateLogLimit :: Int
+    , limits :: Limits
     , dumpAddrFormat :: AddrFormat
     , dumpSize :: DumpSize
     }
@@ -66,12 +65,16 @@ instance Default Options where
             , onlyTranslation = False
             , stats = False
             , verbose = False
-            , maxInstructionLimit = 8000000
-            , maxMemoryLimit = 0xFFFF
-            , maxStateLogLimit = 10000
+            , limits = def
             , dumpAddrFormat = Hex
             , dumpSize = SizeShown
             }
+
+data Limits = Limits {lInstruction, lMemory, lStateLog :: Int}
+    deriving (Show)
+
+instance Default Limits where
+    def = Limits{lInstruction = 8000000, lMemory = 0xFFFF, lStateLog = 10000}
 
 data AddrFormat = Hex | Dec
     deriving (Show)
@@ -105,7 +108,7 @@ prettyLabels showAddr rLabels =
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
-runWrenchIO opts@Options{input, configFile, configText, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
+runWrenchIO opts@Options{input, configFile, configText, isa, stats, verbose, limits = Limits{lInstruction, lMemory}} = do
     when verbose $ pPrint opts
     let loaded = either (error . toText) (if stats then withExecutionStats else id)
     rawConf <- case (configFile, configText) of
@@ -118,8 +121,8 @@ runWrenchIO opts@Options{input, configFile, configText, isa, stats, verbose, max
     when verbose $ do
         pPrint conf
         putStrLn "---"
-    when (cLimit > maxInstructionLimit) $ error "limit too high"
-    when (cMemorySize > maxMemoryLimit) $ error "memory size too high"
+    when (cLimit > lInstruction) $ error "limit too high"
+    when (cMemorySize > lMemory) $ error "memory size too high"
 
     src <- (<> "\n") . decodeUtf8 <$> if input == "-" then B.getContents else readFileBS input
     resolved <- case isa of
@@ -219,7 +222,7 @@ wrench ::
     -> Config
     -> String
     -> Either Text (Result (IntMap (Cell isa2 w)) w)
-wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
+wrench preprocessors Options{input = fn, verbose, limits = Limits{lStateLog}} Config{cMemorySize, cLimit, cMemoryMappedIoFlat, cReports, cSeed, cZeroMemoryInit} src = do
     let (memoryGen, isaGen) = Random.split (Random.mkStdGen $ fromMaybe 0 cSeed)
         memoryFillBytes =
             if fromMaybe False cZeroMemoryInit
@@ -236,7 +239,7 @@ wrench preprocessors Options{input = fn, verbose, maxStateLogLimit} Config{cMemo
         ioDump = mkIoMem mIoStreams dump
         st :: st = initState (fromEnum pc) ioDump isaGen
 
-    (traceLog, finalState) <- powerOn cLimit maxStateLogLimit labels st
+    (traceLog, finalState) <- powerOn cLimit lStateLog labels st
 
     let results = map (prepareReport trResult verbose finalState traceLog) reports
         isSuccess = all fst results
