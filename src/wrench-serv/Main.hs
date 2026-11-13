@@ -6,7 +6,7 @@ module Main (main) where
 import Control.Concurrent (forkIO)
 import Control.Exception (try)
 import Crypto.Hash.SHA1 qualified as SHA1
-import Data.Aeson (FromJSON (..), Value, defaultOptions, eitherDecodeStrict, genericParseJSON, object, (.=))
+import Data.Aeson (FromJSON (..), defaultOptions, eitherDecodeStrict, genericParseJSON)
 import Data.Aeson.Types (Options (..))
 import Data.ByteString qualified as B
 import Data.Char (toLower)
@@ -27,7 +27,6 @@ import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, renam
 import System.Exit (ExitCode (ExitSuccess))
 import System.FilePath (takeBaseName, takeFileName, (</>))
 import System.Process (readProcessWithExitCode)
-import Web.FormUrlEncoded (FromForm)
 import Wrench.Misc (wrenchVersion)
 import WrenchServ.CodeView
 import WrenchServ.Config
@@ -399,26 +398,15 @@ renderItem ExampleEntry{eeGuid, eeTitle, eeDescription, eeOk} =
             <> descHtml
             <> "</li>"
 
-data FmtRequest = FmtRequest
-    { isa :: Text
-    , asm :: Text
-    }
-    deriving (Generic, Show)
+type Fmt = QueryParam' '[Required, Strict] "isa" Text :> ReqBody '[PlainText] Text :> Post '[PlainText] Text
 
-instance FromForm FmtRequest
-
-type Fmt = ReqBody '[FormUrlEncoded] FmtRequest :> Post '[JSON] Value
-
-fmt :: Config -> FmtRequest -> Handler Value
-fmt Config{cWrenchFmtPath, cWrenchFmtArgs} FmtRequest{isa, asm} = liftIO $ do
+fmt :: Config -> Text -> Text -> Handler Text
+fmt Config{cWrenchFmtPath, cWrenchFmtArgs} isa asm = do
     (exitCode, out, err) <-
-        readProcessWithExitCode cWrenchFmtPath (cWrenchFmtArgs <> ["--isa", toString isa, "-"]) (toString asm)
-    return $
-        object
-            [ "success" .= (exitCode == ExitSuccess)
-            , "asm" .= fromMaybe (toText out) (T.stripSuffix "\n" (toText out))
-            , "error" .= toText err
-            ]
+        liftIO $ readProcessWithExitCode cWrenchFmtPath (cWrenchFmtArgs <> ["--isa", toString isa, "-"]) (toString asm)
+    case exitCode of
+        ExitSuccess -> return $ fromMaybe (toText out) (T.stripSuffix "\n" (toText out))
+        _ -> throwError err400{errBody = encodeUtf8 err}
 
 redirectToForm :: Handler (Headers '[Header "Location" Text] NoContent)
 redirectToForm = throwError $ err301{errHeaders = [("Location", "/submit-form")]}

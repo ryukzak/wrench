@@ -8,6 +8,7 @@ import Data.Text qualified as T
 import Options.Applicative
 import Relude
 import Relude.Unsafe qualified as Unsafe
+import System.IO qualified as SIO
 import Wrench.Isa (Isa (..), detectIsa, isaName)
 
 data Options = Options
@@ -53,7 +54,8 @@ main :: IO ()
 main = do
     opts@Options{verbose, fileNames} <- execParser optsParser
     results <- mapM (process opts) fileNames
-    when verbose $ mapM_ (putTextLn . either id id) results
+    mapM_ (SIO.hPutStrLn SIO.stderr . toString) (lefts results)
+    when verbose $ mapM_ putTextLn (rights results)
     case lefts results of
         [] -> exitSuccess
         _ -> exitFailure
