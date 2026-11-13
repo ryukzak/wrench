@@ -1,10 +1,11 @@
-module WrenchServ.Config (Config (..), mask, initConfig) where
+module WrenchServ.Config (Config (..), Limits (..), mask, initConfig) where
 
 import Data.List.Split (splitOn)
 import Relude
 import Relude.Unsafe qualified as Unsafe
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.FilePath ((</>))
+import Wrench.Wrench (Limits (..))
 
 data Config = Config
     { cPort :: Int
@@ -17,6 +18,7 @@ data Config = Config
     , cExamplesPath :: FilePath
     , cLogLimit :: Int
     , cVariants :: [String]
+    , cScratchLimits :: Limits
     }
     deriving (Show)
 
@@ -31,6 +33,10 @@ initConfig = do
     cExamplesPath <- fromMaybe "examples" <$> lookupEnv "EXAMPLES_PATH"
     cLogLimit <- maybe 10000 Unsafe.read <$> lookupEnv "LOG_LIMIT"
     cVariants <- listVariants cVariantsPath
+    lInstruction <- maybe 1000 Unsafe.read <$> lookupEnv "SCRATCH_INSTRUCTION_LIMIT"
+    lMemory <- maybe 512 Unsafe.read <$> lookupEnv "SCRATCH_MEMORY_LIMIT"
+    lStateLog <- maybe 100 Unsafe.read <$> lookupEnv "SCRATCH_STATE_LOG_LIMIT"
+    let cScratchLimits = Limits{lInstruction, lMemory, lStateLog}
 
     return
         Config
@@ -44,6 +50,7 @@ initConfig = do
             , cExamplesPath
             , cLogLimit
             , cVariants
+            , cScratchLimits
             }
 
 mask :: Config -> Config

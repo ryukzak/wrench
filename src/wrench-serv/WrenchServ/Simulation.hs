@@ -1,5 +1,8 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+
 module WrenchServ.Simulation (
     SimulationRequest (..),
+    ScratchRequest (..),
     SimulationResult (..),
     SimulationTask (..),
     doSimulation,
@@ -32,6 +35,16 @@ data SimulationRequest = SimulationRequest
     deriving (Generic, Show)
 
 instance FromForm SimulationRequest
+
+data ScratchRequest = ScratchRequest
+    { isa :: Text
+    , asm :: Text
+    , config :: Text
+    , editStats :: Maybe Text
+    }
+    deriving (Generic, Show)
+
+instance FromForm ScratchRequest
 
 nameFn, commentFn, variantFn, isaFn, configFn, asmFn, wrenchVersionFn, dumpFn :: FilePath -> UUID -> FilePath
 nameFn path guid = path <> "/" <> show guid <> "/name.txt"

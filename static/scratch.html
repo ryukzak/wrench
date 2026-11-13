@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="#1a1a1a" name="theme-color" />
+    <title>Wrench Scratchpad</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{{asset:ascii.css}}" />
+
+    {{tracker}}
+  </head>
+
+  <body class="flex flex-col items-center bg-[var(--c-black)] min-h-screen text-[var(--c-white)] dark">
+    <script type="module">
+      import { setupThemeToggle } from '{{asset:utils.js}}'
+      import { setupScratchpad } from '{{asset:scratch.js}}'
+
+      document.addEventListener('DOMContentLoaded', () => {
+        setupThemeToggle('invert-theme-button')
+        setupScratchpad()
+      })
+    </script>
+
+    <div class="mt-4 mb-6 w-full text-center">
+      <a
+        class="hover:bg-[var(--c-white)] text-[var(--c-white)] hover:text-[var(--c-black)] text-6xl cursor-pointer"
+        href="/scratch"
+        >Wrench Scratchpad</a
+      >
+    </div>
+
+    <div class="flex flex-wrap justify-center self-center gap-2 max-w-[75vw]">
+      <a
+        href="https://github.com/ryukzak/wrench/tree/master/docs"
+        class="hover:bg-[var(--c-fuschia)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-fuschia)] hover:text-[var(--c-black)] cursor-pointer"
+        target="_blank"
+        >[isa_docs]</a
+      >
+      <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
+      <a
+        href="/examples"
+        class="hover:bg-[var(--c-green)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-green)] hover:text-[var(--c-black)] cursor-pointer"
+        >[examples]</a
+      >
+      <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
+      <a
+        href="/submit-form"
+        class="hover:bg-[var(--c-orange)] pt-[0.2ch] pb-[0.2ch] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
+        >[submit]</a
+      >
+      <span class="hidden lg:inline text-[var(--c-grey)]">|</span>
+      <button
+        type="button"
+        id="invert-theme-button"
+        class="hover:bg-[var(--c-blue)] text-[var(--c-blue)] hover:text-[var(--c-black)] cursor-pointer"
+      >
+        [invert_theme]
+      </button>
+    </div>
+
+    <div class="flex flex-wrap self-center gap-8 mt-8 p-4 pr-8 pl-8 w-full">
+      <form id="scratch-form" class="flex-1 min-w-[300px]">
+        <fieldset id="isa" class="mb-6">
+          <legend class="block text-[var(--c-grey)]">/* ISA */</legend>
+          <div class="flex flex-wrap gap-x-2 gap-y-1 mt-1">
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="acc32" class="sr-only peer" />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[acc32]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="f32a" class="sr-only peer" />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[f32a]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="risc-iv-32" class="sr-only peer" checked />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[risc-iv-32]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="m68k" class="sr-only peer" />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[m68k]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="vliw-iv" class="sr-only peer" />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[vliw-iv]</span
+              >
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="isa" value="wasm32" class="sr-only peer" />
+              <span
+                class="inline-block peer-checked:bg-[var(--c-blue)] hover:bg-[var(--c-blue)] px-[0.5ch] peer-focus-visible:outline peer-focus-visible:outline-[var(--c-white)] text-[var(--c-blue)] peer-checked:text-[var(--c-black)] hover:text-[var(--c-black)]"
+                >[wasm32]</span
+              >
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="mb-6">
+          <div class="flex justify-between items-center">
+            <label for="asm" class="text-[var(--c-grey)]">/* assembler_code */</label>
+            <button
+              type="button"
+              id="fmt-button"
+              class="hover:bg-[var(--c-white)] disabled:opacity-50 text-[var(--c-white)] hover:text-[var(--c-black)] cursor-pointer"
+            >
+              [fmt]
+            </button>
+          </div>
+          <textarea
+            id="asm"
+            name="asm"
+            spellcheck="false"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[20rem] overflow-x-auto whitespace-pre"
+          ></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label for="config" class="block text-[var(--c-grey)]">/* simulation_config */</label>
+          <textarea
+            id="config"
+            name="config"
+            spellcheck="false"
+            class="block bg-[var(--c-dark-grey)] hover:opacity-80 mt-1 px-3 py-2 border border-zinc-400 focus:border-[var(--c-white)] rounded-md focus:outline-none w-full min-h-[14rem] overflow-x-auto whitespace-pre"
+          ></textarea>
+        </div>
+
+        <!-- prettier-ignore -->
+        <pre class="bg-[var(--c-dark-grey)] p-4 rounded-lg whitespace-pre-wrap"><span class="text-[var(--c-grey)] select-none">$ </span>wrench <span class="whitespace-nowrap">--isa <span id="command-isa">risc-iv-32</span></span> source.s <span class="whitespace-nowrap">-c config.yaml</span> {{limits}}</pre>
+
+        <div class="flex justify-between items-center mt-8 mb-4">
+          <h2 class="text-[var(--c-grey)]">/* history: in this browser only */</h2>
+          <button
+            type="button"
+            id="history-clear-button"
+            class="hover:bg-[var(--c-orange)] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
+          >
+            [clear]
+          </button>
+        </div>
+        <ul id="history" class="space-y-1"></ul>
+      </form>
+
+      <div class="flex-1 min-w-[300px]">
+        <div class="flex flex-wrap items-center gap-4 mb-6">
+          <button
+            id="run-button"
+            type="submit"
+            form="scratch-form"
+            class="hover:bg-[var(--c-purple)] disabled:opacity-50 text-[var(--c-purple)] hover:text-[var(--c-black)] cursor-pointer"
+          >
+            [run]
+          </button>
+          <span id="run-hint" class="text-[var(--c-grey)]">/* ctrl+enter */</span>
+          <button
+            type="button"
+            id="share-button"
+            class="hover:bg-[var(--c-green)] text-[var(--c-green)] hover:text-[var(--c-black)] cursor-pointer"
+          >
+            [share]
+          </button>
+          <button
+            type="button"
+            id="reset-button"
+            class="hover:bg-[var(--c-orange)] text-[var(--c-orange)] hover:text-[var(--c-black)] cursor-pointer"
+          >
+            [reset]
+          </button>
+        </div>
+
+        <h2 class="mb-4 text-[var(--c-grey)]">/* simulation_result */</h2>
+        <pre id="status" class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto text-[var(--c-grey)]">
+/* press run */</pre
+        >
+
+        <h2 class="mb-4 text-[var(--c-grey)]">/* simulation_log */</h2>
+        <div id="log" class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto"></div>
+
+        <details id="dump-section">
+          <summary class="mb-4 text-[var(--c-grey)] cursor-pointer">/* dump */</summary>
+          <div id="dump" class="bg-[var(--c-dark-grey)] mb-4 p-4 rounded-lg overflow-x-auto"></div>
+        </details>
+      </div>
+    </div>
+  </body>
+</html>
