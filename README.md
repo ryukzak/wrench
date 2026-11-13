@@ -94,18 +94,19 @@ To run the service locally, run `make run-server` in the repository root (port 8
 
 ```shell
 $ wrench --help
-Usage: wrench INPUT [--isa ISA] [-c|--conf CONF] [-S] [--stats] [-v|--verbose]
-              [--instruction-limit LIMIT] [--memory-limit SIZE]
-              [--state-log-limit LIMIT] [--dump-addr-format FORMAT]
-              [--dump-size MODE]
+Usage: wrench INPUT [--isa ISA] [-c|--conf CONF] [--conf-text YAML] [-S]
+              [--stats] [-v|--verbose] [--instruction-limit LIMIT]
+              [--memory-limit SIZE] [--state-log-limit LIMIT]
+              [--dump-addr-format FORMAT] [--dump-size MODE]
 
   App for laboratory course of computer architecture.
 
 Available options:
-  INPUT                    Input assembler file (.s)
+  INPUT                    Input assembler file (.s), or - for stdin
   --isa ISA                ISA (risc-iv-32, f32a, acc32, m68k, vliw-iv, wasm32);
                            detected from the source if omitted
   -c,--conf CONF           Configuration file (.yaml)
+  --conf-text YAML         Configuration as YAML text, instead of --conf
   -S                       Only run preprocess and translation steps
   --stats                  Append a built-in `Overview` report
   -v,--verbose             Verbose output
@@ -124,7 +125,7 @@ Available options:
   --version                Show version information
 ```
 
-`wrench` takes an assembly file and, optionally, a YAML configuration file; without one it uses [default settings](./docs/README.md#configuration-file-structure). `--instruction-limit` and `--memory-limit` only cap `limit` and `memory_size`: a higher value is rejected.
+`wrench` takes an assembly file (`-` reads it from stdin) and, optionally, a YAML configuration: a file with `-c` or text with `--conf-text`. Without one it uses [default settings](./docs/README.md#configuration-file-structure). `--instruction-limit` and `--memory-limit` only cap `limit` and `memory_size`: a higher value is rejected.
 
 The [General Assembly Documentation](./docs/README.md) explains how assembly source code and simulation configuration files should be structured (ISA-agnostic), including:
 

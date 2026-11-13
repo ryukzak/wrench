@@ -30,7 +30,7 @@ options =
     Options
         <$> strArgument
             ( metavar "INPUT"
-                <> help "Input assembler file (.s)"
+                <> help "Input assembler file (.s), or - for stdin"
             )
         <*> optional
             ( strOption
@@ -46,6 +46,13 @@ options =
                     <> help "Configuration file (.yaml)"
                     <> showDefault
                     <> metavar "CONF"
+                )
+            )
+        <*> optional
+            ( strOption
+                ( long "conf-text"
+                    <> help "Configuration as YAML text, instead of --conf"
+                    <> metavar "YAML"
                 )
             )
         <*> switch

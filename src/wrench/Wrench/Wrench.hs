@@ -12,6 +12,7 @@ module Wrench.Wrench (
 ) where
 
 import Control.Exception (ErrorCall (..), try)
+import Data.ByteString qualified as B
 import Data.Default (Default (..), def)
 import Data.Text qualified as T
 import Prelude (Read (..))
@@ -43,6 +44,7 @@ data Options = Options
     , isa :: Maybe String
     -- ^ 'Nothing' leaves it to 'detectIsa'.
     , configFile :: Maybe FilePath
+    , configText :: Maybe Text
     , onlyTranslation :: Bool
     , stats :: Bool
     , verbose :: Bool
@@ -60,6 +62,7 @@ instance Default Options where
             { input = ""
             , isa = Nothing
             , configFile = Nothing
+            , configText = Nothing
             , onlyTranslation = False
             , stats = False
             , verbose = False
@@ -102,15 +105,14 @@ prettyLabels showAddr rLabels =
         $ sortOn snd (toPairs rLabels)
 
 runWrenchIO :: Options -> IO ()
-runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
+runWrenchIO opts@Options{input, configFile, configText, isa, stats, verbose, maxInstructionLimit, maxMemoryLimit} = do
     when verbose $ pPrint opts
-    rawConf <- case configFile of
-        Just fn ->
-            either
-                (error . toText)
-                (if stats then withExecutionStats else id)
-                <$> readConfig fn
-        Nothing -> return def
+    let loaded = either (error . toText) (if stats then withExecutionStats else id)
+    rawConf <- case (configFile, configText) of
+        (Just _, Just _) -> error "use either --conf or --conf-text"
+        (Just fn, _) -> loaded <$> readConfig fn
+        (_, Just text) -> return $ loaded $ parseConfig $ encodeUtf8 text
+        (Nothing, Nothing) -> return def
     conf@Config{cLimit, cMemorySize} <- ensureSeed rawConf
 
     when verbose $ do
@@ -119,7 +121,7 @@ runWrenchIO opts@Options{input, configFile, isa, stats, verbose, maxInstructionL
     when (cLimit > maxInstructionLimit) $ error "limit too high"
     when (cMemorySize > maxMemoryLimit) $ error "memory size too high"
 
-    src <- (<> "\n") . decodeUtf8 <$> readFileBS input
+    src <- (<> "\n") . decodeUtf8 <$> if input == "-" then B.getContents else readFileBS input
     resolved <- case isa of
         Just name -> maybe (isaFailure $ "unknown isa: " <> toText name) return $ readMaybe name
         Nothing -> case detectIsa (toText src) of
