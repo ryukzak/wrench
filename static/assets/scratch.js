@@ -117,8 +117,9 @@ export function setupScratchpad() {
 
   const getIsa = () => form.querySelector('input[name="isa"]:checked').value
   const setIsa = isa => {
-    const radio = form.querySelector(`input[name="isa"][value="${isa}"]`)
-    if (radio) radio.checked = true
+    const radio = Array.from(form.querySelectorAll('input[name="isa"]')).find(radio => radio.value === isa)
+    if (!radio) throw new Error(`unknown ISA: ${isa}`)
+    radio.checked = true
   }
 
   let editStats = newEditStats('starter')
@@ -188,7 +189,7 @@ export function setupScratchpad() {
 
   const renderHistory = () => {
     historyList.replaceChildren()
-    load(HISTORY_KEY, []).forEach((entry, index) => {
+    load(HISTORY_KEY, []).forEach(entry => {
       const item = document.createElement('li')
       item.className = 'flex flex-wrap items-baseline gap-x-2'
 
@@ -217,9 +218,7 @@ export function setupScratchpad() {
       remove.className = 'hover:bg-[var(--c-grey)] text-[var(--c-grey)] hover:text-[var(--c-black)] cursor-pointer'
       remove.textContent = '[x]'
       remove.addEventListener('click', () => {
-        const entries = load(HISTORY_KEY, [])
-        entries.splice(index, 1)
-        save(HISTORY_KEY, entries)
+        save(HISTORY_KEY, load(HISTORY_KEY, []).filter(other => other.time !== entry.time))
         renderHistory()
       })
 
@@ -247,14 +246,14 @@ export function setupScratchpad() {
     status.textContent = '/* running... */'
     status.style.color = ''
     const request = { isa: getIsa(), asm: asm.value, config: config.value }
-    const stats = editStats
-    editStats = newEditStats('edit')
+    saveDraft()
     try {
       const response = await fetch('/scratch/run', {
         method: 'POST',
-        body: new URLSearchParams({ ...request, editStats: JSON.stringify(stats) }),
+        body: new URLSearchParams({ ...request, editStats: JSON.stringify(editStats) }),
       })
       if (!response.ok) throw new Error(`${response.status} ${await response.text()}`)
+      editStats = newEditStats('edit')
       const result = await response.json()
       showResult(request, result)
       pushHistory({ time: Date.now(), ...request, result })
@@ -406,8 +405,8 @@ export function setupScratchpad() {
       clearResult()
       track('wrench:scratch_open_link', { isa: getIsa() })
       return true
-    } catch {
-      status.textContent = 'ERROR: the shared link is broken'
+    } catch (error) {
+      status.textContent = `ERROR: the shared link is broken: ${error.message}`
       status.style.color = 'var(--c-orange)'
       return false
     } finally {
@@ -418,8 +417,12 @@ export function setupScratchpad() {
   const init = async () => {
     if (await openLink()) return
     const draft = load(DRAFT_KEY, null)
-    if (draft) fill(draft, 'draft')
-    else fill({ isa: getIsa(), ...starter(getIsa()) }, 'starter')
+    try {
+      if (draft) return fill(draft, 'draft')
+    } catch {
+      // A broken draft falls back to the starter.
+    }
+    fill({ isa: getIsa(), ...starter(getIsa()) }, 'starter')
   }
 
   window.addEventListener('hashchange', openLink)

@@ -481,14 +481,14 @@ dumpScratch conf ScratchRequest{isa, asm, config} = liftIO $ do
 
 -- | Nothing is kept on the server: the code goes to wrench on stdin, the config as text.
 runScratchWrench :: Config -> Text -> Text -> Text -> [String] -> IO (ExitCode, Text, Text)
-runScratchWrench Config{cWrenchPath, cWrenchArgs, cScratchLimits} isa asm config flags = do
+runScratchWrench Config{cWrenchPath, cWrenchArgs, cScratchLimits, cLogLimit} isa asm config flags = do
     let args =
             cWrenchArgs
                 <> concat (limitFlags cScratchLimits)
                 <> ["--isa", toString isa, "-", "--conf-text", toString config]
                 <> flags
     (exitCode, out, err) <- readProcessWithExitCode cWrenchPath args (toString asm)
-    return (exitCode, toText out, toText err)
+    return (exitCode, cropLog cLogLimit (toText out), toText err)
 
 limitFlags :: Limits -> [[String]]
 limitFlags Limits{lInstruction, lMemory, lStateLog} =
