@@ -8,6 +8,7 @@ module Wrench.Translator.Types (
     CodeToken (..),
     DataToken (..),
     DataValue (..),
+    WordOperand,
     ByteSize (..),
     IsWord,
     markupOffsets,
@@ -36,18 +37,18 @@ preprocess preprocessors src = foldlM (&) src preprocessors
 class DerefMnemonic m w where
     derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w
 
-data Section isa w l
+data Section isa w l a
     = Code
         { org :: Maybe Int
         , codeTokens :: ![CodeToken isa l]
         }
     | Data
         { org :: Maybe Int
-        , dataTokens :: ![DataToken w l]
+        , dataTokens :: ![DataToken w l a]
         }
     deriving (Show)
 
-instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
+instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l a) where
     byteSize Code{codeTokens} = sum $ map byteSize codeTokens
     byteSize Data{dataTokens} = sum $ map byteSize dataTokens
 
@@ -56,47 +57,46 @@ derefSection ::
     (ByteSize (isa (Ref w)), DerefMnemonic isa w, IsWord w, Show (isa w)) =>
     (Text -> Maybe w)
     -> w
-    -> Section (isa (Ref w)) w Text
-    -> Section (isa w) w w
+    -> Section (isa (Ref w)) w Text (WordOperand w)
+    -> Either Text (Section (isa w) w w w)
 derefSection f offset code@Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]
         marked = markupOffsets offset mnemonics
-     in code
-            { codeTokens =
-                map
-                    ( \(offset', m) ->
-                        let m' = derefMnemonic f offset' m
-                            -- Force every Ref-derived field of m' to WHNF so that
-                            -- an unresolved label aborts translation here, not
-                            -- lazily at execution when something happens to read
-                            -- the value (see issue #143). Walking @show@ visits
-                            -- every constructor field, which is enough since
-                            -- @w@ is a machine word and forcing it to WHNF is
-                            -- already full evaluation.
-                            !_ = length (show m' :: String)
-                         in Mnemonic m'
-                    )
-                    marked
-            }
-derefSection f _offset dt@Data{dataTokens} =
-    dt
-        { dataTokens =
-            map
-                ( \DataToken{dtLabel, dtValue} ->
-                    DataToken
-                        { dtLabel = fromMaybe (error $ "unknown label: " <> show dtLabel) $ f dtLabel
-                        , dtValue = dtValue
-                        }
-                )
-                dataTokens
-        }
+     in Right $
+            code
+                { codeTokens =
+                    map
+                        ( \(offset', m) ->
+                            let m' = derefMnemonic f offset' m
+                                -- Force every Ref-derived field of m' to WHNF so that
+                                -- an unresolved label aborts translation here, not
+                                -- lazily at execution when something happens to read
+                                -- the value (see issue #143). Walking @show@ visits
+                                -- every constructor field, which is enough since
+                                -- @w@ is a machine word and forcing it to WHNF is
+                                -- already full evaluation.
+                                !_ = length (show m' :: String)
+                             in Mnemonic m'
+                        )
+                        marked
+                }
+derefSection f _offset Data{org, dataTokens} = Data org <$> traverse resolveToken dataTokens
+    where
+        resolveToken DataToken{dtLabel, dtValue} = do
+            addr <- maybeToRight ("unknown label: " <> dtLabel) (f dtLabel)
+            value <- case dtValue of
+                DByte bs -> Right (DByte bs)
+                DWord ws -> DWord <$> traverse (either resolveAddress Right) ws
+            pure (DataToken addr value)
+        resolveAddress (pos, label) =
+            maybeToRight (toText (sourcePosPretty pos) <> ": can't resolve label: " <> show label) (f label)
 
 markupOffsets :: (ByteSize t, IsWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
 markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteSize m)) ms
 
-markupSectionOffsets :: (ByteSize isa, IsWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
+markupSectionOffsets :: (ByteSize isa, IsWord w) => w -> [Section isa w l a] -> [(w, Section isa w l a)]
 markupSectionOffsets _offset [] = []
 markupSectionOffsets offset (s : ss) =
     let offset' = Prelude.maybe offset toEnum (org s)
@@ -149,20 +149,22 @@ resolveRef valueGuard labelResolver ref =
             Right x -> x
             Left err -> error (pos <> ": " <> err)
 
-data DataToken w l = DataToken
+type WordOperand w = Either (SourcePos, Text) w
+
+data DataToken w l a = DataToken
     { dtLabel :: !l
-    , dtValue :: DataValue w
+    , dtValue :: DataValue w a
     }
     deriving (Show)
 
-instance (ByteSizeT w) => ByteSize (DataToken w l) where
+instance (ByteSizeT w) => ByteSize (DataToken w l a) where
     byteSize DataToken{dtValue} = byteSize dtValue
 
-data DataValue w
+data DataValue w a
     = DByte [Word8]
-    | DWord [w]
+    | DWord [a]
     deriving (Show)
 
-instance (ByteSizeT w) => ByteSize (DataValue w) where
+instance (ByteSizeT w) => ByteSize (DataValue w a) where
     byteSize (DByte xs) = length xs
     byteSize (DWord xs) = byteSizeT @w * length xs

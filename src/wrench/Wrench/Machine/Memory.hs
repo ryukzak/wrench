@@ -46,7 +46,7 @@ prepareDump ::
     (ByteSize isa, IsWord w) =>
     Int
     -> [Word8]
-    -> [Section isa w w]
+    -> [Section isa w w w]
     -> Either Text (Mem isa w)
 prepareDump memorySize fillBytes sections = do
     (_, sectionCells, _) <- foldlM place (0, [], emptyIntervals) sections
@@ -119,7 +119,7 @@ prepareDump memorySize fillBytes sections = do
              in (offset + length dump', dump' <> dump)
 
 -- | Translation-time layout summary derived from the section list.
-computeDumpStats :: (ByteSize isa, ByteSizeT w) => [Section isa w l] -> DumpStats
+computeDumpStats :: (ByteSize isa, ByteSizeT w) => [Section isa w l a] -> DumpStats
 computeDumpStats sections =
     let textBytes = sum [byteSize s | s@Code{} <- sections]
         dataBytes = sum [byteSize s | s@Data{} <- sections]
@@ -145,7 +145,7 @@ computeDumpStats sections =
 isValue Value{} = True
 isValue _ = False
 
-isText, isData :: Section isa w l -> Bool
+isText, isData :: Section isa w l a -> Bool
 isText Code{} = True
 isText _ = False
 isData Data{} = True
@@ -153,7 +153,7 @@ isData _ = False
 
 -- | Resolve each section's starting offset (respecting @.org@) and pair it
 --   with the section itself, in source order.
-walkSectionRanges :: (ByteSize isa, ByteSizeT w) => Int -> [Section isa w l] -> [(Section isa w l, Int)]
+walkSectionRanges :: (ByteSize isa, ByteSizeT w) => Int -> [Section isa w l a] -> [(Section isa w l a, Int)]
 walkSectionRanges _ [] = []
 walkSectionRanges offset (s : rest) =
     let start = fromMaybe offset (org s)
