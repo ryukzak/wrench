@@ -39,7 +39,7 @@ data St w
 
 evaluateLabels ::
     (ByteSize isa, IsWord w) =>
-    [Section isa w Text]
+    [Section isa w Text (WordOperand w)]
     -> Either Text (HashMap Text w)
 evaluateLabels sections =
     let markCodeToken st'@St{sOffset, sLabels} token =
@@ -87,7 +87,7 @@ translate preprocessors memorySize fillBytes fn src = do
     sections <- first (parseError src) $ parse asmParser fn src'
     labels <- evaluateLabels sections
     let resolveLabel l = labels !? l
-        code = map (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
+    code <- traverse (uncurry (derefSection resolveLabel)) (markupSectionOffsets 0 sections)
     dump <- prepareDump memorySize fillBytes code
     return $ TranslatorResult dump labels (computeDumpStats code)
     where

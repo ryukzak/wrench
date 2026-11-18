@@ -13,7 +13,7 @@ import Wrench.Translator.Types
 asmParser ::
     forall isa w.
     (IsWord w, MnemonicParser isa) =>
-    Parser [Section isa w Text]
+    Parser [Section isa w Text (WordOperand w)]
 asmParser =
     do
         let cstart = commentStart @isa
