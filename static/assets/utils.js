@@ -172,3 +172,30 @@ export function setupHideCommentsButton(buttonId, containerId, isaType) {
     }
   })
 }
+
+export function setupTabIndent(textareaId) {
+  const textarea = document.getElementById(textareaId)
+  if (!textarea) return
+
+  textarea.addEventListener('keydown', event => {
+    if (event.key !== 'Tab' || event.ctrlKey || event.metaKey || event.altKey) return
+    event.preventDefault()
+
+    const { value, selectionStart, selectionEnd } = textarea
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+    const blockEnd = selectionEnd > selectionStart && value[selectionEnd - 1] === '\n' ? selectionEnd - 1 : selectionEnd
+    let lineEnd = value.indexOf('\n', blockEnd)
+    if (lineEnd < 0) lineEnd = value.length
+    const lines = value.slice(lineStart, lineEnd).split('\n')
+    const deltas = lines.map(line => (event.shiftKey ? -line.match(/^ {0,4}/)[0].length : 4))
+    if (deltas.every(delta => delta === 0)) return
+
+    const block = lines.map((line, i) => (deltas[i] > 0 ? `    ${line}` : line.slice(-deltas[i]))).join('\n')
+    textarea.setSelectionRange(lineStart, lineEnd)
+    document.execCommand('insertText', false, block)
+
+    const start = Math.max(lineStart, selectionStart + deltas[0])
+    const end = Math.max(start, selectionEnd + deltas.reduce((a, b) => a + b, 0))
+    textarea.setSelectionRange(start, end)
+  })
+}
