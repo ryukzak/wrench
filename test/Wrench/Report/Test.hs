@@ -32,14 +32,6 @@ tests =
             rendered "{mem:table}" @?= Right "mem:table"
             rendered "{mem:0:0x0f}" @?= Right "mem:0:15"
             "usage: {mem:table}" `isErrorFor` "mem:table:hex"
-        , testCase "An old name still works, with a warning naming the new one" $ do
-            rendered "{memory:0:0x0f}" @?= Right "mem:0:15"
-            warnings "{memory:0:0x0f} {memory:table} {mem:table}"
-                @?= ["{memory:0:0x0f} is renamed, use {mem:0:0x0f}", "{memory:table} is renamed, use {mem:table}"]
-            "usage: {memory:table}" `isErrorFor` "memory:table:hex"
-        , testCase "mem:per-instruction is renamed to profile" $
-            either id fst (compileTemplate checkEnv (sharedViews @(RiscIvSt Int32)) "{mem:per-instruction}")
-                @?= ["{mem:per-instruction} is renamed, use {profile}"]
         , testCase "Errors name the problem and the usage" $ do
             "unknown format 'bin', one of: dec, hex, usage: {pc[:dec|hex]}" `isErrorFor` "pc:bin"
             "missing format, one of: dec, hex" `isErrorFor` "count"
@@ -67,19 +59,17 @@ tests =
 -- | Test views that render the key they parsed.
 testViews :: [View ()]
 testViews =
-    withRenames
-        [("memory:table", "mem:table"), ("memory", "mem")]
-        [ mkView (lit "pc" *> format [Dec, Hex] Dec) "" (\_ f -> "pc:" <> show f)
-        , mkView (lit "pc:label") "" (\_ () -> "pc:label")
-        , mkView (lit "mem:table") "" (\_ () -> "mem:table")
-        , checkedView (lit "mem" *> ((,) <$> arg "from" <*> arg "to")) "" range $ \_ (from, to) ->
-            "mem:" <> show from <> ":" <> show to
-        , mkView (lit "count" *> formatRequired [Dec, Hex]) "" (\_ f -> show f)
-        , mkView (lit "frames" *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) "" $ \_ (f, n) ->
-            "frames:" <> show f <> ":" <> show n
-        , mkView (lit "T1" *> format [Dec, Hex] Dec) "" (\_ _ -> "T1")
-        , mkView (lit "echo") "" (\_ () -> "{pc}")
-        ]
+    [ mkView (lit "pc" *> format [Dec, Hex] Dec) "" (\_ f -> "pc:" <> show f)
+    , mkView (lit "pc:label") "" (\_ () -> "pc:label")
+    , mkView (lit "mem:table") "" (\_ () -> "mem:table")
+    , checkedView (lit "mem" *> ((,) <$> arg "from" <*> arg "to")) "" range $ \_ (from, to) ->
+        "mem:" <> show from <> ":" <> show to
+    , mkView (lit "count" *> formatRequired [Dec, Hex]) "" (\_ f -> show f)
+    , mkView (lit "frames" *> ((,) <$> format [Dec, Hex] Dec <*> optArg "frames")) "" $ \_ (f, n) ->
+        "frames:" <> show f <> ":" <> show n
+    , mkView (lit "T1" *> format [Dec, Hex] Dec) "" (\_ _ -> "T1")
+    , mkView (lit "echo") "" (\_ () -> "{pc}")
+    ]
     where
         range CheckEnv{ceMemorySize} (from, to)
             | to >= ceMemorySize =
@@ -91,10 +81,7 @@ checkEnv :: CheckEnv
 checkEnv = CheckEnv{ceMemorySize = 16, ceIoPorts = [0]}
 
 rendered :: Text -> Either [Text] Text
-rendered input = (`renderTemplate` ()) . snd <$> compileTemplate checkEnv testViews input
-
-warnings :: Text -> [Text]
-warnings input = either id fst (compileTemplate checkEnv testViews input)
+rendered input = (`renderTemplate` ()) <$> compileTemplate checkEnv testViews input
 
 isErrorFor :: Text -> Text -> Assertion
 isErrorFor expected key = case rendered ("{" <> key <> "}") of

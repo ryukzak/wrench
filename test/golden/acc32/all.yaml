@@ -5,9 +5,9 @@ reports:
   - name: Access cost per instruction
     slice: all
     view: |
-      reads: {memReads:dec}, writes: {memWrites:dec} -- {instruction:prev}
+      reads: {mem:reads:dec}, writes: {mem:writes:dec} -- {instruction:prev}
   - name: Totals
     slice: last
     view: |
       instructions: {sim:instruction-count}
-      reads: {memReadsTotal:dec} writes: {memWritesTotal:dec} accesses: {memAccessesTotal:dec}
+      reads: {mem:reads-total:dec} writes: {mem:writes-total:dec} accesses: {mem:accesses-total:dec}

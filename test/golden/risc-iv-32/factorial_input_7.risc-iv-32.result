@@ -1,7 +1,3 @@
-warning: report "step-by-step": {T0} is renamed, use {t0}
-warning: report "step-by-step": {T1} is renamed, use {t1}
-warning: report "step-by-step": {T2} is renamed, use {t2}
-warning: report "step-by-step": {T3} is renamed, use {t3}
 ---
 # step-by-step
 0 0 0 0
