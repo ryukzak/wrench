@@ -39,7 +39,7 @@ data St w
 
 evaluateLabels ::
     (ByteSize isa, IsWord w) =>
-    [Section isa w Text (WordOperand w)]
+    [Section isa w Text]
     -> Either Text (HashMap Text w)
 evaluateLabels sections =
     let markCodeToken st'@St{sOffset, sLabels} token =

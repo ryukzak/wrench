@@ -8,7 +8,7 @@ module Wrench.Translator.Types (
     CodeToken (..),
     DataToken (..),
     DataValue (..),
-    WordOperand,
+    WordOperand (..),
     ByteSize (..),
     IsWord,
     markupOffsets,
@@ -37,18 +37,18 @@ preprocess preprocessors src = foldlM (&) src preprocessors
 class DerefMnemonic m w where
     derefMnemonic :: (Text -> Maybe w) -> w -> m (Ref w) -> m w
 
-data Section isa w l a
+data Section isa w l
     = Code
         { org :: Maybe Int
         , codeTokens :: ![CodeToken isa l]
         }
     | Data
         { org :: Maybe Int
-        , dataTokens :: ![DataToken w l a]
+        , dataTokens :: ![DataToken w l]
         }
     deriving (Show)
 
-instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l a) where
+instance (ByteSize isa, ByteSizeT w) => ByteSize (Section isa w l) where
     byteSize Code{codeTokens} = sum $ map byteSize codeTokens
     byteSize Data{dataTokens} = sum $ map byteSize dataTokens
 
@@ -57,8 +57,8 @@ derefSection ::
     (ByteSize (isa (Ref w)), DerefMnemonic isa w, IsWord w, Show (isa w)) =>
     (Text -> Maybe w)
     -> w
-    -> Section (isa (Ref w)) w Text (WordOperand w)
-    -> Either Text (Section (isa w) w w w)
+    -> Section (isa (Ref w)) w Text
+    -> Either Text (Section (isa w) w w)
 derefSection f offset code@Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]
@@ -87,16 +87,18 @@ derefSection f _offset Data{org, dataTokens} = Data org <$> traverse resolveToke
             addr <- maybeToRight ("unknown label: " <> dtLabel) (f dtLabel)
             value <- case dtValue of
                 DByte bs -> Right (DByte bs)
-                DWord ws -> DWord <$> traverse (either resolveAddress Right) ws
+                DWord ws -> DWord <$> traverse resolveOperand ws
             pure (DataToken addr value)
-        resolveAddress (pos, label) =
+        resolveOperand (Literal w) = Right (Literal w)
+        resolveOperand (LabelAddress pos label) = Literal <$> resolveAddress pos label
+        resolveAddress pos label =
             maybeToRight (toText (sourcePosPretty pos) <> ": can't resolve label: " <> show label) (f label)
 
 markupOffsets :: (ByteSize t, IsWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
 markupOffsets offset (m : ms) = (offset, m) : markupOffsets (offset + toEnum (byteSize m)) ms
 
-markupSectionOffsets :: (ByteSize isa, IsWord w) => w -> [Section isa w l a] -> [(w, Section isa w l a)]
+markupSectionOffsets :: (ByteSize isa, IsWord w) => w -> [Section isa w l] -> [(w, Section isa w l)]
 markupSectionOffsets _offset [] = []
 markupSectionOffsets offset (s : ss) =
     let offset' = Prelude.maybe offset toEnum (org s)
@@ -149,22 +151,23 @@ resolveRef valueGuard labelResolver ref =
             Right x -> x
             Left err -> error (pos <> ": " <> err)
 
-type WordOperand w = Either (SourcePos, Text) w
+data WordOperand w l = Literal w | LabelAddress SourcePos l
+    deriving (Show)
 
-data DataToken w l a = DataToken
+data DataToken w l = DataToken
     { dtLabel :: !l
-    , dtValue :: DataValue w a
+    , dtValue :: DataValue w l
     }
     deriving (Show)
 
-instance (ByteSizeT w) => ByteSize (DataToken w l a) where
+instance (ByteSizeT w) => ByteSize (DataToken w l) where
     byteSize DataToken{dtValue} = byteSize dtValue
 
-data DataValue w a
+data DataValue w l
     = DByte [Word8]
-    | DWord [a]
+    | DWord [WordOperand w l]
     deriving (Show)
 
-instance (ByteSizeT w) => ByteSize (DataValue w a) where
+instance (ByteSizeT w) => ByteSize (DataValue w l) where
     byteSize (DByte xs) = length xs
     byteSize (DWord xs) = byteSizeT @w * length xs

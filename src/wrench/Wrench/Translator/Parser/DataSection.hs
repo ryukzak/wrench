@@ -13,7 +13,7 @@ import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
 import Wrench.Translator.Types
 
-dataSection :: (IsWord w) => String -> Parser (Section isa w Text (WordOperand w))
+dataSection :: (IsWord w) => String -> Parser (Section isa w Text)
 dataSection cstart = do
     string ".data" >> eol' cstart
     items <-
@@ -27,21 +27,21 @@ dataSection cstart = do
                 )
     return $ Data (sectionOrg items) $ sectionItems items
 
-dataSectionItemM :: (IsWord w) => String -> Parser (DataToken w Text (WordOperand w))
+dataSectionItemM :: (IsWord w) => String -> Parser (DataToken w Text)
 dataSectionItemM cstart = do
     n <- label
     hspace1
     DataToken n <$> dataValue cstart
 
-dataValue :: forall w. (IsWord w) => String -> Parser (DataValue w (WordOperand w))
+dataValue :: forall w. (IsWord w) => String -> Parser (DataValue w Text)
 dataValue cstart =
     choice
         [ DByte <$> directive ".byte" (stringArray <|> (singleton <$> byteLiteral))
         , DWord <$> directive ".word" wordItem
         ]
     where
-        wordItem = (map Right <$> stringArray) <|> (singleton <$> operand)
-        operand = (Right <$> wordLiteral) <|> (Left <$> ((,) <$> getSourcePos <*> labelRef))
+        wordItem = (map Literal <$> stringArray) <|> (singleton <$> operand)
+        operand = (Literal <$> wordLiteral) <|> (LabelAddress <$> getSourcePos <*> labelRef)
         directive :: String -> Parser [a] -> Parser [a]
         directive keyword item = do
             void $ string keyword
