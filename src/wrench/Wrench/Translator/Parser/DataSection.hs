@@ -6,8 +6,8 @@ module Wrench.Translator.Parser.DataSection (
 
 import Data.List (singleton)
 import Relude
-import Text.Megaparsec (choice, manyTill, sepBy, try)
-import Text.Megaparsec.Char (char, hspace, hspace1, string)
+import Text.Megaparsec (choice, getSourcePos, manyTill, sepBy, try)
+import Text.Megaparsec.Char (char, hspace1, string)
 import Text.Megaparsec.Char.Lexer (charLiteral)
 import Wrench.Translator.Parser.Misc
 import Wrench.Translator.Parser.Types
@@ -33,18 +33,22 @@ dataSectionItemM cstart = do
     hspace1
     DataToken n <$> dataValue cstart
 
-dataValue :: forall w. (IsWord w) => String -> Parser (DataValue w)
-dataValue cstart = choice [directive ".byte" byteLiteral DByte, directive ".word" wordLiteral DWord]
+dataValue :: forall w. (IsWord w) => String -> Parser (DataValue w Text)
+dataValue cstart =
+    choice
+        [ DByte <$> directive ".byte" (stringArray <|> (singleton <$> byteLiteral))
+        , DWord <$> directive ".word" wordItem
+        ]
     where
-        directive :: (Num a) => String -> Parser a -> ([a] -> DataValue w) -> Parser (DataValue w)
-        directive keyword item wrap = do
+        wordItem = (map Literal <$> stringArray) <|> (singleton <$> operand)
+        operand = (Literal <$> wordLiteral) <|> (LabelAddress <$> getSourcePos <*> labelRef)
+        directive :: String -> Parser [a] -> Parser [a]
+        directive keyword item = do
             void $ string keyword
             hspace1
-            values <- items item
+            values <- concat <$> sepBy item (try comma)
             eol' cstart
-            return $ wrap values
-        items :: (Num a) => Parser a -> Parser [a]
-        items item = concat <$> sepBy (choice [stringArray, singleton <$> item]) (try (hspace >> string "," >> hspace))
+            pure values
 
 stringArray :: (Num a) => Parser [a]
 stringArray = do

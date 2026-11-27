@@ -73,6 +73,32 @@ tests =
                         let msg' = toText msg
                         assertBool ("no source position in: " <> msg) ("typo.s:3:" `isInfixOf` msg')
                         assertBool ("no label name in: " <> msg) ("nowhere" `isInfixOf` msg')
+            , testCase "Word initializers resolve absolute data and code addresses" $ do
+                let src =
+                        toString $
+                            unlines
+                                [ ".data"
+                                , ".org 32"
+                                , "buffer: .word 'ab'"
+                                , "cursor: .word buffer, later, cursor, 'XY', -1, entry"
+                                , "later: .word 0"
+                                , ".text"
+                                , ".org 128"
+                                , "entry:"
+                                , "halt"
+                                ]
+                case translate @RiscIv.RiscIvIsa @Int32 [] 256 (repeat 0) "data.s" src of
+                    Left err -> assertFailure (toString err)
+                    Right TranslatorResult{dump} ->
+                        traverse (fmap snd . readWord dump) [40, 44 .. 64]
+                            @?= Right [32, 68, 40, 88, 89, -1, 128]
+            , testCase "Undefined data initializer reports operand position" $ do
+                let src = ".data\nptr: .word 0, missing\n"
+                case translate @RiscIv.RiscIvIsa @Int32 [] 256 (repeat 0) "data.s" src of
+                    Right _ -> assertFailure "unexpectedly resolved missing"
+                    Left err ->
+                        assertBool (toString err) $
+                            "data.s:2:15" `isInfixOf` err && "missing" `isInfixOf` err
             , testCase "A data value too wide for the word reports its position" $ do
                 let src = toString $ unlines ["    .data", "big: .word 0xFFFFFFFF, 4294967297"]
                 case translate @RiscIv.RiscIvIsa @Int32 [] 1000 (repeat 0) "data.s" src of

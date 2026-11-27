@@ -8,6 +8,7 @@ module Wrench.Translator.Types (
     CodeToken (..),
     DataToken (..),
     DataValue (..),
+    WordOperand (..),
     ByteSize (..),
     IsWord,
     markupOffsets,
@@ -57,40 +58,41 @@ derefSection ::
     (Text -> Maybe w)
     -> w
     -> Section (isa (Ref w)) w Text
-    -> Section (isa w) w w
+    -> Either Text (Section (isa w) w w)
 derefSection f offset code@Code{codeTokens} =
     let mnemonics = [m | Mnemonic m <- codeTokens]
         marked :: [(w, isa (Ref w))]
         marked = markupOffsets offset mnemonics
-     in code
-            { codeTokens =
-                map
-                    ( \(offset', m) ->
-                        let m' = derefMnemonic f offset' m
-                            -- Force every Ref-derived field of m' to WHNF so that
-                            -- an unresolved label aborts translation here, not
-                            -- lazily at execution when something happens to read
-                            -- the value (see issue #143). Walking @show@ visits
-                            -- every constructor field, which is enough since
-                            -- @w@ is a machine word and forcing it to WHNF is
-                            -- already full evaluation.
-                            !_ = length (show m' :: String)
-                         in Mnemonic m'
-                    )
-                    marked
-            }
-derefSection f _offset dt@Data{dataTokens} =
-    dt
-        { dataTokens =
-            map
-                ( \DataToken{dtLabel, dtValue} ->
-                    DataToken
-                        { dtLabel = fromMaybe (error $ "unknown label: " <> show dtLabel) $ f dtLabel
-                        , dtValue = dtValue
-                        }
-                )
-                dataTokens
-        }
+     in Right $
+            code
+                { codeTokens =
+                    map
+                        ( \(offset', m) ->
+                            let m' = derefMnemonic f offset' m
+                                -- Force every Ref-derived field of m' to WHNF so that
+                                -- an unresolved label aborts translation here, not
+                                -- lazily at execution when something happens to read
+                                -- the value (see issue #143). Walking @show@ visits
+                                -- every constructor field, which is enough since
+                                -- @w@ is a machine word and forcing it to WHNF is
+                                -- already full evaluation.
+                                !_ = length (show m' :: String)
+                             in Mnemonic m'
+                        )
+                        marked
+                }
+derefSection f _offset Data{org, dataTokens} = Data org <$> traverse resolveToken dataTokens
+    where
+        resolveToken DataToken{dtLabel, dtValue} = do
+            addr <- maybeToRight ("unknown label: " <> dtLabel) (f dtLabel)
+            value <- case dtValue of
+                DByte bs -> Right (DByte bs)
+                DWord ws -> DWord <$> traverse resolveOperand ws
+            pure (DataToken addr value)
+        resolveOperand (Literal w) = Right (Literal w)
+        resolveOperand (LabelAddress pos label) = Literal <$> resolveAddress pos label
+        resolveAddress pos label =
+            maybeToRight (toText (sourcePosPretty pos) <> ": can't resolve label: " <> show label) (f label)
 
 markupOffsets :: (ByteSize t, IsWord w) => w -> [t] -> [(w, t)]
 markupOffsets _offset [] = []
@@ -149,20 +151,23 @@ resolveRef valueGuard labelResolver ref =
             Right x -> x
             Left err -> error (pos <> ": " <> err)
 
+data WordOperand w l = Literal w | LabelAddress SourcePos l
+    deriving (Show)
+
 data DataToken w l = DataToken
     { dtLabel :: !l
-    , dtValue :: DataValue w
+    , dtValue :: DataValue w l
     }
     deriving (Show)
 
 instance (ByteSizeT w) => ByteSize (DataToken w l) where
     byteSize DataToken{dtValue} = byteSize dtValue
 
-data DataValue w
+data DataValue w l
     = DByte [Word8]
-    | DWord [w]
+    | DWord [WordOperand w l]
     deriving (Show)
 
-instance (ByteSizeT w) => ByteSize (DataValue w) where
+instance (ByteSizeT w) => ByteSize (DataValue w l) where
     byteSize (DByte xs) = length xs
     byteSize (DWord xs) = byteSizeT @w * length xs

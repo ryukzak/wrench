@@ -108,8 +108,11 @@ prepareDump memorySize fillBytes sections = do
                             Value
                             $ case dtValue of
                                 DByte bs -> bs
-                                DWord ws -> concatMap wordSplit ws
+                                DWord ws -> concatMap (wordSplit . operandValue) ws
                 )
+
+        operandValue (Literal w) = w
+        operandValue (LabelAddress _ addr) = addr
 
         sectionKind Code{} = "text" :: Text
         sectionKind Data{} = "data"

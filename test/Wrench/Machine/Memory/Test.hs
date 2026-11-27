@@ -321,4 +321,4 @@ sectionOverlapTests =
         codeSection n = Code{org = Just n, codeTokens = [Mnemonic (Isa 4)]}
 
         dataSection :: Int -> Section Isa Int32 Int32
-        dataSection n = Data{org = Just n, dataTokens = [DataToken{dtLabel = 0, dtValue = DWord [0]}]}
+        dataSection n = Data{org = Just n, dataTokens = [DataToken{dtLabel = 0, dtValue = DWord [Literal 0]}]}
